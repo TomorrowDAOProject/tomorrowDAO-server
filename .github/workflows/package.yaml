@@ -11,7 +11,13 @@ jobs:
     runs-on: tmrwdao-runner
     strategy:
       matrix:
-        servicename: [TomorrowDAOServer.Silo,TomorrowDAOServer.AuthServer,TomorrowDAOServer.EntityEventHandler,TomorrowDAOServer.HttpApi.Host] # This should be the app that needs to be deploy.
+        servicename:
+          [
+            TomorrowDAOServer.Silo,
+            TomorrowDAOServer.AuthServer,
+            TomorrowDAOServer.EntityEventHandler,
+            TomorrowDAOServer.HttpApi.Host
+          ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -26,10 +32,16 @@ jobs:
           retention-days: 1
   build-and-push-image:
     needs: publish
-    runs-on: ubuntu-latest
+    runs-on: tmrwdao-runner
     strategy:
       matrix:
-        servicename: [TomorrowDAOServer.Silo,TomorrowDAOServer.AuthServer,TomorrowDAOServer.EntityEventHandler,TomorrowDAOServer.HttpApi.Host] # This should be the list of app that needs to be deploy.
+        servicename:
+          [
+            tmrwdao-server-silo,
+            tmrwdao-server-authserver,
+            tmrwdao-server-entityeventhandler,
+            tmrwdao-server-httpapi-host
+          ]
     permissions:
       contents: read
     outputs:
