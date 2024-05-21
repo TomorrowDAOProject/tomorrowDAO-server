@@ -37,10 +37,10 @@ jobs:
       matrix:
         servicename:
           [
-            tmrwdao-server-silo,
-            tmrwdao-server-authserver,
-            tmrwdao-server-entityeventhandler,
-            tmrwdao-server-httpapi-host
+            TomorrowDAOServer.Silo,
+            TomorrowDAOServer.AuthServer,
+            TomorrowDAOServer.EntityEventHandler,
+            TomorrowDAOServer.HttpApi.Host
           ]
     permissions:
       contents: read
