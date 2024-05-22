@@ -4,7 +4,7 @@ using TomorrowDAOServer.Entities;
 
 namespace TomorrowDAOServer.Proposal.Dto;
 
-public class ProposalDto
+public class ProposalBasicDto
 {
     public string ChainId { get; set; }
     public long BlockHeight { get; set; }
@@ -43,9 +43,7 @@ public class ProposalDto
     public ExecuteTransaction Transaction { get; set; }
 
     public string VoteSchemeId { get; set; }
-
-    public string VoteMechanismName { get; set; }
-
+    
     public string VetoProposalId { get; set; }
 
     public DateTime DeployTime { get; set; }
@@ -66,16 +64,13 @@ public class ProposalDto
 
     //percentage    
     public long MaximalAbstentionThreshold { get; set; }
+    
+    public ProposalSourceEnum ProposalSource { get; set; }
+}
 
-    // public long ActiveTimePeriod { get; set; }
-    //
-    // public long VetoActiveTimePeriod { get; set; }
-    //
-    // public long PendingTimePeriod { get; set; }
-    //
-    // public long ExecuteTimePeriod { get; set; }
-    //
-    // public long VetoExecuteTimePeriod { get; set; }
+public class ProposalDto : ProposalBasicDto
+{
+    public string VoteMechanismName { get; set; }
 
     //vote count info
     public long VoterCount { get; set; }
@@ -91,6 +86,4 @@ public class ProposalDto
     public string Decimals { get; set; }
 
     public string Symbol { get; set; }
-    
-    public ProposalSourceEnum ProposalSource { get; set; }
 }

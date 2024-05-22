@@ -17,6 +17,7 @@ public interface IScriptService
     public Task<List<string>> GetCurrentBPAsync(string chainId);
     
     public Task<long> GetCurrentBPRoundAsync(string chainId);
+    public Task<List<string>> GetCurrentHCAsync(string chainId, string daoId);
 }
 
 public class ScriptService : IScriptService, ITransientDependency
@@ -45,5 +46,12 @@ public class ScriptService : IScriptService, ITransientDependency
         var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
         var result = await _transactionService.CallTransactionAsync<GetCurrentMinerListWithRoundNumberDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.ConsensusContractAddress, ContractConstants.GetCurrentMinerListWithRoundNumber);
         return result?.RoundNumber ?? 0L;
+    }
+
+    public async Task<List<string>> GetCurrentHCAsync(string chainId, string daoId)
+    {
+        var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
+        var result = await _transactionService.CallTransactionAsync<GetVictoriesDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.ElectionContractAddress, ContractConstants.GetVictories, Hash.LoadFromHex(daoId));
+        return result?.Value ?? new List<string>();
     }
 }

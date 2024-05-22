@@ -21,7 +21,7 @@ public class ProposalController : AbpController
     }
 
     [HttpPost("list")]
-    public async Task<ProposalPagedResultDto> QueryProposalListAsync(QueryProposalListInput input)
+    public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
          return await _proposalService.QueryProposalListAsync(input);
     }
@@ -48,7 +48,7 @@ public class ProposalController : AbpController
     }
 
     [HttpGet("executable-list")]
-    public async Task<ProposalPagedResultDto> QueryExecutableProposalsAsync(QueryExecutableProposalsInput input)
+    public async Task<ProposalPagedResultDto<ProposalBasicDto>> QueryExecutableProposalsAsync(QueryExecutableProposalsInput input)
     {
         return await _proposalService.QueryExecutableProposalsAsync(input);
     }

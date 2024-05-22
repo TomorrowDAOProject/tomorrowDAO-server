@@ -24,6 +24,7 @@ using Nito.AsyncEx;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Provider;
+using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Providers;
@@ -47,10 +48,12 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private readonly ILogger<ProposalProvider> _logger;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGraphQLProvider _graphQlProvider;
+    private readonly IScriptService _scriptService;
     private const int ProposalOnceWithdrawMax = 500;
+    private Dictionary<string, Tuple<List<string>, long>> _hcDic = new();
 
     public ProposalService(IObjectMapper objectMapper, IProposalProvider proposalProvider, IVoteProvider voteProvider,
-        IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
+        IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService,
         IProposalAssistService proposalAssistService,
         IDAOProvider DAOProvider, IOptionsMonitor<ProposalTagOptions> proposalTagOptionsMonitor,
         ILogger<ProposalProvider> logger)
@@ -64,15 +67,16 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         _proposalAssistService = proposalAssistService;
         _explorerProvider = explorerProvider;
         _graphQlProvider = graphQlProvider;
+        _scriptService = scriptService;
     }
 
-    public async Task<ProposalPagedResultDto> QueryProposalListAsync(QueryProposalListInput input)
+    public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
         var councilMemberCountTask = GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId);
         var (total, proposalList) = await GetProposalListFromMultiSourceAsync(input);
         if (proposalList.IsNullOrEmpty())
         {
-            return new ProposalPagedResultDto();
+            return new ProposalPagedResultDto<ProposalDto>();
         }
 
         //query proposal vote infos
@@ -130,7 +134,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             proposal.Decimals = symbolDecimal;
         }
 
-        var proposalPagedResultDto = new ProposalPagedResultDto
+        var proposalPagedResultDto = new ProposalPagedResultDto<ProposalDto>
         {
             Items = proposalList,
             TotalCount = total,
@@ -607,7 +611,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return voteHistoryDto;
     }
 
-    public async Task<ProposalPagedResultDto> QueryExecutableProposalsAsync(QueryExecutableProposalsInput input)
+    public async Task<ProposalPagedResultDto<ProposalBasicDto>> QueryExecutableProposalsAsync(QueryExecutableProposalsInput input)
     {
         _logger.LogInformation("query executable proposals,  daoid={0}, proposalor={1}", input.DaoId, input.Proposer);
         var proposalIndex =
@@ -623,15 +627,15 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             });
         if (proposalIndex == null || proposalIndex.Item2.IsNullOrEmpty())
         {
-            return new ProposalPagedResultDto();
+            return new ProposalPagedResultDto<ProposalBasicDto>();
         }
         _logger.LogInformation("query executable proposals result:{0}", JsonConvert.SerializeObject(proposalIndex));
         
-        var ProposalDtoList = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndex.Item2);
+        var proposalDtoList = _objectMapper.Map<List<ProposalIndex>, List<ProposalBasicDto>>(proposalIndex.Item2);
 
-        return new ProposalPagedResultDto
+        return new ProposalPagedResultDto<ProposalBasicDto>
         {
-            Items = ProposalDtoList,
+            Items = proposalDtoList,
             TotalCount = proposalIndex.Item1,
         };
     }
@@ -648,8 +652,19 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return true;
         }
 
-        // HC can not vote this version
-        return daoIndex.IsNetworkDAO && (await _graphQlProvider.GetBPAsync(daoIndex.ChainId)).Contains(address);
+        if (daoIndex.IsNetworkDAO)
+        {
+            return (await _graphQlProvider.GetBPAsync(daoIndex.ChainId)).Contains(address);
+        }
+
+        if (_hcDic.TryGetValue(daoIndex.Id, out var value) && DateTime.UtcNow.ToUtcMilliSeconds() - value.Item2 <= 10 * 60 * 1000)
+        {
+            return value.Item1.Contains(address);
+        }
+
+        var currentHc = await _scriptService.GetCurrentHCAsync(daoIndex.ChainId, daoIndex.Id);
+        _hcDic[daoIndex.Id] = new Tuple<List<string>, long>(currentHc, DateTime.UtcNow.ToUtcMilliSeconds());
+        return currentHc.Contains(address);
     }
 
     private static bool CanWithdraw(DateTime endTime, List<string> votingItemIdList, string proposalId, bool isUniqueVote = false)

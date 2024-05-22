@@ -51,6 +51,16 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.GovernanceMechanism, opt
                 => opt.MapFrom(source => source.GovernanceMechanism.ToString()))
             ;
+        CreateMap<ProposalIndex, ProposalBasicDto>()
+            .ForMember(des => des.ProposalType, opt
+                => opt.MapFrom(source => source.ProposalType.ToString()))
+            .ForMember(des => des.ProposalStatus, opt
+                => opt.MapFrom(source => source.ProposalStatus.ToString()))
+            .ForMember(des => des.ProposalStage, opt
+                => opt.MapFrom(source => source.ProposalStage.ToString()))
+            .ForMember(des => des.GovernanceMechanism, opt
+                => opt.MapFrom(source => source.GovernanceMechanism.ToString()))
+            ;
         CreateMap<ProposalIndex, ProposalDetailDto>();
         CreateMap<ProposalIndex, MyProposalDto>();
         CreateMap<IndexerVote, ProposalDto>();
