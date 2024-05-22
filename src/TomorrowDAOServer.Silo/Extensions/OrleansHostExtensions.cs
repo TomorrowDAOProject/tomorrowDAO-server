@@ -49,7 +49,7 @@ public static class OrleansHostExtensions
         Log.Logger.Warning("==  ClusterId: {0}", Environment.GetEnvironmentVariable("ORLEANS_CLUSTER_ID"));
         Log.Logger.Warning("==  ServiceId: {0}", Environment.GetEnvironmentVariable("ORLEANS_SERVICE_ID"));
         Log.Logger.Warning("==Configuration");
-        siloBuilder.UseKubernetesHosting()
+        siloBuilder /*.UseKubernetesHosting()*/
             .ConfigureEndpoints(advertisedIP: IPAddress.Parse(Environment.GetEnvironmentVariable("POD_IP") ?? string.Empty),
                 siloPort: configSection.GetValue<int>("SiloPort"),
                 gatewayPort: configSection.GetValue<int>("GatewayPort"), listenOnAnyHostAddress: true)
