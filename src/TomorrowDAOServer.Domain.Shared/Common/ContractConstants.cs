@@ -5,4 +5,5 @@ public class ContractConstants
     public const string GetCurrentMinerPubkeyList = "GetCurrentMinerPubkeyList";
     public const string GetCurrentMinerListWithRoundNumber = "GetCurrentMinerListWithRoundNumber";
     public const string GetVictories = "GetVictories";
+    public const string GetProposalInfo = "GetProposalInfo";
 }

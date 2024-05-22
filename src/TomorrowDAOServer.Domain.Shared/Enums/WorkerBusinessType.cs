@@ -5,5 +5,6 @@ public enum WorkerBusinessType
     ProposalSync,
     ProposalExpired,
     DAOSync,
-    BPInfoUpdate
+    BPInfoUpdate,
+    ProposalNewUpdate
 }

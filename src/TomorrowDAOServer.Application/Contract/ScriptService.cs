@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ public interface IScriptService
     
     public Task<long> GetCurrentBPRoundAsync(string chainId);
     public Task<List<string>> GetCurrentHCAsync(string chainId, string daoId);
+    public Task<GetProposalInfoDto> GetProposalInfoAsync(string chainId, string proposalId);
 }
 
 public class ScriptService : IScriptService, ITransientDependency
@@ -53,5 +55,21 @@ public class ScriptService : IScriptService, ITransientDependency
         var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
         var result = await _transactionService.CallTransactionAsync<GetVictoriesDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.ElectionContractAddress, ContractConstants.GetVictories, Hash.LoadFromHex(daoId));
         return result?.Value ?? new List<string>();
+    }
+
+    public async Task<GetProposalInfoDto> GetProposalInfoAsync(string chainId, string proposalId)
+    {
+        try
+        {
+            var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
+            var result = await _transactionService.CallTransactionAsync<GetProposalInfoDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.GovernanceContractAddress, ContractConstants.GetProposalInfo, Hash.LoadFromHex(proposalId));
+            return result;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetProposalInfoAsync Exception chainId {chainId} proposalId {proposalId}", chainId, proposalId);
+            return null;
+        }
+        
     }
 }

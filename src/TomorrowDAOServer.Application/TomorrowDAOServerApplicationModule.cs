@@ -38,6 +38,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         context.Services.AddTransient<IScheduleSyncDataService, ProposalSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, ProposalUpdateService>();
+        context.Services.AddTransient<IScheduleSyncDataService, ProposalNewUpdateService>();
         context.Services.AddTransient<IScheduleSyncDataService, DAOSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, BPInfoUpdateService>();
         context.Services.AddHttpClient();

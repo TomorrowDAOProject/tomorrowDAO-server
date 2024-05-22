@@ -32,6 +32,8 @@ public interface IProposalProvider
     public Task BulkAddOrUpdateAsync(List<ProposalIndex> list);
 
     public Task<List<ProposalIndex>> GetNonFinishedProposalListAsync(int skipCount, List<ProposalStage> stageList);
+    
+    public Task<List<ProposalIndex>> GetNeedChangeProposalListAsync(int skipCount);
 
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
 }
@@ -217,6 +219,38 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         var tuple = await _proposalIndexRepository.GetListAsync(Filter, skip: skipCount, sortType: SortOrder.Ascending,
             sortExp: o => o.BlockHeight);
         return tuple.Item2;
+    }
+    
+    public async Task<List<ProposalIndex>> GetNeedChangeProposalListAsync(int skipCount)
+    {
+        var currentStr = DateTime.UtcNow.ToString("O");
+        var activeMustQuery = GetNeedChangeMustQuery(ProposalStage.Active,
+            tr => tr.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).LessThan(currentStr));
+        var pendingMustQuery = GetNeedChangeMustQuery(ProposalStage.Pending,
+            tr => tr.Field(f => f.ExecuteStartTime.ToUtcMilliSeconds()).LessThan(currentStr));;
+        var executeMustQuery = GetNeedChangeMustQuery(ProposalStage.Execute,
+            tr => tr.Field(f => f.ExecuteEndTime.ToUtcMilliSeconds()).LessThan(currentStr));;
+        var shouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Bool(b => b.Must(activeMustQuery)),
+            q => q.Bool(b => b.Must(pendingMustQuery)),
+            q => q.Bool(b => b.Must(executeMustQuery))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) =>
+            f.Bool(b => b.Should(shouldQuery).MinimumShouldMatch(1));
+       
+        var tuple = await _proposalIndexRepository.GetListAsync(Filter, skip: skipCount, sortType: SortOrder.Ascending,
+            sortExp: o => o.BlockHeight);
+        return tuple.Item2;
+    }
+
+    private List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> GetNeedChangeMustQuery(ProposalStage proposalStage, Func<TermRangeQueryDescriptor<ProposalIndex>, ITermRangeQuery> selector)
+    {
+        return new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(t => t.Field(f => f.ProposalStage).Value(proposalStage)),
+            q => q.TermRange(selector)
+        };
     }
 
     private static void AssemblyBaseQuery(QueryProposalListInput input,

@@ -45,7 +45,22 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
 
     public async Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<IndexerProposal> list)
     {
-        return await ConvertProposalList(chainId, _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list));
+        var proposalIds = list.Select(x => x.ProposalId).ToList();
+        var serverProposalList = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
+        var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
+        foreach (var proposal in list)
+        {
+            if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
+            {
+                continue;
+            }
+
+            proposal.ProposalStatus = serverProposal.ProposalStatus;
+            proposal.ProposalStage = serverProposal.ProposalStage;
+        }
+
+        return _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+        // return await ConvertProposalList(chainId, _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list));
     }
 
     public async Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<ProposalIndex> list)

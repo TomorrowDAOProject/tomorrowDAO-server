@@ -14,4 +14,5 @@ public class QueryContractInfo
     public string PrivateKey { get; set; }
     public string ConsensusContractAddress { get; set; }
     public string ElectionContractAddress { get; set; }
+    public string GovernanceContractAddress { get; set; }
 }

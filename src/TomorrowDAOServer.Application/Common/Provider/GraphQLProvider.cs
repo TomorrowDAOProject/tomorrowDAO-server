@@ -75,7 +75,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         try
         {
             var grain = _clusterClient.GetGrain<IBPGrain>(chainId);
-            return await grain.GetBPAsync();
+            return await grain.GetBPAsync() ?? new List<string>();
         }
         catch (Exception e)
         {
