@@ -18,35 +18,37 @@ public static class OrleansHostExtensions
 {
     public static IHostBuilder UseOrleansSnapshot(this IHostBuilder hostBuilder)
     {
+        Log.Logger.Warning("==UseOrleansSnapshot...");
         return hostBuilder.UseOrleans((context, siloBuilder) =>
         {
             //Configure OrleansSnapshot
             var configSection = context.Configuration.GetSection("Orleans");
+            Log.Logger.Warning("==Orleans.IsRunningInKubernetes={0}", configSection.GetValue<bool>("IsRunningInKubernetes"));
             if (configSection.GetValue<bool>("IsRunningInKubernetes"))
             {
-                Log.Logger.Debug("==Use kubernetes hosting...");
+                Log.Logger.Warning("==Use kubernetes hosting...");
                 UseKubernetesHostClustering(siloBuilder, configSection);
-                Log.Logger.Debug("==Use kubernetes hosting end...");
+                Log.Logger.Warning("==Use kubernetes hosting end...");
             }
             else
             {
-                Log.Logger.Debug("==Use docker hosting...");
+                Log.Logger.Warning("==Use docker hosting...");
                 UseDockerHostClustering(siloBuilder, configSection);
-                Log.Logger.Debug("==Use docker hosting end...");
+                Log.Logger.Warning("==Use docker hosting end...");
             }
         });
     }
 
     private static void UseKubernetesHostClustering(ISiloBuilder siloBuilder, IConfigurationSection configSection)
     {
-        Log.Logger.Debug("==Configuration");
-        Log.Logger.Debug("==  POD_IP: {0}", Environment.GetEnvironmentVariable("POD_IP"));
-        Log.Logger.Debug("==  SiloPort: {0}", configSection.GetValue<int>("SiloPort"));
-        Log.Logger.Debug("==  GatewayPort: {0}", configSection.GetValue<int>("GatewayPort"));
-        Log.Logger.Debug("==  DatabaseName: {0}", configSection.GetValue<string>("DataBase"));
-        Log.Logger.Debug("==  ClusterId: {0}", Environment.GetEnvironmentVariable("ORLEANS_CLUSTER_ID"));
-        Log.Logger.Debug("==  ServiceId: {0}", Environment.GetEnvironmentVariable("ORLEANS_SERVICE_ID"));
-        Log.Logger.Debug("==Configuration");
+        Log.Logger.Warning("==Configuration");
+        Log.Logger.Warning("==  POD_IP: {0}", Environment.GetEnvironmentVariable("POD_IP"));
+        Log.Logger.Warning("==  SiloPort: {0}", configSection.GetValue<int>("SiloPort"));
+        Log.Logger.Warning("==  GatewayPort: {0}", configSection.GetValue<int>("GatewayPort"));
+        Log.Logger.Warning("==  DatabaseName: {0}", configSection.GetValue<string>("DataBase"));
+        Log.Logger.Warning("==  ClusterId: {0}", Environment.GetEnvironmentVariable("ORLEANS_CLUSTER_ID"));
+        Log.Logger.Warning("==  ServiceId: {0}", Environment.GetEnvironmentVariable("ORLEANS_SERVICE_ID"));
+        Log.Logger.Warning("==Configuration");
         siloBuilder.UseKubernetesHosting()
             .ConfigureEndpoints(advertisedIP: IPAddress.Parse(Environment.GetEnvironmentVariable("POD_IP") ?? string.Empty),
                 siloPort: configSection.GetValue<int>("SiloPort"),
@@ -85,7 +87,7 @@ public static class OrleansHostExtensions
 
     private static void ConfigureOptions(OptionsBuilder<KubernetesHostingOptions> optionsBuilder)
     {
-        Log.Logger.Debug("== builder kubernetes hosting options");
+        Log.Logger.Warning("== builder kubernetes hosting options");
     }
 
     private static void UseDockerHostClustering(ISiloBuilder siloBuilder, IConfigurationSection configSection)

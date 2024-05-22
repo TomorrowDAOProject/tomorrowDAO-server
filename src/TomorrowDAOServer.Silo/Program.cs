@@ -20,7 +20,7 @@ public class Program
 
         try
         {
-            Log.Information("Starting TomorrowDAOServer.Silo");
+            Log.Information("Deploy TomorrowDAOServer.Silo in k8s");
             await CreateHostBuilder(args).RunConsoleAsync();
             return 0;
         }
