@@ -52,6 +52,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         ConfigureTokenCleanupService();
         var configuration = context.Services.GetConfiguration();
         Configure<WorkerOptions>(configuration);
+        Configure<WorkerLastHeightOptions>(configuration);
         Configure<TmrwdaoOption>(configuration.GetSection("TmrwdaoOption"));
         Configure<SyncDataOptions>(configuration.GetSection("SyncData"));
         ConfigureHangfire(context, configuration);

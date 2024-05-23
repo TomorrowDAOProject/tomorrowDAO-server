@@ -14,4 +14,6 @@ public interface IScheduleSyncDataService
     WorkerBusinessType GetBusinessType();
     
     Task DealDataAsync();
+
+    Task ResetLastEndHeightAsync(string chainId, WorkerBusinessType businessType, long blockHeight);
 }

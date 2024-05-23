@@ -62,4 +62,23 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
     public abstract Task<List<string>> GetChainIdsAsync();
 
     public abstract WorkerBusinessType GetBusinessType();
+
+    public async Task ResetLastEndHeightAsync(string chainId, WorkerBusinessType businessType, long blockHeight)
+    {
+        try
+        {
+            if (blockHeight > 0)
+            {
+                await _graphQlProvider.SetLastEndHeightAsync(chainId, businessType, blockHeight);
+                _logger.LogInformation(
+                    "reset last end height for businessType: {businessType} chainId: {chainId} lastEndHeight: {BlockHeight}",
+                    businessType, chainId, blockHeight);
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "reset last end height error, businessType:{businessType} chainId: {chainId}",
+                businessType.ToString(), chainId);
+        }
+    }
 }
