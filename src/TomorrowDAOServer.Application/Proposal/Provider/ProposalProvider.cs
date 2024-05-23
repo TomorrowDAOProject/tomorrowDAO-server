@@ -66,7 +66,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                 transaction {
                     toAddress,contractMethodName,params
                 },            
-                voteSchemeId,vetoProposalId,deployTime,executeTime,
+                voteSchemeId,vetoProposalId,beVetoProposalId,deployTime,executeTime,
                 governanceMechanism,
                 minimalRequiredThreshold,minimalVoteThreshold,minimalApproveThreshold,
                 maximalRejectionThreshold,maximalAbstentionThreshold,

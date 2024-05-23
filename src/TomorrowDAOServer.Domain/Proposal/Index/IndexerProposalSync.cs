@@ -55,6 +55,8 @@ public class IndexerProposal
     
     public string VetoProposalId { get; set; }
     
+    public string BeVetoProposalId { get; set; }
+    
     public DateTime DeployTime { get; set; }
 
     public DateTime? ExecuteTime { get; set; }   

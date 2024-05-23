@@ -50,7 +50,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
         foreach (var proposal in list)
         {
-            if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
+            if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal) || serverProposal.ProposalStage.CompareTo(proposal.ProposalStage) <= 0)
             {
                 continue;
             }

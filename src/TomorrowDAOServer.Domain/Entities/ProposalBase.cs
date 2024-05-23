@@ -50,6 +50,7 @@ public class ProposalBase : BlockInfoBase
     public VoteMechanism VoteMechanism { get; set; }
     
     [Keyword] public string VetoProposalId { get; set; }
+    [Keyword] public string BeVetoProposalId { get; set; }
     
     public DateTime DeployTime { get; set; }
 

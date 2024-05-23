@@ -42,26 +42,19 @@ public class ProposalNewUpdateService : ScheduleSyncDataService
         do
         {
             queryList = await _proposalProvider.GetNeedChangeProposalListAsync(skipCount);
-            var tasks = queryList.Select(async proposal =>
+            _logger.LogInformation("NeedChangeProposalList skipCount {skipCount} count: {count}", skipCount, queryList?.Count);
+            var tasks = queryList!.Select(async proposal =>
             {
                 var result = await _scriptService.GetProposalInfoAsync(chainId, proposal.ProposalId);
                 if (result != null)
                 {
-                    ProposalStatus status;
-                    switch (result.ProposalStatus)
-                    {
-                        case "PENDING_VOTE":
-                            status = ProposalStatus.PendingVote;
-                            break;
-                        case "BELOW_THRESHOLD":
-                            status = ProposalStatus.BelowThreshold;
-                            break;
-                        default:
-                            status = Enum.Parse<ProposalStatus>(Convert(result.ProposalStatus));
-                            break;
-                    }
                     proposal.ProposalStage = Enum.Parse<ProposalStage>(Convert(result.ProposalStage));
-                    proposal.ProposalStatus = status;
+                    proposal.ProposalStatus = result.ProposalStatus switch
+                    {
+                        "PENDING_VOTE" => ProposalStatus.PendingVote,
+                        "BELOW_THRESHOLD" => ProposalStatus.BelowThreshold,
+                        _ => Enum.Parse<ProposalStatus>(Convert(result.ProposalStatus))
+                    };
                 }
             }).ToArray();
             await Task.WhenAll(tasks);
