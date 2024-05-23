@@ -556,7 +556,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         {
             myProposalDto.votesAmountTokenBallot += voteRecord.Amount;
             myProposalDto.StakeAmount += voteRecord.Amount;
-            if (!CanWithdraw(voteRecord.EndTime, withdrawVotingItemIdLis, input.ProposalId))
+            if (!CanWithdraw(voteRecord.EndTime, withdrawVotingItemIdLis, voteRecord.VotingItemId))
             {
                 continue;
             }

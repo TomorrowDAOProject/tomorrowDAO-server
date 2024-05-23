@@ -90,9 +90,9 @@ jobs:
           github-token: ${{ secrets.TOK }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
-              owner: 'TomorrowDAOProject', # The org name
-              repo: 'devops', # The repo name, you shouldn't need to change this unless you create the devops repo using another name
-              workflow_id: 'deployment_testnet.yaml', # This is workflow in devops repo.
+              owner: 'TomorrowDAOProject',
+              repo: 'devops',
+              workflow_id: 'deployment_testnet.yaml',
               ref: 'main',
               inputs: {
                 appName: 'tmrwdao-backend',
