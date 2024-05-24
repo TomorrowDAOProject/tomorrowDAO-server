@@ -43,26 +43,12 @@ public class ProposalNewUpdateService : ScheduleSyncDataService
         {
             queryList = await _proposalProvider.GetNeedChangeProposalListAsync(skipCount);
             _logger.LogInformation("NeedChangeProposalList skipCount {skipCount} count: {count}", skipCount, queryList?.Count);
-            var tasks = queryList!.Select(async proposal =>
+            var result = await _proposalAssistService.NewConvertProposalList(chainId, queryList);
+            if (!result.IsNullOrEmpty())
             {
-                var result = await _scriptService.GetProposalInfoAsync(chainId, proposal.ProposalId);
-                if (result != null)
-                {
-                    proposal.ProposalStage = Enum.Parse<ProposalStage>(Convert(result.ProposalStage));
-                    proposal.ProposalStatus = result.ProposalStatus switch
-                    {
-                        "PENDING_VOTE" => ProposalStatus.PendingVote,
-                        "BELOW_THRESHOLD" => ProposalStatus.BelowThreshold,
-                        _ => Enum.Parse<ProposalStatus>(Convert(result.ProposalStatus))
-                    };
-                }
-            }).ToArray();
-            await Task.WhenAll(tasks);
-            if (!queryList.IsNullOrEmpty())
-            {
-                await _proposalProvider.BulkAddOrUpdateAsync(queryList);
+                await _proposalProvider.BulkAddOrUpdateAsync(result);
             }
-            skipCount += queryList.Count;
+            skipCount += result.Count;
         } while (!queryList.IsNullOrEmpty());
 
         return -1L;
@@ -77,20 +63,5 @@ public class ProposalNewUpdateService : ScheduleSyncDataService
     public override WorkerBusinessType GetBusinessType()
     {
         return WorkerBusinessType.ProposalNewUpdate;
-    }
-
-    private static string Convert(string enumStr)
-    {
-        if (string.IsNullOrEmpty(enumStr))
-        {
-            return enumStr;
-        }
-
-        if (enumStr.Length == 1)
-        {
-            return enumStr.ToUpper();
-        }
-
-        return enumStr[..1].ToUpper() + enumStr[1..].ToLower();
     }
 }

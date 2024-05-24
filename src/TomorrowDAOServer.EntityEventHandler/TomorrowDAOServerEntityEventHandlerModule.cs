@@ -53,6 +53,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         var configuration = context.Services.GetConfiguration();
         Configure<WorkerOptions>(configuration);
         Configure<WorkerLastHeightOptions>(configuration);
+        Configure<WorkerReRunProposalOptions>(configuration.GetSection("WorkerReRunProposalOptions"));
         Configure<TmrwdaoOption>(configuration.GetSection("TmrwdaoOption"));
         Configure<SyncDataOptions>(configuration.GetSection("SyncData"));
         ConfigureHangfire(context, configuration);

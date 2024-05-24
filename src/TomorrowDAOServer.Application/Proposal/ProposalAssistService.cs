@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
+using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Dto;
@@ -21,7 +23,9 @@ public interface IProposalAssistService
 {
     public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<IndexerProposal> list);
     public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<ProposalIndex> list);
+    public Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list);
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex);
+    public Task ReRunProposalList(string chainId, List<string> proposalIds);
 }
 
 public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssistService
@@ -31,16 +35,18 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IVoteProvider _voteProvider;
     private readonly IProposalProvider _proposalProvider;
     private readonly IGraphQLProvider _graphQlProvider;
+    private readonly IScriptService _scriptService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
 
     public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
-        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider)
+        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService)
     {
         _logger = logger;
         _objectMapper = objectMapper;
         _voteProvider = voteProvider;
         _proposalProvider = proposalProvider;
         _graphQlProvider = graphQlProvider;
+        _scriptService = scriptService;
     }
 
     public async Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<IndexerProposal> list)
@@ -60,7 +66,26 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         }
 
         return _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
-        // return await ConvertProposalList(chainId, _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list));
+    }
+
+    public async Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list)
+    {
+        var tasks = list!.Select(async proposal =>
+        {
+            var result = await _scriptService.GetProposalInfoAsync(chainId, proposal.ProposalId);
+            if (result != null)
+            {
+                proposal.ProposalStage = Enum.Parse<ProposalStage>(Convert(result.ProposalStage));
+                proposal.ProposalStatus = result.ProposalStatus switch
+                {
+                    "PENDING_VOTE" => ProposalStatus.PendingVote,
+                    "BELOW_THRESHOLD" => ProposalStatus.BelowThreshold,
+                    _ => Enum.Parse<ProposalStatus>(Convert(result.ProposalStatus))
+                };
+            }
+        }).ToArray();
+        await Task.WhenAll(tasks);
+        return list;
     }
 
     public async Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<ProposalIndex> list)
@@ -198,6 +223,16 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         return result;
     }
 
+    public async Task ReRunProposalList(string chainId, List<string> proposalIds)
+    {
+        var list = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
+        var resultList = await NewConvertProposalList(chainId, list);
+        if (!resultList.IsNullOrEmpty())
+        {
+            await _proposalProvider.BulkAddOrUpdateAsync(resultList);
+        }
+    }
+
     private static void AddProposalLife(ref List<ProposalLifeDto> result, ProposalStage proposalStage, ProposalStatus proposalStatus)
     {
         result.AddLast(new ProposalLifeDto
@@ -293,5 +328,20 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private static bool IsDateNull(DateTime? time)
     {
         return time == null || time.Value == DateTime.MinValue;
+    }
+    
+    private static string Convert(string enumStr)
+    {
+        if (string.IsNullOrEmpty(enumStr))
+        {
+            return enumStr;
+        }
+
+        if (enumStr.Length == 1)
+        {
+            return enumStr.ToUpper();
+        }
+
+        return enumStr[..1].ToUpper() + enumStr[1..].ToLower();
     }
 }
