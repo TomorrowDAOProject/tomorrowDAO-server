@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 
 namespace TomorrowDAOServer.NetworkDAO;
 
-public class CommonTest : TomorrowDAOServerApplicationTestBase
+public class CommonTest : TomorrowDaoServerApplicationTestBase
     
 {
     public CommonTest(ITestOutputHelper output) : base(output)

@@ -7,11 +7,10 @@ using System.Threading.Tasks;
 using Moq;
 using Moq.Protected;
 using Newtonsoft.Json;
-using Xunit.Abstractions;
 
 namespace TomorrowDAOServer;
 
-public partial class TomorrowDAOServerApplicationTestBase
+public partial class TomorrowDaoServerApplicationTestBase
 {
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory = new();
     private readonly Mock<HttpMessageHandler> _mockHandler = new(MockBehavior.Strict);
@@ -38,7 +37,7 @@ public partial class TomorrowDAOServerApplicationTestBase
             {
                 var response = new HttpResponseMessage(HttpStatusCode.OK);
                 response.Content = new StringContent(respData, Encoding.UTF8, "application/json");
-                Output.WriteLine($"Mock Http {method} to {path}, resp={response}");
+                _outputHelper.WriteLine($"Mock Http {method} to {path}, resp={response}");
                 return Task.FromResult(response);
             });
     }

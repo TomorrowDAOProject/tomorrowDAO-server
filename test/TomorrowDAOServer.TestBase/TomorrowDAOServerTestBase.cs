@@ -15,11 +15,11 @@ namespace TomorrowDAOServer;
 public abstract class TomorrowDAOServerTestBase<TStartupModule> : AbpIntegratedTest<TStartupModule> where TStartupModule : IAbpModule
 
 {
-    protected readonly ITestOutputHelper _output;
+    protected readonly ITestOutputHelper _outputHelper;
 
     protected TomorrowDAOServerTestBase(ITestOutputHelper output)
     {
-        _output = output;
+        _outputHelper = output;
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
             .CreateLogger();

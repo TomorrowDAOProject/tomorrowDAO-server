@@ -1,19 +1,25 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Moq;
 using Newtonsoft.Json;
+using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Entities;
+using Volo.Abp.DistributedLocking;
 using Xunit.Abstractions;
 
 namespace TomorrowDAOServer;
 
-public abstract partial class TomorrowDAOServerApplicationTestBase : TomorrowDAOServerOrleansTestBase<TomorrowDAOServerApplicationTestModule>
+public abstract partial class TomorrowDaoServerApplicationTestBase : TomorrowDAOServerTestBase<TomorrowDAOServerApplicationTestModule>
 {
     protected const string ChainIdTDVV = "tDVV";
     protected const string ChainIdAELF = "AELF";
     protected const string ELF = "ELF";
     protected const string ProposalId = "99df86594a989227b8e6259f70b08976812537c20486717a3d0158788155b1f0";
     protected const string DAOId = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3";
-    
     protected const string ProposalListJson = @"[
         {
             ""id"": ""99df86594a989227b8e6259f70b08976812537c20486717a3d0158788155b1f0"",
@@ -87,16 +93,43 @@ public abstract partial class TomorrowDAOServerApplicationTestBase : TomorrowDAO
             ""isDeleted"": false
         }   
     ]";
-
-    //mock data
-    protected static Tuple<long, List<ProposalIndex>> MockProposalList()
+    
+    public TomorrowDaoServerApplicationTestBase(ITestOutputHelper output) : base(output)
     {
-        return new Tuple<long, List<ProposalIndex>>(10, JsonConvert.DeserializeObject<List<ProposalIndex>>(ProposalListJson));
+    }
+
+    protected override void AfterAddApplication(IServiceCollection services)
+    {
+        base.AfterAddApplication(services);
+        services.AddSingleton(GetMockAbpDistributedLockAlwaysSuccess());
+        services.AddSingleton(MockGraphQlOptions());
+    }
+
+    private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
+    {
+        var options = new GraphQLOptions()
+        {
+            Configuration = "http://127.0.0.1:9200"
+        };
+
+        var mock = new Mock<IOptionsSnapshot<GraphQLOptions>>();
+        mock.Setup(o => o.Value).Returns(options);
+        return mock.Object;
+    }
+
+    private IAbpDistributedLock GetMockAbpDistributedLockAlwaysSuccess()
+    {
+        var mockLockProvider = new Mock<IAbpDistributedLock>();
+        mockLockProvider
+            .Setup(x => x.TryAcquireAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .Returns<string, TimeSpan, CancellationToken>((name, timeSpan, cancellationToken) => 
+                Task.FromResult<IAbpDistributedLockHandle>(new LocalAbpDistributedLockHandle(new SemaphoreSlim(0))));
+        return mockLockProvider.Object;
     }
     
-    public  readonly ITestOutputHelper Output;
-    protected TomorrowDAOServerApplicationTestBase(ITestOutputHelper output) : base(output)
+    protected static IGraphQlHelper MockGraphQlHelper()
     {
-        Output = output;
+        var mockHelper = new Mock<IGraphQlHelper>();
+        return mockHelper.Object;
     }
 }

@@ -1,16 +1,26 @@
-using NSubstitute;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
-using TomorrowDAOServer.Governance.Dto;
-using TomorrowDAOServer.Governance.Provider;
-using Volo.Abp.ObjectMapping;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace TomorrowDAOServer.Governance;
 
-public class GovernanceServiceTest
+public partial class GovernanceServiceTest : TomorrowDaoServerApplicationTestBase
 { 
-    private readonly GovernanceService _governanceService = new(Substitute.For<IGovernanceProvider>(), Substitute.For<IObjectMapper>());
-
+    private readonly IGovernanceService _governanceService;
+    
+    public GovernanceServiceTest(ITestOutputHelper output) : base(output)
+    {
+        _governanceService = Application.ServiceProvider.GetRequiredService<IGovernanceService>();
+    }
+    
+    protected override void AfterAddApplication(IServiceCollection services)
+    {
+        base.AfterAddApplication(services);
+        //services.AddSingleton(MockGraphQlHelper());
+        services.AddSingleton(MockGraphQlHelper_QueryIndexerGovernanceSchemeDto());
+    }
+    
     [Fact]
     public async void GetGovernanceMechanismAsync_Test()
     {
@@ -21,5 +31,6 @@ public class GovernanceServiceTest
         };
         var result = await _governanceService.GetGovernanceSchemeAsync(input);
         result.ShouldNotBeNull();
+        result.Data.Count.ShouldBe(2);
     }
 }

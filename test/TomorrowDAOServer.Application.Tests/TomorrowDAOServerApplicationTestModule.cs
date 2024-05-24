@@ -1,8 +1,13 @@
 using System.Collections.Generic;
+using System.Configuration;
+using GraphQL.Client.Abstractions;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.Newtonsoft;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using TomorrowDAOServer.EntityEventHandler.Core;
 using TomorrowDAOServer.Options;
+using Volo.Abp.Auditing;
 using Volo.Abp.AuditLogging;
 using Volo.Abp.AuditLogging.MongoDB;
 using Volo.Abp.AutoMapper;
@@ -25,7 +30,11 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        base.ConfigureServices(context);
+        Configure<AbpAuditingOptions>(options =>
+        {
+            options.IsEnabled = false;
+        });
+        
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerEntityEventHandlerCoreModule>(); });
 
@@ -33,6 +42,29 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
         context.Services.AddSingleton<IAuditLogRepository, MongoAuditLogRepository>();
         context.Services.AddSingleton<IIdentityUserRepository, MongoIdentityUserRepository>();
         
+        context.Services.AddMemoryCache();
+        
+        ConfigureGraphQl(context);
+        ConfigureProposalTagOptions(context);
+        
+        base.ConfigureServices(context);
+    }
+
+    private void ConfigureGraphQl(ServiceConfigurationContext context)
+    {
+        context.Services.Configure<GraphQLOptions>(o =>
+        {
+            o.Configuration = "http://127.0.0.1:8083/AElfIndexer_DApp/PortKeyIndexerCASchema/graphql";
+        });
+        
+        context.Services.AddSingleton(new GraphQLHttpClient(
+            "http://127.0.0.1:8083/AElfIndexer_DApp/PortKeyIndexerCASchema/graphql",
+            new NewtonsoftJsonSerializer()));
+        context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
+    }
+    
+    private void ConfigureProposalTagOptions(ServiceConfigurationContext context)
+    {
         context.Services.Configure<ProposalTagOptions>(o =>
         {
             o.Mapping = new Dictionary<string, List<string>>
@@ -42,21 +74,21 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
                     "AddMembers", "ChangeMember", "RemoveMembers"
                 } },
                 { "DAO Upgrade",  new List<string> { 
-                    "UploadFileInfos",
-                    "RemoveFileInfos",
-                    "SetSubsistStatus",
-                    "EnableHighCouncil",
-                    "DisableHighCouncil",
-                    "HighCouncilConfigSet",
-                    "SetPermissions" 
-                } 
+                        "UploadFileInfos",
+                        "RemoveFileInfos",
+                        "SetSubsistStatus",
+                        "EnableHighCouncil",
+                        "DisableHighCouncil",
+                        "HighCouncilConfigSet",
+                        "SetPermissions" 
+                    } 
                 },
                 { "Customized Vote Model",  new List<string> { 
-                    "Parliament",
-                    "Association",
-                    "Referendum",
-                    "Customize"
-                } 
+                        "Parliament",
+                        "Association",
+                        "Referendum",
+                        "Customize"
+                    } 
                 }
             };
         });
