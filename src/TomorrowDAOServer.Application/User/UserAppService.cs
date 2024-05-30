@@ -8,14 +8,13 @@ using Nest;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
-using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 
 namespace TomorrowDAOServer.User;
 
 [RemoteService(IsEnabled = false)]
 [DisableAuditing]
-public class UserAppService : ApplicationService, IUserAppService
+public class UserAppService : TomorrowDAOServerAppService, IUserAppService
 {
     private readonly INESTRepository<UserIndex, Guid> _userIndexRepository;
 

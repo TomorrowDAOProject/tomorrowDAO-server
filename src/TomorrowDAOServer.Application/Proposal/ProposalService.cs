@@ -18,7 +18,6 @@ using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp;
-using Volo.Abp.Application.Dtos;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
 using Newtonsoft.Json;
@@ -30,6 +29,8 @@ using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.User.Provider;
+using Volo.Abp.Users;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
 
 namespace TomorrowDAOServer.Proposal;
@@ -51,6 +52,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IScriptService _scriptService;
+    private readonly IUserProvider _userProvider;
     private const int ProposalOnceWithdrawMax = 500;
     private Dictionary<string, Tuple<List<string>, long>> _hcDic = new();
 
@@ -58,13 +60,14 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService,
         IProposalAssistService proposalAssistService,
         IDAOProvider DAOProvider, IOptionsMonitor<ProposalTagOptions> proposalTagOptionsMonitor,
-        ILogger<ProposalProvider> logger)
+        ILogger<ProposalProvider> logger, IUserProvider userProvider)
     {
         _objectMapper = objectMapper;
         _proposalProvider = proposalProvider;
         _voteProvider = voteProvider;
         _proposalTagOptionsMonitor = proposalTagOptionsMonitor;
         _logger = logger;
+        _userProvider = userProvider;
         _DAOProvider = DAOProvider;
         _proposalAssistService = proposalAssistService;
         _explorerProvider = explorerProvider;
@@ -513,6 +516,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
     {
+        input.Address = await GetAndValidateUserAddress(input.ChainId);
         return string.IsNullOrEmpty(input.ProposalId)
             ? await QueryDaoMyInfoAsync(input)
             : await QueryProposalMyInfoAsync(input);
@@ -628,6 +632,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
+        input.Address = await GetAndValidateUserAddress(input.ChainId);
+        
         var voteHistoryDto = new VoteHistoryDto { ChainId = input.ChainId };
         var voteRecords = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
         {
@@ -734,5 +740,18 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
 
         return withdrawVotingItemIdList;
+    }
+    
+    private async Task<string> GetAndValidateUserAddress(string chainId)
+    {
+        var userId = CurrentUser.GetId();
+        var userAddress = await _userProvider.GetUserAddress(userId, chainId);
+        if (!userAddress.IsNullOrWhiteSpace())
+        {
+            return userAddress;
+        }
+
+        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        throw new UserFriendlyException("No user address found");
     }
 }

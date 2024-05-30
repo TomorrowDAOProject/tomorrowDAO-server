@@ -1,4 +1,5 @@
 using Orleans;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.State.Users;
 using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Dtos;
@@ -37,17 +38,24 @@ public class UserGrain : Grain<UserState>, IUserGrain
 
     public async Task<GrainResultDto<UserGrainDto>> CreateUser(UserGrainDto input)
     {
-        State.Id = this.GetPrimaryKey();
-        State.UserId = this.GetPrimaryKey();
+        if (State.Id == Guid.Empty)
+        {
+            State.Id = this.GetPrimaryKey();
+        }
+        
+        State.UserId = input.UserId;
+        State.UserName = input.UserName;
         State.AddressInfos = input.AddressInfos;
         State.AppId = input.AppId;
         State.CaHash = input.CaHash;
-        State.CreateTime = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
-        State.ModificationTime = State.CreateTime;
+        var now = DateTime.UtcNow.ToUtcMilliSeconds();
+        State.CreateTime = State.CreateTime == 0 ? now : State.CreateTime;
+        State.ModificationTime = now;
 
         await WriteStateAsync();
 
         await _userAppService.CreateUserAsync(_objectMapper.Map<UserState, UserDto>(State));
+        
         return new GrainResultDto<UserGrainDto>()
         {
             Success = true,

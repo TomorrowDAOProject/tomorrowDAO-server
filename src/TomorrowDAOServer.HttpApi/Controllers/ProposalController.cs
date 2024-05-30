@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Proposal.Dto;
@@ -33,15 +34,15 @@ public class ProposalController : AbpController
         return await _proposalService.QueryProposalDetailAsync(input);
     }
     
-    [HttpGet]
-    [Route("my-info")]
+    [HttpGet("my-info")]
+    [Authorize]
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
     {
         return await _proposalService.QueryMyInfoAsync(input);
     }
     
-    [HttpGet]
-    [Route("vote-history")]
+    [HttpGet("vote-history")]
+    [Authorize]
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         return await _proposalService.QueryVoteHistoryAsync(input);

@@ -13,6 +13,10 @@ class Program
 {
     static async Task Main(string[] args)
     {
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build();
+        
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
@@ -23,9 +27,14 @@ class Program
                 .MinimumLevel.Override("TomorrowDAOServer", LogEventLevel.Information)
 #endif
             .Enrich.FromLogContext()
+            .ReadFrom.Configuration(configuration)
             .CreateLogger();
+        
+        Log.Logger.Warning("Start executing TomorrowDAOServer.DbMigrator...");
 
         await CreateHostBuilder(args).RunConsoleAsync();
+        
+        Log.Logger.Warning("executing TomorrowDAOServer.DbMigrator completed...");
     }
 
     public static IHostBuilder CreateHostBuilder(string[] args) =>

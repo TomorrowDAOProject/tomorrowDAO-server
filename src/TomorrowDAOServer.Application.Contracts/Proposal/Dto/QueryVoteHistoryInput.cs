@@ -10,11 +10,11 @@ public class QueryVoteHistoryInput : IValidatableObject
 {
     [Required] public string ChainId { get; set; }
     [Required] public string DAOId { get; set; }
-    [Required] public string Address { get; set; }
     public string ProposalId { get; set; } = string.Empty;
     public int SkipCount { get; set; } = 0;
     public int MaxResultCount { get; set; } = 100;
     public string VoteOption { get; set; } = string.Empty;
+    public string Address { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

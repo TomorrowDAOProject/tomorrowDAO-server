@@ -14,6 +14,7 @@ public class UserIndex : AbstractEntity<Guid>, IIndexBuild
     public List<UserAddressInfo> AddressInfos { get; set; }
     public long CreateTime { get; set; }
     public long ModificationTime { get; set; }
+    public string UserName { get; set; }
 }
 
 public class UserAddressInfo

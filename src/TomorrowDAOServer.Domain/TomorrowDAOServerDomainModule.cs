@@ -35,7 +35,7 @@ namespace TomorrowDAOServer;
         typeof(AbpSettingManagementDomainModule),
         typeof(AbpTenantManagementDomainModule),
         typeof(AbpEmailingModule),
-        typeof(AElfIndexingElasticsearchModule)
+        //typeof(AElfIndexingElasticsearchModule)
     }
 )]
 public class TomorrowDAOServerDomainModule : AbpModule
