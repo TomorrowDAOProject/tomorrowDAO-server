@@ -74,9 +74,8 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     $"The time should be {timeRangeConfig.TimeRange} minutes before and after the current time.");
             }
 
-            if (!CryptoHelper.RecoverPublicKey(signature,
-                    HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
-                    out var managerPublicKey))
+            var plantText = string.Join("-", address, timestampVal);
+            if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(plantText).ToByteArray(), out var managerPublicKey))
             {
                 return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed.");
             }
@@ -116,7 +115,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             }
             else
             {
-                if (address == signAddress)
+                if (address != signAddress)
                 {
                     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid address or pubkey.");
                 }
