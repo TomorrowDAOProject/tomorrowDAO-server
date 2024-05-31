@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.HttpClient;
@@ -47,10 +49,12 @@ public static class ExplorerApi
 
 public class ExplorerProvider : IExplorerProvider, ISingletonDependency
 {
+    private readonly ILogger<ExplorerProvider> _logger;
     private readonly IHttpProvider _httpProvider;
     private readonly IOptionsMonitor<ExplorerOptions> _explorerOptions;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IObjectMapper _objectMapper;
+
     public static readonly JsonSerializerSettings DefaultJsonSettings = JsonSettingsBuilder.New()
         .WithCamelCasePropertyNamesResolver()
         .IgnoreNullValue()
@@ -59,12 +63,14 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     private const string ProposalStatusAll = "all";
 
 
-    public ExplorerProvider(IHttpProvider httpProvider, IOptionsMonitor<ExplorerOptions> explorerOptions, IGraphQLProvider graphQlProvider, IObjectMapper objectMapper)
+    public ExplorerProvider(IHttpProvider httpProvider, IOptionsMonitor<ExplorerOptions> explorerOptions,
+        IGraphQLProvider graphQlProvider, IObjectMapper objectMapper, ILogger<ExplorerProvider> logger)
     {
         _httpProvider = httpProvider;
         _explorerOptions = explorerOptions;
         _graphQlProvider = graphQlProvider;
         _objectMapper = objectMapper;
+        _logger = logger;
     }
 
     public string BaseUrl(string chainId)
@@ -112,10 +118,30 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     /// <returns></returns>
     public async Task<ExplorerTokenInfoResponse> GetTokenInfoAsync(string chainId, ExplorerTokenInfoRequest request)
     {
-        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerTokenInfoResponse>>(BaseUrl(chainId),
-            ExplorerApi.TokenInfo, param: ToDictionary(request), settings: DefaultJsonSettings);
-        AssertHelper.IsTrue(resp.Success, resp.Msg);
-        return resp.Data;
+        if (request == null || request.Symbol.IsNullOrWhiteSpace())
+        {
+            return new ExplorerTokenInfoResponse();
+        }
+
+        try
+        {
+            var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerTokenInfoResponse>>(
+                BaseUrl(chainId),
+                ExplorerApi.TokenInfo, param: ToDictionary(request), settings: DefaultJsonSettings);
+            AssertHelper.IsTrue(resp.Success, resp.Msg);
+            if (!resp.Success)
+            {
+                _logger.LogError("get token from explorer fail, code={0},message={1}", resp.Code, resp.Msg);
+            }
+
+            return resp.Data ?? new ExplorerTokenInfoResponse();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "get token from explorer error, chainId={0},symbol={1}", chainId, request.Symbol);
+        }
+
+        return new ExplorerTokenInfoResponse();
     }
 
     public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
@@ -124,6 +150,7 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         {
             return new TokenInfoDto();
         }
+
         var tokenInfo = await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
         // 10 minute
         if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= 10 * 60 * 1000)
@@ -131,10 +158,15 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
             return tokenInfo;
         }
 
-        var tokenResponse = await GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest { Symbol = symbol.ToUpper() });
-        tokenInfo = _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(tokenResponse);
-        tokenInfo.LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds();
-        await _graphQlProvider.SetTokenInfoAsync(tokenInfo);
+        var tokenResponse =
+            await GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest { Symbol = symbol.ToUpper() });
+        if (tokenResponse != null && !tokenResponse.Symbol.IsNullOrWhiteSpace())
+        {
+            tokenInfo = _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(tokenResponse);
+            tokenInfo.LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds();
+            await _graphQlProvider.SetTokenInfoAsync(tokenInfo);
+        }
+
         return tokenInfo;
     }
 
@@ -148,7 +180,7 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         return (await GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest
         {
             Symbol = symbol
-        })).Decimals;
+        }))?.Decimals ?? string.Empty;
     }
 
     /// <summary>
