@@ -101,7 +101,6 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var avgExchange = exchange.Values
             .Where(ex => ex.Exchange > 0)
             .Average(ex => ex.Exchange);
-        _logger.LogError("GetTokenPriceAsync Exchange amount error {avgExchange}", avgExchange);
         return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = avgExchange };
     }
 }
