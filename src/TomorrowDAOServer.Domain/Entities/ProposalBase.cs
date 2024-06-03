@@ -71,6 +71,7 @@ public class ProposalBase : BlockInfoBase
     
     //percentage    
     public int MaximalAbstentionThreshold { get; set; }
+    public long ProposalThreshold { get; set; }
     
     public long ActiveTimePeriod { get; set; }
     

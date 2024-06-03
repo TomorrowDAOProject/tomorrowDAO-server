@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Governance.Dto;
 
 namespace TomorrowDAOServer.DAO.Dtos;
 
@@ -15,6 +16,7 @@ public class DAOInfoDto
     public bool IsHighCouncilEnabled { get; set; }
     public string HighCouncilAddress { get; set; }
     public HighCouncilConfigDto HighCouncilConfig { get; set; }
+    public GovernanceSchemeThresholdDto GovernanceSchemeThreshold { get; set; } = new();
     public long HighCouncilTermNumber { get; set; }
     public long HighCouncilMemberCount { get; set; }
     public List<FileInfoDto> FileInfoList { get; set; }
@@ -30,6 +32,20 @@ public class DAOInfoDto
     public string TimelockContractAddress { get; set; }
     public DateTime CreateTime { get; set; }
     public bool IsNetworkDAO { get; set; }
+
+    public void OfGovernanceSchemeThreshold(IndexerGovernanceScheme scheme)
+    {
+        if (scheme == null)
+        {
+            return;
+        }
+        GovernanceSchemeThreshold.MinimalRequiredThreshold = scheme.MinimalRequiredThreshold;
+        GovernanceSchemeThreshold.MinimalVoteThreshold = scheme.MinimalVoteThreshold;
+        GovernanceSchemeThreshold.MinimalApproveThreshold = scheme.MinimalApproveThreshold;
+        GovernanceSchemeThreshold.MaximalRejectionThreshold = scheme.MaximalRejectionThreshold;
+        GovernanceSchemeThreshold.MaximalAbstentionThreshold = scheme.MaximalAbstentionThreshold;
+        GovernanceSchemeThreshold.ProposalThreshold = scheme.ProposalThreshold;
+    }
 }
 
 public class MetadataDto
@@ -61,6 +77,7 @@ public class GovernanceSchemeThresholdDto
     public int MinimalApproveThreshold { get; set; }
     public int MaximalRejectionThreshold { get; set; }
     public int MaximalAbstentionThreshold { get; set; }
+    public long ProposalThreshold { get; set; }
 }
 
 public class HighCouncilConfigDto

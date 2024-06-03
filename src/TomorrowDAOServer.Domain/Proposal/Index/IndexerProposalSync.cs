@@ -76,6 +76,8 @@ public class IndexerProposal
     //percentage    
     public int MaximalAbstentionThreshold { get; set; }
     
+    public long ProposalThreshold { get; set; }
+    
     public long ActiveTimePeriod { get; set; }
     
     public long VetoActiveTimePeriod { get; set; }

@@ -41,7 +41,8 @@ public class GovernanceProvider : IGovernanceProvider, ISingletonDependency
                 minimalVoteThreshold,
                 minimalApproveThreshold,
                 maximalRejectionThreshold,
-                maximalAbstentionThreshold
+                maximalAbstentionThreshold,
+                proposalThreshold
             }}",
             Variables = new
             {

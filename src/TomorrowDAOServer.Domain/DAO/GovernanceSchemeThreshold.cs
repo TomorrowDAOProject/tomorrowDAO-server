@@ -7,4 +7,5 @@ public class GovernanceSchemeThreshold
     public int MinimalApproveThreshold { get; set; }
     public int MaximalRejectionThreshold { get; set; }
     public int MaximalAbstentionThreshold { get; set; }
+    public long ProposalThreshold { get; set; }
 }

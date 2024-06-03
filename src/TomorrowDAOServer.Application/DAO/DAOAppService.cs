@@ -14,6 +14,7 @@ using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Dtos.Explorer;
+using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Vote.Provider;
@@ -30,13 +31,14 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IVoteProvider _voteProvider;
     private readonly IExplorerProvider _explorerProvider;
+    private readonly IGovernanceProvider _governanceProvider;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
     private ValueTuple<long, long> ProposalCountCache = new(0, 0);
     
     public DAOAppService(IDAOProvider daoProvider,
-        IElectionProvider electionProvider,
+        IElectionProvider electionProvider, IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider,
         IGraphQLProvider graphQlProvider, IVoteProvider voteProvider)
     {
@@ -46,12 +48,15 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _graphQlProvider = graphQlProvider;
         _voteProvider = voteProvider;
         _explorerProvider = explorerProvider;
+        _governanceProvider = governanceProvider;
     }
 
     public async Task<DAOInfoDto> GetDAOByIdAsync(GetDAOInfoInput input)
     {
         var daoIndex = await _daoProvider.GetAsync(input);
         var daoInfo = ObjectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
+        var governanceScheme = (await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId)).Data;
+        daoInfo.OfGovernanceSchemeThreshold(governanceScheme.FirstOrDefault());
         if (!daoInfo.IsNetworkDAO)
         {
             //todo hc info

@@ -69,7 +69,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                 voteSchemeId,vetoProposalId,beVetoProposalId,deployTime,executeTime,
                 governanceMechanism,
                 minimalRequiredThreshold,minimalVoteThreshold,minimalApproveThreshold,
-                maximalRejectionThreshold,maximalAbstentionThreshold,
+                maximalRejectionThreshold,maximalAbstentionThreshold,proposalThreshold,
                 activeTimePeriod,vetoActiveTimePeriod,pendingTimePeriod,executeTimePeriod,vetoExecuteTimePeriod,isNetworkDAO
             }}",
             Variables = new
