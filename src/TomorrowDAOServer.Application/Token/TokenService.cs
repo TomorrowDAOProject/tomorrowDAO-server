@@ -79,6 +79,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var sum = list.Where(x => x.Amount > 0).Sum(x => 
             x.Amount / Math.Pow(10, Convert.ToDouble(tokenInfoResults.GetValueOrDefault(x.GovernanceToken)?.Decimals ?? "0")) 
             * (double)(priceResults.GetValueOrDefault(x.GovernanceToken)?.Price ?? 0));
+        //todo treasury tvl
         return sum;
     }
 
