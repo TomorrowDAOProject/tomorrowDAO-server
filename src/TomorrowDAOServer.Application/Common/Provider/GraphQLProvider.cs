@@ -7,6 +7,7 @@ using GraphQL.Client.Abstractions;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
 using TomorrowDAOServer.Grains.Grain.Token;
@@ -25,6 +26,7 @@ public interface IGraphQLProvider
     public Task SetLastEndHeightAsync(string chainId, WorkerBusinessType queryChainType, long height);
     public Task<long> GetIndexBlockHeightAsync(string chainId);
     public Task<Dictionary<string, long>> GetHoldersAsync(List<string> symbols, string chainId, int skipCount, int maxResultCount);
+    public Task<List<DAOAmount>> GetDAOAmountAsync(string chainId);
 }
 
 public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
@@ -33,14 +35,16 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     private readonly IClusterClient _clusterClient;
     private readonly ILogger<GraphQLProvider> _logger;
     private readonly IGraphQlClientFactory _graphQlClientFactory;
+    private readonly IGraphQlHelper _graphQlHelper;
 
     public GraphQLProvider(IGraphQLClient graphQlClient, ILogger<GraphQLProvider> logger,
-        IClusterClient clusterClient, IGraphQlClientFactory graphQlClientFactory)
+        IClusterClient clusterClient, IGraphQlClientFactory graphQlClientFactory, IGraphQlHelper graphQlHelper)
     {
         _logger = logger;
         _clusterClient = clusterClient;
         _graphQlClientFactory = graphQlClientFactory;
         _graphQlClient = graphQlClient;
+        _graphQlHelper = graphQlHelper;
     }
 
     public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
@@ -186,5 +190,33 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
             _logger.LogError(e, "GetHoldersAsyncException chainId={chainId}, symbol={symbol}", chainId, symbols);
         }
         return new Dictionary<string, long>();
+    }
+
+    public async Task<List<DAOAmount>> GetDAOAmountAsync(string chainId)
+    {
+        try
+        {
+            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<List<DAOAmount>>>(new GraphQLRequest
+            {
+                Query =
+                    @"query($chainId:String!) {
+                        data:getDAOAmountRecord(input: {chainId:$chainId})
+                        {
+                            governanceToken,amount
+                        }
+                    }",
+                Variables = new
+                {
+                    chainId
+                }
+            });
+            return response.Data ?? new List<DAOAmount>();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetDAOAmountAsyncException chainId={chainId}", chainId);
+        }
+
+        return new List<DAOAmount>();
     }
 }

@@ -11,5 +11,7 @@ public interface ITokenService
     Task<TokenPriceDto> GetTokenPriceAsync(string baseCoin, string quoteCoin);
     
     Task<TokenDto> GetTokenByExplorerAsync(string chainId, string symbol);
+    
+    Task<double> GetTvlAsync(string chainId);
 
 }
