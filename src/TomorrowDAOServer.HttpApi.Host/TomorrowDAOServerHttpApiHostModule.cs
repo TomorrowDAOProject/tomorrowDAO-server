@@ -67,6 +67,7 @@ namespace TomorrowDAOServer
             Configure<ProposalTagOptions>(configuration.GetSection("ProposalTagOptions"));
             Configure<ExplorerOptions>(configuration.GetSection("Explorer"));
             Configure<AelfApiInfoOptions>(configuration.GetSection("AelfApiInfoOptions"));
+            Configure<TestDaoOption>(configuration.GetSection("TestDao"));
     
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
