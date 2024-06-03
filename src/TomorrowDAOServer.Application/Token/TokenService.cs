@@ -70,20 +70,16 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     public async Task<double> GetTvlAsync(string chainId)
     {
         var list = await _graphQlProvider.GetDAOAmountAsync(chainId);
-        var tokens = list.Where(x => !string.IsNullOrEmpty(x.GovernanceToken)).Select(x => x.GovernanceToken).Distinct().ToList();
+        var tokens = list.Where(x => x.Amount > 0).Where(x => !string.IsNullOrEmpty(x.GovernanceToken))
+            .Select(x => x.GovernanceToken).Distinct().ToList();
         var tokenInfoTasks = tokens.Select(x => _explorerProvider.GetTokenInfoAsync(chainId, x)).ToList();
-        var priceTasks = tokens.Select(GetPriceTask).ToList();
+        var priceTasks = tokens.Select(x => GetTokenPriceAsync(x, CommonConstant.USDT)).ToList();
         var tokenInfoResults = (await Task.WhenAll(tokenInfoTasks)).ToDictionary(x => x.Symbol, x => x); 
         var priceResults = (await Task.WhenAll(priceTasks)).ToDictionary(x => x.BaseCoin, x => x);
-        var sum = list.Sum(x => 
+        var sum = list.Where(x => x.Amount > 0).Sum(x => 
             x.Amount / Math.Pow(10, Convert.ToDouble(tokenInfoResults.GetValueOrDefault(x.GovernanceToken)?.Decimals ?? "0")) 
             * (double)(priceResults.GetValueOrDefault(x.GovernanceToken)?.Price ?? 0));
         return sum;
-    }
-    
-    private Task<TokenPriceDto> GetPriceTask(string baseCoin)
-    {
-        return GetTokenPriceAsync(baseCoin, CommonConstant.USDT);
     }
 
     public async Task<TokenPriceDto> GetTokenPriceAsync(string baseCoin, string quoteCoin)
