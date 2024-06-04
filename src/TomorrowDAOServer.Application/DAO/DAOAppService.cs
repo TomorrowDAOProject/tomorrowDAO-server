@@ -34,7 +34,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IVoteProvider _voteProvider;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGovernanceProvider _governanceProvider;
-    private readonly IOptionsMonitor<TestDaoOption> _testDaoOptions;
+    private readonly IOptionsMonitor<DaoOption> _testDaoOptions;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
@@ -42,7 +42,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
-        IVoteProvider voteProvider, IOptionsMonitor<TestDaoOption> testDaoOptions)
+        IVoteProvider voteProvider, IOptionsMonitor<DaoOption> testDaoOptions)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -105,7 +105,8 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput input)
     {
-        var (item1, daoList) = await _daoProvider.GetDAOListAsync(input);
+        var daoOption = _testDaoOptions.CurrentValue;
+        var (item1, daoList) = await _daoProvider.GetDAOListAsync(input, daoOption);
         var items = ObjectMapper.Map<List<DAOIndex>, List<DAOListDto>>(daoList);
         var symbols = items.Select(x => x.Symbol.ToUpper()).Distinct().ToList();
         var tokenInfos = new Dictionary<string, TokenInfoDto>();
@@ -113,9 +114,6 @@ public class DAOAppService : ApplicationService, IDAOAppService
         {
             tokenInfos[symbol] = await _explorerProvider.GetTokenInfoAsync(input.ChainId, symbol);
         }
-
-        //filter out test DAOs
-        items.RemoveAll(dao => _testDaoOptions.CurrentValue.FilteredDaoNames.Contains(dao.Name));
 
         foreach (var dao in items)
         {

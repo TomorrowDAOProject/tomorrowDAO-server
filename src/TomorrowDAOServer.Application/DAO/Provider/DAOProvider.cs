@@ -8,6 +8,7 @@ using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
+using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.DAO.Provider;
@@ -18,7 +19,7 @@ public interface IDAOProvider
 
     Task<DAOIndex> GetAsync(GetDAOInfoInput input);
 
-    Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input);
+    Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input,  DaoOption daoOption);
 }
 
 public class DAOProvider : IDAOProvider, ISingletonDependency
@@ -101,7 +102,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         return await _daoIndexRepository.GetAsync(Filter);
     }
     
-    public async Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input)
+    public async Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input,  DaoOption daoOption)
     {
         var chainId = input.ChainId;
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
@@ -109,6 +110,11 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
             q => 
                 q.Term(i => i.Field(t => t.ChainId).Value(chainId))
         };
+        if (!daoOption.FilteredDaoNames.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => 
+                !q.Terms(i => i.Field(t => t.Metadata.Name).Terms(daoOption.FilteredDaoNames)));
+        }
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount, 
             sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
