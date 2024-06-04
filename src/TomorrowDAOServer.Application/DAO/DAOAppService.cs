@@ -106,13 +106,55 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput input)
     {
         var daoOption = _testDaoOptions.CurrentValue;
-        var (item1, daoList) = await _daoProvider.GetDAOListAsync(input, daoOption);
+        var begin = input.SkipCount;
+        var end = begin + input.MaxResultCount;
+        var topCount = daoOption.TopDaoNames.Count;
+        var excludeNames = new HashSet<string>(daoOption.FilteredDaoNames.Union(daoOption.TopDaoNames));
+        if (begin >= topCount)
+        {
+            input.SkipCount -= topCount;
+            return new PagedResultDto<DAOListDto> { Items = await GetNormalSearchList(input, excludeNames) };
+        }
+
+        List<DAOListDto> searchByNameList;
+        if (end <= topCount)
+        {
+            searchByNameList = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(end - begin).ToList());
+            return new PagedResultDto<DAOListDto> {Items = searchByNameList};
+        }
+
+        searchByNameList = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(topCount - begin).ToList());
+        input.SkipCount = 0;
+        input.MaxResultCount = end - topCount;
+        var normalSearchList = await GetNormalSearchList(input, excludeNames);
+        var combineList = new List<DAOListDto>();
+        combineList.AddRange(searchByNameList);
+        combineList.AddRange(normalSearchList);
+        return new PagedResultDto<DAOListDto> { Items = combineList };
+    }
+
+    private async Task<List<DAOListDto>> GetNormalSearchList(QueryDAOListInput input, ISet<string> excludeNames)
+    {
+        return await FillDAOListAsync(input.ChainId,
+            await _daoProvider.GetDAOListAsync(input, excludeNames));
+    }
+
+    private async Task<List<DAOListDto>> GetNameSearchList(QueryDAOListInput input, List<string> searchNames)
+    {
+        return (await FillDAOListAsync(input.ChainId,
+                await _daoProvider.GetDAOListByNameAsync(input.ChainId, searchNames)))
+            .OrderBy(x => searchNames.IndexOf(x.Name)).ToList();
+    }
+
+    public async Task<List<DAOListDto>> FillDAOListAsync(string chainId, Tuple<long, List<DAOIndex>> originResult)
+    {
+        var daoList = originResult.Item2;
         var items = ObjectMapper.Map<List<DAOIndex>, List<DAOListDto>>(daoList);
         var symbols = items.Select(x => x.Symbol.ToUpper()).Distinct().ToList();
         var tokenInfos = new Dictionary<string, TokenInfoDto>();
         foreach (var symbol in symbols)
         {
-            tokenInfos[symbol] = await _explorerProvider.GetTokenInfoAsync(input.ChainId, symbol);
+            tokenInfos[symbol] = await _explorerProvider.GetTokenInfoAsync(chainId, symbol);
         }
 
         foreach (var dao in items)
@@ -124,13 +166,13 @@ public class DAOAppService : ApplicationService, IDAOAppService
                     : 0L;
             }
 
-            dao.ProposalsNum = await _proposalProvider.GetProposalCountByDAOIds(input.ChainId, dao.DaoId);
+            dao.ProposalsNum = await _proposalProvider.GetProposalCountByDAOIds(chainId, dao.DaoId);
             if (!dao.IsNetworkDAO)
             {
                 continue;
             }
 
-            dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(input.ChainId)).Count;
+            dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(chainId)).Count;
             if (DateTime.UtcNow.ToUtcMilliSeconds() - ProposalCountCache.Item2 >= 10 * 60 * 1000)
             {
                 var parliamentTask = GetCountTask(Common.Enum.ProposalType.Parliament);
@@ -147,11 +189,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
             }
         }
 
-        return new PagedResultDto<DAOListDto>
-        {
-            TotalCount = 0,
-            Items = items
-        };
+        return items;
     }
 
     public async Task<List<string>> GetBPList(string chainId)

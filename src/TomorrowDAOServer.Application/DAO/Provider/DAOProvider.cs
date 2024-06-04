@@ -19,7 +19,8 @@ public interface IDAOProvider
 
     Task<DAOIndex> GetAsync(GetDAOInfoInput input);
 
-    Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input,  DaoOption daoOption);
+    Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input, ISet<string> excludeNames);
+    Task<Tuple<long, List<DAOIndex>>> GetDAOListByNameAsync(string chainId, List<string> names);
 }
 
 public class DAOProvider : IDAOProvider, ISingletonDependency
@@ -102,7 +103,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         return await _daoIndexRepository.GetAsync(Filter);
     }
     
-    public async Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input,  DaoOption daoOption)
+    public async Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input, ISet<string> excludeNames)
     {
         var chainId = input.ChainId;
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
@@ -110,13 +111,31 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
             q => 
                 q.Term(i => i.Field(t => t.ChainId).Value(chainId))
         };
-        if (!daoOption.FilteredDaoNames.IsNullOrEmpty())
+        if (!excludeNames.IsNullOrEmpty())
         {
             mustQuery.Add(q => 
-                !q.Terms(i => i.Field(t => t.Metadata.Name).Terms(daoOption.FilteredDaoNames)));
+                !q.Terms(i => i.Field(t => t.Metadata.Name).Terms(excludeNames)));
         }
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount, 
             sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
+    }
+
+    public async Task<Tuple<long, List<DAOIndex>>> GetDAOListByNameAsync(string chainId, List<string> names)
+    {
+        if (names.IsNullOrEmpty())
+        {
+            return new Tuple<long, List<DAOIndex>>(0, new List<DAOIndex>());
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
+        {
+            q => 
+                q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => 
+                q.Terms(i => i.Field(t => t.Metadata.Name).Terms(names))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _daoIndexRepository.GetSortListAsync(Filter);
     }
 }
