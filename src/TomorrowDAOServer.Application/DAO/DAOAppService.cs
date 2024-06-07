@@ -114,43 +114,58 @@ public class DAOAppService : ApplicationService, IDAOAppService
         var end = begin + input.MaxResultCount;
         var topCount = daoOption.TopDaoNames.Count;
         var excludeNames = new HashSet<string>(daoOption.FilteredDaoNames.Union(daoOption.TopDaoNames));
+        Tuple<long,List<DAOListDto>> normalSearch;
         if (begin >= topCount)
         {
             input.SkipCount -= topCount;
-            return new PagedResultDto<DAOListDto> { Items = await GetNormalSearchList(input, excludeNames) };
+            normalSearch = await GetNormalSearchList(input, excludeNames);
+            return new PagedResultDto<DAOListDto>
+            {
+                TotalCount = topCount + normalSearch.Item1,
+                Items = normalSearch.Item2
+            };
         }
 
-        List<DAOListDto> searchByNameList;
+        Tuple<long, List<DAOListDto>> nameSearch;
         if (end <= topCount)
         {
-            searchByNameList = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(end - begin).ToList());
-            return new PagedResultDto<DAOListDto> {Items = searchByNameList};
+            nameSearch = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(end - begin).ToList());
+            var normalCount = await _daoProvider.GetDAOListCountAsync(input, excludeNames);
+            return new PagedResultDto<DAOListDto>
+            {
+                TotalCount = topCount + normalCount,
+                Items = nameSearch.Item2
+            };
         }
 
-        searchByNameList = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(topCount - begin).ToList());
+        nameSearch = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(topCount - begin).ToList());
         input.SkipCount = 0;
         input.MaxResultCount = end - topCount;
-        var normalSearchList = await GetNormalSearchList(input, excludeNames);
+        normalSearch = await GetNormalSearchList(input, excludeNames);
         var combineList = new List<DAOListDto>();
-        combineList.AddRange(searchByNameList);
-        combineList.AddRange(normalSearchList);
-        return new PagedResultDto<DAOListDto> { Items = combineList };
+        combineList.AddRange(nameSearch.Item2);
+        combineList.AddRange(normalSearch.Item2);
+        return new PagedResultDto<DAOListDto>
+        {
+            TotalCount = topCount + normalSearch.Item1,
+            Items = combineList
+        };
     }
 
-    private async Task<List<DAOListDto>> GetNormalSearchList(QueryDAOListInput input, ISet<string> excludeNames)
+    private async Task<Tuple<long, List<DAOListDto>>> GetNormalSearchList(QueryDAOListInput input, ISet<string> excludeNames)
     {
         return await FillDaoListAsync(input.ChainId,
             await _daoProvider.GetDAOListAsync(input, excludeNames));
     }
 
-    private async Task<List<DAOListDto>> GetNameSearchList(QueryDAOListInput input, List<string> searchNames)
+    private async Task<Tuple<long, List<DAOListDto>>> GetNameSearchList(QueryDAOListInput input, List<string> searchNames)
     {
-        return (await FillDaoListAsync(input.ChainId,
-                await _daoProvider.GetDAOListByNameAsync(input.ChainId, searchNames)))
-            .OrderBy(x => searchNames.IndexOf(x.Name)).ToList();
+        var result = await FillDaoListAsync(input.ChainId,
+            await _daoProvider.GetDAOListByNameAsync(input.ChainId, searchNames));
+        return new Tuple<long, List<DAOListDto>>(result.Item1, result.Item2.OrderBy(x => searchNames.IndexOf(x.Name)).ToList());
     }
 
-    private async Task<List<DAOListDto>> FillDaoListAsync(string chainId, Tuple<long, List<DAOIndex>> originResult)
+    private async Task<Tuple<long, List<DAOListDto>>> FillDaoListAsync(string chainId, Tuple<long, List<DAOIndex>> originResult)
     {
         var daoList = originResult.Item2;
         var items = ObjectMapper.Map<List<DAOIndex>, List<DAOListDto>>(daoList);
@@ -193,7 +208,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
             }
         }
 
-        return items;
+        return new Tuple<long, List<DAOListDto>>(originResult.Item1, items);
     }
 
     public async Task<List<string>> GetBPList(string chainId)
@@ -271,7 +286,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     {  
         return new MyDAOListDto
         {
-            Type = type, TotalCount = originResult.Item1, List = await FillDaoListAsync(chainId, originResult)
+            Type = type, TotalCount = originResult.Item1, List = (await FillDaoListAsync(chainId, originResult)).Item2
         };
     }
 
