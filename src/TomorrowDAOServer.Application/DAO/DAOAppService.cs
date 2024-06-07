@@ -14,11 +14,14 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.User;
 using TomorrowDAOServer.Vote.Provider;
 
 namespace TomorrowDAOServer.DAO;
@@ -35,12 +38,13 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IOptionsMonitor<DaoOption> _testDaoOptions;
+    private readonly IUserService _userService;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
     private ValueTuple<long, long> ProposalCountCache = new(0, 0);
 
-    public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,IGovernanceProvider governanceProvider,
+    public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider, IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
         IVoteProvider voteProvider, IOptionsMonitor<DaoOption> testDaoOptions)
     {
@@ -135,18 +139,18 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     private async Task<List<DAOListDto>> GetNormalSearchList(QueryDAOListInput input, ISet<string> excludeNames)
     {
-        return await FillDAOListAsync(input.ChainId,
+        return await FillDaoListAsync(input.ChainId,
             await _daoProvider.GetDAOListAsync(input, excludeNames));
     }
 
     private async Task<List<DAOListDto>> GetNameSearchList(QueryDAOListInput input, List<string> searchNames)
     {
-        return (await FillDAOListAsync(input.ChainId,
+        return (await FillDaoListAsync(input.ChainId,
                 await _daoProvider.GetDAOListByNameAsync(input.ChainId, searchNames)))
             .OrderBy(x => searchNames.IndexOf(x.Name)).ToList();
     }
 
-    public async Task<List<DAOListDto>> FillDAOListAsync(string chainId, Tuple<long, List<DAOIndex>> originResult)
+    private async Task<List<DAOListDto>> FillDaoListAsync(string chainId, Tuple<long, List<DAOIndex>> originResult)
     {
         var daoList = originResult.Item2;
         var items = ObjectMapper.Map<List<DAOIndex>, List<DAOListDto>>(daoList);
@@ -195,6 +199,80 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public async Task<List<string>> GetBPList(string chainId)
     {
         return await _graphQlProvider.GetBPAsync(chainId);
+    }
+
+    public async Task<List<MyDAOListDto>> GetMyDAOListAsync(QueryMyDAOListInput input)
+    {
+        var address = input.Address;
+        var result = new List<MyDAOListDto>();
+        if (address.IsNullOrEmpty())
+        {
+            return result;
+        }
+
+        switch (input.Type)
+        {
+            case MyDAOType.All:
+                var ownedTask = GetMyOwnedDaoListDto(input, address);  
+                var participatedTask = GetMyParticipatedDaoListDto(input, address);
+                var managedTask = GetMyManagedDaoListDto(input);
+                await Task.WhenAll(ownedTask, participatedTask, managedTask);
+                result.Add(await ownedTask);  
+                result.Add(await participatedTask); 
+                result.Add(await managedTask); 
+                break;
+            case MyDAOType.Owned:
+                result.Add(await GetMyOwnedDaoListDto(input, address));
+                break;
+            case MyDAOType.Participated:
+                result.Add(await GetMyParticipatedDaoListDto(input, address));
+                break;
+            case MyDAOType.Managed:
+                result.Add(await GetMyManagedDaoListDto(input));
+                break;
+        }
+
+        return result;
+    }
+
+    // todo no hc, just bp now
+    private async Task<MyDAOListDto> GetMyManagedDaoListDto(QueryMyDAOListInput input)
+    {
+        var bpList = await GetBPList(input.ChainId);
+        if (!bpList.Contains(input.Address))
+        {
+            return new MyDAOListDto { Type = MyDAOType.Managed };
+        }
+
+        var managedResult = await _daoProvider.GetNetworkDAOAsync(input.ChainId);
+        return await GetMyDaoListDto(MyDAOType.Managed, input.ChainId, 
+            new Tuple<long, List<DAOIndex>>(1, new List<DAOIndex> { managedResult }));
+
+    }
+    
+    private async Task<MyDAOListDto> GetMyOwnedDaoListDto(QueryMyDAOListInput input, string address)
+    {
+        var ownedResult = await _daoProvider.GetMyOwneredDAOListAsync(input, address);
+        return await GetMyDaoListDto(MyDAOType.Owned, input.ChainId, ownedResult);
+    }
+
+    private async Task<MyDAOListDto> GetMyParticipatedDaoListDto(QueryMyDAOListInput input, string address)
+    {
+        var participatedResult = await _daoProvider.GetMyParticipatedDaoListAsync(new GetParticipatedInput
+        {
+            Address = address, ChainId = input.ChainId, SkipCount = input.SkipCount, MaxResultCount = input.MaxResultCount
+        });
+        var daoList = ObjectMapper.Map<List<IndexerDAOInfo>, List<DAOIndex>>(participatedResult.Data);
+        return await GetMyDaoListDto(MyDAOType.Participated, input.ChainId,
+            new Tuple<long, List<DAOIndex>>(participatedResult.TotalCount, daoList));
+    }
+
+    private async Task<MyDAOListDto> GetMyDaoListDto(MyDAOType type, string chainId, Tuple<long, List<DAOIndex>> originResult)  
+    {  
+        return new MyDAOListDto
+        {
+            Type = type, TotalCount = originResult.Item1, List = await FillDaoListAsync(chainId, originResult)
+        };
     }
 
     private Task<ExplorerProposalResponse> GetCountTask(Common.Enum.ProposalType type)
