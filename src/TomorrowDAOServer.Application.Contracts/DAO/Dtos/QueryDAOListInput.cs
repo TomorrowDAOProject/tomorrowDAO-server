@@ -7,10 +7,15 @@ namespace TomorrowDAOServer.DAO.Dtos;
 
 public class QueryDAOListInput : IValidatableObject
 {
+    public QueryDAOListInput()
+    {
+        SkipCount = 0;
+    }
+
     [Required] public string ChainId { get; set; }
 
     [Range(0, int.MaxValue)] 
-    public virtual int SkipCount { get; set; } = 0;
+    public int SkipCount { get; set; }
     
     [Range(1, int.MaxValue)]
     public int MaxResultCount { get; set; } = 6;

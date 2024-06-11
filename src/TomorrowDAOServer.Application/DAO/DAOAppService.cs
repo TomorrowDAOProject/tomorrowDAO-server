@@ -23,6 +23,7 @@ using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.User;
 using TomorrowDAOServer.Vote.Provider;
+using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.DAO;
 
@@ -34,11 +35,10 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IElectionProvider _electionProvider;
     private readonly IProposalProvider _proposalProvider;
     private readonly IGraphQLProvider _graphQlProvider;
-    private readonly IVoteProvider _voteProvider;
+    private readonly IObjectMapper _objectMapper;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IOptionsMonitor<DaoOption> _testDaoOptions;
-    private readonly IUserService _userService;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
@@ -46,13 +46,13 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider, IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
-        IVoteProvider voteProvider, IOptionsMonitor<DaoOption> testDaoOptions)
+        IObjectMapper objectMapper, IOptionsMonitor<DaoOption> testDaoOptions)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
         _proposalProvider = proposalProvider;
         _graphQlProvider = graphQlProvider;
-        _voteProvider = voteProvider;
+        _objectMapper = objectMapper;
         _testDaoOptions = testDaoOptions;
         _explorerProvider = explorerProvider;
         _governanceProvider = governanceProvider;
@@ -61,7 +61,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public async Task<DAOInfoDto> GetDAOByIdAsync(GetDAOInfoInput input)
     {
         var daoIndex = await _daoProvider.GetAsync(input);
-        var daoInfo = ObjectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
+        var daoInfo = _objectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
         var governanceScheme = (await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId)).Data;
         daoInfo.OfGovernanceSchemeThreshold(governanceScheme.FirstOrDefault());
         if (!daoInfo.IsNetworkDAO)
@@ -168,7 +168,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private async Task<Tuple<long, List<DAOListDto>>> FillDaoListAsync(string chainId, Tuple<long, List<DAOIndex>> originResult)
     {
         var daoList = originResult.Item2;
-        var items = ObjectMapper.Map<List<DAOIndex>, List<DAOListDto>>(daoList);
+        var items = _objectMapper.Map<List<DAOIndex>, List<DAOListDto>>(daoList);
         var symbols = items.Select(x => x.Symbol.ToUpper()).Distinct().ToList();
         var tokenInfos = new Dictionary<string, TokenInfoDto>();
         foreach (var symbol in symbols)
@@ -277,7 +277,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         {
             Address = address, ChainId = input.ChainId, SkipCount = input.SkipCount, MaxResultCount = input.MaxResultCount
         });
-        var daoList = ObjectMapper.Map<List<IndexerDAOInfo>, List<DAOIndex>>(participatedResult.Data);
+        var daoList = _objectMapper.Map<List<IndexerDAOInfo>, List<DAOIndex>>(participatedResult.Data);
         return await GetMyDaoListDto(MyDAOType.Participated, input.ChainId,
             new Tuple<long, List<DAOIndex>>(participatedResult.TotalCount, daoList));
     }
