@@ -22,6 +22,7 @@ public static class OrleansHostExtensions
             var configSection = context.Configuration.GetSection("Orleans");
             
             
+            Log.Logger.Warning("== ENV: {0}", context.HostingEnvironment.IsDevelopment());
             Log.Logger.Warning("==  POD_IP: {0}", Environment.GetEnvironmentVariable("POD_IP"));
             Log.Logger.Warning("==  SiloPort: {0}", configSection.GetValue<int>("SiloPort"));
             Log.Logger.Warning("==  GatewayPort: {0}", configSection.GetValue<int>("GatewayPort"));
