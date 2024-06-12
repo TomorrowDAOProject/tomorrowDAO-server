@@ -7,15 +7,15 @@ public class PageResultDto<T>
     public PageResultDto()
     {
         Data = new List<T>();
-        TotalRecordCount = 0;
+        TotalCount = 0;
     }
 
-    public PageResultDto(long totalRecordCount, List<T> data)
+    public PageResultDto(long totalCount, List<T> data)
     {
         Data = data;
-        TotalRecordCount = totalRecordCount;
+        TotalCount = totalCount;
     }
 
     public List<T> Data { get; set; }
-    public long TotalRecordCount { get; set; }
+    public long TotalCount { get; set; }
 }
