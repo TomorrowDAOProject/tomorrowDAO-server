@@ -17,4 +17,6 @@ public static class CommonConstant
 
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
+
+    public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
 }

@@ -33,6 +33,8 @@ public interface IContractProvider
     Task<T> CallTransactionAsync<T>(string chainId, Transaction transaction) where T : class;
 
     Task<TransactionResultDto> QueryTransactionResultAsync(string transactionId, string chainId);
+
+    Task<string> GetTreasuryAddressAsync(string chainId, string daoId);
 }
 
 public class ContractProvider : IContractProvider, ISingletonDependency
@@ -104,6 +106,27 @@ public class ContractProvider : IContractProvider, ISingletonDependency
     public Task<TransactionResultDto> QueryTransactionResultAsync(string transactionId, string chainId)
     {
         return Client(chainId).GetTransactionResultAsync(transactionId);
+    }
+
+    public async Task<string> GetTreasuryAddressAsync(string chainId, string daoId)
+    {
+        try
+        {
+            if (chainId.IsNullOrWhiteSpace() || daoId.IsNullOrWhiteSpace())
+            {
+                return string.Empty;
+            }
+            var (_, transaction) = await CreateCallTransactionAsync(chainId,
+                "TreasuryContractAddress", CommonConstant.TreasuryMethodGetTreasuryAccountAddress, Hash.LoadFromHex(daoId));
+            var treasuryAddress =
+                await CallTransactionAsync<Address>(chainId, transaction);
+            return treasuryAddress == null ? string.Empty : treasuryAddress.ToBase58();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "get treasury address error. daoId={0}, chainId={1}", daoId, chainId);
+            return string.Empty;
+        }
     }
 
 

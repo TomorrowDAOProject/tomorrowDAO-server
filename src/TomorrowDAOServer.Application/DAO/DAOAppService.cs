@@ -16,6 +16,7 @@ using Volo.Abp.Auditing;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
+using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
@@ -38,15 +39,17 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IObjectMapper _objectMapper;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGovernanceProvider _governanceProvider;
+    private readonly IContractProvider _contractProvider;
     private readonly IOptionsMonitor<DaoOption> _testDaoOptions;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
     private ValueTuple<long, long> ProposalCountCache = new(0, 0);
 
-    public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider, IGovernanceProvider governanceProvider,
+    public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
+        IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
-        IObjectMapper objectMapper, IOptionsMonitor<DaoOption> testDaoOptions)
+        IObjectMapper objectMapper, IOptionsMonitor<DaoOption> testDaoOptions, IContractProvider contractProvider)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -54,16 +57,24 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _graphQlProvider = graphQlProvider;
         _objectMapper = objectMapper;
         _testDaoOptions = testDaoOptions;
+        _contractProvider = contractProvider;
         _explorerProvider = explorerProvider;
         _governanceProvider = governanceProvider;
     }
 
     public async Task<DAOInfoDto> GetDAOByIdAsync(GetDAOInfoInput input)
     {
+        var getTreasuryAddressTask = _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DAOId);
         var daoIndex = await _daoProvider.GetAsync(input);
+        if (daoIndex == null)
+        {
+            return new DAOInfoDto();
+        }
         var daoInfo = _objectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
         var governanceScheme = (await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId)).Data;
         daoInfo.OfGovernanceSchemeThreshold(governanceScheme.FirstOrDefault());
+        await getTreasuryAddressTask;
+        daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
         if (!daoInfo.IsNetworkDAO)
         {
             //todo hc info
