@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,7 +9,6 @@ using AElf.Types;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Options;
@@ -19,16 +19,15 @@ namespace TomorrowDAOServer.Common.AElfSdk;
 
 public interface IContractProvider
 {
-    
     Task<(Hash transactionId, Transaction transaction)> CreateCallTransactionAsync(string chainId,
         string contractName, string methodName, IMessage param);
-    
+
     Task<(Hash transactionId, Transaction transaction)> CreateTransactionAsync(string chainId, string senderPublicKey,
         string contractName, string methodName,
         IMessage param);
 
     string ContractAddress(string chainId, string contractName);
-    
+
     // Task SendTransactionAsync(string chainId, Transaction transaction);
 
     Task<T> CallTransactionAsync<T>(string chainId, Transaction transaction) where T : class;
@@ -38,7 +37,7 @@ public interface IContractProvider
 
 public class ContractProvider : IContractProvider, ISingletonDependency
 {
-    private readonly JsonSerializerSettings _settings = JsonSettingsBuilder.New().WithAElfTypesConverters().Build(); 
+    private readonly JsonSerializerSettings _settings = JsonSettingsBuilder.New().WithAElfTypesConverters().Build();
     private readonly Dictionary<string, AElfClient> _clients = new();
     private readonly Dictionary<string, SenderAccount> _accounts = new();
     private readonly Dictionary<string, string> _emptyDict = new();
@@ -47,7 +46,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
 
     private readonly IOptionsMonitor<ChainOptions> _chainOptions;
     private readonly ILogger<ContractProvider> _logger;
-    
+
     public static readonly JsonSerializerSettings DefaultJsonSettings = JsonSettingsBuilder.New()
         .WithCamelCasePropertyNamesResolver()
         .WithAElfTypesConverters()
@@ -83,23 +82,21 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         return _clients[chainId];
     }
 
-    
+
     public string ContractAddress(string chainId, string contractName)
     {
         _ = _chainOptions.CurrentValue.ChainInfos.TryGetValue(chainId, out var chainInfo);
         var contractAddress = _contractAddress.GetOrAdd(chainId, _ => new Dictionary<string, string>());
         return contractAddress.GetOrAdd(contractName, name =>
         {
-            var address = (chainInfo?.ContractAddress ?? new Dictionary<string, Dictionary<string, string>>())
-                .GetValueOrDefault(chainId, _emptyDict)
-                .GetValueOrDefault(name, null);
+            var address =
+                (chainInfo?.ContractAddress ?? new Dictionary<string, string>()).GetValueOrDefault(name, null);
             if (address.IsNullOrEmpty() && SystemContractName.All.Contains(name))
                 address = AsyncHelper
                     .RunSync(() => Client(chainId).GetContractAddressByNameAsync(HashHelper.ComputeFrom(name)))
                     .ToBase58();
 
-            AssertHelper.NotEmpty(address, "Address of contract {contractName} on {chainId} not exits.",
-                name, chainId);
+            AssertHelper.NotEmpty(address, "Address of contract {contractName} on {chainId} not exits.", name, chainId);
             return address;
         });
     }
@@ -159,5 +156,4 @@ public class ContractProvider : IContractProvider, ISingletonDependency
 
         return (T)JsonConvert.DeserializeObject(rawTransactionResult, typeof(T), DefaultJsonSettings);
     }
-    
 }

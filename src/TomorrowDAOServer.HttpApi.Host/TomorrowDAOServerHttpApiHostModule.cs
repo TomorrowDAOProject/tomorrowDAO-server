@@ -60,7 +60,7 @@ namespace TomorrowDAOServer
         {
             var configuration = context.Services.GetConfiguration();
             var hostingEnvironment = context.Services.GetHostingEnvironment();
-            Configure<ChainOptions>(configuration.GetSection("ChainOptions"));
+            Configure<ChainOptions>(configuration.GetSection("Chains"));
             Configure<TokenInfoOptions>(configuration.GetSection("TokenInfoOptions"));
             Configure<ContractInfoOptions>(configuration.GetSection("ContractInfoOptions"));
             Configure<AssetsInfoOptions>(configuration.GetSection("AssetsInfoOptions"));

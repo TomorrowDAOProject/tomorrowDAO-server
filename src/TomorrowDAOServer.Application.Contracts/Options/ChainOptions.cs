@@ -13,6 +13,6 @@ public class ChainOptions
     {
         public string BaseUrl { get; set; }
         public bool IsMainChain { get; set; }
-        public Dictionary<string, Dictionary<string, string>> ContractAddress { get; set; } = new();
+        public Dictionary<string, string> ContractAddress { get; set; } = new();
     }
 }

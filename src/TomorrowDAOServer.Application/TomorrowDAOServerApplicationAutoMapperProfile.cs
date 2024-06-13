@@ -19,6 +19,7 @@ using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.Token.Index;
+using TomorrowDAOServer.Treasury.Dto;
 using TomorrowDAOServer.User.Dtos;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
@@ -75,7 +76,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.MaxHighCouncilCandidateCount, opt
                 => opt.MapFrom(src => src.MaxHighCouncilCandidateCount))
             .ForMember(des => des.MaxHighCouncilMemberCount, opt
-            => opt.MapFrom(src => src.MaxHighCouncilMemberCount))
+                => opt.MapFrom(src => src.MaxHighCouncilMemberCount))
             .ForMember(des => des.ElectionPeriod, opt
                 => opt.MapFrom(src => src.ElectionPeriod))
             .ForMember(des => des.StakingAmount, opt
@@ -88,7 +89,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<IndexerMetadata, Metadata>()
             .ForMember(des => des.SocialMedia, opt
                 => opt.MapFrom(src => MapHelper.MapJsonConvert<Dictionary<string, string>>(src.SocialMedia)));
-        
+
         CreateMap<GovernanceSchemeThreshold, GovernanceSchemeThresholdDto>().ReverseMap();
         CreateMap<HighCouncilConfig, HighCouncilConfigDto>().ReverseMap();
         CreateMap<FileInfo, FileInfoDto>().ReverseMap();
@@ -96,29 +97,40 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<PermissionInfo, PermissionInfoDto>().ReverseMap();
 
         CreateMap<ExplorerProposalResult, ProposalListResponse>()
-            .ForMember(des => des.DeployTime, opt => opt.MapFrom(src => src.ReleasedTime.DefaultIfEmpty(src.ReleasedTime).ToUtcMilliSeconds()))
+            .ForMember(des => des.DeployTime,
+                opt => opt.MapFrom(src => src.ReleasedTime.DefaultIfEmpty(src.ReleasedTime).ToUtcMilliSeconds()))
             .ForMember(des => des.GovernanceType, opt => opt.MapFrom(src => src.ProposalType))
             .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.ProposalType))
             .ForMember(des => des.ProposalStatus, opt => opt.MapFrom(src => src.Status))
             .ForMember(des => des.StartTime, opt => opt.MapFrom(src => src.CreateAt.ToUtcMilliSeconds()))
             .ForMember(des => des.ExpiredTime, opt => opt.MapFrom(src => src.ExpiredTime.ToUtcMilliSeconds()))
-            .ForMember(des => des.EndTime, opt => opt.MapFrom(src => src.ReleasedTime.DefaultIfEmpty(src.ExpiredTime).ToUtcMilliSeconds()))
+            .ForMember(des => des.EndTime,
+                opt => opt.MapFrom(src => src.ReleasedTime.DefaultIfEmpty(src.ExpiredTime).ToUtcMilliSeconds()))
             .ForMember(des => des.ApprovedCount, opt => opt.MapFrom(src => src.Approvals))
             .ForMember(des => des.RejectionCount, opt => opt.MapFrom(src => src.Rejections))
             .ForMember(des => des.AbstentionCount, opt => opt.MapFrom(src => src.Abstentions))
-            .ForMember(des => des.TotalVoteCount, opt => opt.MapFrom(src => src.Approvals + src.Rejections + src.Abstentions))
-            .ForMember(des => des.MinimalRequiredThreshold, opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalApprovalThreshold))
-            .ForMember(des => des.MinimalApproveThreshold, opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalApprovalThreshold))
-            .ForMember(des => des.MinimalVoteThreshold, opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalVoteThreshold))
-            .ForMember(des => des.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MaximalRejectionThreshold))
-            .ForMember(des => des.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MaximalAbstentionThreshold))
+            .ForMember(des => des.TotalVoteCount,
+                opt => opt.MapFrom(src => src.Approvals + src.Rejections + src.Abstentions))
+            .ForMember(des => des.MinimalRequiredThreshold,
+                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalApprovalThreshold))
+            .ForMember(des => des.MinimalApproveThreshold,
+                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalApprovalThreshold))
+            .ForMember(des => des.MinimalVoteThreshold,
+                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalVoteThreshold))
+            .ForMember(des => des.MaximalRejectionThreshold,
+                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MaximalRejectionThreshold))
+            .ForMember(des => des.MaximalAbstentionThreshold,
+                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MaximalAbstentionThreshold))
             .ForMember(des => des.Transaction, opt => opt.MapFrom(src => new ProposalListResponse.TransactionDto
             {
                 ContractMethodName = src.ContractMethod,
                 ToAddress = src.ContractAddress
             }))
             .ReverseMap();
-        
+
+        CreateMap<TreasuryFundDto, TreasuryAssetsDto>()
+            .ForMember(des => des.Amount, opt => opt.MapFrom(src => src.AvailableFunds));
+
         CreateMap<ExplorerTransactionResponse, TreasuryTransactionDto>()
             .ForMember(des => des.TransactionHash, opt => opt.MapFrom(src => src.TxId))
             .ForMember(des => des.MethodName, opt => opt.MapFrom(src => src.Method))
@@ -131,7 +143,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.To, opt => opt.MapFrom(src => src.AddressTo))
             .ForMember(des => des.TransactionTime, opt => opt.MapFrom(src => src.Time))
             .ReverseMap();
-        
+
         CreateMap<DAOIndex, DAOListDto>()
             .ForMember(des => des.DaoId, opt => opt.MapFrom(src => src.Id))
             .ForMember(des => des.Logo, opt => opt.MapFrom(src => src.Metadata.LogoUrl))
@@ -150,7 +162,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.GovernanceMechanism, opt
                 => opt.MapFrom(source => source.GovernanceMechanism.ToString()))
             ;
-        
+
         CreateMap<IndexerVoteRecord, IndexerVoteHistoryDto>()
             .ForMember(des => des.TimeStamp, opt
                 => opt.MapFrom(source => source.VoteTime))

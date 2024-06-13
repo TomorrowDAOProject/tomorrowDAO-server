@@ -18,13 +18,15 @@ public class NetworkDaoController
     private ILogger<NetworkDaoController> _logger;
     private readonly IProposalService _proposalService;
     private readonly ITreasuryService _treasuryService;
+    private readonly IElectionService _electionService;
 
     public NetworkDaoController(IProposalService proposalService, ILogger<NetworkDaoController> logger,
-        ITreasuryService treasuryService)
+        ITreasuryService treasuryService, IElectionService electionService)
     {
         _proposalService = proposalService;
         _logger = logger;
         _treasuryService = treasuryService;
+        _electionService = electionService;
     }
 
     [HttpGet("proposal/home-page")]
@@ -38,7 +40,7 @@ public class NetworkDaoController
     {
         return await _proposalService.GetProposalList(request);
     }
-    
+
     [HttpGet("treasury/balance")]
     public async Task<TreasuryBalanceResponse> TreasuryBalance(TreasuryBalanceRequest request)
     {
@@ -46,9 +48,15 @@ public class NetworkDaoController
     }
 
     [HttpGet("treasury/transactions-records")]
-    public async Task<PagedResultDto<TreasuryTransactionDto>> TreasuryTransactionRecords(TreasuryTransactionRequest request)
+    public async Task<PagedResultDto<TreasuryTransactionDto>> TreasuryTransactionRecords(
+        TreasuryTransactionRequest request)
     {
         return await _treasuryService.GetTreasuryTransactionAsync(request);
     }
 
+    [HttpGet("staking")]
+    public async Task<long> GetBpVotingStakingAmount()
+    {
+        return await _electionService.GetBpVotingStakingAmount();
+    }
 }
