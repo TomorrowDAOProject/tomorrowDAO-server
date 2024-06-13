@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Shouldly;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
@@ -39,6 +40,7 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
         services.AddSingleton(MockGovernanceProvider());
         services.AddSingleton(MockExplorerProvider());
         services.AddSingleton(MockGraphQlProvider());
+        services.AddSingleton(MockContractProvider());
         base.AfterAddApplication(services);
     }
 
@@ -182,6 +184,13 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
         mock.Setup(p => p.GetHoldersAsync(It.IsAny<List<string>>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync(new Dictionary<string, long>{[ELF] = 1});
 
+        return mock.Object;
+    }
+
+    private IContractProvider MockContractProvider()
+    {
+        var mock = new Mock<IContractProvider>();
+        mock.Setup(p => p.GetTreasuryAddressAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync("Address");
         return mock.Object;
     }
 }
