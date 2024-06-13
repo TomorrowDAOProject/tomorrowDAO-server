@@ -53,7 +53,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             resultDto.DaoId = treasuryFundDto?.DaoId;
             resultDto.Data =
                 _objectMapper.Map<List<TreasuryFundDto>, List<TreasuryAssetsDto>>(treasuryAssetsResult.Data);
-            resultDto.TotalRecordCount = count;
+            resultDto.TotalCount = count;
 
             var symbols = new List<string>();
             foreach (var assetsDto in resultDto.Data.Where(assetsDto => !symbols.Contains(assetsDto.Symbol)))
