@@ -75,6 +75,11 @@ public class DAOAppService : ApplicationService, IDAOAppService
         daoInfo.OfGovernanceSchemeThreshold(governanceScheme.FirstOrDefault());
         await getTreasuryAddressTask;
         daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
+        if (daoInfo.TreasuryContractAddress.IsNullOrWhiteSpace())
+        {
+            daoInfo.TreasuryContractAddress =
+                _contractProvider.ContractAddress(input.ChainId, CommonConstant.TreasuryContractAddressName);
+        }
         if (!daoInfo.IsNetworkDAO)
         {
             //todo hc info

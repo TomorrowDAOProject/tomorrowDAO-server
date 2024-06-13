@@ -15,8 +15,9 @@ public static class CommonConstant
     public const int HCCount = 3;
     public const int AbstractVoteTotal = 10000;
 
+    public const string TreasuryContractAddressName = "TreasuryContractAddress";
+        
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
-
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
 }
