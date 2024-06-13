@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
@@ -30,6 +31,7 @@ public class DaoAppServiceTest
     private readonly IExplorerProvider _explorerProvider;
     private readonly IOptionsMonitor<DaoOption> _testDaoOptions;
     private readonly IGovernanceProvider _governanceProvider;
+    private readonly IContractProvider _contractProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly DAOAppService _service;
 
@@ -40,11 +42,12 @@ public class DaoAppServiceTest
         _graphQlProvider = Substitute.For<IGraphQLProvider>();
         _proposalProvider = Substitute.For<IProposalProvider>();
         _explorerProvider = Substitute.For<IExplorerProvider>();
+        _contractProvider = Substitute.For<IContractProvider>();
         _testDaoOptions = Substitute.For<IOptionsMonitor<DaoOption>>();
         _governanceProvider = Substitute.For<IGovernanceProvider>();
         _objectMapper = Substitute.For<IObjectMapper>();
         _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
-            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions);
+            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider);
     }
 
     [Fact]
@@ -75,24 +78,26 @@ public class DaoAppServiceTest
         _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
             .Returns(new TokenInfoDto { Holders = "2" });
         _graphQlProvider.GetBPAsync(Arg.Any<string>())
-            .Returns(new List<string>{"BP"});
+            .Returns(new List<string> { "BP" });
         _explorerProvider.GetProposalPagerAsync(Arg.Any<string>(), Arg.Any<ExplorerProposalListRequest>())
             .Returns(new ExplorerProposalResponse { Total = 1 });
-        
+
+        _contractProvider.GetTreasuryAddressAsync(Arg.Any<string>(), Arg.Any<string>()).Returns("address");
+
         // begin >= topCount
         var list = await _service.GetDAOListAsync(new QueryDAOListInput
         {
             ChainId = "AELF", SkipCount = 1
         });
         list.ShouldNotBeNull();
-        
+
         // end <= topCount
         list = await _service.GetDAOListAsync(new QueryDAOListInput
         {
             ChainId = "AELF", MaxResultCount = 1
         });
         list.ShouldNotBeNull();
-        
+
         // both
         list = await _service.GetDAOListAsync(new QueryDAOListInput
         {
