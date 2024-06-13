@@ -13,7 +13,7 @@ namespace TomorrowDAOServer.Treasury.Provider;
 
 public interface ITreasuryAssetsProvider
 {
-    Task<Tuple<long, GetTreasuryFundListResult>>  GetTreasuryAssetsAsync(GetTreasuryAssetsInput input);
+    Task<GetTreasuryFundListResult> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input);
 }
 
 public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDependency
@@ -27,21 +27,24 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
         _graphQlHelper = graphQlHelper;
     }
 
-    public async Task<Tuple<long, GetTreasuryFundListResult>> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input)
+    public async Task<GetTreasuryFundListResult> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input)
     {
-        var response =  await _graphQlHelper.QueryAsync<GetTreasuryFundListResult>(new GraphQLRequest
+        var response = await _graphQlHelper.QueryAsync<GetTreasuryFundListResult>(new GraphQLRequest
         {
             Query = @"
 			    query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$daoId:String!,$symbols: [String]) {
-                    data:getTreasuryFundList(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,daoId:$daoId,symbols:$symbols}){
-                        id,
-                        chainId,
-                        blockHeight,
-                        daoId,
-                        treasuryAddress,
-                        symbol,
-                        availableFunds,
-                        lockedFunds
+                    getTreasuryFundList(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,daoId:$daoId,symbols:$symbols}){
+                        item1,
+                        item2 {
+                            id,
+                            chainId,
+                            blockHeight,
+                            daoId,
+                            treasuryAddress,
+                            symbol,
+                            availableFunds,
+                            lockedFunds
+                        }
                     }
                 }",
             Variables = new
@@ -53,6 +56,6 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
                 maxResultCount = input.MaxResultCount
             }
         });
-        return new Tuple<long, GetTreasuryFundListResult>(10L, response ?? new GetTreasuryFundListResult());
+        return response ?? new GetTreasuryFundListResult();
     }
 }

@@ -41,19 +41,19 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             }
 
             var resultDto = new TreasuryAssetsPagedResultDto();
-            var (count, treasuryAssetsResult) = await _treasuryAssetsProvider.GetTreasuryAssetsAsync(input);
-            if (count <= 0)
+            var treasuryAssetsResult = await _treasuryAssetsProvider.GetTreasuryAssetsAsync(input);
+            if (treasuryAssetsResult.Item1 <= 0)
             {
                 return resultDto;
             }
 
-            var treasuryFundDtos = treasuryAssetsResult.Data;
+            var treasuryFundDtos = treasuryAssetsResult.Item2;
             var treasuryFundDto = treasuryFundDtos.FirstOrDefault();
             resultDto.TreasuryAddress = treasuryFundDto?.TreasuryAddress;
             resultDto.DaoId = treasuryFundDto?.DaoId;
             resultDto.Data =
-                _objectMapper.Map<List<TreasuryFundDto>, List<TreasuryAssetsDto>>(treasuryAssetsResult.Data);
-            resultDto.TotalCount = count;
+                _objectMapper.Map<List<TreasuryFundDto>, List<TreasuryAssetsDto>>(treasuryAssetsResult.Item2);
+            resultDto.TotalCount = treasuryAssetsResult.Item1;
 
             var symbols = new List<string>();
             foreach (var assetsDto in resultDto.Data.Where(assetsDto => !symbols.Contains(assetsDto.Symbol)))

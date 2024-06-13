@@ -4,7 +4,8 @@ namespace TomorrowDAOServer.Treasury.Dto;
 
 public class GetTreasuryFundListResult
 {
-    public List<TreasuryFundDto> Data { get; set; }
+    public long Item1 { get; set; }
+    public List<TreasuryFundDto> Item2 { get; set; }
 }
 
 public class TreasuryFundDto
