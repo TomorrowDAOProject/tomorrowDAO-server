@@ -6,8 +6,10 @@ using NSubstitute;
 using Shouldly;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Dtos;
+using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Election.Provider;
@@ -104,5 +106,13 @@ public class DaoAppServiceTest
             ChainId = "AELF"
         });
         list.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async void GetMemberListAsync_Test()
+    {
+        _daoProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>());
+        var result = await _service.GetMemberListAsync(new GetMemberListInput());
+        result.ShouldNotBeNull();
     }
 }

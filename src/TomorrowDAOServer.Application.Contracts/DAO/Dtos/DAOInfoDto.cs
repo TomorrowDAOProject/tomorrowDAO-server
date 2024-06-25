@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Governance.Dto;
 
 namespace TomorrowDAOServer.DAO.Dtos;
@@ -32,6 +33,7 @@ public class DAOInfoDto
     public string TimelockContractAddress { get; set; }
     public DateTime CreateTime { get; set; }
     public bool IsNetworkDAO { get; set; }
+    public GovernanceMechanism GovernanceMechanism { get; set; }
 
     public void OfGovernanceSchemeThreshold(IndexerGovernanceScheme scheme)
     {

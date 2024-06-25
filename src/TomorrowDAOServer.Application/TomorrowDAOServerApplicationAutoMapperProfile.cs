@@ -71,7 +71,10 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.Option.ToString()))
             ;
 
-        CreateMap<DAOIndex, DAOInfoDto>().ReverseMap();
+        CreateMap<DAOIndex, DAOInfoDto>()
+            .ForMember(des => des.GovernanceMechanism, opt
+                => opt.MapFrom(src => MapGovernanceMechanism(src.GovernanceToken)))
+            .ReverseMap();
         CreateMap<IndexerDAOInfo, HighCouncilConfig>()
             .ForMember(des => des.MaxHighCouncilCandidateCount, opt
                 => opt.MapFrom(src => src.MaxHighCouncilCandidateCount))
