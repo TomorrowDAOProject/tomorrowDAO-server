@@ -15,11 +15,11 @@ namespace TomorrowDAOServer.Worker
         public override void OnApplicationInitialization(ApplicationInitializationContext context)
         {
             var backgroundWorkerManger = context.ServiceProvider.GetRequiredService<IBackgroundWorkerManager>();
-            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<BPInfoUpdateWorker>());
-            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalSyncWorker>());
+            // backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<BPInfoUpdateWorker>());
+            // backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalSyncWorker>());
             // backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalExpiredWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<DAOSyncWorker>());
-            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalNewUpdateWorker>());
+            // backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalNewUpdateWorker>());
         }
     }
 }

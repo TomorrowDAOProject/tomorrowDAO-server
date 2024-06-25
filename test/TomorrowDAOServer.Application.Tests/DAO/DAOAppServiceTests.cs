@@ -54,7 +54,7 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
         });
         result.ShouldNotBeNull();
         
-        var ret = await _daoAppService.GetMemberListAsync(new GetHcMemberInput
+        var ret = await _daoAppService.GetHcMemberListAsync(new GetHcMemberInput
         {
             ChainId = "AELF",
             DAOId = "test1",

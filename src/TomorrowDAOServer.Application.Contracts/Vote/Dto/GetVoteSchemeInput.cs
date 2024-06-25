@@ -8,6 +8,7 @@ namespace TomorrowDAOServer.Vote.Dto;
 public class GetVoteSchemeInput : IValidatableObject
 {
     [Required] public string ChainId { get; set; }
+    public string DAOId { get; set; }
     
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

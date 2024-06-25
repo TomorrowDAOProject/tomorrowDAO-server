@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NSubstitute;
 using Shouldly;
+using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
@@ -10,7 +11,7 @@ namespace TomorrowDAOServer.Vote;
 
 public class VoteServiceTest
 { 
-    private readonly VoteService _voteService = new(Substitute.For<IVoteProvider>(), Substitute.For<IObjectMapper>());
+    private readonly VoteService _voteService = new(Substitute.For<IVoteProvider>(), Substitute.For<IDAOProvider>(), Substitute.For<IObjectMapper>());
 
     [Fact]
     public async void GetVoteSchemeAsync_Test()

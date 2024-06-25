@@ -3,8 +3,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
+using TomorrowDAOServer.DAO.Indexer;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 
@@ -30,9 +32,15 @@ public class DaoController
     }
     
     [HttpGet("hc-member-list")]
-    public async Task<PagedResultDto<HcMemberDto>> GetMemberListAsync(GetHcMemberInput input)
+    public async Task<PagedResultDto<HcMemberDto>> GetHcMemberListAsync(GetHcMemberInput input)
     {
-        return await _daoAppService.GetMemberListAsync(input);
+        return await _daoAppService.GetHcMemberListAsync(input);
+    }
+    
+    [HttpGet("member-list")]
+    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
+    {
+        return await _daoAppService.GetMemberListAsync(listInput);
     }
     
     [HttpGet("dao-list")]

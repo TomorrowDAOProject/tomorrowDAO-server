@@ -26,6 +26,8 @@ public interface IDAOProvider
     Task<Tuple<long, List<DAOIndex>>> GetMyOwneredDAOListAsync(QueryMyDAOListInput input, string address);
     Task<DAOIndex> GetNetworkDAOAsync(string chainId);
     Task<PageResultDto<IndexerDAOInfo>> GetMyParticipatedDaoListAsync(GetParticipatedInput input);
+    Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput);
+    Task<MemberDto> GetMemberAsync(GetMemberInput listInput);
 }
 
 public class DAOProvider : IDAOProvider, ISingletonDependency
@@ -85,7 +87,8 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                         vetoExecuteTimePeriod,
                         createTime,
                         isNetworkDAO,
-                        voterCount
+                        voterCount,
+                        governanceMechanism
                     }
                 }",
             Variables = new
@@ -259,5 +262,79 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
             return new PageResultDto<IndexerDAOInfo>();
         }
         
+    }
+
+    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
+    {
+        try
+        {
+            var response =  await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(new GraphQLRequest
+            {
+                Query = @"
+			        query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$dAOId:String!) {
+                        data:getMemberList(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,dAOId:$dAOId})
+                        {
+                            totalCount,
+                            data{
+                                id,
+                                chainId,
+                                blockHeight,
+                                dAOId,    
+                                address,
+                                createTime
+                            }
+                        }
+                    }",
+                Variables = new
+                {
+                    chainId = listInput.ChainId,
+                    skipCount = listInput.SkipCount,
+                    maxResultCount = listInput.MaxResultCount,
+                    dAOId = listInput.DAOId
+                }
+            });
+            return response?.Data ?? new PageResultDto<MemberDto>();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetMemberListAsync chainId {chainId}, daoId {daoId}, skipCount {skipCount}, maxResultCount {maxResultCount}", 
+                listInput.ChainId, listInput.DAOId, listInput.SkipCount, listInput.MaxResultCount);
+            return new PageResultDto<MemberDto>();
+        }
+    }
+
+    public async Task<MemberDto> GetMemberAsync(GetMemberInput input)
+    {
+        try
+        {
+            var response =  await _graphQlHelper.QueryAsync<IndexerCommonResult<MemberDto>>(new GraphQLRequest
+            {
+                Query = @"
+			        query($chainId:String!,$dAOId:String!,$address:String!) {
+                        data:getMemberAsync(input: {chainId:$chainId,dAOId:$dAOId,address:$address})
+                        {
+                            id,
+                            chainId,
+                            blockHeight,
+                            dAOId,    
+                            address,
+                            createTime
+                        }
+                    }",
+                Variables = new
+                {
+                    chainId = input.ChainId,
+                    dAOId = input.DAOId,
+                    address = input.Address
+                }
+            });
+            return response?.Data ?? new MemberDto();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetIsMemberAsync chainId {chainId}, daoId {daoId}, address {address}", 
+                input.ChainId, input.DAOId, input.Address);
+            return new MemberDto();
+        }
     }
 }

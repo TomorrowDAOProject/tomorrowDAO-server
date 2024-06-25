@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.DAO.Indexer;
 
@@ -40,6 +41,7 @@ public class IndexerDAOInfo
     public DateTime CreateTime { get; set; }
     public bool IsNetworkDAO { get; set; }
     public int VoterCount { get; set; }
+    public GovernanceMechanism GovernanceMechanism { get; set; }
 }
 
 public class IndexerMetadata

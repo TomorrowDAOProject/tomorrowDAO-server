@@ -86,10 +86,4 @@ public class ProposalBase : BlockInfoBase
     public bool VoteFinished { get; set; }
     
     public bool IsNetworkDAO { get; set; }
-    
-    public bool IsFinalStatus()
-    {
-        return ProposalStatus is ProposalStatus.Rejected or ProposalStatus.Abstained or ProposalStatus.Expired
-            or ProposalStatus.Executed;
-    }
 }

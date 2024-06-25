@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
 using Nest;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.DAO;
 
@@ -37,4 +40,6 @@ public class DAOIndex : AbstractEntity<string>, IIndexBuild
     public DateTime CreateTime { get; set; }
     public bool IsNetworkDAO { get; set; }
     public int VoterCount { get; set; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public GovernanceMechanism GovernanceMechanism { get; set; }
 }

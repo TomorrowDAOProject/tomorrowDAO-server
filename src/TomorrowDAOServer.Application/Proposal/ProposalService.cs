@@ -703,9 +703,15 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return false;
         }
 
-        if (GovernanceMechanism.Referendum == proposalIndex.GovernanceMechanism)
+        switch (proposalIndex.GovernanceMechanism)
         {
-            return true;
+            case GovernanceMechanism.Referendum:
+                return true;
+            case GovernanceMechanism.Organization:
+            {
+                var member = await _DAOProvider.GetMemberAsync(new GetMemberInput{DAOId = daoIndex.Id, ChainId = daoIndex.ChainId, Address = address});
+                return !string.IsNullOrEmpty(member.Address);
+            }
         }
 
         if (daoIndex.IsNetworkDAO)

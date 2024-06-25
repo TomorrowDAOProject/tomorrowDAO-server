@@ -22,8 +22,6 @@ using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
-using TomorrowDAOServer.User;
-using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.DAO;
@@ -92,7 +90,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         return daoInfo;
     }
 
-    public async Task<PagedResultDto<HcMemberDto>> GetMemberListAsync(GetHcMemberInput input)
+    public async Task<PagedResultDto<HcMemberDto>> GetHcMemberListAsync(GetHcMemberInput input)
     {
         var type = input.Type.IsNullOrWhiteSpace() ? HighCouncilType.Member.ToString() : input.Type;
         var daoInfo = await _daoProvider.GetAsync(input);
@@ -121,6 +119,11 @@ public class DAOAppService : ApplicationService, IDAOAppService
                 StakeAmount = x.StakeAmount.ToString()
             }).ToList() ?? new List<HcMemberDto>()
         };
+    }
+
+    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
+    {
+        return await _daoProvider.GetMemberListAsync(listInput);
     }
 
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput input)
