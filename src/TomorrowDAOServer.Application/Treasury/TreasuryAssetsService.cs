@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nito.AsyncEx;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Token;
+using TomorrowDAOServer.Token.Dto;
 using TomorrowDAOServer.Treasury.Dto;
 using TomorrowDAOServer.Treasury.Provider;
 using Volo.Abp;
@@ -61,11 +63,12 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
                 symbols.Add(assetsDto.Symbol);
             }
 
-            var tokenInfoDictionary = await GetTokenInfoAsync(input.ChainId, symbols);
+            var (tokenInfoDictionary, tokenPriceDictionary) = await GetTokenInfoAsync(input.ChainId, symbols);
 
             foreach (var dto in resultDto.Data.Where(dto => tokenInfoDictionary.ContainsKey(dto.Symbol)))
             {
                 dto.Decimal = tokenInfoDictionary[dto.Symbol].Decimals;
+                dto.UsdValue = dto.Amount / Math.Pow(10, dto.Decimal) * (double)(tokenPriceDictionary.GetValueOrDefault(dto.Symbol)?.Price ?? 0);
             }
 
             return resultDto;
@@ -77,16 +80,14 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         }
     }
 
-    private async Task<Dictionary<string, TokenGrainDto>> GetTokenInfoAsync(string chainId, List<string> symbols)
+    private async Task<Tuple<Dictionary<string, TokenGrainDto>, Dictionary<string, TokenPriceDto>>> GetTokenInfoAsync(string chainId, List<string> symbols)
     {
-        var tasks = symbols.Select(symbol => _tokenService.GetTokenAsync(chainId, symbol)).ToList();
-        await tasks.WhenAll();
-        var tokenInfoDictionary = new Dictionary<string, TokenGrainDto>();
-        foreach (var task in tasks.Where(task => task.Result != null))
-        {
-            tokenInfoDictionary[task.Result.Symbol] = task.Result;
-        }
-
-        return tokenInfoDictionary;
+        var tokenInfoTasks = symbols.Select(symbol => _tokenService.GetTokenAsync(chainId, symbol)).ToList();
+        var tokenPriceTasks = symbols.Select(symbol => _tokenService.GetTokenPriceAsync(symbol, CommonConstant.USD)).ToList();
+        var tokenInfoResults = (await Task.WhenAll(tokenInfoTasks)).Where(x => x != null)
+            .ToDictionary(x => x.Symbol, x => x); 
+        var priceResults = (await Task.WhenAll(tokenPriceTasks)).Where(x => x != null)
+            .ToDictionary(x => x.BaseCoin, x => x);
+        return new Tuple<Dictionary<string, TokenGrainDto>, Dictionary<string, TokenPriceDto>>(tokenInfoResults, priceResults);
     }
 }
