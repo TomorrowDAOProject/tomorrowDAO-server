@@ -9,6 +9,7 @@ public static class CommonConstant
     public const string EmptyString = "";
     public const string ELF = "ELF";
     public const string USDT = "USDT";
+    public const string USD = "USD";
     public const string MainChainId = "AELF";
     
     //todo temporary count to make hc proposal not approved, real query when next version
