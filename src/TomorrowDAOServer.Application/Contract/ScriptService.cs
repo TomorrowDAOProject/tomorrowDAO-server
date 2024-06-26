@@ -53,7 +53,7 @@ public class ScriptService : IScriptService, ITransientDependency
     public async Task<List<string>> GetCurrentHCAsync(string chainId, string daoId)
     {
         var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
-        var result = await _transactionService.CallTransactionAsync<GetVictoriesDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.ElectionContractAddress, ContractConstants.GetVictories, Hash.LoadFromHex(daoId));
+        var result = await _transactionService.CallTransactionAsync<GetVictoriesDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.ElectionContractAddress, ContractConstants.GetHighCouncilMembers, Hash.LoadFromHex(daoId));
         return result?.Value ?? new List<string>();
     }
 

@@ -41,6 +41,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddTransient<IScheduleSyncDataService, ProposalNewUpdateService>();
         context.Services.AddTransient<IScheduleSyncDataService, DAOSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, BPInfoUpdateService>();
+        context.Services.AddTransient<IScheduleSyncDataService, HighCouncilMemberSyncService>();
         context.Services.AddHttpClient();
         context.Services.AddMemoryCache();
         context.Services.AddSingleton(typeof(ILocalMemoryCache<>), typeof(LocalMemoryCache<>));

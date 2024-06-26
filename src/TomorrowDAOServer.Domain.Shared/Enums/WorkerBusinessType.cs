@@ -6,5 +6,6 @@ public enum WorkerBusinessType
     ProposalExpired,
     DAOSync,
     BPInfoUpdate,
-    ProposalNewUpdate
+    ProposalNewUpdate,
+    HighCouncilMemberSync
 }
