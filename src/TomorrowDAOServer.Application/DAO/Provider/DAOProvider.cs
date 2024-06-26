@@ -311,7 +311,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
             {
                 Query = @"
 			        query($chainId:String!,$dAOId:String!,$address:String!) {
-                        data:getMemberAsync(input: {chainId:$chainId,dAOId:$dAOId,address:$address})
+                        data:getMember(input: {chainId:$chainId,dAOId:$dAOId,address:$address})
                         {
                             id,
                             chainId,
