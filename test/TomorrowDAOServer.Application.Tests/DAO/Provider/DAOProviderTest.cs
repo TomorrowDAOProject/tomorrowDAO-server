@@ -2,9 +2,11 @@ using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using Shouldly;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using Xunit;
 
@@ -28,7 +30,9 @@ public class DAOProviderTest
     [Fact]
     public async void GetMemberListAsync_Test()
     {
-        // _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(Arg.Any<GraphQLRequest>())
-        //     .Returns()
+        _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(Arg.Any<GraphQLRequest>())
+            .Returns(new IndexerCommonResult<PageResultDto<MemberDto>>());
+        var memberList = await _provider.GetMemberListAsync(new GetMemberListInput());
+        memberList.ShouldNotBeNull();
     }
 }
