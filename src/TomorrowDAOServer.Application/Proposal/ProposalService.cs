@@ -182,8 +182,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             }
             else
             {
-                //TODO HC Count
-                return CommonConstant.HCCount;
+                var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
+                return hcList.IsNullOrEmpty() ? 0 : hcList.Count;
             }
         }
         catch (Exception e)
