@@ -470,7 +470,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var tokenInfo =
             await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
         var symbol = tokenInfo.Symbol;
-        var symbolDecimal = tokenInfo.Decimals.ToString();
+        var symbolDecimal = tokenInfo.Decimals;
         var voteInfos = await _voteProvider.GetVoteItemsAsync(input.ChainId, new List<string> { input.ProposalId });
         await councilMemberCountTask;
         var councilMemberCount = councilMemberCountTask.Result;
