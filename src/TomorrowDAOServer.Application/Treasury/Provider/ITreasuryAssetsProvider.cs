@@ -14,6 +14,7 @@ namespace TomorrowDAOServer.Treasury.Provider;
 public interface ITreasuryAssetsProvider
 {
     Task<GetTreasuryFundListResult> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input);
+    Task<GetTreasuryFundListResult> GetAllTreasuryAssetsAsync(GetAllTreasuryAssetsInput input);
 }
 
 public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDependency
@@ -56,6 +57,36 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
                 maxResultCount = input.MaxResultCount,
                 startBlockHeight = 0,
                 endBlockHeight = 0
+            }
+        });
+        return response.Data ?? new GetTreasuryFundListResult();
+    }
+
+    public async Task<GetTreasuryFundListResult> GetAllTreasuryAssetsAsync(GetAllTreasuryAssetsInput input)
+    {
+        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<GetTreasuryFundListResult>>(new GraphQLRequest
+        {
+            Query = @"
+			    query($chainId:String!,$daoId:String!) {
+                    data:getAllTreasuryFundList(input: {chainId:$chainId,daoId:$daoId})
+                    {
+                        item1,
+                        item2 {
+                            id,
+                            chainId,
+                            blockHeight,
+                            daoId,
+                            treasuryAddress,
+                            symbol,
+                            availableFunds,
+                            lockedFunds
+                        }
+                    }
+                }",
+            Variables = new
+            {
+                chainId = input.ChainId,
+                daoId = input.DaoId,
             }
         });
         return response.Data ?? new GetTreasuryFundListResult();

@@ -43,26 +43,25 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             }
 
             var resultDto = new TreasuryAssetsPagedResultDto();
-            var treasuryAssetsResult = await _treasuryAssetsProvider.GetTreasuryAssetsAsync(input);
+            var treasuryAssetsResult = await _treasuryAssetsProvider.GetAllTreasuryAssetsAsync(new GetAllTreasuryAssetsInput
+            {
+                ChainId = input.ChainId, DaoId = input.DaoId
+            });
             if (treasuryAssetsResult.Item1 <= 0)
             {
                 return resultDto;
             }
 
-            var treasuryFundDtos = treasuryAssetsResult.Item2;
-            var treasuryFundDto = treasuryFundDtos.FirstOrDefault();
-            resultDto.TreasuryAddress = treasuryFundDto?.TreasuryAddress;
-            resultDto.DaoId = treasuryFundDto?.DaoId;
-            resultDto.Data =
-                _objectMapper.Map<List<TreasuryFundDto>, List<TreasuryAssetsDto>>(treasuryAssetsResult.Item2);
+            var allTreasuryFunds = treasuryAssetsResult.Item2.OrderBy(x => x.AvailableFunds).ToList();
+            var treasuryFund = allTreasuryFunds.FirstOrDefault();
+            var rangeTreasuryFunds = GetRangeTreasuryFunds(input.SkipCount, input.MaxResultCount, allTreasuryFunds);
+            
+            resultDto.TreasuryAddress = treasuryFund?.TreasuryAddress;
+            resultDto.DaoId = treasuryFund?.DaoId;
+            resultDto.Data = _objectMapper.Map<List<TreasuryFundDto>, List<TreasuryAssetsDto>>(rangeTreasuryFunds);
             resultDto.TotalCount = treasuryAssetsResult.Item1;
-
-            var symbols = new List<string>();
-            foreach (var assetsDto in resultDto.Data.Where(assetsDto => !symbols.Contains(assetsDto.Symbol)))
-            {
-                symbols.Add(assetsDto.Symbol);
-            }
-
+            
+            var symbols = allTreasuryFunds.Where(x => !string.IsNullOrEmpty(x.Symbol)).Select(x => x.Symbol).ToHashSet();
             var (tokenInfoDictionary, tokenPriceDictionary) = await GetTokenInfoAsync(input.ChainId, symbols);
 
             foreach (var dto in resultDto.Data.Where(dto => tokenInfoDictionary.ContainsKey(dto.Symbol)))
@@ -70,6 +69,11 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
                 dto.Decimal = tokenInfoDictionary[dto.Symbol].Decimals;
                 dto.UsdValue = dto.Amount / Math.Pow(10, dto.Decimal) * (double)(tokenPriceDictionary.GetValueOrDefault(dto.Symbol)?.Price ?? 0);
             }
+
+            resultDto.TotalUsdValue = (from dto in allTreasuryFunds.Where(x => tokenInfoDictionary.ContainsKey(x.Symbol)) 
+                    let symbolDecimal = tokenInfoDictionary[dto.Symbol].Decimals 
+                    select dto.AvailableFunds / Math.Pow(10, symbolDecimal) * (double)(tokenPriceDictionary.GetValueOrDefault(dto.Symbol)?.Price ?? 0))
+                .Sum();
 
             return resultDto;
         }
@@ -80,7 +84,14 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         }
     }
 
-    private async Task<Tuple<Dictionary<string, TokenGrainDto>, Dictionary<string, TokenPriceDto>>> GetTokenInfoAsync(string chainId, List<string> symbols)
+    private static List<TreasuryFundDto> GetRangeTreasuryFunds(int skipCount, int maxResult, List<TreasuryFundDto> allFunds)
+    {
+        return skipCount >= allFunds.Count ? 
+            new List<TreasuryFundDto>() : 
+            allFunds.GetRange(skipCount, Math.Min(maxResult, allFunds.Count - skipCount));
+    }
+
+    private async Task<Tuple<Dictionary<string, TokenGrainDto>, Dictionary<string, TokenPriceDto>>> GetTokenInfoAsync(string chainId, HashSet<string> symbols)
     {
         var tokenInfoTasks = symbols.Select(symbol => _tokenService.GetTokenAsync(chainId, symbol)).ToList();
         var tokenPriceTasks = symbols.Select(symbol => _tokenService.GetTokenPriceAsync(symbol, CommonConstant.USD)).ToList();

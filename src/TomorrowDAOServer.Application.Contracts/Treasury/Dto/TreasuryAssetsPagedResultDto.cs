@@ -3,7 +3,7 @@ using TomorrowDAOServer.Common.Dtos;
 
 namespace TomorrowDAOServer.Treasury.Dto;
 
-public class TreasuryAssetsPagedResultDto : PageResultDto<TreasuryAssetsDto>
+public class TreasuryAssetsPagedResultDto : TreasuryPageResultDto<TreasuryAssetsDto>
 {
     public string DaoId { get; set; }
     public string TreasuryAddress { get; set; }
