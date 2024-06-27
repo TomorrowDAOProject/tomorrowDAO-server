@@ -131,7 +131,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
                     new GraphQLRequest
                     {
                         Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long,$endBlockHeight:Long,$chainId:String,$daoId:String){
+                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
             data:getElectionHighCouncilConfig(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,daoId:$daoId})
             {            
                 items {

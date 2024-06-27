@@ -55,7 +55,12 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
             try
             {
                 var addressList = await _scriptService.GetCurrentHCAsync(chainId, daoId);
-                await _graphQlProvider.SetHighCouncilMembersAsync(chainId, daoId, addressList);
+                _logger.LogInformation("high council member count: daoId={0}, chaiId={1}, count={2}", daoId, chainId,
+                    addressList.IsNullOrEmpty() ? 0 : addressList.Count);
+                if (!addressList.IsNullOrEmpty())
+                {
+                    await _graphQlProvider.SetHighCouncilMembersAsync(chainId, daoId, addressList);
+                }
             }
             catch (Exception e)
             {
