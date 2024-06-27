@@ -7,8 +7,8 @@ namespace TomorrowDAOServer.Grains.Grain.Election;
 
 public interface IHighCouncilMembersGrain : IGrainWithStringKey
 {
-    public Task SaveHighCouncilMembers(List<string> addressList);
-    public Task<List<string>> GetHighCouncilMembers();
+    Task SaveHighCouncilMembersAsync(List<string> addressList);
+    Task<List<string>> GetHighCouncilMembersAsync();
 }
 
 public class HighCouncilMembersGrain : Grain<HighCouncilMembersState>, IHighCouncilMembersGrain
@@ -19,14 +19,14 @@ public class HighCouncilMembersGrain : Grain<HighCouncilMembersState>, IHighCoun
         return base.OnActivateAsync();
     }
 
-    public async Task SaveHighCouncilMembers(List<string> addressList)
+    public async Task SaveHighCouncilMembersAsync(List<string> addressList)
     {
         State.AddressList = addressList;
         State.UpdateTime = DateTime.Now;
         await WriteStateAsync();
     }
 
-    public Task<List<string>> GetHighCouncilMembers()
+    public Task<List<string>> GetHighCouncilMembersAsync()
     {
         return Task.FromResult(State.AddressList);
     }

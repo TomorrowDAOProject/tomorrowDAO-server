@@ -198,6 +198,6 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
 
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
-        return await _graphQlProvider.GetHighCouncilMembers(chainId, daoId);
+        return await _graphQlProvider.GetHighCouncilMembersAsync(chainId, daoId);
     }
 }

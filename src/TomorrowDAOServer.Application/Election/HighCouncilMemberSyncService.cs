@@ -55,7 +55,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
             try
             {
                 var addressList = await _scriptService.GetCurrentHCAsync(chainId, daoId);
-                await _graphQlProvider.SetHighCouncilMembers(chainId, daoId, addressList);
+                await _graphQlProvider.SetHighCouncilMembersAsync(chainId, daoId, addressList);
             }
             catch (Exception e)
             {

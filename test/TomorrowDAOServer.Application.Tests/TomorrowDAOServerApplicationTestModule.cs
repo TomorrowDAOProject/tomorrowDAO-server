@@ -5,6 +5,7 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using TomorrowDAOServer.Election;
 using TomorrowDAOServer.EntityEventHandler.Core;
 using TomorrowDAOServer.Options;
 using Volo.Abp.Auditing;
@@ -41,6 +42,7 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
         context.Services.AddSingleton(new Mock<IMongoDbContextProvider<IAuditLoggingMongoDbContext>>().Object);
         context.Services.AddSingleton<IAuditLogRepository, MongoAuditLogRepository>();
         context.Services.AddSingleton<IIdentityUserRepository, MongoIdentityUserRepository>();
+        context.Services.AddSingleton<HighCouncilMemberSyncService, HighCouncilMemberSyncService>();
         
         context.Services.AddMemoryCache();
         
