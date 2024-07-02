@@ -1,5 +1,7 @@
 using AutoMapper;
+using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Grains.Grain.Users;
+using TomorrowDAOServer.Grains.State.Dao;
 using TomorrowDAOServer.Grains.State.Token;
 using TomorrowDAOServer.Grains.State.Users;
 using TomorrowDAOServer.Token;
@@ -14,5 +16,6 @@ public class TomorrowDAOServerGrainsAutoMapperProfile : Profile
         CreateMap<UserGrainDto, UserState>().ReverseMap();
         CreateMap<UserState, UserDto>().ReverseMap();
         CreateMap<TokenGrainDto, TokenState>().ReverseMap();
+        CreateMap<DaoAliasDto, DaoAlias>().ReverseMap();
     }
 }

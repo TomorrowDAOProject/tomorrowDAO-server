@@ -36,9 +36,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly IExplorerProvider _explorerProvider;
+    private readonly IOptionsMonitor<DaoOptions> _testDaoOptions;
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IContractProvider _contractProvider;
-    private readonly IOptionsMonitor<DaoOption> _testDaoOptions;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
@@ -47,7 +47,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
         IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
-        IObjectMapper objectMapper, IOptionsMonitor<DaoOption> testDaoOptions, IContractProvider contractProvider)
+        IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -62,13 +62,16 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public async Task<DAOInfoDto> GetDAOByIdAsync(GetDAOInfoInput input)
     {
-        var getTreasuryAddressTask = _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DAOId);
-        var getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
         var daoIndex = await _daoProvider.GetAsync(input);
         if (daoIndex == null)
         {
             return new DAOInfoDto();
         }
+
+        input.DAOId = daoIndex.Id;
+        
+        var getTreasuryAddressTask = _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DAOId);
+        var getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
 
         var daoInfo = _objectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
         var governanceScheme = (await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId)).Data;
@@ -306,7 +309,14 @@ public class DAOAppService : ApplicationService, IDAOAppService
             Address = address, ChainId = input.ChainId, SkipCount = input.SkipCount,
             MaxResultCount = input.MaxResultCount
         });
-        var daoList = _objectMapper.Map<List<IndexerDAOInfo>, List<DAOIndex>>(participatedResult.Data);
+        if (participatedResult.Data.IsNullOrEmpty())
+        {
+            return new MyDAOListDto();
+        }
+        
+        var daoIds = participatedResult.Data.Select(participated => participated.Id).ToList();
+        var daoList = await _daoProvider.GetDaoListByDaoIds(input.ChainId, daoIds);
+        //var daoList = _objectMapper.Map<List<IndexerDAOInfo>, List<DAOIndex>>(participatedResult.Data);
         return await GetMyDaoListDto(MyDAOType.Participated, input.ChainId,
             new Tuple<long, List<DAOIndex>>(participatedResult.TotalCount, daoList));
     }

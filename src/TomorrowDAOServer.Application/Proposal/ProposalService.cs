@@ -543,7 +543,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         });
 
         myProposalDto.Symbol = tokenInfo.Symbol;
-        myProposalDto.Decimal = tokenInfo.Decimals.ToString();
+        myProposalDto.Decimal = tokenInfo.Decimals;
         if (voteRecords.IsNullOrEmpty())
         {
             myProposalDto.CanVote = await CanVote(daoIndex, proposalIndex, input.Address);

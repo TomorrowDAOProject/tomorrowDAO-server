@@ -5,14 +5,19 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Client.Abstractions;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Orleans;
 using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
+using TomorrowDAOServer.Grains.Grain.Dao;
 using TomorrowDAOServer.Grains.Grain.Election;
 using TomorrowDAOServer.Grains.Grain.Token;
+using Volo.Abp;
 using Volo.Abp.DependencyInjection;
+using JsonConverter = System.Text.Json.Serialization.JsonConverter;
 
 namespace TomorrowDAOServer.Common.Provider;
 
@@ -30,6 +35,7 @@ public interface IGraphQLProvider
     public Task<List<DAOAmount>> GetDAOAmountAsync(string chainId);
     public Task SetHighCouncilMembersAsync(string chainId, string daoId, List<string> addressList);
     public Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId);
+    Task<int> SetDaoAliasInfoAsync(string chainId, string alias, DaoAliasDto daoAliasDto);
 }
 
 public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
@@ -251,5 +257,28 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
 
         return new List<string>();
+    }
+
+    public async Task<int> SetDaoAliasInfoAsync(string chainId, string alias, DaoAliasDto daoAliasDto)
+    {
+        try
+        {
+            _logger.LogInformation("Set dao alias info, input={0}", JsonConvert.SerializeObject(daoAliasDto));
+            var grainId = GuidHelper.GenerateId(chainId, alias);
+            var grain = _clusterClient.GetGrain<IDaoAliasGrain>(grainId);
+            var result = await grain.SaveDaoAliasInfoAsync(daoAliasDto);
+            _logger.LogInformation("Set dao alias info result: {0}", JsonConvert.SerializeObject(result));
+            if (result.Success)
+            {
+                return result.Data;
+            }
+            
+            throw new UserFriendlyException("Set dao alias info error, msg={0}", result.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Set dao alias info error.");
+            throw;
+        }
     }
 }

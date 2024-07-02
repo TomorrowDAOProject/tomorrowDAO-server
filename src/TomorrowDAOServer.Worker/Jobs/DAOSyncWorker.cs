@@ -15,14 +15,9 @@ public class DAOSyncWorker : TomorrowDAOServerWorkBase
     public DAOSyncWorker(ILogger<ScheduleSyncDataContext> logger,
         AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
         IScheduleSyncDataContext scheduleSyncDataContext,
-        IOptionsMonitor<WorkerOptions> optionsMonitor) :
-        base(logger, timer, serviceScopeFactory, scheduleSyncDataContext, optionsMonitor)
+        IOptionsMonitor<WorkerOptions> optionsMonitor,
+        IOptionsMonitor<WorkerLastHeightOptions> workerLastHeightOptions) :
+        base(logger, timer, serviceScopeFactory, scheduleSyncDataContext, optionsMonitor, workerLastHeightOptions)
     {
-        
-    }
-
-    protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
-    {
-        await _scheduleSyncDataContext.DealAsync(BusinessType);
     }
 }

@@ -13,6 +13,7 @@ public class DAOIndex : AbstractEntity<string>, IIndexBuild
 {
     [Keyword] public override string Id { get; set; }
     [Keyword] public string ChainId { get; set; }
+    public string Alias { get; set; }
     public long BlockHeight { get; set; }
     [Keyword] public string Creator { get; set; }
     public Metadata Metadata { get; set; }

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using TomorrowDAOServer.Common.GraphQL;
 using GraphQL;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
@@ -28,6 +30,7 @@ public interface IDAOProvider
     Task<PageResultDto<IndexerDAOInfo>> GetMyParticipatedDaoListAsync(GetParticipatedInput input);
     Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput);
     Task<MemberDto> GetMemberAsync(GetMemberInput listInput);
+    Task<List<DAOIndex>> GetDaoListByDaoIds(string chainId, List<string> daoIds);
 }
 
 public class DAOProvider : IDAOProvider, ISingletonDependency
@@ -46,7 +49,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
 
     public async Task<List<IndexerDAOInfo>> GetSyncDAOListAsync(GetChainBlockHeightInput input)
     {
-        var response =  await _graphQlHelper.QueryAsync<IndexerDAOInfos>(new GraphQLRequest
+        var response = await _graphQlHelper.QueryAsync<IndexerDAOInfos>(new GraphQLRequest
         {
             Query = @"
 			    query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!) {
@@ -102,32 +105,41 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         });
         return response?.DAOInfos ?? new List<IndexerDAOInfo>();
     }
-    
+
     public async Task<DAOIndex> GetAsync(GetDAOInfoInput input)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>();
         mustQuery.Add(q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)));
-        mustQuery.Add(q => q.Term(i => i.Field(t => t.Id).Value(input.DAOId)));
+        if (!input.DAOId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.Id).Value(input.DAOId)));
+        }
+        else
+        {
+            //input.Alias = Regex.Replace(input.Alias, @"([+\-&|!(){}[\]^""~*?:\\])", @"\$1"); 
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.Alias).Value(input.Alias)));
+        }
 
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _daoIndexRepository.GetAsync(Filter);
     }
-    
+
     public async Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input, ISet<string> excludeNames)
     {
         var chainId = input.ChainId;
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
         {
-            q => 
+            q =>
                 q.Term(i => i.Field(t => t.ChainId).Value(chainId))
         };
         if (!excludeNames.IsNullOrEmpty())
         {
-            mustQuery.Add(q => 
+            mustQuery.Add(q =>
                 !q.Terms(i => i.Field(t => t.Metadata.Name).Terms(excludeNames)));
         }
+
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount, 
+        return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
             sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
     }
 
@@ -136,14 +148,15 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         var chainId = input.ChainId;
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
         {
-            q => 
+            q =>
                 q.Term(i => i.Field(t => t.ChainId).Value(chainId))
         };
         if (!excludeNames.IsNullOrEmpty())
         {
-            mustQuery.Add(q => 
+            mustQuery.Add(q =>
                 !q.Terms(i => i.Field(t => t.Metadata.Name).Terms(excludeNames)));
         }
+
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _daoIndexRepository.CountAsync(Filter)).Count;
     }
@@ -157,26 +170,26 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
 
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
         {
-            q => 
+            q =>
                 q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q => 
+            q =>
                 q.Terms(i => i.Field(t => t.Metadata.Name).Terms(names))
         };
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _daoIndexRepository.GetSortListAsync(Filter);
     }
-    
+
     public async Task<Tuple<long, List<DAOIndex>>> GetMyOwneredDAOListAsync(QueryMyDAOListInput input, string address)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
         {
-            q => 
+            q =>
                 q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)),
-            q => 
+            q =>
                 q.Term(i => i.Field(t => t.Creator).Value(address))
         };
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount, 
+        return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
             sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
     }
 
@@ -184,9 +197,9 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
         {
-            q => 
+            q =>
                 q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q => 
+            q =>
                 q.Term(i => i.Field(t => t.IsNetworkDAO).Value(true))
         };
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
@@ -197,9 +210,10 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
     {
         try
         {
-            var response =  await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<IndexerDAOInfo>>>(new GraphQLRequest
-            {
-                Query = @"
+            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<IndexerDAOInfo>>>(
+                new GraphQLRequest
+                {
+                    Query = @"
 			        query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$address:String!) {
                         data:getMyParticipated(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,address:$address})
                         {
@@ -245,32 +259,33 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                             }
                         }
                     }",
-                Variables = new
-                {
-                    chainId = input.ChainId,
-                    skipCount = input.SkipCount,
-                    maxResultCount = input.MaxResultCount,
-                    address = input.Address
-                }
-            });
+                    Variables = new
+                    {
+                        chainId = input.ChainId,
+                        skipCount = input.SkipCount,
+                        maxResultCount = input.MaxResultCount,
+                        address = input.Address
+                    }
+                });
             return response?.Data ?? new PageResultDto<IndexerDAOInfo>();
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetMyParticipatedDaoListAsyncException chainId {chainId}, address {address}, skipCount {skipCount}, maxResultCount {maxResultCount}", 
+            _logger.LogError(e,
+                "GetMyParticipatedDaoListAsyncException chainId {chainId}, address {address}, skipCount {skipCount}, maxResultCount {maxResultCount}",
                 input.ChainId, input.Address, input.SkipCount, input.MaxResultCount);
             return new PageResultDto<IndexerDAOInfo>();
         }
-        
     }
 
     public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
     {
         try
         {
-            var response =  await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(new GraphQLRequest
-            {
-                Query = @"
+            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(
+                new GraphQLRequest
+                {
+                    Query = @"
 			        query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$dAOId:String!) {
                         data:getMemberList(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,dAOId:$dAOId})
                         {
@@ -285,19 +300,20 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                             }
                         }
                     }",
-                Variables = new
-                {
-                    chainId = listInput.ChainId,
-                    skipCount = listInput.SkipCount,
-                    maxResultCount = listInput.MaxResultCount,
-                    dAOId = listInput.DAOId
-                }
-            });
+                    Variables = new
+                    {
+                        chainId = listInput.ChainId,
+                        skipCount = listInput.SkipCount,
+                        maxResultCount = listInput.MaxResultCount,
+                        dAOId = listInput.DAOId
+                    }
+                });
             return response?.Data ?? new PageResultDto<MemberDto>();
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetMemberListAsync chainId {chainId}, daoId {daoId}, skipCount {skipCount}, maxResultCount {maxResultCount}", 
+            _logger.LogError(e,
+                "GetMemberListAsync chainId {chainId}, daoId {daoId}, skipCount {skipCount}, maxResultCount {maxResultCount}",
                 listInput.ChainId, listInput.DAOId, listInput.SkipCount, listInput.MaxResultCount);
             return new PageResultDto<MemberDto>();
         }
@@ -307,7 +323,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
     {
         try
         {
-            var response =  await _graphQlHelper.QueryAsync<IndexerCommonResult<MemberDto>>(new GraphQLRequest
+            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<MemberDto>>(new GraphQLRequest
             {
                 Query = @"
 			        query($chainId:String!,$dAOId:String!,$address:String!) {
@@ -332,9 +348,28 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetIsMemberAsync chainId {chainId}, daoId {daoId}, address {address}", 
+            _logger.LogError(e, "GetIsMemberAsync chainId {chainId}, daoId {daoId}, address {address}",
                 input.ChainId, input.DAOId, input.Address);
             return new MemberDto();
         }
+    }
+
+    public async Task<List<DAOIndex>> GetDaoListByDaoIds(string chainId, List<string> daoIds)
+    {
+        if (daoIds.IsNullOrEmpty())
+        {
+            return new List<DAOIndex>();
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
+        {
+            q =>
+                q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q =>
+                q.Terms(i => i.Field(t => t.Id).Terms(daoIds))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
+        var result = await _daoIndexRepository.GetListAsync(Filter);
+        return result.Item2 ?? new List<DAOIndex>();
     }
 }

@@ -31,7 +31,7 @@ public class DaoAppServiceTest
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IVoteProvider _voteProvider;
     private readonly IExplorerProvider _explorerProvider;
-    private readonly IOptionsMonitor<DaoOption> _testDaoOptions;
+    private readonly IOptionsMonitor<DaoOptions> _testDaoOptions;
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IContractProvider _contractProvider;
     private readonly IObjectMapper _objectMapper;
@@ -45,7 +45,7 @@ public class DaoAppServiceTest
         _proposalProvider = Substitute.For<IProposalProvider>();
         _explorerProvider = Substitute.For<IExplorerProvider>();
         _contractProvider = Substitute.For<IContractProvider>();
-        _testDaoOptions = Substitute.For<IOptionsMonitor<DaoOption>>();
+        _testDaoOptions = Substitute.For<IOptionsMonitor<DaoOptions>>();
         _governanceProvider = Substitute.For<IGovernanceProvider>();
         _objectMapper = Substitute.For<IObjectMapper>();
         _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
@@ -56,7 +56,7 @@ public class DaoAppServiceTest
     public async void GetDAOListAsync_Test()
     {
         _testDaoOptions.CurrentValue
-            .Returns(new DaoOption
+            .Returns(new DaoOptions
             {
                 TopDaoNames = new List<string> { "Top Dao" }
             });
