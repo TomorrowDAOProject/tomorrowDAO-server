@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using AElf;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Chains;
@@ -83,6 +85,7 @@ public class DAOSyncDataService : ScheduleSyncDataService
                 }
                 //generate alias
                 daoIndex.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(daoIndex);
+                daoIndex.AliasHexString = Encoding.UTF8.GetBytes(daoIndex.Alias).ToHex();
             }
             await _daoIndexRepository.BulkAddOrUpdateAsync(daoIndices);
             skipCount += queryList.Count;

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using AElf;
 using AElf.Indexing.Elasticsearch;
 using TomorrowDAOServer.Common.GraphQL;
 using GraphQL;
@@ -116,8 +118,9 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         }
         else
         {
-            //input.Alias = Regex.Replace(input.Alias, @"([+\-&|!(){}[\]^""~*?:\\])", @"\$1"); 
-            mustQuery.Add(q => q.Term(i => i.Field(t => t.Alias).Value(input.Alias)));
+            //input.Alias = Regex.Replace(input.Alias, @"([+\-&|!(){}[\]^""~*?:\\])", @"\$1");
+            var aliasHexString = Encoding.UTF8.GetBytes(input.Alias).ToHex();
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.AliasHexString).Value(aliasHexString)));
         }
 
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
