@@ -465,6 +465,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             ChainId = input.ChainId,
             DAOId = proposalDetailDto.DAOId
         });
+        proposalDetailDto.Alias = daoIndex.Alias;
         var councilMemberCountTask =
             GetHighCouncilMemberCountAsync(daoIndex.IsNetworkDAO, input.ChainId, proposalDetailDto.DAOId);
         var tokenInfo =

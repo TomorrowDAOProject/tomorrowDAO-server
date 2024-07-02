@@ -11,6 +11,8 @@ public class ProposalBasicDto
     public string Id { get; set; }
 
     public string DAOId { get; set; }
+    
+    public string Alias { get; set; }
 
     public string ProposalId { get; set; }
 
