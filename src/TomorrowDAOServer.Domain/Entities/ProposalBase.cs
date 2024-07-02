@@ -59,18 +59,18 @@ public class ProposalBase : BlockInfoBase
     [JsonConverter(typeof(StringEnumConverter))]
     public GovernanceMechanism GovernanceMechanism { get; set; }
     
-    public int MinimalRequiredThreshold { get; set; }
+    public long MinimalRequiredThreshold { get; set; }
     
-    public int MinimalVoteThreshold { get; set; }
+    public long MinimalVoteThreshold { get; set; }
     
     //percentage            
-    public int MinimalApproveThreshold { get; set; }
+    public long MinimalApproveThreshold { get; set; }
     
     //percentage    
-    public int MaximalRejectionThreshold { get; set; }
+    public long MaximalRejectionThreshold { get; set; }
     
     //percentage    
-    public int MaximalAbstentionThreshold { get; set; }
+    public long MaximalAbstentionThreshold { get; set; }
     public long ProposalThreshold { get; set; }
     
     public long ActiveTimePeriod { get; set; }

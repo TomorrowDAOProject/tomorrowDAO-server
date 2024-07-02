@@ -80,8 +80,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
         var getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
 
         var daoInfo = _objectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
-        var governanceScheme = (await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId)).Data;
-        daoInfo.OfGovernanceSchemeThreshold(governanceScheme.FirstOrDefault());
+        var governanceSchemeDto = await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId);
+        var governanceScheme = governanceSchemeDto.Data;
+        daoInfo.OfGovernanceSchemeThreshold(governanceScheme?.FirstOrDefault());
         await getTreasuryAddressTask;
         daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
         if (daoInfo.TreasuryContractAddress.IsNullOrWhiteSpace())
