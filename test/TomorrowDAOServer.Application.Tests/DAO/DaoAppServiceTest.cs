@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
@@ -36,6 +37,7 @@ public class DaoAppServiceTest
     private readonly IContractProvider _contractProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly DAOAppService _service;
+    private readonly ILogger<DAOAppService> _logger;
 
     public DaoAppServiceTest()
     {
@@ -48,8 +50,10 @@ public class DaoAppServiceTest
         _testDaoOptions = Substitute.For<IOptionsMonitor<DaoOptions>>();
         _governanceProvider = Substitute.For<IGovernanceProvider>();
         _objectMapper = Substitute.For<IObjectMapper>();
+        _logger = Substitute.For<ILogger<DAOAppService>>();
+
         _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
-            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider);
+            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider, _logger);
     }
 
     [Fact]
