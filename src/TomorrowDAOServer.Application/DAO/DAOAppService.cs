@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Election.Dto;
@@ -30,6 +32,7 @@ namespace TomorrowDAOServer.DAO;
 [DisableAuditing]
 public class DAOAppService : ApplicationService, IDAOAppService
 {
+    private readonly ILogger<DAOAppService> _logger;
     private readonly IDAOProvider _daoProvider;
     private readonly IElectionProvider _electionProvider;
     private readonly IProposalProvider _proposalProvider;
@@ -47,7 +50,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
         IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
-        IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider)
+        IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider, ILogger<DAOAppService> logger)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -56,13 +59,16 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _objectMapper = objectMapper;
         _testDaoOptions = testDaoOptions;
         _contractProvider = contractProvider;
+        _logger = logger;
         _explorerProvider = explorerProvider;
         _governanceProvider = governanceProvider;
     }
 
     public async Task<DAOInfoDto> GetDAOByIdAsync(GetDAOInfoInput input)
     {
+        _logger.LogInformation("query dao detail, input={0}", JsonConvert.SerializeObject(input));
         var daoIndex = await _daoProvider.GetAsync(input);
+        _logger.LogInformation("query dao detail, result={0}", daoIndex == null ? "null" : JsonConvert.SerializeObject(daoIndex));
         if (daoIndex == null)
         {
             return new DAOInfoDto();
