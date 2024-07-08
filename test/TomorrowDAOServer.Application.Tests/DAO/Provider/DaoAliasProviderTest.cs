@@ -61,4 +61,12 @@ public partial class DaoAliasProviderTest : TomorrowDaoServerApplicationTestBase
         alias.ShouldBe("DaoId.Exception");
     }
 
+    [Fact]
+    public async Task GenerateDaoAliasAsyncTest_Special()
+    {
+        var daoName = "Members DAO`~!@#$%^&*()_+{}|:\"<>?-=[]\\;',./";
+        
+        var alias = await _daoAliasProvider.GenerateDaoAliasAsync(daoName);
+    }
+
 }

@@ -26,7 +26,10 @@ public partial class DaoAliasProviderTest
                 { "&", "and" },
                 { "@", "at" }
             },
-            FilteredChars = new HashSet<string>() { "?", "#" }
+            FilteredChars = new HashSet<string>()
+            {
+                "?", "!", "#", "$", "%", "^", "*", "(", ")", "=", "<", ">", "{", "}", ":", "[", "]", "/", ",", "\\", ";"
+            }
         });
         return mock.Object;
     }
