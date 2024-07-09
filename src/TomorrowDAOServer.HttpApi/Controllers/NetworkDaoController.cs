@@ -2,8 +2,10 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.NetworkDao;
+using TomorrowDAOServer.NetworkDao.Dto;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 
@@ -28,19 +30,25 @@ public class NetworkDaoController
         _treasuryService = treasuryService;
         _electionService = electionService;
     }
+    
+    [HttpGet("proposal/list")]
+    public async Task<ExplorerProposalResponse> GetProposalList(ProposalListRequest request)
+    {
+        return await _proposalService.GetProposalListAsync(request);
+    }
+
+    [HttpGet("proposal/detail")]
+    public async Task<NetworkDaoProposalDto> GetProposalInfo(ProposalInfoRequest request)
+    {
+        return await _proposalService.GetProposalInfoAsync(request);
+    }
 
     [HttpGet("proposal/home-page")]
     public async Task<HomePageResponse> ProposalHomePage(HomePageRequest homePageRequest)
     {
         return await _proposalService.GetHomePageAsync(homePageRequest);
     }
-
-    [HttpGet("proposal/list")]
-    public async Task<PagedResultDto<ProposalListResponse>> ProposalList(ProposalListRequest request)
-    {
-        return await _proposalService.GetProposalList(request);
-    }
-
+    
     [HttpGet("treasury/balance")]
     public async Task<TreasuryBalanceResponse> TreasuryBalance(TreasuryBalanceRequest request)
     {

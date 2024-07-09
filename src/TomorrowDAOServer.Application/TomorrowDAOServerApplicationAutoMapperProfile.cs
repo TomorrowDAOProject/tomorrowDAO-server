@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using AutoMapper;
-using Newtonsoft.Json;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Contract.Dto;
@@ -10,9 +8,8 @@ using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Entities;
-using TomorrowDAOServer.Enums;
-using TomorrowDAOServer.Governance;
 using TomorrowDAOServer.Governance.Dto;
+using TomorrowDAOServer.NetworkDao.Dto;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Proposal.Dto;

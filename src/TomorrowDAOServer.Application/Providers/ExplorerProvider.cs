@@ -22,6 +22,7 @@ namespace TomorrowDAOServer.Providers;
 public interface IExplorerProvider
 {
     Task<ExplorerProposalResponse> GetProposalPagerAsync(string chainId, ExplorerProposalListRequest request);
+    Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request);
     Task<List<ExplorerBalanceOutput>> GetBalancesAsync(string chainId, ExplorerBalanceRequest request);
     Task<ExplorerTokenInfoResponse> GetTokenInfoAsync(string chainId, ExplorerTokenInfoRequest request);
     Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol);
@@ -40,6 +41,7 @@ public interface IExplorerProvider
 public static class ExplorerApi
 {
     public static readonly ApiInfo ProposalList = new(HttpMethod.Get, "/api/proposal/list");
+    public static readonly ApiInfo ProposalInfo = new(HttpMethod.Get, "/api/proposal/proposalInfo");
     public static readonly ApiInfo Organizations = new(HttpMethod.Get, "/api/proposal/organizations");
     public static readonly ApiInfo Balances = new(HttpMethod.Get, "/api/viewer/balances");
     public static readonly ApiInfo TokenInfo = new(HttpMethod.Get, "/api/viewer/tokenInfo");
@@ -91,6 +93,15 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerProposalResponse>>(BaseUrl(chainId),
             ExplorerApi.ProposalList, param: ToDictionary(request), withInfoLog: false, withDebugLog: false,
+            settings: DefaultJsonSettings);
+        AssertHelper.IsTrue(resp.Success, resp.Msg);
+        return resp.Data;
+    }
+
+    public async Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request)
+    {
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerProposalInfoResponse>>(BaseUrl(chainId),
+            ExplorerApi.ProposalInfo, param: ToDictionary(request), withInfoLog: false, withDebugLog: false,
             settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;

@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
+using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
-using Volo.Abp.Application.Dtos;
+using TomorrowDAOServer.NetworkDao.Dto;
 
 namespace TomorrowDAOServer.NetworkDao;
 
@@ -9,6 +10,8 @@ public interface IProposalService
     
     Task<HomePageResponse> GetHomePageAsync(HomePageRequest proposalResult);
 
-    Task<PagedResultDto<ProposalListResponse>> GetProposalList(ProposalListRequest request);
+    Task<ExplorerProposalResponse> GetProposalListAsync(ProposalListRequest request);
+
+    Task<NetworkDaoProposalDto> GetProposalInfoAsync(ProposalInfoRequest request);
 
 }

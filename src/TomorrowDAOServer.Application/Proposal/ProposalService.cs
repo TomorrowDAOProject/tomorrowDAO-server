@@ -382,7 +382,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetProposalList from Source:{source} error, input={daoId}", proposalSource,
+            _logger.LogError(e, "GetProposalListAsync from Source:{source} error, input={daoId}", proposalSource,
                 JsonConvert.SerializeObject(input));
             return new Tuple<long, List<ProposalDto>>(0, new List<ProposalDto>());
         }

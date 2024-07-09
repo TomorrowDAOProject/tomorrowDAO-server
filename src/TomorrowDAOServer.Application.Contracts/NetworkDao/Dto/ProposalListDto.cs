@@ -1,40 +1,29 @@
 using System.Collections.Generic;
-using Volo.Abp.Application.Dtos;
 
-namespace TomorrowDAOServer.Dtos.NetworkDao;
+namespace TomorrowDAOServer.NetworkDao.Dto;
 
-public class ProposalListRequest : PagedResultRequestDto
+public class ProposalListRequest
 {
-    public ProposalListRequest()
-    {
-    }
-    
-    public ProposalListRequest(int skipCount, int maxResultCount)
-    {
-        base.SkipCount = skipCount;
-        base.MaxResultCount = maxResultCount;
-    }
-
     public string ChainId { get; set; }
-    public string GovernanceType { get; set; }
-    public string ProposalStatus { get; set; }
-    public string Content { get; set; }
-    
     public string Address { get; set; }
+    public string Search { get; set; }
+    public int IsContract { get; set; }
+    public int PageSize { get; set; }
+    public int PageNum { get; set; }
+    public string Status { get; set; }
+    public string ProposalType { get; set; }
 }
-
 
 public class ProposalListResponse
 {
-    
     public string ChainId { get; set; }
     public string ProposalId { get; set; }
     public string Proposer { get; set; }
     public string DeployTime { get; set; }
-    public string ProposalTitle { get; set; } // todo
+    public string ProposalTitle { get; set; }
     public string GovernanceType { get; set; }
     public string ProposalStatus { get; set; }
-    public string ProposalDescription { get; set; } // TODO
+    public string ProposalDescription { get; set; }
     public string ProposalType { get; set; }
     public string StartTime { get; set; }
     public string EndTime { get; set; }
@@ -50,11 +39,10 @@ public class ProposalListResponse
     public int MaximalRejectionThreshold { get; set; }
     public int MaximalAbstentionThreshold { get; set; }
     public List<string> TagList { get; set; }
-    
+
     public class TransactionDto
     {
         public string ContractMethodName { get; set; }
         public string ToAddress { get; set; }
     }
-    
 }

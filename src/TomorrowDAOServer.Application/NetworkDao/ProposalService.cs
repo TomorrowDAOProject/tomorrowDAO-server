@@ -9,19 +9,22 @@ using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
+using TomorrowDAOServer.NetworkDao.Dto;
+using TomorrowDAOServer.NetworkDao.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
-using Volo.Abp.Application.Dtos;
+using Volo.Abp;
 using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
-using Volo.Abp.Threading;
 using AddressHelper = TomorrowDAOServer.Common.AddressHelper;
 
 namespace TomorrowDAOServer.NetworkDao;
@@ -33,7 +36,10 @@ public class ProposalService : IProposalService, ISingletonDependency
     private readonly IContractProvider _contractProvider;
     private readonly IOptionsMonitor<NetworkDaoOptions> _networkDaoOptions;
     private readonly IDistributedCache<string> _currentTermMiningRewardCache;
+    private readonly INetWorkDaoProposalProvider _netWorkDaoProposalProvider;
     private readonly IObjectMapper _objectMapper;
+
+    private const int DefaultMaxResultCount = 1000;
 
 
     // pubKey => CandidateDetail.Hex
@@ -48,7 +54,8 @@ public class ProposalService : IProposalService, ISingletonDependency
         IOptionsMonitor<NetworkDaoOptions> networkDaoOptions,
         IDistributedCache<Dictionary<string, string>> candidateDetailCache, IObjectMapper objectMapper,
         IDistributedCache<Dictionary<string, ExplorerProposalResult>> proposalResultCache,
-        IDistributedCache<Dictionary<string, ExplorerProposalResult>> proposalResultCacheBottom)
+        IDistributedCache<Dictionary<string, ExplorerProposalResult>> proposalResultCacheBottom,
+        INetWorkDaoProposalProvider netWorkDaoProposalProvider)
     {
         _explorerProvider = explorerProvider;
         _logger = logger;
@@ -59,6 +66,7 @@ public class ProposalService : IProposalService, ISingletonDependency
         _objectMapper = objectMapper;
         _proposalResultCache = proposalResultCache;
         _proposalResultCacheBottom = proposalResultCacheBottom;
+        _netWorkDaoProposalProvider = netWorkDaoProposalProvider;
     }
 
     /// <summary>
@@ -66,25 +74,64 @@ public class ProposalService : IProposalService, ISingletonDependency
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
-    public async Task<PagedResultDto<ProposalListResponse>> GetProposalList(ProposalListRequest request)
+    public async Task<ExplorerProposalResponse> GetProposalListAsync(ProposalListRequest request)
     {
-        var explorerResp = await _explorerProvider.GetProposalPagerAsync(request.ChainId,
-            new ExplorerProposalListRequest
-            {
-                Status = request.ProposalStatus,
-                ProposalType = request.GovernanceType,
-                Search = request.Content,
-                Address = request.Address
-            });
-
-        var items = _objectMapper.Map<List<ExplorerProposalResult>, List<ProposalListResponse>>(explorerResp.List);
-        return new PagedResultDto<ProposalListResponse>
+        try
         {
-            TotalCount = explorerResp.Total,
-            Items = items
-        };
+            var explorerResp = await _explorerProvider.GetProposalPagerAsync(request.ChainId,
+                new ExplorerProposalListRequest
+                {
+                    PageSize = request.PageSize,
+                    PageNum = request.PageNum,
+                    Status = request.Status,
+                    IsContract = request.IsContract,
+                    ProposalType = request.ProposalType,
+                    Search = request.Search,
+                    Address = request.Address
+                });
+
+            if (explorerResp == null || explorerResp.List.IsNullOrEmpty())
+            {
+                return explorerResp;
+            }
+
+            var proposalIds = explorerResp.List.Select(item => item.ProposalId).ToHashSet().ToList();
+            var proposalDictionary = await GetNetworkDaoProposalsDictionaryAsync(request.ChainId, proposalIds);
+            //var items = _objectMapper.Map<List<ExplorerProposalResult>, List<ProposalListResponse>>(explorerResp.List);
+
+            foreach (var item in explorerResp.List)
+            {
+                if (!proposalDictionary.ContainsKey(item.ProposalId))
+                {
+                    continue;
+                }
+
+                var networkDaoProposalDto = proposalDictionary[item.ProposalId];
+                item.Title = networkDaoProposalDto.Title;
+                item.Description = networkDaoProposalDto.Description;
+            }
+
+            return explorerResp;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Get proposal list error. request={0}", JsonConvert.SerializeObject(request));
+            throw new UserFriendlyException("Failed to query the proposal list. {0}", e.Message);
+        }
     }
 
+    public async Task<NetworkDaoProposalDto> GetProposalInfoAsync(ProposalInfoRequest request)
+    {
+        if (request.ChainId.IsNullOrWhiteSpace() || request.ProposalId.IsNullOrWhiteSpace())
+        {
+            return new NetworkDaoProposalDto();
+        }
+
+        var proposals =
+            await GetNetworkDaoProposalsAsync(request.ChainId, new List<string>() { request.ProposalId });
+
+        return proposals.IsNullOrEmpty() ? new NetworkDaoProposalDto() : proposals[0];
+    }
 
     /// <summary>
     /// 
@@ -245,5 +292,37 @@ public class ProposalService : IProposalService, ISingletonDependency
         var res = await _contractProvider.CallTransactionAsync<GetPageableCandidateInformationOutput>(chainId, tx);
         return res.Value.ToDictionary(detail => detail.CandidateInformation.Pubkey,
             detail => detail.ToByteArray().ToHex());
+    }
+
+    private async Task<Dictionary<string, NetworkDaoProposalDto>> GetNetworkDaoProposalsDictionaryAsync(string chainId,
+        List<string> proposalIds)
+    {
+        var proposalList = await GetNetworkDaoProposalsAsync(chainId, proposalIds);
+
+        return proposalList.IsNullOrEmpty()
+            ? new Dictionary<string, NetworkDaoProposalDto>()
+            : proposalList.ToDictionary(proposalDto => proposalDto.ProposalId);
+    }
+
+    private async Task<IReadOnlyList<NetworkDaoProposalDto>> GetNetworkDaoProposalsAsync(string chainId,
+        List<string> proposalIds)
+    {
+        if (proposalIds.IsNullOrEmpty())
+        {
+            return new List<NetworkDaoProposalDto>();
+        }
+
+        var proposals = await _netWorkDaoProposalProvider
+            .GetNetworkDaoProposalsAsync(new GetNetworkDaoProposalsInput
+            {
+                ChainId = chainId,
+                ProposalIds = proposalIds,
+                ProposalType = NetworkDaoProposalType.All,
+                SkipCount = 0,
+                MaxResultCount = DefaultMaxResultCount,
+                StartBlockHeight = 0,
+                EndBlockHeight = 0
+            });
+        return proposals?.Items ?? new List<NetworkDaoProposalDto>();
     }
 }
