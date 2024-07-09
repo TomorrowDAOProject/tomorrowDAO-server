@@ -79,13 +79,14 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
-        var councilMemberCountTask = GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId);
         var (total, proposalList) = await GetProposalListFromMultiSourceAsync(input);
         if (proposalList.IsNullOrEmpty())
         {
             return new ProposalPagedResultDto<ProposalDto>();
         }
 
+        var governanceMechanism = proposalList[0].GovernanceMechanism;
+        var councilMemberCountTask = GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId, governanceMechanism);
         //query proposal vote infos
         var proposalIds = proposalList.FindAll(item => item.ProposalSource == ProposalSourceEnum.TMRWDAO)
             .Select(item => item.ProposalId).ToList();
@@ -158,7 +159,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     private static Task CalculateHcRealVoterCountAsync(ProposalDto proposal, int councilMemberCount)
     {
-        if (proposal.GovernanceMechanism == GovernanceMechanism.HighCouncil.ToString()
+        
+        if ((proposal.GovernanceMechanism == GovernanceMechanism.HighCouncil.ToString() || proposal.GovernanceMechanism == GovernanceMechanism.Organization.ToString())
             && proposal.ProposalSource != ProposalSourceEnum.ONCHAIN_REFERENDUM
             && proposal.ProposalSource != ProposalSourceEnum.ONCHAIN_ASSOCIATION)
         {
@@ -170,7 +172,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return Task.CompletedTask;
     }
 
-    private async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId)
+    private async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId, string governanceMechanism)
     {
         var count = 0;
         try
@@ -182,8 +184,19 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             }
             else
             {
-                var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
-                count = hcList.IsNullOrEmpty() ? 0 : hcList.Count;
+                if (GovernanceMechanism.Organization.ToString() == governanceMechanism)
+                {
+                    var result = await _DAOProvider.GetMemberListAsync(new GetMemberListInput
+                    {
+                        ChainId = chainId, DAOId = daoId, SkipCount = 0, MaxResultCount = 1
+                    });
+                    count = (int)result.TotalCount;
+                }
+                else
+                {
+                    var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
+                    count = hcList.IsNullOrEmpty() ? 0 : hcList.Count;
+                }
             }
         }
         catch (Exception e)
@@ -467,7 +480,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         });
         proposalDetailDto.Alias = daoIndex.Alias;
         var councilMemberCountTask =
-            GetHighCouncilMemberCountAsync(daoIndex.IsNetworkDAO, input.ChainId, proposalDetailDto.DAOId);
+            GetHighCouncilMemberCountAsync(daoIndex.IsNetworkDAO, input.ChainId, proposalDetailDto.DAOId, proposalIndex.GovernanceMechanism.ToString());
         var tokenInfo =
             await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
         var symbol = tokenInfo.Symbol;
