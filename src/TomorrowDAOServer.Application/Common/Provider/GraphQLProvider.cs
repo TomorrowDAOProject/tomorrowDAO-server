@@ -15,9 +15,9 @@ using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
 using TomorrowDAOServer.Grains.Grain.Dao;
 using TomorrowDAOServer.Grains.Grain.Election;
 using TomorrowDAOServer.Grains.Grain.Token;
+using TomorrowDAOServer.Providers;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
-using JsonConverter = System.Text.Json.Serialization.JsonConverter;
 
 namespace TomorrowDAOServer.Common.Provider;
 
@@ -45,15 +45,18 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     private readonly ILogger<GraphQLProvider> _logger;
     private readonly IGraphQlClientFactory _graphQlClientFactory;
     private readonly IGraphQlHelper _graphQlHelper;
+    private readonly IIndexerProvider _indexerProvider;
 
     public GraphQLProvider(IGraphQLClient graphQlClient, ILogger<GraphQLProvider> logger,
-        IClusterClient clusterClient, IGraphQlClientFactory graphQlClientFactory, IGraphQlHelper graphQlHelper)
+        IClusterClient clusterClient, IGraphQlClientFactory graphQlClientFactory, IGraphQlHelper graphQlHelper,
+        IIndexerProvider indexerProvider)
     {
         _logger = logger;
         _clusterClient = clusterClient;
         _graphQlClientFactory = graphQlClientFactory;
         _graphQlClient = graphQlClient;
         _graphQlHelper = graphQlHelper;
+        _indexerProvider = indexerProvider;
     }
 
     public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
@@ -153,21 +156,15 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<long> GetIndexBlockHeightAsync(string chainId)
     {
-        var graphQlResponse = await _graphQlClient.SendQueryAsync<ConfirmedBlockHeightRecord>(new GraphQLRequest
+        try
         {
-            Query =
-                @"query($chainId:String,$filterType:BlockFilterType!) {
-                    syncState(input: {chainId:$chainId,filterType:$filterType}){
-                        confirmedBlockHeight}
-                    }",
-            Variables = new
-            {
-                chainId,
-                filterType = BlockFilterType.LOG_EVENT
-            }
-        });
-
-        return graphQlResponse.Data.SyncState.ConfirmedBlockHeight;
+            return await _indexerProvider.GetSyncState(chainId);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetIndexBlockHeightAsync Exception on chain {chainId}", chainId);
+            return 0;
+        }
     }
 
     public async Task<Dictionary<string, long>> GetHoldersAsync(List<string> symbols, string chainId, int skipCount, int maxResultCount)
