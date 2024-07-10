@@ -14,7 +14,7 @@ namespace TomorrowDAOServer.Providers;
 
 public interface IIndexerProvider
 {
-    Task<long> GetSyncState(string chainId);
+    Task<long> GetSyncStateAsync(string chainId);
 }
 
 public static class IndexerApi
@@ -35,15 +35,15 @@ public class IndexerProvider : IIndexerProvider, ISingletonDependency
         _graphQlClient = graphQlClient;
     }
 
-    public async Task<long> GetSyncState(string chainId)
+    public async Task<long> GetSyncStateAsync(string chainId)
     {
         if (_indexerOptions.CurrentValue.UseNewIndexer)
         {
             _indexerOptions.CurrentValue.BaseUrl.TryGetValue(chainId, out var domain);
-            var resp = await _httpProvider.InvokeAsync<IndexerSyncStateResponse>(domain, IndexerApi.SyncState, withInfoLog: false, 
-                withDebugLog: false, settings: HttpProvider.DefaultJsonSettings);
-            var syncDetail = resp.CurrentVersion.Items.Single(x => x.ChainId == chainId);
-            return syncDetail.LongestChainHeight;
+            var resp = await _httpProvider.InvokeAsync<IndexerSyncStateResponse>(domain, IndexerApi.SyncState,
+                withInfoLog: false, withDebugLog: false);
+            var syncDetail = resp?.CurrentVersion?.Items?.Single(x => x.ChainId == chainId);
+            return syncDetail?.LongestChainHeight ?? 0L;
         }
         
         var graphQlResponse = await _graphQlClient.SendQueryAsync<ConfirmedBlockHeightRecord>(new GraphQLRequest

@@ -158,7 +158,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     {
         try
         {
-            return await _indexerProvider.GetSyncState(chainId);
+            return await _indexerProvider.GetSyncStateAsync(chainId);
         }
         catch (Exception e)
         {

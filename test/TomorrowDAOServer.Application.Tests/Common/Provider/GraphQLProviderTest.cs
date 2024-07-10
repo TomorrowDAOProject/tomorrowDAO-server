@@ -1,43 +1,41 @@
-// using System.Collections.Generic;
-// using System.Threading.Tasks;
-// using GraphQL;
-// using GraphQL.Client.Abstractions;
-// using Microsoft.Extensions.Logging;
-// using NSubstitute;
-// using Orleans;
-// using Shouldly;
-// using TomorrowDAOServer.Common.GraphQL;
-// using Xunit;
-//
-// namespace TomorrowDAOServer.Common.Provider;
-//
-// public class GraphQLProviderTest
-// {
-//     private static readonly IGraphQLClient GraphQlClient = Substitute.For<IGraphQLClient>();
-//     private static readonly IClusterClient ClusterClient = Substitute.For<IClusterClient>();
-//     private static readonly ILogger<GraphQLProvider> Logger = Substitute.For<ILogger<GraphQLProvider>>();
-//     private static readonly IGraphQlClientFactory GraphQlClientFactory = Substitute.For<IGraphQlClientFactory>();
-//     private readonly GraphQLProvider _graphQlProvider = new(GraphQlClient, Logger, ClusterClient, GraphQlClientFactory);
-//
-//     [Fact]
-//     public async void GetHoldersAsync_Test()
-//     {
-//         GraphQlClientFactory.GetClient(Arg.Any<GraphQLClientEnum>()).Returns(GraphQlClient);
-//         GraphQlClient.SendQueryAsync<HolderResult>(Arg.Any<GraphQLRequest>())
-//             .Returns(Task.FromResult(new GraphQLResponse<HolderResult>
-//             {
-//                 Data = new HolderResult
-//                 {
-//                     Data = new List<HolderDto>
-//                     {
-//                         new()
-//                         {
-//                             HolderCount = 1
-//                         }
-//                     }
-//                 }
-//             }));
-//         var holders = await _graphQlProvider.GetHoldersAsync("ELF", "AELF", 0, 1);
-//         holders.ShouldBe(1);
-//     }
-// }
+using GraphQL.Client.Abstractions;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
+using Orleans;
+using Shouldly;
+using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.Providers;
+using Xunit;
+
+namespace TomorrowDAOServer.Common.Provider;
+
+public class GraphQLProviderTest
+{
+    private readonly IGraphQLClient _graphQlClient;
+    private readonly IClusterClient _clusterClient;
+    private readonly ILogger<GraphQLProvider> _logger;
+    private readonly IGraphQlClientFactory _graphQlClientFactory;
+    private readonly IGraphQlHelper _graphQlHelper;
+    private readonly IIndexerProvider _indexerProvider;
+    private readonly IGraphQLProvider _provider;
+
+    public GraphQLProviderTest()
+    {
+        _indexerProvider = Substitute.For<IIndexerProvider>();
+        _graphQlHelper = Substitute.For<IGraphQlHelper>();
+        _graphQlClientFactory = Substitute.For<IGraphQlClientFactory>();
+        _logger = Substitute.For<ILogger<GraphQLProvider>>();
+        _clusterClient = Substitute.For<IClusterClient>();
+        _graphQlClient = Substitute.For<IGraphQLClient>();
+        _provider = new GraphQLProvider(_graphQlClient, _logger, _clusterClient, _graphQlClientFactory, _graphQlHelper,
+            _indexerProvider);
+    }
+
+    [Fact]
+    public async void GetSyncState_Test()
+    {
+        _indexerProvider.GetSyncStateAsync(Arg.Any<string>()).Returns(0);
+        var height = await _provider.GetIndexBlockHeightAsync("AELF");
+        height.ShouldBe(0L);
+    }
+}
