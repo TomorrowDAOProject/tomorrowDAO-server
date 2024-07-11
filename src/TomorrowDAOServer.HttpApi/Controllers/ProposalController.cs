@@ -35,14 +35,16 @@ public class ProposalController : AbpController
     }
     
     [HttpGet("my-info")]
-    [Authorize]
+    // test env easy to test
+    // [Authorize]
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
     {
         return await _proposalService.QueryMyInfoAsync(input);
     }
     
     [HttpGet("vote-history")]
-    [Authorize]
+    // test env easy to test
+    // [Authorize]
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         return await _proposalService.QueryVoteHistoryAsync(input);

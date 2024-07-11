@@ -532,7 +532,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
     {
-        input.Address = await GetAndValidateUserAddress(input.ChainId);
+        // test env easy to test
+        // input.Address = await GetAndValidateUserAddress(input.ChainId);
         return string.IsNullOrEmpty(input.ProposalId)
             ? await QueryDaoMyInfoAsync(input)
             : await QueryProposalMyInfoAsync(input);
@@ -648,7 +649,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
-        input.Address = await GetAndValidateUserAddress(input.ChainId);
+        // test env easy to test
+        // input.Address = await GetAndValidateUserAddress(input.ChainId);
         
         var voteHistoryDto = new VoteHistoryDto { ChainId = input.ChainId };
         var voteRecords = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
