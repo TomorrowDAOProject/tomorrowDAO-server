@@ -29,14 +29,14 @@ using AddressHelper = TomorrowDAOServer.Common.AddressHelper;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public class ProposalService : IProposalService, ISingletonDependency
+public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonDependency
 {
-    private readonly ILogger<ProposalService> _logger;
+    private readonly ILogger<NetworkDaoProposalService> _logger;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IContractProvider _contractProvider;
     private readonly IOptionsMonitor<NetworkDaoOptions> _networkDaoOptions;
     private readonly IDistributedCache<string> _currentTermMiningRewardCache;
-    private readonly INetWorkDaoProposalProvider _netWorkDaoProposalProvider;
+    private readonly INetworkDaoProposalProvider _networkDaoProposalProvider;
     private readonly IObjectMapper _objectMapper;
 
     private const int DefaultMaxResultCount = 1000;
@@ -49,13 +49,13 @@ public class ProposalService : IProposalService, ISingletonDependency
     private readonly IDistributedCache<Dictionary<string, ExplorerProposalResult>> _proposalResultCache;
     private readonly IDistributedCache<Dictionary<string, ExplorerProposalResult>> _proposalResultCacheBottom;
 
-    public ProposalService(IExplorerProvider explorerProvider, ILogger<ProposalService> logger,
+    public NetworkDaoProposalService(IExplorerProvider explorerProvider, ILogger<NetworkDaoProposalService> logger,
         IContractProvider contractProvider, IDistributedCache<string> currentTermMiningRewardCache,
         IOptionsMonitor<NetworkDaoOptions> networkDaoOptions,
         IDistributedCache<Dictionary<string, string>> candidateDetailCache, IObjectMapper objectMapper,
         IDistributedCache<Dictionary<string, ExplorerProposalResult>> proposalResultCache,
         IDistributedCache<Dictionary<string, ExplorerProposalResult>> proposalResultCacheBottom,
-        INetWorkDaoProposalProvider netWorkDaoProposalProvider)
+        INetworkDaoProposalProvider networkDaoProposalProvider)
     {
         _explorerProvider = explorerProvider;
         _logger = logger;
@@ -66,7 +66,7 @@ public class ProposalService : IProposalService, ISingletonDependency
         _objectMapper = objectMapper;
         _proposalResultCache = proposalResultCache;
         _proposalResultCacheBottom = proposalResultCacheBottom;
-        _netWorkDaoProposalProvider = netWorkDaoProposalProvider;
+        _networkDaoProposalProvider = networkDaoProposalProvider;
     }
 
     /// <summary>
@@ -312,7 +312,7 @@ public class ProposalService : IProposalService, ISingletonDependency
             return new List<NetworkDaoProposalDto>();
         }
 
-        var proposals = await _netWorkDaoProposalProvider
+        var proposals = await _networkDaoProposalProvider
             .GetNetworkDaoProposalsAsync(new GetNetworkDaoProposalsInput
             {
                 ChainId = chainId,

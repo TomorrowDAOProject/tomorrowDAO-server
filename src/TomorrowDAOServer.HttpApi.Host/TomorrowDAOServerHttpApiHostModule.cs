@@ -68,7 +68,7 @@ namespace TomorrowDAOServer
             Configure<ExplorerOptions>(configuration.GetSection("Explorer"));
             Configure<AelfApiInfoOptions>(configuration.GetSection("AelfApiInfoOptions"));
             Configure<DaoOptions>(configuration.GetSection("TestDao"));
-    
+
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
             ConfigureLocalization();
@@ -120,7 +120,6 @@ namespace TomorrowDAOServer
             });
         }
 
-       
 
         private static void ConfigureSwaggerServices(ServiceConfigurationContext context, IConfiguration configuration)
         {
@@ -210,7 +209,7 @@ namespace TomorrowDAOServer
                 });
             });
         }
-        
+
         private void ConfigureTokenCleanupService()
         {
             Configure<TokenCleanupOptions>(x => x.IsCleanupEnabled = false);
@@ -232,6 +231,15 @@ namespace TomorrowDAOServer
                     {
                         options.ClusterId = configuration["Orleans:ClusterId"];
                         options.ServiceId = configuration["Orleans:ServiceId"];
+                    })
+                    .Configure<ClientMessagingOptions>(options =>
+                    {
+                        var timeout = MessagingOptions.DEFAULT_RESPONSE_TIMEOUT.Seconds;
+                        if (int.TryParse(configuration["Orleans:ResponseTimeout"], out int settings))
+                        {
+                            timeout = settings;
+                        }
+                        options.ResponseTimeout = TimeSpan.FromSeconds(timeout);
                     })
                     .ConfigureApplicationParts(parts =>
                         parts.AddApplicationPart(typeof(TomorrowDAOServerGrainsModule).Assembly).WithReferences())
@@ -277,7 +285,7 @@ namespace TomorrowDAOServer
             app.UseSwagger();
             app.UseAbpSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json", "Support APP API"); });
             // }
-            
+
             app.UseMiddleware<DeviceInfoMiddleware>();
             app.UseAuditing();
             app.UseAbpSerilogEnrichers();
@@ -303,7 +311,7 @@ namespace TomorrowDAOServer
             var client = serviceProvider.GetRequiredService<IClusterClient>();
             AsyncHelper.RunSync(client.Close);
         }
-        
+
         private void ConfigureAuthentication(ServiceConfigurationContext context, IConfiguration configuration)
         {
             context.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

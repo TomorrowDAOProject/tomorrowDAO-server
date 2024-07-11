@@ -4,7 +4,7 @@ using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public interface ITreasuryService
+public interface INetworkDaoTreasuryService
 {
 
     Task<TreasuryBalanceResponse> GetBalanceAsync(TreasuryBalanceRequest request);

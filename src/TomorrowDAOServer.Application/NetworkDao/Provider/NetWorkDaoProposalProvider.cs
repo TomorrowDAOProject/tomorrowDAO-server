@@ -10,18 +10,18 @@ using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.NetworkDao.Provider;
 
-public interface INetWorkDaoProposalProvider
+public interface INetworkDaoProposalProvider
 {
     Task<NetworkDaoPagedResultDto<NetworkDaoProposalDto>>
         GetNetworkDaoProposalsAsync(GetNetworkDaoProposalsInput input);
 }
 
-public class NetWorkDaoProposalProvider : INetWorkDaoProposalProvider, ISingletonDependency
+public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingletonDependency
 {
-    private readonly ILogger<NetWorkDaoProposalProvider> _logger;
+    private readonly ILogger<NetworkDaoProposalProvider> _logger;
     private readonly IGraphQlHelper _graphQlHelper;
 
-    public NetWorkDaoProposalProvider(ILogger<NetWorkDaoProposalProvider> logger, IGraphQlHelper graphQlHelper)
+    public NetworkDaoProposalProvider(ILogger<NetworkDaoProposalProvider> logger, IGraphQlHelper graphQlHelper)
     {
         _logger = logger;
         _graphQlHelper = graphQlHelper;

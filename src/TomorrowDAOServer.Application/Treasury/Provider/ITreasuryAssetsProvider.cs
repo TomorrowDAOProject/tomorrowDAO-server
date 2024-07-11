@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
-using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Treasury.Dto;
 using Volo.Abp.DependencyInjection;
 

@@ -8,24 +8,27 @@ using Moq;
 using Moq.Protected;
 using Newtonsoft.Json;
 
-namespace TomorrowDAOServer;
+namespace TomorrowDAOServer.Common.Mocks;
 
-public partial class TomorrowDaoServerApplicationTestBase
+/// <summary>
+/// In unit testing, directly call the HttpRequestMock.MockHttpByPath to mock http requests
+/// </summary>
+public class HttpRequestMock
 {
-    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory = new();
-    private readonly Mock<HttpMessageHandler> _mockHandler = new(MockBehavior.Strict);
+    private static readonly Mock<IHttpClientFactory> _mockHttpClientFactory = new();
+    private static readonly Mock<HttpMessageHandler> _mockHandler = new(MockBehavior.Strict);
 
 
-    protected IHttpClientFactory MockHttpFactory()
+    public static IHttpClientFactory MockHttpFactory()
     {
         _mockHttpClientFactory
             .Setup(_ => _.CreateClient(It.IsAny<string>()))
-            .Returns(new HttpClient(_mockHandler.Object) { BaseAddress = new Uri("http://test.com/") });
+            .Returns(new System.Net.Http.HttpClient(_mockHandler.Object) { BaseAddress = new Uri("http://test.com/") });
         return _mockHttpClientFactory.Object;
     }
 
 
-    private void MockHttpByPath(HttpMethod method, string path,
+    private static void MockHttpByPath(HttpMethod method, string path,
         string respData)
     {
         _mockHandler.Protected()
@@ -37,12 +40,12 @@ public partial class TomorrowDaoServerApplicationTestBase
             {
                 var response = new HttpResponseMessage(HttpStatusCode.OK);
                 response.Content = new StringContent(respData, Encoding.UTF8, "application/json");
-                _outputHelper.WriteLine($"Mock Http {method} to {path}, resp={response}");
+                //_outputHelper.WriteLine($"Mock Http {method} to {path}, resp={response}");
                 return Task.FromResult(response);
             });
     }
 
-    protected void MockHttpByPath(HttpMethod method, string path, object response)
+    public static void MockHttpByPath(HttpMethod method, string path, object response)
     {
         MockHttpByPath(method, path, JsonConvert.SerializeObject(response));
     }

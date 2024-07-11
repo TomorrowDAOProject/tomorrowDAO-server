@@ -75,7 +75,7 @@
 //                 It.IsAny<Expression<Func<ProposalIndex, object>>>(),
 //                 It.IsAny<SortOrder>(),
 //                 It.IsAny<string>()))!
-//             .ReturnsAsync(MockProposalList().Item2.Where(item => item.ChainId.Equals(ChainIdTDVV) && item.ProposalId.Equals(ProposalId))
+//             .ReturnsAsync(MockProposalList().Item2.Where(item => item.ChainId.Equals(ChainIdTDVV) && item.ProposalId1.Equals(ProposalId1))
 //                 .Select(item => item).FirstOrDefault);
 //
 //         mock.Setup(r => r.GetListAsync(
@@ -124,7 +124,7 @@
 //             GovernanceMechanism = GovernanceMechanism.Parliament,
 //             ProposalType = ProposalType.Governance,
 //             ProposalStatus = ProposalStatus.Active,
-//             Content = ProposalId
+//             Content = ProposalId1
 //         };
 //         // Act
 //         var result = await _proposalProvider.GetProposalListAsync(input);
@@ -141,13 +141,13 @@
 //     {
 //         // Arrange
 //         var chainId = ChainIdTDVV;
-//         var proposalId = ProposalId;
+//         var proposalId = ProposalId1;
 //         // Act
 //         var result = await _proposalProvider.GetProposalByIdAsync(chainId, proposalId);
 //
 //         // Assert
 //         result.ShouldNotBeNull();
-//         result.ProposalId.ShouldBe(proposalId);
+//         result.ProposalId1.ShouldBe(proposalId);
 //     }
 //     
 //     [Fact]
@@ -157,14 +157,14 @@
 //         var chainId = ChainIdTDVV;
 //         var proposalId = new List<string>
 //         {
-//             ProposalId
+//             ProposalId1
 //         };
 //         // Act
 //         var result = await _proposalProvider.GetProposalListByIds(chainId, proposalId);
 //
 //         // Assert
 //         result.ShouldNotBeNull();
-//         result.ShouldContainKey(ProposalId);
+//         result.ShouldContainKey(ProposalId1);
 //      }
 //     
 //     [Fact]

@@ -69,12 +69,12 @@ public class ProposalServiceTest
         _proposalProvider.GetProposalListAsync(Arg.Any<QueryProposalListInput>())
             .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex>
             {
-                new() { ProposalId = "ProposalId", DAOId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization, VoteSchemeId = "VoteSchemeId"}
+                new() { ProposalId = "ProposalId1", DAOId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization, VoteSchemeId = "VoteSchemeId"}
             }));
         _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(Arg.Any<List<ProposalIndex>>())
             .Returns(new List<ProposalDto>
             {
-                new() { ProposalId = "ProposalId", DAOId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization.ToString(), VoteSchemeId = "VoteSchemeId" }
+                new() { ProposalId = "ProposalId1", DAOId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization.ToString(), VoteSchemeId = "VoteSchemeId" }
             });
         _DAOProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>
         {

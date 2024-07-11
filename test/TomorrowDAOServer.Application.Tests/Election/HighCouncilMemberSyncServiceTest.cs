@@ -21,7 +21,6 @@ public partial class HighCouncilMemberSyncServiceTest : TomorrowDaoServerApplica
         base.AfterAddApplication(services);
         services.AddSingleton(MockGraphQlHelper_QueryElectionDto());
         services.AddSingleton(MockTransactionService());
-        services.AddSingleton(MockQueryContractOption());
         services.AddSingleton(MockHighCouncilMembersGrain());
         services.AddSingleton(MockGraphQLProvider());
     }

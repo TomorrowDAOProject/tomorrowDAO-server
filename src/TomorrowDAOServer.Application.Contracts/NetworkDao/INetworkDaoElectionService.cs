@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public interface IElectionService
+public interface INetworkDaoElectionService
 {
     Task<long> GetBpVotingStakingAmount();
 }

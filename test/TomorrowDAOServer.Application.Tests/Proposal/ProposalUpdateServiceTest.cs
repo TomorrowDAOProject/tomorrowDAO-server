@@ -38,8 +38,8 @@
 //         // Arrange
 //         var proposalIndexList = new List<ProposalIndex>
 //         {
-//             new ProposalIndex { ProposalId = "1", ProposalStatus = ProposalStatus.Approved, BlockHeight = 100 },
-//             new ProposalIndex { ProposalId = "2", ProposalStatus = ProposalStatus.Approved, BlockHeight = 200 }
+//             new ProposalIndex { ProposalId1 = "1", ProposalStatus = ProposalStatus.Approved, BlockHeight = 100 },
+//             new ProposalIndex { ProposalId1 = "2", ProposalStatus = ProposalStatus.Approved, BlockHeight = 200 }
 //         };
 //
 //         _proposalProviderMock.Setup(x => x.GetNonFinishedProposalListAsync(It.Is<int>(p => p == 0),It.IsAny<List<ProposalStatus>>()))

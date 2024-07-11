@@ -90,26 +90,6 @@ public partial class HighCouncilMemberSyncServiceTest
         return mock.Object;
     }
 
-    private static IOptionsSnapshot<QueryContractOption> MockQueryContractOption()
-    {
-        var mock = new Mock<IOptionsSnapshot<QueryContractOption>>();
-        mock.Setup(m => m.Value).Returns(value: new QueryContractOption
-        {
-            QueryContractInfoList = new List<QueryContractInfo>()
-            {
-                new QueryContractInfo
-                {
-                    ChainId = ChainIdAELF,
-                    PrivateKey = "PrivateKey",
-                    ConsensusContractAddress = "ConsensusContractAddress",
-                    ElectionContractAddress = "ElectionContractAddress",
-                    GovernanceContractAddress = "GovernanceContractAddress"
-                }
-            }
-        });
-        return mock.Object;
-    }
-
     // private static IClusterClient MockIClusterClient()
     // {
     //     var clusterClientMock = new Mock<IClusterClient>();

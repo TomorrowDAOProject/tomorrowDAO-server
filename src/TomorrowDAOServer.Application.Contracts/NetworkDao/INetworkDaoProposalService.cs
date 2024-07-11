@@ -5,7 +5,7 @@ using TomorrowDAOServer.NetworkDao.Dto;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public interface IProposalService
+public interface INetworkDaoProposalService
 {
     
     Task<HomePageResponse> GetHomePageAsync(HomePageRequest proposalResult);

@@ -43,6 +43,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
         _graphQlProvider = graphQlProvider;
     }
 
+    [Obsolete]
     public async Task<PagedResultDto<IndexerElection>> GetHighCouncilListAsync(GetHighCouncilListInput input)
     {
         try
@@ -168,7 +169,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
                     new GraphQLRequest
                     {
                         Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long,$endBlockHeight:Long,$chainId:String,$daoId:String){
+                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
             data:getElectionVotingItem(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,daoId:$daoId})
             {    
                 items {

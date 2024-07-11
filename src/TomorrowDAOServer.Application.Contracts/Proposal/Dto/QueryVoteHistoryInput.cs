@@ -14,7 +14,7 @@ public class QueryVoteHistoryInput : IValidatableObject
     public int SkipCount { get; set; } = 0;
     public int MaxResultCount { get; set; } = 100;
     public string VoteOption { get; set; } = string.Empty;
-    public string Address { get; set; }
+    public string Address { get; set; } = string.Empty;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

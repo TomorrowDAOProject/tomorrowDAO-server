@@ -19,9 +19,9 @@ namespace TomorrowDAOServer.NetworkDao;
 
 [RemoteService(IsEnabled = false)]
 [DisableAuditing]
-public class ElectionService : IElectionService, ISingletonDependency
+public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonDependency
 {
-    private readonly ILogger<ElectionService> _logger;
+    private readonly ILogger<NetworkDaoElectionService> _logger;
     private readonly IContractProvider _contractProvider;
     private readonly IDistributedCache<string> _distributedCache;
     private const long RefreshTime = 10 * 60 * 1000;
@@ -29,7 +29,7 @@ public class ElectionService : IElectionService, ISingletonDependency
     private long _lastUpdateTime = 0;
 
 
-    public ElectionService(ILogger<ElectionService> logger, IContractProvider contractProvider,
+    public NetworkDaoElectionService(ILogger<NetworkDaoElectionService> logger, IContractProvider contractProvider,
         IDistributedCache<string> distributedCache)
     {
         _logger = logger;

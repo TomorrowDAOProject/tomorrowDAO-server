@@ -6,94 +6,37 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using Newtonsoft.Json;
-using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Options;
 using Volo.Abp.DistributedLocking;
 using Xunit.Abstractions;
+using GraphQLOptions = TomorrowDAOServer.Common.GraphQL.GraphQLOptions;
 
 namespace TomorrowDAOServer;
 
-public abstract partial class TomorrowDaoServerApplicationTestBase : TomorrowDAOServerTestBase<TomorrowDAOServerApplicationTestModule>
+public abstract partial class
+    TomorrowDaoServerApplicationTestBase : TomorrowDAOServerTestBase<TomorrowDAOServerApplicationTestModule>
 {
     protected const string ChainIdTDVV = "tDVV";
     protected const string ChainIdAELF = "AELF";
     protected const string ELF = "ELF";
-    protected const string ProposalId = "99df86594a989227b8e6259f70b08976812537c20486717a3d0158788155b1f0";
+    protected const string ProposalId1 = "99df86594a989227b8e6259f70b08976812537c20486717a3d0158788155b1f0";
+    protected const string ProposalId2 = "40510452a04b0857003be9bc222e672c7aff3bf3d4d858a5d72ad2df409b7b6d";
     protected const string DAOId = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3";
-    protected const string ProposalListJson = @"[
-        {
-            ""id"": ""99df86594a989227b8e6259f70b08976812537c20486717a3d0158788155b1f0"",
-            ""daoId"": ""a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"",
-            ""proposalId"": ""99df86594a989227b8e6259f70b08976812537c20486717a3d0158788155b1f0"",
-            ""proposalTitle"": ""Proposal Title test"",
-            ""proposalType"": 1,
-            ""governanceMechanism"": 3,
-            ""proposalStatus"": 6,
-            ""startTime"": ""2024-02-07T10:10:27.3577550Z"",
-            ""endTime"": ""2024-02-09T10:10:27.3580530Z"",
-            ""expiredTime"": ""2024-02-10T10:10:27.3580960Z"",
-            ""executeTime"": ""2024-02-10T10:05:27.3580960Z"",
-            ""executeAddress"": ""aLyxCJvWMQH6UEykTyeWAcYss9baPyXkrMQ37BHnUicxD2LL3"",
-            ""proposalDescription"": ""f5bc4667d8cb512113dc140163c5b3bc4829468f49c01483aa46b21298221774"",
-            ""transactionInfo"": {
-                ""toAddress"": ""YeCqKprLBGbZZeRTkN1FaBLXsetY8QFotmVKqo98w9K6jK2PY"",
-                ""contractMethodName"": ""AddMembers"",
-                ""params"": {}
-            },
-            ""governanceSchemeId"": ""f16f5443dbfc30be571104872d88101705834ffeea6632858bc8e70608be5e50"",
-            ""executeByHighCouncil"": false,
-            ""deployTime"": ""2024-02-07T10:10:27.3691230Z"",
-            ""voteFinished"": true,
-            ""voteSchemeId"": ""1"",
-            ""organizationAddress"": ""UE6mcinaCFJZmGNgY9fpMnyzwMETJUhqwbnvtjRgX1f12rBQj"",
-            ""minimalRequiredThreshold"": 11,
-            ""minimalVoteThreshold"": 13,
-            ""minimalApproveThreshold"": 50,
-            ""maximalRejectionThreshold"": 30,
-            ""maximalAbstentionThreshold"": 20,
-            ""chainId"": ""tDVV"",
-            ""blockHash"": ""dac5cd67a2783d0a3d843426c2d45f1178f4d052235a907a0d796ae4659103b1"",
-            ""blockHeight"": 120,
-            ""previousBlockHash"": ""e38c4fb1cf6af05878657cb3f7b5fc8a5fcfb2eec19cd76b73abb831973fbf4e"",
-            ""isDeleted"": false
-        },
-        {
-            ""id"": ""b97db4a9f43296157fb1a5d38cebdac478d0e91ed7b8dc1ae2effe1e29e64354"",
-            ""daoId"": ""a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"",
-            ""proposalId"": ""b97db4a9f43296157fb1a5d38cebdac478d0e91ed7b8dc1ae2effe1e29e64354"",
-            ""proposalTitle"": ""Proposal Title test 2"",
-            ""proposalType"": 2,
-            ""governanceMechanism"": 1,
-            ""proposalStatus"": 1,
-            ""startTime"": ""2024-02-07T10:03:03.8204790Z"",
-            ""endTime"": ""2024-02-09T10:03:03.8207190Z"",
-            ""expiredTime"": ""2024-02-10T10:03:03.8207570Z"",
-            ""executeAddress"": ""aLyxCJvWMQH6UEykTyeWAcYss9baPyXkrMQ37BHnUicxD2LL3"",
-            ""proposalDescription"": ""f5bc4667d8cb512113dc140163c5b3bc4829468f49c01483aa46b21298221774"",
-            ""transactionInfo"": {
-                ""toAddress"": ""YeCqKprLBGbZZeRTkN1FaBLXsetY8QFotmVKqo98w9K6jK2PY"",
-                ""contractMethodName"": ""HighCouncilConfigSet"",
-                ""params"": {}
-            },
-            ""governanceSchemeId"": ""f16f5443dbfc30be571104872d88101705834ffeea6632858bc8e70608be5e50"",
-            ""executeByHighCouncil"": false,
-            ""deployTime"": ""2024-02-07T10:03:03.8310160Z"",
-            ""voteFinished"": false,
-            ""voteSchemeId"": ""2"",
-            ""organizationAddress"": ""UE6mcinaCFJZmGNgY9fpMnyzwMETJUhqwbnvtjRgX1f12rBQj"",
-            ""minimalRequiredThreshold"": 11,
-            ""minimalVoteThreshold"": 13,
-            ""minimalApproveThreshold"": 50,
-            ""maximalRejectionThreshold"": 30,
-            ""maximalAbstentionThreshold"": 20,
-            ""chainId"": ""tDVV"",
-            ""blockHash"": ""dac5cd67a2783d0a3d843426c2d45f1178f4d052235a907a0d796ae4659103b1"",
-            ""blockHeight"": 120,
-            ""previousBlockHash"": ""e38c4fb1cf6af05878657cb3f7b5fc8a5fcfb2eec19cd76b73abb831973fbf4e"",
-            ""isDeleted"": false
-        }   
-    ]";
-    
+    protected const string PrivateKey1 = "87ec6028d6c4fa6fd43a1a68c589e737dc8bf4b8968373068dc39a91f70fbeb1";
+
+    protected const string PublicKey1 =
+        "04f5db833e5377cab193e3fc663209ac3293ef67736021ee9cebfd1b95a058a5bb400aaeb02ed15dc93177c9bcf38057c4b8069f46601a2180e892a555345c89cf";
+
+    protected const string Address1 = "2Md6Vo6SWrJPRJKjGeiJtrJFVkbc5EARXHGcxJoeD75pMSfdN2";
+    protected const string PrivateKey2 = "7f089cb3e5e5045b5a8369b81009b023f67414d53ab94c1d2c44dff6e10005d4";
+
+    protected const string PublicKey2 =
+        "04de4367b534d76e8586ac191e611c4ac05064b8bc585449aee19a8818e226ad29c24559216fd33c28abe7acaa8471d2b521152e8b40290dfc420d6eb89f70861a";
+
+    protected const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
+
     public TomorrowDaoServerApplicationTestBase(ITestOutputHelper output) : base(output)
     {
     }
@@ -103,6 +46,10 @@ public abstract partial class TomorrowDaoServerApplicationTestBase : TomorrowDAO
         base.AfterAddApplication(services);
         services.AddSingleton(GetMockAbpDistributedLockAlwaysSuccess());
         services.AddSingleton(MockGraphQlOptions());
+        services.AddSingleton(MockExplorerOptions());
+        services.AddSingleton(MockQueryContractOption());
+        services.AddSingleton(HttpRequestMock.MockHttpFactory());
+        
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
@@ -117,19 +64,48 @@ public abstract partial class TomorrowDaoServerApplicationTestBase : TomorrowDAO
         return mock.Object;
     }
 
+    private IOptionsMonitor<ExplorerOptions> MockExplorerOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<ExplorerOptions>>();
+        mock.Setup(o => o.CurrentValue).Returns(new ExplorerOptions
+        {
+            BaseUrl = new Dictionary<string, string>()
+            {
+                { "AELF", @"https://explorer.io" },
+                { "tDVV", @"https://tdvv-explorer.io" },
+                { "tDVW", @"https://tdvw-explorer.io" }
+            }
+        });
+        return mock.Object;
+    }
+    
+    private static IOptionsSnapshot<QueryContractOption> MockQueryContractOption()
+    {
+        var mock = new Mock<IOptionsSnapshot<QueryContractOption>>();
+        mock.Setup(m => m.Value).Returns(value: new QueryContractOption
+        {
+            QueryContractInfoList = new List<QueryContractInfo>()
+            {
+                new QueryContractInfo
+                {
+                    ChainId = ChainIdAELF,
+                    PrivateKey = "PrivateKey",
+                    ConsensusContractAddress = "ConsensusContractAddress",
+                    ElectionContractAddress = "ElectionContractAddress",
+                    GovernanceContractAddress = "GovernanceContractAddress"
+                }
+            }
+        });
+        return mock.Object;
+    }
+
     private IAbpDistributedLock GetMockAbpDistributedLockAlwaysSuccess()
     {
         var mockLockProvider = new Mock<IAbpDistributedLock>();
         mockLockProvider
             .Setup(x => x.TryAcquireAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
-            .Returns<string, TimeSpan, CancellationToken>((name, timeSpan, cancellationToken) => 
+            .Returns<string, TimeSpan, CancellationToken>((name, timeSpan, cancellationToken) =>
                 Task.FromResult<IAbpDistributedLockHandle>(new LocalAbpDistributedLockHandle(new SemaphoreSlim(0))));
         return mockLockProvider.Object;
-    }
-    
-    protected static IGraphQlHelper MockGraphQlHelper()
-    {
-        var mockHelper = new Mock<IGraphQlHelper>();
-        return mockHelper.Object;
     }
 }

@@ -69,9 +69,9 @@
 //     {
 //         return new List<IndexerProposal>
 //         {
-//             new IndexerProposal { ProposalId = "1", ProposalStatus = ProposalStatus.Active, BlockHeight = 100, 
+//             new IndexerProposal { ProposalId1 = "1", ProposalStatus = ProposalStatus.Active, BlockHeight = 100, 
 //                 OrganizationAddress = "address1", ExpiredTime = DateTime.UtcNow.AddDays(-1)},
-//             new IndexerProposal { ProposalId = "2", ProposalStatus = ProposalStatus.Active, BlockHeight = 200, VoteFinished = true,
+//             new IndexerProposal { ProposalId1 = "2", ProposalStatus = ProposalStatus.Active, BlockHeight = 200, VoteFinished = true,
 //                 OrganizationAddress = "address2", ExpiredTime = DateTime.UtcNow.AddDays(1)}
 //         };
 //     }
@@ -82,11 +82,11 @@
 //         {
 //             new ProposalIndex
 //             {
-//                 ProposalId = "1", ProposalStatus = ProposalStatus.Approved, BlockHeight = 99, ExpiredTime = DateTime.UtcNow.AddDays(-1)
+//                 ProposalId1 = "1", ProposalStatus = ProposalStatus.Approved, BlockHeight = 99, ExpiredTime = DateTime.UtcNow.AddDays(-1)
 //             },
 //             new ProposalIndex
 //             {
-//                 ProposalId = "2", ProposalStatus = ProposalStatus.Approved, BlockHeight = 199, ExpiredTime = DateTime.UtcNow.AddDays(1)
+//                 ProposalId1 = "2", ProposalStatus = ProposalStatus.Approved, BlockHeight = 199, ExpiredTime = DateTime.UtcNow.AddDays(1)
 //             }
 //         };
 //     }
@@ -116,7 +116,7 @@
 //         
 //         mock.Setup(x =>
 //                 x.GetProposalListByIds(It.IsAny<string>(), It.IsAny<List<string>>()))
-//             .ReturnsAsync(proposalIndexList.Select(item => item).ToDictionary(item => item.ProposalId, item => item));
+//             .ReturnsAsync(proposalIndexList.Select(item => item).ToDictionary(item => item.ProposalId1, item => item));
 //
 //         mock.Setup(x => x.BulkAddOrUpdateAsync(It.IsAny<List<ProposalIndex>>()))
 //             .Returns(Task.CompletedTask);

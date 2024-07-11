@@ -18,53 +18,53 @@ namespace TomorrowDAOServer.Controllers;
 public class NetworkDaoController
 {
     private ILogger<NetworkDaoController> _logger;
-    private readonly IProposalService _proposalService;
-    private readonly ITreasuryService _treasuryService;
-    private readonly IElectionService _electionService;
+    private readonly INetworkDaoProposalService _networkDaoProposalService;
+    private readonly INetworkDaoTreasuryService _networkDaoTreasuryService;
+    private readonly INetworkDaoElectionService _networkDaoElectionService;
 
-    public NetworkDaoController(IProposalService proposalService, ILogger<NetworkDaoController> logger,
-        ITreasuryService treasuryService, IElectionService electionService)
+    public NetworkDaoController(INetworkDaoProposalService networkDaoProposalService, ILogger<NetworkDaoController> logger,
+        INetworkDaoTreasuryService networkDaoTreasuryService, INetworkDaoElectionService networkDaoElectionService)
     {
-        _proposalService = proposalService;
+        _networkDaoProposalService = networkDaoProposalService;
         _logger = logger;
-        _treasuryService = treasuryService;
-        _electionService = electionService;
+        _networkDaoTreasuryService = networkDaoTreasuryService;
+        _networkDaoElectionService = networkDaoElectionService;
     }
     
     [HttpGet("proposal/list")]
     public async Task<ExplorerProposalResponse> GetProposalList(ProposalListRequest request)
     {
-        return await _proposalService.GetProposalListAsync(request);
+        return await _networkDaoProposalService.GetProposalListAsync(request);
     }
 
     [HttpGet("proposal/detail")]
     public async Task<NetworkDaoProposalDto> GetProposalInfo(ProposalInfoRequest request)
     {
-        return await _proposalService.GetProposalInfoAsync(request);
+        return await _networkDaoProposalService.GetProposalInfoAsync(request);
     }
 
     [HttpGet("proposal/home-page")]
     public async Task<HomePageResponse> ProposalHomePage(HomePageRequest homePageRequest)
     {
-        return await _proposalService.GetHomePageAsync(homePageRequest);
+        return await _networkDaoProposalService.GetHomePageAsync(homePageRequest);
     }
     
     [HttpGet("treasury/balance")]
     public async Task<TreasuryBalanceResponse> TreasuryBalance(TreasuryBalanceRequest request)
     {
-        return await _treasuryService.GetBalanceAsync(request);
+        return await _networkDaoTreasuryService.GetBalanceAsync(request);
     }
 
     [HttpGet("treasury/transactions-records")]
     public async Task<PagedResultDto<TreasuryTransactionDto>> TreasuryTransactionRecords(
         TreasuryTransactionRequest request)
     {
-        return await _treasuryService.GetTreasuryTransactionAsync(request);
+        return await _networkDaoTreasuryService.GetTreasuryTransactionAsync(request);
     }
 
     [HttpGet("staking")]
     public async Task<long> GetBpVotingStakingAmount()
     {
-        return await _electionService.GetBpVotingStakingAmount();
+        return await _networkDaoElectionService.GetBpVotingStakingAmount();
     }
 }

@@ -21,9 +21,9 @@ using Volo.Abp.Threading;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public class TreasuryService : ITreasuryService, ITransientDependency
+public class NetworkDaoTreasuryService : INetworkDaoTreasuryService, ITransientDependency
 {
-    private readonly ILogger<TreasuryService> _logger;
+    private readonly ILogger<NetworkDaoTreasuryService> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly IOptionsMonitor<NetworkDaoOptions> _networkDaoOptions;
     private readonly IOptionsMonitor<TokenInfoOptions> _tokenOptions;
@@ -32,7 +32,7 @@ public class TreasuryService : ITreasuryService, ITransientDependency
     private readonly IExplorerProvider _explorerProvider;
     private readonly IObjectMapper _objectMapper;
 
-    public TreasuryService(ILogger<TreasuryService> logger, IContractProvider contractProvider,
+    public NetworkDaoTreasuryService(ILogger<NetworkDaoTreasuryService> logger, IContractProvider contractProvider,
         IExplorerProvider explorerProvider, ITokenService tokenService, IClusterClient clusterClient,
         IOptionsMonitor<NetworkDaoOptions> networkDaoOptions, IOptionsMonitor<TokenInfoOptions> tokenOptions,
         IObjectMapper objectMapper)
