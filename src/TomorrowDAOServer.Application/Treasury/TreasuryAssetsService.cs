@@ -52,7 +52,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             }
 
             var resultDto = new TreasuryAssetsPagedResultDto();
-            var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput{ChainId = input.ChainId, DAOId = input.DaoId});
+            var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput{DAOId = input.DaoId});
             if (daoIndex.IsNetworkDAO)
             {
                 var response = await _networkDaoTreasuryService.GetBalanceAsync(new TreasuryBalanceRequest{ChainId = CommonConstant.MainChainId});

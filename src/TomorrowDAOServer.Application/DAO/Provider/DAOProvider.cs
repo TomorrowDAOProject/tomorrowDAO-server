@@ -111,7 +111,10 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
     public async Task<DAOIndex> GetAsync(GetDAOInfoInput input)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>();
-        mustQuery.Add(q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)));
+        if (!input.ChainId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)));
+        }
         if (!input.DAOId.IsNullOrWhiteSpace())
         {
             mustQuery.Add(q => q.Term(i => i.Field(t => t.Id).Value(input.DAOId)));
