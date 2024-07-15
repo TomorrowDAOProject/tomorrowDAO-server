@@ -27,6 +27,18 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
 {
     public TomorrowDAOServerApplicationAutoMapperProfile()
     {
+        CreateMap<TreasuryBalanceResponse.BalanceItem, TreasuryAssetsDto>()
+            .ForPath(des => des.ChainId, opt
+                => opt.MapFrom(source => CommonConstant.MainChainId))
+            .ForPath(des => des.Symbol, opt
+                => opt.MapFrom(source => source.Token.Symbol))
+            .ForMember(des => des.Amount, opt
+                => opt.MapFrom(source => MapAmount(source.TotalCount, source.Token.Decimals)))
+            .ForPath(des => des.Decimal, opt
+                => opt.MapFrom(source => source.Token.Decimals))
+            .ForMember(des => des.UsdValue, opt
+                => opt.MapFrom(source => source.DollarValue))
+            ;
         CreateMap<UserIndex, UserDto>().ReverseMap();
         CreateMap<AddressInfo, UserAddressInfo>().ReverseMap();
         CreateMap<IndexerUserToken, UserTokenDto>();

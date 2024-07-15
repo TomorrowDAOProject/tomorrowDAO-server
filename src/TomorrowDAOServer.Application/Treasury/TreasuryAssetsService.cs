@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nito.AsyncEx;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.DAO;
+using TomorrowDAOServer.DAO.Dtos;
+using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Dtos.NetworkDao;
+using TomorrowDAOServer.NetworkDao;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.Token.Dto;
 using TomorrowDAOServer.Treasury.Dto;
@@ -23,14 +27,19 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
     private readonly IObjectMapper _objectMapper;
     private readonly ITreasuryAssetsProvider _treasuryAssetsProvider;
     private readonly ITokenService _tokenService;
+    private readonly IDAOProvider _daoProvider;
+    private readonly NetworkDaoTreasuryService _networkDaoTreasuryService;
 
     public TreasuryAssetsService(ILogger<TreasuryAssetsService> logger, ITreasuryAssetsProvider treasuryAssetsProvider,
-        IObjectMapper objectMapper, ITokenService tokenService)
+        IObjectMapper objectMapper, ITokenService tokenService, IDAOProvider daoProvider, 
+        NetworkDaoTreasuryService networkDaoTreasuryService)
     {
         _logger = logger;
         _treasuryAssetsProvider = treasuryAssetsProvider;
         _objectMapper = objectMapper;
         _tokenService = tokenService;
+        _daoProvider = daoProvider;
+        _networkDaoTreasuryService = networkDaoTreasuryService;
     }
 
     public async Task<TreasuryAssetsPagedResultDto> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input)
@@ -43,6 +52,17 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             }
 
             var resultDto = new TreasuryAssetsPagedResultDto();
+            var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput{ChainId = input.ChainId, DAOId = input.DaoId});
+            if (daoIndex.IsNetworkDAO)
+            {
+                var response = await _networkDaoTreasuryService.GetBalanceAsync(new TreasuryBalanceRequest{ChainId = CommonConstant.MainChainId});
+                resultDto.TotalUsdValue = response.Items.Sum(x => Convert.ToDouble(x.DollarValue));
+                resultDto.TotalCount = response.Items.Count;
+                resultDto.Data = _objectMapper.Map<List<TreasuryBalanceResponse.BalanceItem>, List<TreasuryAssetsDto>>(
+                    response.Items.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
+                return resultDto;
+            }
+            
             var treasuryAssetsResult = await _treasuryAssetsProvider.GetAllTreasuryAssetsAsync(new GetAllTreasuryAssetsInput
             {
                 ChainId = input.ChainId, DaoId = input.DaoId
