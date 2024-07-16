@@ -30,7 +30,7 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
         var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<GetTreasuryFundListResult>>(new GraphQLRequest
         {
             Query = @"
-			    query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$daoId:String!,$symbols: [String],$startBlockHeight:Long!,$endBlockHeight:Long!) {
+			    query($chainId:String,$skipCount:Int!,$maxResultCount:Int!,$daoId:String,$symbols:[String!],$startBlockHeight:Long!,$endBlockHeight:Long!) {
                     data:getTreasuryFundList(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,daoId:$daoId,symbols:$symbols,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight})
                     {
                         item1,
@@ -52,6 +52,7 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
                 daoId = input.DaoId,
                 skipCount = input.SkipCount,
                 maxResultCount = input.MaxResultCount,
+                symbols = input.Symbols,
                 startBlockHeight = 0,
                 endBlockHeight = 0
             }

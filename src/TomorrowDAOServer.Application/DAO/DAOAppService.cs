@@ -218,7 +218,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
                     : 0L;
             }
 
-            dao.ProposalsNum = await _proposalProvider.GetProposalCountByDAOIds(chainId, dao.DaoId);
+            //dao.ProposalsNum = await _proposalProvider.GetProposalCountByDAOIds(chainId, dao.DaoId);
             if (!dao.IsNetworkDAO)
             {
                 continue;

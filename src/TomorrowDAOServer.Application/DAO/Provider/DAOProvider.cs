@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using Volo.Abp.DependencyInjection;
@@ -92,6 +94,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                         vetoExecuteTimePeriod,
                         createTime,
                         isNetworkDAO,
+                        proposalCount,
                         voterCount,
                         governanceMechanism
                     }
@@ -141,9 +144,65 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                 !q.Terms(i => i.Field(t => t.Metadata.Name).Terms(excludeNames)));
         }
 
+        if (input.GovernanceMechanism != null)
+        {
+            mustQuery.Add(q =>
+                q.Term(i => i.Field(t => t.GovernanceMechanism).Value(input.GovernanceMechanism)));
+        }
+
         QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
+        //Sort
+        
         return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
-            sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
+            sortFunc: GetDaoListSortFunc(input));
+    }
+
+    private static Func<SortDescriptor<DAOIndex>, IPromise<IList<ISort>>> GetDaoListSortFunc(QueryDAOListInput input)
+    {
+        var sortType = input?.SortOption?.SortType?? DaoListSortType.Default;
+        var ascending = input?.SortOption?.Ascending ?? false;
+        
+        Func<SortDescriptor<DAOIndex>, IPromise<IList<ISort>>> sortFunc;
+        Expression expression = null;
+        switch (sortType)
+        {
+            case DaoListSortType.TreasuryAmount:
+            {
+                Expression<Func<DAOIndex, double>> treasuryAmountExpression = index => index.TreasuryDollarValue;
+                expression = treasuryAmountExpression;
+                break;
+            }
+            case DaoListSortType.ProposalCount:
+            {
+                Expression<Func<DAOIndex, int>> proposalCountExpression = index => index.ProposalCount;
+                expression = proposalCountExpression;
+                break;
+            }
+            case DaoListSortType.VoterCount:
+            {
+                Expression<Func<DAOIndex, int>> voterCountCountExpression = index => index.VoterCount;
+                expression = voterCountCountExpression;
+                break;
+            }
+            case DaoListSortType.Default:
+            default:
+            {
+                Expression<Func<DAOIndex, DateTime>> createTimeExpression = index => index.CreateTime;
+                expression = createTimeExpression;
+                break;
+            }
+        }
+        
+        if (ascending)
+        {
+            sortFunc = _ => new SortDescriptor<DAOIndex>().Ascending(expression);
+        }
+        else
+        {
+            sortFunc = _ => new SortDescriptor<DAOIndex>().Descending(expression);
+        }
+
+        return sortFunc;
     }
 
     public async Task<long> GetDAOListCountAsync(QueryDAOListInput input, ISet<string> excludeNames)
