@@ -41,18 +41,25 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
 
     public async Task<TokenGrainDto> GetTokenAsync(string chainId, string symbol)
     {
-        var grainId = GuidHelper.GenerateGrainId(chainId, symbol);
-
-        var tokenGrain = _clusterClient.GetGrain<ITokenGrain>(grainId);
-
-        var grainResultDto = await tokenGrain.GetTokenAsync(new TokenGrainDto
+        try
         {
-            ChainId = chainId,
-            Symbol = symbol
-        });
-        AssertHelper.IsTrue(grainResultDto.Success, "GetTokenAsync  fail, chainId  {chainId} symbol {symbol}", chainId,
-            symbol);
-        return grainResultDto.Data;
+            var grainId = GuidHelper.GenerateGrainId(chainId, symbol);
+            var tokenGrain = _clusterClient.GetGrain<ITokenGrain>(grainId);
+            var grainResultDto = await tokenGrain.GetTokenAsync(new TokenGrainDto
+            {
+                ChainId = chainId,
+                Symbol = symbol
+            });
+            AssertHelper.IsTrue(grainResultDto.Success, "GetTokenAsync  fail, chainId  {chainId} symbol {symbol}", chainId,
+                symbol);
+            return grainResultDto.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetTokenAsyncException chainId{chainId}, symbol{symbol}", chainId, symbol);
+        }
+
+        return new TokenGrainDto();
     }
 
     public async Task<TokenDto> GetTokenByExplorerAsync(string chainId, string symbol)
