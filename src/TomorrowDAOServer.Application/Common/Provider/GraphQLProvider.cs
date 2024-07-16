@@ -95,7 +95,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetBPAsync Exception chainId {chainId}", chainId);
+            _logger.LogError(e, "GetBPAsync error, chainId {chainId}", chainId);
             return new List<string>();
         }
     }
