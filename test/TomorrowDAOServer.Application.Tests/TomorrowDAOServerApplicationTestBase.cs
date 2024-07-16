@@ -21,6 +21,7 @@ public abstract partial class
     protected const string ChainIdTDVV = "tDVV";
     protected const string ChainIdAELF = "AELF";
     protected const string ELF = "ELF";
+    protected const double ElfPrice = 0.666;
     protected const string ProposalId1 = "99df86594a989227b8e6259f70b08976812537c20486717a3d0158788155b1f0";
     protected const string ProposalId2 = "40510452a04b0857003be9bc222e672c7aff3bf3d4d858a5d72ad2df409b7b6d";
     protected const string DAOId = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3";
