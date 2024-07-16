@@ -33,9 +33,6 @@ public interface IExplorerProvider
 
     Task<ExplorerPagerResult<ExplorerTransferResult>> GetTransferListAsync(string chainId,
         ExplorerTransferRequest request);
-
-    ProposalType GetProposalType(ProposalSourceEnum proposalSource);
-    string GetProposalStatus(ProposalStatus? proposalStatus, ProposalStage? proposalStage);
 }
 
 public static class ExplorerApi
@@ -221,46 +218,6 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
             BaseUrl(chainId), ExplorerApi.TransferList, param: ToDictionary(request), settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;
-    }
-
-    public ProposalType GetProposalType(ProposalSourceEnum proposalSource)
-    {
-        return proposalSource switch
-        {
-            ProposalSourceEnum.ONCHAIN_ASSOCIATION => ProposalType.Association,
-            ProposalSourceEnum.ONCHAIN_REFERENDUM => ProposalType.Referendum,
-            ProposalSourceEnum.ONCHAIN_PARLIAMENT => ProposalType.Parliament,
-            _ => ProposalType.Parliament
-        };
-    }
-
-    public string GetProposalStatus(ProposalStatus? proposalStatus, ProposalStage? proposalStage)
-    {
-        switch (proposalStatus)
-        {
-            case null:
-                return ProposalStatusAll;
-            //explorer support status: all, pending, approved, released, expired
-            case ProposalStatus.PendingVote:
-            case ProposalStatus.BelowThreshold:
-            case ProposalStatus.Challenged:
-                return ProposalStatusEnum.Pending.ToString().ToLower();
-            case ProposalStatus.Approved:
-                return ProposalStatusEnum.Approved.ToString().ToLower();
-            case ProposalStatus.Executed:
-                return ProposalStatusEnum.Released.ToString().ToLower();
-            case ProposalStatus.Expired:
-                return ProposalStatusEnum.Expired.ToString().ToLower();
-            // can not find determinant status to map between network dao and tmr dao
-            // so return empty list temporary
-            case ProposalStatus.Rejected:
-            case ProposalStatus.Abstained:
-            case ProposalStatus.Vetoed:
-                return string.Empty;
-            case ProposalStatus.Empty:
-            default:
-                return ProposalStatusAll;
-        }
     }
 
     private Dictionary<string, string> ToDictionary(object param)

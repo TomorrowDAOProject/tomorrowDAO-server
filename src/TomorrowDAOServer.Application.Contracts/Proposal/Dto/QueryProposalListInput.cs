@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Enums;
 using Volo.Abp.Application.Dtos;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
@@ -25,8 +24,6 @@ public class QueryProposalListInput : PagedResultRequestDto
 
     public bool IsNetworkDao { get; set; }
     
-    public PageInfo PageInfo { get; set; }
-
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (ChainId.IsNullOrEmpty() || !ChainId.MatchesChainId())
@@ -34,9 +31,4 @@ public class QueryProposalListInput : PagedResultRequestDto
             yield return new ValidationResult($"ChainId invalid.");
         }
     }
-}
-
-public class PageInfo
-{
-    public IDictionary<ProposalSourceEnum, int>  ProposalSkipCount { get; set; }
 }
