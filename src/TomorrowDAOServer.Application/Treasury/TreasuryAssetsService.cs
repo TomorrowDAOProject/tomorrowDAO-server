@@ -81,19 +81,19 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             resultDto.Data = _objectMapper.Map<List<TreasuryFundDto>, List<TreasuryAssetsDto>>(rangeTreasuryFunds);
             resultDto.TotalCount = treasuryAssetsResult.Item1;
             
-            // var symbols = allTreasuryFunds.Where(x => !string.IsNullOrEmpty(x.Symbol)).Select(x => x.Symbol).ToHashSet();
-            // var (tokenInfoDictionary, tokenPriceDictionary) = await GetTokenInfoAsync(input.ChainId, symbols);
-            //
-            // foreach (var dto in resultDto.Data.Where(dto => tokenInfoDictionary.ContainsKey(dto.Symbol)))
-            // {
-            //     dto.Decimal = tokenInfoDictionary[dto.Symbol].Decimals;
-            //     dto.UsdValue = dto.Amount / Math.Pow(10, dto.Decimal) * (double)(tokenPriceDictionary.GetValueOrDefault(dto.Symbol)?.Price ?? 0);
-            // }
-            //
-            // resultDto.TotalUsdValue = (from dto in allTreasuryFunds.Where(x => tokenInfoDictionary.ContainsKey(x.Symbol)) 
-            //         let symbolDecimal = tokenInfoDictionary[dto.Symbol].Decimals 
-            //         select dto.AvailableFunds / Math.Pow(10, symbolDecimal) * (double)(tokenPriceDictionary.GetValueOrDefault(dto.Symbol)?.Price ?? 0))
-            //     .Sum();
+            var symbols = allTreasuryFunds.Where(x => !string.IsNullOrEmpty(x.Symbol)).Select(x => x.Symbol).ToHashSet();
+            var (tokenInfoDictionary, tokenPriceDictionary) = await GetTokenInfoAsync(input.ChainId, symbols);
+            
+            foreach (var dto in resultDto.Data.Where(dto => tokenInfoDictionary.ContainsKey(dto.Symbol)))
+            {
+                dto.Decimal = tokenInfoDictionary[dto.Symbol].Decimals;
+                dto.UsdValue = dto.Amount / Math.Pow(10, dto.Decimal) * (double)(tokenPriceDictionary.GetValueOrDefault(dto.Symbol)?.Price ?? 0);
+            }
+            
+            resultDto.TotalUsdValue = (from dto in allTreasuryFunds.Where(x => tokenInfoDictionary.ContainsKey(x.Symbol)) 
+                    let symbolDecimal = tokenInfoDictionary[dto.Symbol].Decimals 
+                    select dto.AvailableFunds / Math.Pow(10, symbolDecimal) * (double)(tokenPriceDictionary.GetValueOrDefault(dto.Symbol)?.Price ?? 0))
+                .Sum();
 
             return resultDto;
         }
