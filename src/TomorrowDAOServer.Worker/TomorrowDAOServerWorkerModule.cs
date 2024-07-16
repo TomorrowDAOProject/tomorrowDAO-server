@@ -21,6 +21,7 @@ namespace TomorrowDAOServer.Worker
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<DAOSyncWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalNewUpdateWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<HighCouncilMemberSyncWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<DaoTreasuryAssetsAmountRefreshWorker>());
         }
     }
 }

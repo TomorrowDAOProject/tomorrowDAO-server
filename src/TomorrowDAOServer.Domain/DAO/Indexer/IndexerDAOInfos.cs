@@ -40,6 +40,7 @@ public class IndexerDAOInfo
     public string PermissionInfoList { get; set; }
     public DateTime CreateTime { get; set; }
     public bool IsNetworkDAO { get; set; }
+    public int ProposalCount { get; set; }
     public int VoterCount { get; set; }
     public GovernanceMechanism GovernanceMechanism { get; set; }
 }

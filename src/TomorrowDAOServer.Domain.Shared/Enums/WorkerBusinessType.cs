@@ -7,5 +7,6 @@ public enum WorkerBusinessType
     DAOSync,
     BPInfoUpdate,
     ProposalNewUpdate,
-    HighCouncilMemberSync
+    HighCouncilMemberSync,
+    DaoTreasuryAssetsAmount
 }

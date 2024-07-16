@@ -151,7 +151,9 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Description, opt => opt.MapFrom(src => src.Metadata.Description))
             .ForMember(des => des.Creator, opt => opt.MapFrom(src => src.Creator))
             .ForMember(des => des.Symbol, opt => opt.MapFrom(src => src.GovernanceToken))
-            .ForMember(dec => dec.VotersNum, opt => opt.MapFrom(source => source.VoterCount));
+            .ForMember(dec => dec.VotersNum, opt => opt.MapFrom(source => source.VoterCount))
+            .ForMember(dec => dec.ProposalsNum, opt => opt.MapFrom(source => source.ProposalCount))
+            .ForMember(dec => dec.TreasuryAmount, opt => opt.MapFrom(source => source.TreasuryDollarValue));
         CreateMap<ContractInfo, ContractInfoDto>();
         CreateMap<IndexerVoteSchemeInfo, VoteSchemeInfoDto>()
             .ForMember(des => des.VoteMechanismName, opt => opt.MapFrom(src => src.VoteMechanism.ToString()))

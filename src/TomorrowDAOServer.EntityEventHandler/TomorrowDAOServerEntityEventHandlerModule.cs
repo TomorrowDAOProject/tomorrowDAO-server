@@ -58,6 +58,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         Configure<SyncDataOptions>(configuration.GetSection("SyncData"));
         Configure<DaoAliasOptions>(configuration.GetSection("DaoAlias"));
         Configure<IndexerOptions>(configuration.GetSection("IndexerOptions"));
+        Configure<TreasuryAmountRefreshOptions>(configuration.GetSection("TreasuryAmountRefresh"));
         ConfigureHangfire(context, configuration);
         // Configure<AbpRabbitMqBackgroundJobOptions>(configuration.GetSection("AbpRabbitMqBackgroundJob"));
         context.Services.AddHostedService<TomorrowDAOServerHostedService>();
