@@ -8,6 +8,9 @@ using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.DAO.Indexer;
+using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
 using Volo.Abp.DependencyInjection;
@@ -31,6 +34,8 @@ public interface IVoteProvider
     Task<List<IndexerVoteRecord>> GetSyncVoteRecordListAsync(GetChainBlockHeightInput input);
     Task<List<WithdrawnDto>> GetSyncVoteWithdrawListAsync(GetChainBlockHeightInput input);
     Task<List<VoteRecordIndex>> GetByVotingItemIdsAsync(string chainId, List<string> votingItemIds);
+    Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter);
+    Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -347,5 +352,74 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
+    }
+
+    public async Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(f => f.DAOId).Value(daoId)),
+            q => q.Term(i => i.Field(f => f.Voter).Value(voter)),
+            q => q.Term(i => i.Field(f => f.IsWithdraw).Value(false)),
+            q => q.Term(i => i.Field(f => f.VoteMechanism).Value(VoteMechanism.TOKEN_BALLOT))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await GetAllIndex(Filter, _voteRecordIndexRepository);
+    }
+
+    public async Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter)
+    {
+        try
+        {
+            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<List<IndexerDAOVoterRecord>>>(new GraphQLRequest
+            {
+                Query =
+                    @"query($chainId:String!,$daoId:String!,$voterAddress:String!) {
+                        data:getDAOVoterRecord(input: {chainId:$chainId,daoId:$daoId,voterAddress:$voterAddress})
+                        {
+                            id,
+                            daoId,
+                            voterAddress,
+                            count,
+                            amount,
+                            chainId
+                        }
+                    }",
+                Variables = new
+                {
+                    ChainId = chainId, DaoId = daoId, VoterAddress = voter
+                }
+            });
+            return response.Data?[0] ?? new IndexerDAOVoterRecord();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetDaoVoterRecordAsyncException chainId={chainId}, daoId={daoId}, voter={voter}", chainId, daoId, voter);
+        }
+        return new IndexerDAOVoterRecord();
+    }
+
+    private static async Task<List<T>> GetAllIndex<T>(Func<QueryContainerDescriptor<T>, QueryContainer> filter, 
+        INESTReaderRepository<T, string> repository) 
+        where T : AbstractEntity<string>, IIndexBuild, new()
+    {
+        var res = new List<T>();
+        List<T> list;
+        var skipCount = 0;
+        
+        do
+        {
+            list = (await repository.GetListAsync(filterFunc: filter, skip: skipCount, limit: 5000)).Item2;
+            var count = list.Count;
+            res.AddRange(list);
+            if (list.IsNullOrEmpty() || count < 5000)
+            {
+                break;
+            }
+            skipCount += count;
+        } while (!list.IsNullOrEmpty());
+
+        return res;
     }
 }

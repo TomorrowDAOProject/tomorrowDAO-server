@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
-using Google.Api;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.DAO.Dtos;
@@ -21,16 +18,14 @@ using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
 using Newtonsoft.Json;
-using Nito.AsyncEx;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
-using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.User.Provider;
+using TomorrowDAOServer.Vote;
 using Volo.Abp.Users;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
 
@@ -315,58 +310,33 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private async Task<MyProposalDto> QueryProposalMyInfoAsync(QueryMyProposalInput input)
     {
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
-        if (proposalIndex == null)
+        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
+        if (proposalIndex == null || daoIndex == null)
         {
             return new MyProposalDto { ChainId = input.ChainId };
         }
 
-        var myProposalDto = _objectMapper.Map<ProposalIndex, MyProposalDto>(proposalIndex);
-        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
-            { ChainId = input.ChainId, DAOId = proposalIndex.DAOId });
-        var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
-        var voteRecords = await _voteProvider.GetLimitVoteRecordAsync(new GetLimitVoteRecordInput
+        var voteRecords = await _voteProvider.GetByVotingItemIdsAsync(input.ChainId, new List<string>{input.ProposalId});
+        var voted = !voteRecords.IsNullOrEmpty();
+        var canVote = await CanVote(daoIndex, proposalIndex, input.Address, voted);
+        if (daoIndex.GovernanceToken.IsNullOrEmpty())
         {
-            ChainId = input.ChainId, VotingItemId = input.ProposalId, Voter = input.Address, Limit = 1
-        });
+            return new MyProposalDto { ChainId = input.ChainId,  CanVote = canVote, VotesAmountUniqueVote = canVote ? 0 : 1 };
+        }
 
+        var myProposalDto = new MyProposalDto { ChainId = input.ChainId, CanVote = canVote }; 
+        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
         myProposalDto.Symbol = tokenInfo.Symbol;
         myProposalDto.Decimal = tokenInfo.Decimals;
-        if (voteRecords.IsNullOrEmpty())
-        {
-            myProposalDto.CanVote = await CanVote(daoIndex, proposalIndex, input.Address);
-            return myProposalDto;
-        }
-
-        if (_voteMechanisms.IsNullOrEmpty())
-        {
-            _voteMechanisms =
-                (await _voteProvider.GetVoteSchemeAsync(new GetVoteSchemeInput { ChainId = input.ChainId }))
-                .ToDictionary(x => x.VoteSchemeId, x => x.VoteMechanism);
-        }
-
-        if (!_voteMechanisms.TryGetValue(proposalIndex.VoteSchemeId, out var voteMechanism))
+        if (!voted)
         {
             return myProposalDto;
         }
 
         var voteRecord = voteRecords[0];
-        myProposalDto.CanVote = false;
-        if (VoteMechanism.UNIQUE_VOTE == voteMechanism)
-        {
-            myProposalDto.votesAmountUniqueVote = 1;
-            return myProposalDto;
-        }
-
-        myProposalDto.StakeAmount = voteRecord.Amount;
-        myProposalDto.votesAmountTokenBallot = voteRecord.Amount;
-        var withdrawVotingItemIdLis = await GetWithdrawVotingItemIdLis(input.ChainId, input.DAOId, input.Address);
-        if (!CanWithdraw(proposalIndex.ActiveEndTime, withdrawVotingItemIdLis, input.ProposalId))
-        {
-            return myProposalDto;
-        }
-
-        myProposalDto.AvailableUnStakeAmount = voteRecord.Amount;
+        myProposalDto.AvailableUnStakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
+        myProposalDto.StakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
+        myProposalDto.VotesAmountTokenBallot = voteRecord.Amount;
         myProposalDto.WithdrawList = new List<WithdrawDto>
         {
             new() { ProposalIdList = new List<string> { input.ProposalId }, WithdrawAmount = voteRecord.Amount }
@@ -376,60 +346,40 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     private async Task<MyProposalDto> QueryDaoMyInfoAsync(QueryMyProposalInput input)
     {
-        var myProposalDto = new MyProposalDto { ChainId = input.ChainId };
-        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
-            { ChainId = input.ChainId, DAOId = input.DAOId });
-        var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
-        myProposalDto.Symbol = tokenInfo.Symbol;
-        myProposalDto.Decimal = tokenInfo.Decimals;
-        var voteRecords = await _voteProvider.GetAllVoteRecordAsync(
-            new GetAllVoteRecordInput { ChainId = input.ChainId, DAOId = input.DAOId, Voter = input.Address });
-        if (voteRecords.IsNullOrEmpty())
+        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
+        if (daoIndex == null)
         {
-            return myProposalDto;
+            return new MyProposalDto { ChainId = input.ChainId };
         }
 
+        var daoVoterRecord = await _voteProvider.GetDaoVoterRecordAsync(input.ChainId, input.DAOId, input.Address);
+        if (daoIndex.GovernanceToken.IsNullOrEmpty())
+        {
+            return new MyProposalDto { ChainId = input.ChainId, VotesAmountUniqueVote = daoVoterRecord.Count };
+        }
+
+        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
+        var nonWithdrawVoteRecords = await _voteProvider.GetNonWithdrawVoteRecordAsync(input.ChainId, input.DAOId, input.Address);
+        var canWithdrawVoteRecords = nonWithdrawVoteRecords.Where(x => DateTime.Now > x.EndTime).ToList();
         var withdrawList = new List<WithdrawDto>();
-        var proposalIdList = new List<string>();
-        var withdrawAmount = 0L;
-        var withdrawVotingItemIdLis = await GetWithdrawVotingItemIdLis(input.ChainId, input.DAOId, input.Address);
-
-        myProposalDto.votesAmountUniqueVote =
-            voteRecords.Count(voteRecord => voteRecord.VoteMechanism == VoteMechanism.UNIQUE_VOTE);
-        foreach (var voteRecord in voteRecords.Where(voteRecord =>
-                     voteRecord.VoteMechanism == VoteMechanism.TOKEN_BALLOT))
-        {
-            myProposalDto.votesAmountTokenBallot += voteRecord.Amount;
-            myProposalDto.StakeAmount += voteRecord.Amount;
-            if (!CanWithdraw(voteRecord.EndTime, withdrawVotingItemIdLis, voteRecord.VotingItemId))
-            {
-                continue;
-            }
-
-            myProposalDto.AvailableUnStakeAmount += voteRecord.Amount;
-            if (ProposalOnceWithdrawMax == proposalIdList.Count)
-            {
-                withdrawList.Add(new WithdrawDto
-                    { ProposalIdList = new List<string>(proposalIdList), WithdrawAmount = withdrawAmount });
-                proposalIdList = new List<string>();
-                withdrawAmount = 0L;
-            }
-            else
-            {
-                proposalIdList.Add(voteRecord.VotingItemId);
-                withdrawAmount += voteRecord.Amount;
-            }
-        }
-
-        if (!proposalIdList.IsNullOrEmpty())
-        {
+        for (var i = 0; i < canWithdrawVoteRecords.Count; i += ProposalOnceWithdrawMax)  
+        {  
+            var group = canWithdrawVoteRecords.GetRange(i, Math.Min(ProposalOnceWithdrawMax, canWithdrawVoteRecords.Count - i));
             withdrawList.Add(new WithdrawDto
-                { ProposalIdList = new List<string>(proposalIdList), WithdrawAmount = withdrawAmount });
+            {
+                ProposalIdList = group.Select(x => x.VotingItemId).ToList(),
+                WithdrawAmount = group.Sum(x => x.Amount)
+            });  
         }
 
-        myProposalDto.WithdrawList = withdrawList;
-        return myProposalDto;
+        return new MyProposalDto
+        {
+            ChainId = input.ChainId, Symbol = tokenInfo.Symbol, Decimal = tokenInfo.Decimals,
+            StakeAmount = nonWithdrawVoteRecords.Sum(x => x.Amount),
+            AvailableUnStakeAmount = canWithdrawVoteRecords.Sum(x => x.Amount),
+            VotesAmountTokenBallot = daoVoterRecord.Amount,
+            WithdrawList = withdrawList,
+        };
     }
 
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
