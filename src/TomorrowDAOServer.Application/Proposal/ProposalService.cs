@@ -307,7 +307,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             : await QueryProposalMyInfoAsync(input);
     }
 
-    private async Task<MyProposalDto> QueryProposalMyInfoAsync(QueryMyProposalInput input)
+    public async Task<MyProposalDto> QueryProposalMyInfoAsync(QueryMyProposalInput input)
     {
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
         var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
@@ -344,7 +344,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return myProposalDto;
     }
 
-    private async Task<MyProposalDto> QueryDaoMyInfoAsync(QueryMyProposalInput input)
+    public async Task<MyProposalDto> QueryDaoMyInfoAsync(QueryMyProposalInput input)
     {
         var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
         if (daoIndex == null)

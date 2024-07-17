@@ -23,7 +23,9 @@ using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
 using TomorrowDAOServer.Vote.Provider;
+using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Users;
 using Xunit;
 
 namespace TomorrowDAOServer.Proposal;
@@ -43,6 +45,8 @@ public class ProposalServiceTest
     private readonly IUserProvider _userProvider;
     private readonly IElectionProvider _electionProvider;
     private readonly ProposalService _service;
+    private readonly ICurrentUser _currentUser;
+    private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
 
     public ProposalServiceTest()
     {
@@ -61,6 +65,9 @@ public class ProposalServiceTest
         _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, _explorerProvider, 
             _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
             _logger, _userProvider, _electionProvider);
+        
+        _currentUser = Substitute.For<ICurrentUser>();
+        _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
     }
 
     [Fact]
@@ -90,5 +97,30 @@ public class ProposalServiceTest
             .Returns(new Dictionary<string, IndexerVoteSchemeInfo>());
         var result = await _service.QueryProposalListAsync(new QueryProposalListInput { ChainId = "AELF", DaoId = "DaoId" });
         result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async void QueryDaoMyInfoAsync_Test()
+    {
+        // dao is null
+        var myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBeNull();
+        
+        // multi sig dao
+        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
+            .Returns(new DAOIndex());
+        _voteProvider.GetDaoVoterRecordAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new IndexerDAOVoterRecord());
+        myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBeNull();
+        myInfo.VotesAmountUniqueVote.ShouldBe(0);
     }
 }
