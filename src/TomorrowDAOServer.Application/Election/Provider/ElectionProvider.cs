@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
+using Nest;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
@@ -27,6 +29,12 @@ public interface IElectionProvider
     Task<ElectionPageResultDto<ElectionVotingItemDto>> GetVotingItemAsync(GetVotingItemInput input);
 
     Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId);
+
+    Task<List<HighCouncilManagedDaoIndex>> GetHighCouncilManagedDaoIndexAsync(
+        GetHighCouncilMemberManagedDaoInput input);
+
+    Task SaveOrUpdateHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data);
+    Task DeleteHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data);
 }
 
 public class ElectionProvider : IElectionProvider, ISingletonDependency
@@ -34,13 +42,16 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
     private readonly IGraphQlHelper _graphQlHelper;
     private readonly ILogger<ElectionProvider> _logger;
     private readonly IGraphQLProvider _graphQlProvider;
+    private readonly INESTRepository<HighCouncilManagedDaoIndex, string> _highCouncilManagedDaoRepository;
 
     public ElectionProvider(IGraphQlHelper graphQlHelper, ILogger<ElectionProvider> logger,
-        IGraphQLProvider graphQlProvider)
+        IGraphQLProvider graphQlProvider,
+        INESTRepository<HighCouncilManagedDaoIndex, string> highCouncilManagedDaoRepository)
     {
         _graphQlHelper = graphQlHelper;
         _logger = logger;
         _graphQlProvider = graphQlProvider;
+        _highCouncilManagedDaoRepository = highCouncilManagedDaoRepository;
     }
 
     [Obsolete]
@@ -200,5 +211,48 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
         return await _graphQlProvider.GetHighCouncilMembersAsync(chainId, daoId);
+    }
+
+    public async Task<List<HighCouncilManagedDaoIndex>> GetHighCouncilManagedDaoIndexAsync(
+        GetHighCouncilMemberManagedDaoInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<HighCouncilManagedDaoIndex>, QueryContainer>>();
+
+        if (!input.ChainId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.ChainId).Value(input.ChainId)));
+        }
+
+        if (!input.DaoId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.DaoId).Value(input.DaoId)));
+        }
+
+        if (!input.MemberAddress.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.MemberAddress).Value(input.MemberAddress)));
+        }
+
+
+        QueryContainer Filter(QueryContainerDescriptor<HighCouncilManagedDaoIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
+        var result =
+            await _highCouncilManagedDaoRepository.GetListAsync(Filter, skip: input.SkipCount,
+                limit: input.MaxResultCount);
+        return result?.Item2 ?? new List<HighCouncilManagedDaoIndex>();
+    }
+
+    public async Task SaveOrUpdateHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data)
+    {
+        await _highCouncilManagedDaoRepository.BulkAddOrUpdateAsync(data);
+    }
+
+    public async Task DeleteHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data)
+    {
+        await _highCouncilManagedDaoRepository.BulkDeleteAsync(data);
     }
 }
