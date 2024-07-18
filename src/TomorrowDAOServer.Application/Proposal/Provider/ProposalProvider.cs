@@ -109,32 +109,26 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
     public async Task<ProposalIndex> GetProposalByIdAsync(string chainId, string proposalId)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(f => f.ProposalId).Value(proposalId))
+        };
 
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.ChainId).Value(chainId)));
-
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.ProposalId).Value(proposalId)));
-
-        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) =>
-            f.Bool(b => b.Must(mustQuery));
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _proposalIndexRepository.GetAsync(Filter);
     }
 
     public async Task<List<ProposalIndex>> GetProposalByIdsAsync(string chainId, List<string> proposalIds)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)),
+            q => q.Terms(i => i.Field(f => f.ProposalId).Terms(proposalIds))
+        };
 
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.ChainId).Value(chainId)));
-
-        mustQuery.Add(q => q.Terms(i =>
-            i.Field(f => f.ProposalId).Terms(proposalIds)));
-
-        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) =>
-            f.Bool(b => b.Must(mustQuery));
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return (await _proposalIndexRepository.GetListAsync(Filter)).Item2;
     }
@@ -147,27 +141,24 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             throw new UserFriendlyException("");
         }
 
-        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
-
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.Proposer).Value(request.Proposer)));
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.Proposer).Value(request.Proposer))
+        };
 
         if (!request.ChainId.IsNullOrWhiteSpace())
         {
-            mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.ChainId).Value(request.ChainId)));
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.ChainId).Value(request.ChainId)));
         }
 
         if (!request.DaoId.IsNullOrWhiteSpace())
         {
-            mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.DAOId).Value(request.DaoId)));
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.DAOId).Value(request.DaoId)));
         }
 
         if (request.ProposalStage != null)
         {
-            mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.ProposalStage).Value(request.ProposalStage)));
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.ProposalStage).Value(request.ProposalStage)));
         }
 
         // if (request.ProposalStatus != null)

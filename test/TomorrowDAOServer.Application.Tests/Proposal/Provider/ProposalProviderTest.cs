@@ -35,6 +35,10 @@ public sealed class ProposalProviderTest
             .Returns(new IndexerProposalSync());
         var result = await _provider.GetSyncProposalDataAsync(0, "AELF", 0, 0, 100);
         result.ShouldNotBeNull();
+        
+        _graphQlHelper.QueryAsync<IndexerProposalSync>(Arg.Any<GraphQLRequest>())
+            .Returns(new IndexerProposalSync{DataList = new List<IndexerProposal>()});
+        result.ShouldNotBeNull();
     }
 
     [Fact]
