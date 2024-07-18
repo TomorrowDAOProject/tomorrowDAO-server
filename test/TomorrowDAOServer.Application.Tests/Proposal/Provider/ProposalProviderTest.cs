@@ -56,6 +56,13 @@ public sealed class ProposalProviderTest
             ProposalType = ProposalType.Advisory, ProposalStatus = ProposalStatus.Abstained
         });
         result.ShouldNotBeNull();
+        
+        result = await _provider.GetProposalListAsync(new QueryProposalListInput
+        {
+            ChainId = "AELF", DaoId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization,
+            ProposalType = ProposalType.Advisory, ProposalStatus = ProposalStatus.Abstained, Content = "s"
+        });
+        result.ShouldNotBeNull();
     }
 
     [Fact]
