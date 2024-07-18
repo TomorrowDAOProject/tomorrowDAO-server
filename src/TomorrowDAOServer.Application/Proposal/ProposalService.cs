@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
-using Google.Api;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.DAO.Dtos;
@@ -21,16 +18,14 @@ using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
 using Newtonsoft.Json;
-using Nito.AsyncEx;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
-using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.User.Provider;
+using TomorrowDAOServer.Vote;
 using Volo.Abp.Users;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
 
@@ -80,17 +75,17 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
-        var (total, proposalList) = await GetProposalListFromMultiSourceAsync(input);
+        var (total, proposalList) = await GetProposalListAsync(input);
         if (proposalList.IsNullOrEmpty())
         {
             return new ProposalPagedResultDto<ProposalDto>();
         }
 
         var governanceMechanism = proposalList[0].GovernanceMechanism;
-        var councilMemberCountTask = GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId, governanceMechanism);
+        var councilMemberCountTask =
+            GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId, governanceMechanism);
         //query proposal vote infos
-        var proposalIds = proposalList.FindAll(item => item.ProposalSource == ProposalSourceEnum.TMRWDAO)
-            .Select(item => item.ProposalId).ToList();
+        var proposalIds = proposalList.Select(item => item.ProposalId).ToList();
         var voteItemsMap = await _voteProvider.GetVoteItemsAsync(input.ChainId, proposalIds);
         var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
         {
@@ -105,7 +100,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             await _voteProvider.GetVoteSchemeDicAsync(new GetVoteSchemeInput { ChainId = input.ChainId });
         await councilMemberCountTask;
         var councilMemberCount = councilMemberCountTask.Result;
-        foreach (var proposal in proposalList.Where(proposal => proposal.ProposalSource == ProposalSourceEnum.TMRWDAO))
+        foreach (var proposal in proposalList)
         {
             if (voteItemsMap.TryGetValue(proposal.ProposalId, out var voteInfo))
             {
@@ -135,35 +130,19 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             proposal.Symbol = symbol;
             proposal.Decimals = symbolDecimal;
         }
-
-        foreach (var proposal in proposalList.Where(proposal =>
-                     proposal.ProposalSource == ProposalSourceEnum.ONCHAIN_PARLIAMENT))
-        {
-            await CalculateRealBpVoteCountAsync(proposal, councilMemberCount);
-            proposal.Symbol = symbol;
-            proposal.Decimals = symbolDecimal;
-        }
-
         var proposalPagedResultDto = new ProposalPagedResultDto<ProposalDto>
         {
             Items = proposalList,
             TotalCount = total,
         };
-        if (input.IsNetworkDao)
-        {
-            proposalPagedResultDto.PreviousPageInfo = input.PageInfo;
-            proposalPagedResultDto.NextPageInfo = CalcNewPageInfo(proposalList, input.PageInfo);
-        }
-
+        
         return proposalPagedResultDto;
     }
 
     private static Task CalculateHcRealVoterCountAsync(ProposalDto proposal, int councilMemberCount)
     {
-        
-        if ((proposal.GovernanceMechanism == GovernanceMechanism.HighCouncil.ToString() || proposal.GovernanceMechanism == GovernanceMechanism.Organization.ToString())
-            && proposal.ProposalSource != ProposalSourceEnum.ONCHAIN_REFERENDUM
-            && proposal.ProposalSource != ProposalSourceEnum.ONCHAIN_ASSOCIATION)
+        if (proposal.GovernanceMechanism == GovernanceMechanism.HighCouncil.ToString() ||
+             proposal.GovernanceMechanism == GovernanceMechanism.Organization.ToString())
         {
             proposal.MinimalRequiredThreshold =
                 Convert.ToInt64(Math.Ceiling((decimal)proposal.MinimalRequiredThreshold /
@@ -173,7 +152,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return Task.CompletedTask;
     }
 
-    private async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId, string governanceMechanism)
+    private async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId,
+        string governanceMechanism)
     {
         var count = 0;
         try
@@ -231,232 +211,19 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return Task.CompletedTask;
     }
 
-    private static Task CalculateRealBpVoteCountAsync(ProposalDto proposal, int bpCont)
-    {
-        if (proposal.ProposalSource != ProposalSourceEnum.ONCHAIN_PARLIAMENT)
-        {
-            return Task.CompletedTask;
-        }
-
-        var pow = 10000;
-        proposal.MinimalVoteThreshold =
-            Convert.ToInt64(Math.Round((decimal)proposal.MinimalVoteThreshold / pow * bpCont,
-                MidpointRounding.AwayFromZero));
-        proposal.MinimalApproveThreshold =
-            Convert.ToInt64(Math.Round((decimal)proposal.MinimalApproveThreshold / pow * bpCont,
-                MidpointRounding.AwayFromZero));
-        proposal.MaximalRejectionThreshold = Convert.ToInt64(
-            Math.Round((decimal)proposal.MaximalRejectionThreshold / pow * bpCont, MidpointRounding.AwayFromZero));
-        proposal.MaximalAbstentionThreshold = Convert.ToInt64(
-            Math.Round((decimal)proposal.MaximalAbstentionThreshold / pow * bpCont, MidpointRounding.AwayFromZero));
-        proposal.MinimalVoteThreshold = Convert.ToInt64(Math.Round((decimal)proposal.MinimalVoteThreshold / pow,
-            MidpointRounding.AwayFromZero));
-        proposal.MinimalRequiredThreshold = Convert.ToInt64(Math.Round((decimal)proposal.MinimalRequiredThreshold / pow,
-            MidpointRounding.AwayFromZero));
-        return Task.CompletedTask;
-    }
-
-
-    private async Task<Tuple<long, List<ProposalDto>>> GetProposalListFromMultiSourceAsync(QueryProposalListInput input)
-    {
-        if (!input.IsNetworkDao || (input.ProposalType != null && input.ProposalType != ProposalType.OnChain))
-        {
-            return await GetProposalListAsync(input, ProposalSourceEnum.TMRWDAO);
-        }
-
-        var tasks = new List<Task<Tuple<long, List<ProposalDto>>>>();
-        tasks.Add(GetProposalListAsync(input, ProposalSourceEnum.TMRWDAO));
-        tasks.Add(GetProposalListAsync(input, ProposalSourceEnum.ONCHAIN_PARLIAMENT));
-        tasks.Add(GetProposalListAsync(input, ProposalSourceEnum.ONCHAIN_REFERENDUM));
-        tasks.Add(GetProposalListAsync(input, ProposalSourceEnum.ONCHAIN_ASSOCIATION));
-
-        await tasks.WhenAll();
-        var proposalDtoList = new List<ProposalDto>();
-        long total = 0;
-        foreach (var task in tasks)
-        {
-            total += task.Result.Item1;
-            if (!task.Result.Item2.IsNullOrEmpty())
-            {
-                proposalDtoList.AddRange(task.Result.Item2);
-            }
-        }
-
-        var list = proposalDtoList.OrderByDescending(item => item.DeployTime).Take(input.MaxResultCount).ToList();
-        return new Tuple<long, List<ProposalDto>>(total, list);
-    }
-
-    private static PageInfo CalcNewPageInfo(List<ProposalDto> proposalList, [CanBeNull] PageInfo pageInfo)
-    {
-        var newPageInfo = new PageInfo
-        {
-            ProposalSkipCount = pageInfo?.ProposalSkipCount == null
-                ? new Dictionary<ProposalSourceEnum, int>()
-                : new Dictionary<ProposalSourceEnum, int>(pageInfo.ProposalSkipCount)
-        };
-        var skipCount = newPageInfo.ProposalSkipCount;
-        foreach (var proposalDto in proposalList)
-        {
-            var count = skipCount.GetOrDefault(proposalDto.ProposalSource);
-            count = count == 0 ? 1 : count;
-            skipCount[proposalDto.ProposalSource] = count + 1;
-        }
-
-        return newPageInfo;
-    }
-
-    private async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input,
-        ProposalSourceEnum proposalSource)
+    private async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
     {
         try
         {
-            var skipCount = 0;
-            if (input != null && input.PageInfo != null && !input.PageInfo.ProposalSkipCount.IsNullOrEmpty() &&
-                input.PageInfo.ProposalSkipCount.ContainsKey(proposalSource))
-            {
-                skipCount = input.PageInfo.ProposalSkipCount[proposalSource];
-            }
-
-            if (proposalSource == ProposalSourceEnum.TMRWDAO)
-            {
-                //if Network DAO, use memory paging parameters; otherwise, use the input.SkipCount.
-                if (input.IsNetworkDao)
-                {
-                    input.SkipCount = skipCount;
-                }
-
-                var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input);
-                var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
-                return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
-            }
-
-            // can not find determinant status to map between network dao and tmr dao
-            // so return empty list in
-            var proposalType = _explorerProvider.GetProposalType(proposalSource);
-            var proposalStatus = _explorerProvider.GetProposalStatus(input.ProposalStatus, null);
-            if (string.IsNullOrEmpty(proposalStatus))
-            {
-                return new Tuple<long, List<ProposalDto>>(0, new List<ProposalDto>());
-            }
-
-            skipCount = skipCount == 0 ? 1 : skipCount;
-            var pageSize = skipCount / input.MaxResultCount + 1;
-            var remainder = skipCount % input.MaxResultCount - 1;
-            var explorerResponse = await _explorerProvider.GetProposalPagerAsync(CommonConstant.MainChainId,
-                new ExplorerProposalListRequest
-                {
-                    PageSize = input.MaxResultCount,
-                    PageNum = pageSize,
-                    ProposalType = proposalType.ToString(),
-                    Status = proposalStatus,
-                    IsContract = 0,
-                    Address = null,
-                    Search = input.Content
-                });
-            if (remainder > 0 && !explorerResponse.List.IsNullOrEmpty())
-            {
-                var hasNextPage = explorerResponse.List.Count == input.MaxResultCount;
-                explorerResponse.List.RemoveRange(0, remainder);
-                if (hasNextPage)
-                {
-                    var nextPageExplorerResponse = await _explorerProvider.GetProposalPagerAsync(
-                        CommonConstant.MainChainId,
-                        new ExplorerProposalListRequest
-                        {
-                            PageSize = input.MaxResultCount,
-                            PageNum = pageSize,
-                            ProposalType = proposalType.ToString(),
-                            Status = proposalStatus,
-                            IsContract = 0,
-                            Address = null,
-                            Search = input.Content
-                        });
-                    if (!nextPageExplorerResponse.List.IsNullOrEmpty())
-                    {
-                        explorerResponse.List.AddRange(nextPageExplorerResponse.List);
-                    }
-                }
-            }
-
-            var proposalList = ConvertToProposal(explorerResponse.List, input, proposalSource);
-            return new Tuple<long, List<ProposalDto>>(explorerResponse.Total, proposalList);
+            var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input);
+            var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
+            return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetProposalListAsync from Source:{source} error, input={daoId}", proposalSource,
-                JsonConvert.SerializeObject(input));
+            _logger.LogError(e, "GetProposalListAsync error, input={daoId}", JsonConvert.SerializeObject(input));
             return new Tuple<long, List<ProposalDto>>(0, new List<ProposalDto>());
         }
-    }
-
-    private static List<ProposalDto> ConvertToProposal(List<ExplorerProposalResult> explorerProposalList,
-        QueryProposalListInput input, ProposalSourceEnum proposalSource)
-    {
-        if (explorerProposalList.IsNullOrEmpty())
-        {
-            return new List<ProposalDto>();
-        }
-
-        var proposalIndexList = new List<ProposalDto>(explorerProposalList.Count);
-        proposalIndexList.AddRange(explorerProposalList.Select(explorerProposal =>
-        {
-            long.TryParse(explorerProposal.OrganizationInfo?.ReleaseThreshold?.MinimalVoteThreshold,
-                out long minimalRequiredThreshold);
-            long.TryParse(explorerProposal.OrganizationInfo?.ReleaseThreshold?.MinimalVoteThreshold,
-                out long minimalVoteThreshold);
-            long.TryParse(explorerProposal.OrganizationInfo?.ReleaseThreshold?.MinimalApprovalThreshold,
-                out long minimalApproveThreshold);
-            long.TryParse(explorerProposal.OrganizationInfo?.ReleaseThreshold?.MinimalApprovalThreshold,
-                out long maximalRejectionThreshold);
-            long.TryParse(explorerProposal.OrganizationInfo?.ReleaseThreshold?.MinimalApprovalThreshold,
-                out long maximalAbstentionThreshold);
-            long.TryParse(explorerProposal.Approvals, out long approvals);
-            long.TryParse(explorerProposal.Abstentions, out long abstentions);
-            return new ProposalDto
-            {
-                ChainId = input.ChainId,
-                DAOId = input.DaoId,
-                ProposalId = explorerProposal.ProposalId,
-                ProposalTitle = explorerProposal.ProposalId,
-                ProposalDescription = null,
-                ForumUrl = string.Empty,
-                ProposalType = ProposalType.OnChain.ToString(),
-                ActiveStartTime = explorerProposal.CreateAt,
-                ActiveEndTime = default,
-                ExecuteStartTime = default,
-                ExecuteEndTime = explorerProposal.ExpiredTime,
-                //ProposalStatus = ProposalStatus.Empty,
-                //ProposalStage = ProposalStage.Default,
-                ProposalStatusForOnChain = explorerProposal.Status,
-                Proposer = explorerProposal.Proposer,
-                SchemeAddress = null,
-                Transaction = new ExecuteTransaction
-                {
-                    ToAddress = explorerProposal.ContractAddress,
-                    ContractMethodName = explorerProposal.ContractMethod,
-                },
-                VoteSchemeId = null,
-                VoteMechanismName = null,
-                VetoProposalId = null,
-                DeployTime = explorerProposal.CreateAt,
-                ExecuteTime = explorerProposal.ReleasedTime,
-                GovernanceMechanism = GovernanceMechanism.HighCouncil.ToString(),
-                MinimalRequiredThreshold = minimalRequiredThreshold,
-                MinimalVoteThreshold = minimalVoteThreshold,
-                MinimalApproveThreshold = minimalApproveThreshold,
-                MaximalRejectionThreshold = maximalRejectionThreshold,
-                MaximalAbstentionThreshold = maximalAbstentionThreshold,
-                //VoterCount = 0,
-                VotesAmount = approvals + explorerProposal.Rejections + abstentions,
-                ApprovedCount = approvals,
-                RejectionCount = explorerProposal.Rejections,
-                AbstentionCount = abstentions,
-                Decimals = DecimalString,
-                Symbol = Symbol,
-                ProposalSource = proposalSource,
-            };
-        }));
-        return proposalIndexList;
     }
 
     public async Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input)
@@ -481,7 +248,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         });
         proposalDetailDto.Alias = daoIndex.Alias;
         var councilMemberCountTask =
-            GetHighCouncilMemberCountAsync(daoIndex.IsNetworkDAO, input.ChainId, proposalDetailDto.DAOId, proposalIndex.GovernanceMechanism.ToString());
+            GetHighCouncilMemberCountAsync(daoIndex.IsNetworkDAO, input.ChainId, proposalDetailDto.DAOId,
+                proposalIndex.GovernanceMechanism.ToString());
         var tokenInfo =
             await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
         var symbol = tokenInfo.Symbol;
@@ -540,59 +308,36 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             : await QueryProposalMyInfoAsync(input);
     }
 
-    private async Task<MyProposalDto> QueryProposalMyInfoAsync(QueryMyProposalInput input)
+    public async Task<MyProposalDto> QueryProposalMyInfoAsync(QueryMyProposalInput input)
     {
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
-        if (proposalIndex == null)
+        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
+        if (proposalIndex == null || daoIndex == null)
         {
             return new MyProposalDto { ChainId = input.ChainId };
         }
 
-        var myProposalDto = _objectMapper.Map<ProposalIndex, MyProposalDto>(proposalIndex);
-        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
-            { ChainId = input.ChainId, DAOId = proposalIndex.DAOId });
-        var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
-        var voteRecords = await _voteProvider.GetLimitVoteRecordAsync(new GetLimitVoteRecordInput
+        var voteRecords = await _voteProvider.GetByVotingItemIdsAsync(input.ChainId, new List<string>{input.ProposalId});
+        var voted = !voteRecords.IsNullOrEmpty();
+        var canVote = await CanVote(daoIndex, proposalIndex, input.Address, voted);
+        if (daoIndex.GovernanceToken.IsNullOrEmpty())
         {
-            ChainId = input.ChainId, VotingItemId = input.ProposalId, Voter = input.Address, Limit = 1
-        });
+            return new MyProposalDto { ChainId = input.ChainId,  CanVote = canVote, VotesAmountUniqueVote = canVote ? 0 : 1 };
+        }
 
+        var myProposalDto = new MyProposalDto { ChainId = input.ChainId, CanVote = canVote }; 
+        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
         myProposalDto.Symbol = tokenInfo.Symbol;
         myProposalDto.Decimal = tokenInfo.Decimals;
-        if (voteRecords.IsNullOrEmpty())
+        if (!voted)
         {
-            myProposalDto.CanVote = await CanVote(daoIndex, proposalIndex, input.Address);
             return myProposalDto;
         }
 
-        if (_voteMechanisms.IsNullOrEmpty())
-        {
-            _voteMechanisms = (await _voteProvider.GetVoteSchemeAsync(new GetVoteSchemeInput { ChainId = input.ChainId }))
-                .ToDictionary(x => x.VoteSchemeId, x => x.VoteMechanism);
-        }
-        if (!_voteMechanisms.TryGetValue(proposalIndex.VoteSchemeId, out var voteMechanism))
-        {
-            return myProposalDto;
-        }
-        
         var voteRecord = voteRecords[0];
-        myProposalDto.CanVote = false;
-        if (VoteMechanism.UNIQUE_VOTE == voteMechanism)
-        {
-            myProposalDto.votesAmountUniqueVote = 1;
-            return myProposalDto;
-        }
-
-        myProposalDto.StakeAmount = voteRecord.Amount;
-        myProposalDto.votesAmountTokenBallot = voteRecord.Amount;
-        var withdrawVotingItemIdLis = await GetWithdrawVotingItemIdLis(input.ChainId, input.DAOId, input.Address);
-        if (!CanWithdraw(proposalIndex.ActiveEndTime, withdrawVotingItemIdLis, input.ProposalId))
-        {
-            return myProposalDto;
-        }
-
-        myProposalDto.AvailableUnStakeAmount = voteRecord.Amount;
+        myProposalDto.AvailableUnStakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
+        myProposalDto.StakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
+        myProposalDto.VotesAmountTokenBallot = voteRecord.Amount;
         myProposalDto.WithdrawList = new List<WithdrawDto>
         {
             new() { ProposalIdList = new List<string> { input.ProposalId }, WithdrawAmount = voteRecord.Amount }
@@ -600,69 +345,48 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return myProposalDto;
     }
 
-    private async Task<MyProposalDto> QueryDaoMyInfoAsync(QueryMyProposalInput input)
+    public async Task<MyProposalDto> QueryDaoMyInfoAsync(QueryMyProposalInput input)
     {
-        var myProposalDto = new MyProposalDto { ChainId = input.ChainId };
-        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
-            { ChainId = input.ChainId, DAOId = input.DAOId });
-        var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
-        myProposalDto.Symbol = tokenInfo.Symbol;
-        myProposalDto.Decimal = tokenInfo.Decimals;
-        var voteRecords = await _voteProvider.GetAllVoteRecordAsync(
-            new GetAllVoteRecordInput { ChainId = input.ChainId, DAOId = input.DAOId, Voter = input.Address });
-        if (voteRecords.IsNullOrEmpty())
+        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
+        if (daoIndex == null)
         {
-            return myProposalDto;
+            return new MyProposalDto { ChainId = input.ChainId };
         }
 
+        var daoVoterRecord = await _voteProvider.GetDaoVoterRecordAsync(input.ChainId, input.DAOId, input.Address);
+        if (daoIndex.GovernanceToken.IsNullOrEmpty())
+        {
+            return new MyProposalDto { ChainId = input.ChainId, VotesAmountUniqueVote = daoVoterRecord.Count };
+        }
+
+        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
+        var nonWithdrawVoteRecords = await _voteProvider.GetNonWithdrawVoteRecordAsync(input.ChainId, input.DAOId, input.Address);
+        var canWithdrawVoteRecords = nonWithdrawVoteRecords.Where(x => DateTime.Now > x.EndTime).ToList();
         var withdrawList = new List<WithdrawDto>();
-        var proposalIdList = new List<string>();
-        var withdrawAmount = 0L;
-        var withdrawVotingItemIdLis = await GetWithdrawVotingItemIdLis(input.ChainId, input.DAOId, input.Address);
-
-        myProposalDto.votesAmountUniqueVote =
-            voteRecords.Count(voteRecord => voteRecord.VoteMechanism == VoteMechanism.UNIQUE_VOTE);
-        foreach (var voteRecord in voteRecords.Where(voteRecord =>
-                     voteRecord.VoteMechanism == VoteMechanism.TOKEN_BALLOT))
-        {
-            myProposalDto.votesAmountTokenBallot += voteRecord.Amount;
-            myProposalDto.StakeAmount += voteRecord.Amount;
-            if (!CanWithdraw(voteRecord.EndTime, withdrawVotingItemIdLis, voteRecord.VotingItemId))
-            {
-                continue;
-            }
-
-            myProposalDto.AvailableUnStakeAmount += voteRecord.Amount;
-            if (ProposalOnceWithdrawMax == proposalIdList.Count)
-            {
-                withdrawList.Add(new WithdrawDto
-                    { ProposalIdList = new List<string>(proposalIdList), WithdrawAmount = withdrawAmount });
-                proposalIdList = new List<string>();
-                withdrawAmount = 0L;
-            }
-            else
-            {
-                proposalIdList.Add(voteRecord.VotingItemId);
-                withdrawAmount += voteRecord.Amount;
-            }
-        }
-
-        if (!proposalIdList.IsNullOrEmpty())
-        {
+        for (var i = 0; i < canWithdrawVoteRecords.Count; i += ProposalOnceWithdrawMax)  
+        {  
+            var group = canWithdrawVoteRecords.GetRange(i, Math.Min(ProposalOnceWithdrawMax, canWithdrawVoteRecords.Count - i));
             withdrawList.Add(new WithdrawDto
-                { ProposalIdList = new List<string>(proposalIdList), WithdrawAmount = withdrawAmount });
+            {
+                ProposalIdList = group.Select(x => x.VotingItemId).ToList(),
+                WithdrawAmount = group.Sum(x => x.Amount)
+            });  
         }
 
-        myProposalDto.WithdrawList = withdrawList;
-        return myProposalDto;
+        return new MyProposalDto
+        {
+            ChainId = input.ChainId, Symbol = tokenInfo.Symbol, Decimal = tokenInfo.Decimals,
+            StakeAmount = nonWithdrawVoteRecords.Sum(x => x.Amount),
+            AvailableUnStakeAmount = canWithdrawVoteRecords.Sum(x => x.Amount),
+            VotesAmountTokenBallot = daoVoterRecord.Amount,
+            WithdrawList = withdrawList,
+        };
     }
 
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
-        // test env easy to test
-        // input.Address = await GetAndValidateUserAddress(input.ChainId);
-        
+        input.Address = await GetAndValidateUserAddress(input.ChainId);
+
         var voteHistoryDto = new VoteHistoryDto { ChainId = input.ChainId };
         var voteRecords = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
         {
@@ -738,7 +462,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
                 return true;
             case GovernanceMechanism.Organization:
             {
-                var member = await _DAOProvider.GetMemberAsync(new GetMemberInput{DAOId = daoIndex.Id, ChainId = daoIndex.ChainId, Address = address});
+                var member = await _DAOProvider.GetMemberAsync(new GetMemberInput
+                    { DAOId = daoIndex.Id, ChainId = daoIndex.ChainId, Address = address });
                 return !string.IsNullOrEmpty(member.Address);
             }
         }
@@ -747,7 +472,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         {
             return (await _graphQlProvider.GetBPAsync(daoIndex.ChainId)).Contains(address);
         }
-        
+
         var highCouncilMembers = await _electionProvider.GetHighCouncilMembersAsync(daoIndex.ChainId, daoIndex.Id);
         return highCouncilMembers.Contains(address);
     }
@@ -769,7 +494,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
         return withdrawVotingItemIdList;
     }
-    
+
     private async Task<string> GetAndValidateUserAddress(string chainId)
     {
         var userId = CurrentUser.GetId();

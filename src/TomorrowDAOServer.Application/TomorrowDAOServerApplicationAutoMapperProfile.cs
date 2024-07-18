@@ -18,6 +18,7 @@ using TomorrowDAOServer.Token;
 using TomorrowDAOServer.Token.Index;
 using TomorrowDAOServer.Treasury.Dto;
 using TomorrowDAOServer.User.Dtos;
+using TomorrowDAOServer.Vote;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
 
@@ -75,6 +76,10 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<ProposalIndex, MyProposalDto>();
         CreateMap<IndexerVote, ProposalDto>();
         CreateMap<IndexerVote, ProposalDetailDto>();
+        CreateMap<IndexerVoteRecord, VoteRecordIndex>()
+            .ForMember(des => des.IsWithdraw, opt
+                => opt.MapFrom(source => false))
+            ;
         CreateMap<IndexerVoteRecord, VoteRecordDto>()
             .ForMember(des => des.Option, opt
                 => opt.MapFrom(source => source.Option.ToString()))
