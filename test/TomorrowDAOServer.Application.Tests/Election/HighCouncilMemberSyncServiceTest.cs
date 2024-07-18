@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Governance;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,7 +20,8 @@ public partial class HighCouncilMemberSyncServiceTest : TomorrowDaoServerApplica
     protected override void AfterAddApplication(IServiceCollection services)
     {
         base.AfterAddApplication(services);
-        services.AddSingleton(MockGraphQlHelper_QueryElectionDto());
+        services.AddSingleton(GraphQLClientMock.MockElectionCandidateElectedDto());
+        services.AddSingleton(GraphQLClientMock.MockElectionHighCouncilConfigDto());
         services.AddSingleton(MockTransactionService());
         services.AddSingleton(MockHighCouncilMembersGrain());
         services.AddSingleton(MockGraphQLProvider());
