@@ -1,194 +1,163 @@
-// using System;
-// using System.Collections.Generic;
-// using System.Linq;
-// using System.Linq.Expressions;
-// using System.Threading.Tasks;
-// using AElf.Indexing.Elasticsearch;
-// using GraphQL;
-// using Microsoft.Extensions.DependencyInjection;
-// using Moq;
-// using Nest;
-// using Newtonsoft.Json;
-// using Shouldly;
-// using TomorrowDAOServer.Common.GraphQL;
-// using TomorrowDAOServer.Entities;
-// using TomorrowDAOServer.Enums;
-// using TomorrowDAOServer.Proposal.Dto;
-// using TomorrowDAOServer.Proposal.Index;
-// using Xunit;
-// using Xunit.Abstractions;
-//
-// namespace TomorrowDAOServer.Proposal.Provider;
-//
-// public sealed class ProposalProviderTest : TomorrowDAOServerApplicationTestBase
-// {
-//     private readonly IProposalProvider _proposalProvider;
-//
-//     public ProposalProviderTest(ITestOutputHelper output) : base(output)
-//     {
-//         _proposalProvider = GetRequiredService<ProposalProvider>();
-//     }
-//
-//     protected override void AfterAddApplication(IServiceCollection services)
-//     {
-//         services.AddSingleton(MockProposalRepository());
-//         services.AddSingleton(MockIGraphQlHelper());
-//     }
-//
-//     private IGraphQlHelper MockIGraphQlHelper()
-//     {
-//         var mock = new Mock<IGraphQlHelper>();
-//         
-//         mock
-//             .Setup(m => m.QueryAsync<IndexerProposalSync>(It.IsAny<GraphQLRequest>()))
-//             .ReturnsAsync(MockGetSyncProposalInfos);
-//         //TODO
-//         return mock.Object;
-//     }
-//     
-//     private static IndexerProposalSync MockGetSyncProposalInfos()
-//     {
-//         return new IndexerProposalSync
-//         {
-//             TotalRecordCount = 10,
-//             DataList = JsonConvert.DeserializeObject<List<IndexerProposal>>(ProposalListJson)
-//         };
-//     }
-//
-//     private INESTRepository<ProposalIndex, string> MockProposalRepository()
-//     {
-//         var mock = new Mock<INESTRepository<ProposalIndex, string>>();
-//
-//         // Mock the repository method
-//         mock.Setup(r => r.GetSortListAsync(
-//                 It.IsAny<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
-//                 It.IsAny<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
-//                 It.IsAny<Func<SortDescriptor<ProposalIndex>, IPromise<IList<ISort>>>>(),
-//                 It.IsAny<int>(),
-//                 It.IsAny<int>(),
-//                 It.IsAny<string>()))
-//             .ReturnsAsync(MockProposalList());
-//         
-//         mock.Setup(r => r.GetAsync(
-//                 It.IsAny<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
-//                 It.IsAny<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
-//                 It.IsAny<Expression<Func<ProposalIndex, object>>>(),
-//                 It.IsAny<SortOrder>(),
-//                 It.IsAny<string>()))!
-//             .ReturnsAsync(MockProposalList().Item2.Where(item => item.ChainId.Equals(ChainIdTDVV) && item.ProposalId1.Equals(ProposalId1))
-//                 .Select(item => item).FirstOrDefault);
-//
-//         mock.Setup(r => r.GetListAsync(
-//                 It.IsAny<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
-//                 It.IsAny<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
-//                 It.IsAny<Expression<Func<ProposalIndex, object>>>(),
-//                 It.IsAny<SortOrder>(),
-//                 It.IsAny<int>(),
-//                 It.IsAny<int>(),
-//                 It.IsAny<string>()))
-//             .ReturnsAsync(MockProposalList());
-//         
-//         mock.Setup(r => r.BulkAddOrUpdateAsync(
-//                 It.IsAny<List<ProposalIndex>>(),
-//                 It.IsAny<string>()))
-//             .Returns(Task.CompletedTask);
-//         
-//         return mock.Object;
-//     }
-//     
-//     [Fact]
-//     public async void GetSyncProposalDataAsync_Test()
-//     {
-//         // Arrange
-//         var skipCount = 0;
-//         var chainId = ChainIdTDVV;
-//         var startBlockHeight = 0;
-//         var endBlockHeight = 9999;
-//         
-//         // Act
-//         var result = await _proposalProvider.GetSyncProposalDataAsync(skipCount, chainId, startBlockHeight, endBlockHeight);
-//
-//         // Assert
-//         result.ShouldNotBeNull();
-//         result.Count.ShouldBe(2);
-//     }
-//     
-//     [Fact]
-//     public async void GetProposalListAsync_Test()
-//     {
-//         // Arrange
-//         var input = new QueryProposalListInput()
-//         {
-//             ChainId = ChainIdTDVV,
-//             DaoId = DAOId,
-//             GovernanceMechanism = GovernanceMechanism.Parliament,
-//             ProposalType = ProposalType.Governance,
-//             ProposalStatus = ProposalStatus.Active,
-//             Content = ProposalId1
-//         };
-//         // Act
-//         var result = await _proposalProvider.GetProposalListAsync(input);
-//
-//         // Assert
-//         result.ShouldNotBeNull();
-//         result.Item1.ShouldBe(10);
-//         result.Item2.ShouldNotBeNull();
-//         result.Item2.Count.ShouldBe(2);
-//     }
-//
-//     [Fact]
-//     public async void GetProposalByIdAsync_Test()
-//     {
-//         // Arrange
-//         var chainId = ChainIdTDVV;
-//         var proposalId = ProposalId1;
-//         // Act
-//         var result = await _proposalProvider.GetProposalByIdAsync(chainId, proposalId);
-//
-//         // Assert
-//         result.ShouldNotBeNull();
-//         result.ProposalId1.ShouldBe(proposalId);
-//     }
-//     
-//     [Fact]
-//     public async void GetProposalListByIds_Test()
-//     {
-//         // Arrange
-//         var chainId = ChainIdTDVV;
-//         var proposalId = new List<string>
-//         {
-//             ProposalId1
-//         };
-//         // Act
-//         var result = await _proposalProvider.GetProposalListByIds(chainId, proposalId);
-//
-//         // Assert
-//         result.ShouldNotBeNull();
-//         result.ShouldContainKey(ProposalId1);
-//      }
-//     
-//     [Fact]
-//     public async void BulkAddOrUpdateAsync_Test()
-//     {
-//         // Arrange
-//         var proposalIndices = MockProposalList().Item2;
-//         // Act
-//          await _proposalProvider.BulkAddOrUpdateAsync(proposalIndices);
-//     }
-//     
-//     [Fact]
-//     public async void GetExpiredProposalListAsync_Test()
-//     {
-//         // Arrange
-//         var statusList = new List<ProposalStatus>
-//         {
-//             ProposalStatus.Approved
-//         };
-//         
-//         // Act
-//         var result = await _proposalProvider.GetExpiredProposalListAsync(0, statusList);
-//         
-//         // Assert
-//         result.ShouldNotBeNull();
-//     }
-// }
+using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using AElf.Indexing.Elasticsearch;
+using GraphQL;
+using Nest;
+using NSubstitute;
+using Shouldly;
+using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Proposal.Dto;
+using TomorrowDAOServer.Proposal.Index;
+using Xunit;
+
+namespace TomorrowDAOServer.Proposal.Provider;
+
+public sealed class ProposalProviderTest 
+{
+    private readonly IGraphQlHelper _graphQlHelper;
+    private readonly INESTRepository<ProposalIndex, string> _proposalIndexRepository;
+    private readonly IProposalProvider _provider;
+
+    public ProposalProviderTest()
+    {
+        _graphQlHelper = Substitute.For<IGraphQlHelper>();;
+        _proposalIndexRepository = Substitute.For<INESTRepository<ProposalIndex, string>>();
+        _provider = new ProposalProvider(_graphQlHelper, _proposalIndexRepository);
+    }
+
+    [Fact]
+    public async void GetSyncProposalDataAsync_Test()
+    {
+        _graphQlHelper.QueryAsync<IndexerProposalSync>(Arg.Any<GraphQLRequest>())
+            .Returns(new IndexerProposalSync());
+        var result = await _provider.GetSyncProposalDataAsync(0, "AELF", 0, 0, 100);
+        result.ShouldNotBeNull();
+        
+        _graphQlHelper.QueryAsync<IndexerProposalSync>(Arg.Any<GraphQLRequest>())
+            .Returns(new IndexerProposalSync{DataList = new List<IndexerProposal>()});
+        result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async void GetProposalListAsync_Test()
+    {
+        _proposalIndexRepository.GetSortListAsync(
+                Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
+                Arg.Any<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
+                Arg.Any<Func<SortDescriptor<ProposalIndex>, IPromise<IList<ISort>>>>(),
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>())
+            .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() }));
+        var result = await _provider.GetProposalListAsync(new QueryProposalListInput
+        {
+            ChainId = "AELF", DaoId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization,
+            ProposalType = ProposalType.Advisory, ProposalStatus = ProposalStatus.Abstained
+        });
+        result.ShouldNotBeNull();
+        
+        result = await _provider.GetProposalListAsync(new QueryProposalListInput
+        {
+            ChainId = "AELF", DaoId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization,
+            ProposalType = ProposalType.Advisory, ProposalStatus = ProposalStatus.Abstained, Content = "s"
+        });
+        result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async void GetProposalByIdAsync_Test()
+    {
+        var result = await _provider.GetProposalByIdAsync("chainId", "proposalId");
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async void GetProposalByIdsAsync_Test()
+    {
+        _proposalIndexRepository.GetListAsync(
+                Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
+                Arg.Any<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
+                Arg.Any<Expression<Func<ProposalIndex, object>>>(), Arg.Any<SortOrder>(),
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>())
+            .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() }));
+        var result = await _provider.GetProposalByIdsAsync("chainId", new List<string>{"proposalId"});
+        result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async void GetProposalCountByDAOIds_Test()
+    {
+        _proposalIndexRepository.CountAsync(Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(), Arg.Any<string>())
+            .Returns(new CountResponse());
+        var result = await _provider.GetProposalCountByDAOIds("ChainId", "DaoId");
+        result.ShouldBe(0);
+    }
+
+    [Fact]
+    public async void BulkAddOrUpdateAsync_Test()
+    {
+        await _provider.BulkAddOrUpdateAsync(new List<ProposalIndex>());
+    }
+
+    [Fact]
+    public async void GetNonFinishedProposalListAsync_Test()
+    {
+        _proposalIndexRepository.GetListAsync(
+                Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
+                Arg.Any<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
+                Arg.Any<Expression<Func<ProposalIndex, object>>>(), Arg.Any<SortOrder>(),
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>())
+            .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() }));
+        var result = await _provider.GetNonFinishedProposalListAsync(0, new List<ProposalStage>());
+        result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async void GetNeedChangeProposalListAsync_Test()
+    {
+        _proposalIndexRepository.GetListAsync(
+                Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
+                Arg.Any<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
+                Arg.Any<Expression<Func<ProposalIndex, object>>>(), Arg.Any<SortOrder>(),
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>())
+            .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() }));
+        var result = await _provider.GetNeedChangeProposalListAsync(0);
+        result.ShouldNotBeNull();
+    }
+    
+    [Fact]
+    public async void QueryProposalsByProposerAsync_Test()
+    {
+        try
+        {
+            await _provider.QueryProposalsByProposerAsync(null);
+        }
+        catch (Exception e)
+        {
+            e.Message.ShouldBe("");
+        }
+        
+        try
+        {
+            await _provider.QueryProposalsByProposerAsync(new QueryProposalByProposerRequest());
+        }
+        catch (Exception e)
+        {
+            e.Message.ShouldBe("");
+        }
+        
+        _proposalIndexRepository.GetSortListAsync(
+                Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
+                Arg.Any<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
+                Arg.Any<Func<SortDescriptor<ProposalIndex>, IPromise<IList<ISort>>>>(),
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>())
+            .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() }));
+        var result = await _provider.QueryProposalsByProposerAsync(new QueryProposalByProposerRequest
+        {
+            ChainId = "ChainId", DaoId = "DaoId", ProposalStatus = ProposalStatus.Abstained, ProposalStage = ProposalStage.Active,
+            MaxResultCount = 10, Proposer = "Propposer", SkipCount = 0
+        });
+        result.ShouldNotBeNull();
+    }
+}
