@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Types;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -24,7 +25,9 @@ using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.User.Provider;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Users;
 
 namespace TomorrowDAOServer.DAO;
 
@@ -42,6 +45,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IOptionsMonitor<DaoOptions> _testDaoOptions;
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IContractProvider _contractProvider;
+    private readonly IUserProvider _userProvider;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
@@ -50,7 +54,8 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
         IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
-        IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider, ILogger<DAOAppService> logger)
+        IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider, 
+        ILogger<DAOAppService> logger, IUserProvider userProvider)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -60,6 +65,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _testDaoOptions = testDaoOptions;
         _contractProvider = contractProvider;
         _logger = logger;
+        _userProvider = userProvider;
         _explorerProvider = explorerProvider;
         _governanceProvider = governanceProvider;
     }
@@ -75,7 +81,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         }
 
         input.DAOId = daoIndex.Id;
-        
+
         var getTreasuryAddressTask = _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DAOId);
         var getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
 
@@ -105,38 +111,6 @@ public class DAOAppService : ApplicationService, IDAOAppService
         daoInfo.HighCouncilMemberCount = bpInfo.AddressList.Count;
         return daoInfo;
     }
-
-    public async Task<PagedResultDto<HcMemberDto>> GetHcMemberListAsync(GetHcMemberInput input)
-    {
-        var type = input.Type.IsNullOrWhiteSpace() ? HighCouncilType.Member.ToString() : input.Type;
-        var daoInfo = await _daoProvider.GetAsync(input);
-        var result = await _electionProvider.GetHighCouncilListAsync(new GetHighCouncilListInput
-        {
-            ChainId = input.ChainId,
-            DAOId = input.DAOId,
-            HighCouncilType = type,
-            TermNumber = type == HighCouncilType.Member.ToString()
-                ? daoInfo?.HighCouncilTermNumber ?? 0
-                : CandidateTermNumber,
-            MaxResultCount = (int)(type == HighCouncilType.Member.ToString()
-                ? daoInfo?.HighCouncilConfig?.MaxHighCouncilMemberCount ?? GetMemberListMaxResultCount
-                : input.MaxResultCount),
-            SkipCount = type == HighCouncilType.Member.ToString() ? ZeroSkipCount : input.SkipCount,
-            Sorting = input.Sorting
-        });
-        return new PagedResultDto<HcMemberDto>
-        {
-            TotalCount = result?.TotalCount ?? 0,
-            Items = result?.Items?.Select(x => new HcMemberDto
-            {
-                Type = type,
-                Address = AddressHelper.ToFullAddress(x.ChainId, x.Address),
-                VotesAmount = x.VotesAmount.ToString(),
-                StakeAmount = x.StakeAmount.ToString()
-            }).ToList() ?? new List<HcMemberDto>()
-        };
-    }
-
     public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
     {
         return await _daoProvider.GetMemberListAsync(listInput);
@@ -257,7 +231,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public async Task<List<MyDAOListDto>> GetMyDAOListAsync(QueryMyDAOListInput input)
     {
-        var address = input.Address;
+        var address = await _userProvider.GetAndValidateUserAddress(CurrentUser.GetId(), input.ChainId);
         var result = new List<MyDAOListDto>();
         if (address.IsNullOrEmpty())
         {
@@ -269,7 +243,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
             case MyDAOType.All:
                 var ownedTask = GetMyOwnedDaoListDto(input, address);
                 var participatedTask = GetMyParticipatedDaoListDto(input, address);
-                var managedTask = GetMyManagedDaoListDto(input);
+                var managedTask = GetMyManagedDaoListDto(input, address);
                 await Task.WhenAll(ownedTask, participatedTask, managedTask);
                 result.Add(await ownedTask);
                 result.Add(await participatedTask);
@@ -282,25 +256,29 @@ public class DAOAppService : ApplicationService, IDAOAppService
                 result.Add(await GetMyParticipatedDaoListDto(input, address));
                 break;
             case MyDAOType.Managed:
-                result.Add(await GetMyManagedDaoListDto(input));
+                result.Add(await GetMyManagedDaoListDto(input, address));
                 break;
         }
 
         return result;
     }
 
-    // todo no hc, just bp now
-    private async Task<MyDAOListDto> GetMyManagedDaoListDto(QueryMyDAOListInput input)
+    private async Task<MyDAOListDto> GetMyManagedDaoListDto(QueryMyDAOListInput input, string address)
     {
         var bpList = await GetBPList(input.ChainId);
-        if (!bpList.Contains(input.Address))
-        {
-            return new MyDAOListDto { Type = MyDAOType.Managed };
-        }
 
-        var managedResult = await _daoProvider.GetNetworkDAOAsync(input.ChainId);
+        var managedDaoIndices = await _electionProvider.GetHighCouncilManagedDaoIndexAsync(new GetHighCouncilMemberManagedDaoInput
+        {
+            MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+            SkipCount = 0,
+            ChainId = input.ChainId,
+            MemberAddress = address
+        });
+        var daoIds = managedDaoIndices.Select(item => item.DaoId).ToList();
+
+        var (totalCount, daoList) = await _daoProvider.GetManagedDAOAsync(input, daoIds, bpList.Contains(address));
         return await GetMyDaoListDto(MyDAOType.Managed, input.ChainId,
-            new Tuple<long, List<DAOIndex>>(1, new List<DAOIndex> { managedResult }));
+            new Tuple<long, List<DAOIndex>>(totalCount, daoList));
     }
 
     private async Task<MyDAOListDto> GetMyOwnedDaoListDto(QueryMyDAOListInput input, string address)
@@ -320,7 +298,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         {
             return new MyDAOListDto();
         }
-        
+
         var daoIds = participatedResult.Data.Select(participated => participated.Id).ToList();
         var daoList = await _daoProvider.GetDaoListByDaoIds(input.ChainId, daoIds);
         //var daoList = _objectMapper.Map<List<IndexerDAOInfo>, List<DAOIndex>>(participatedResult.Data);

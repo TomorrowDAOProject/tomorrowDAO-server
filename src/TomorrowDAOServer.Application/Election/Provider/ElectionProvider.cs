@@ -1,23 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
+using Nest;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Election.Dto;
 using TomorrowDAOServer.Election.Index;
-using Volo.Abp.Application.Dtos;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Election.Provider;
 
 public interface IElectionProvider
 {
-    Task<PagedResultDto<IndexerElection>> GetHighCouncilListAsync(GetHighCouncilListInput input);
-
     Task<ElectionPageResultDto<ElectionCandidateElectedDto>> GetCandidateElectedRecordsAsync(
         GetCandidateElectedRecordsInput input);
 
@@ -27,6 +26,12 @@ public interface IElectionProvider
     Task<ElectionPageResultDto<ElectionVotingItemDto>> GetVotingItemAsync(GetVotingItemInput input);
 
     Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId);
+
+    Task<List<HighCouncilManagedDaoIndex>> GetHighCouncilManagedDaoIndexAsync(
+        GetHighCouncilMemberManagedDaoInput input);
+
+    Task SaveOrUpdateHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data);
+    Task DeleteHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data);
 }
 
 public class ElectionProvider : IElectionProvider, ISingletonDependency
@@ -34,54 +39,16 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
     private readonly IGraphQlHelper _graphQlHelper;
     private readonly ILogger<ElectionProvider> _logger;
     private readonly IGraphQLProvider _graphQlProvider;
+    private readonly INESTRepository<HighCouncilManagedDaoIndex, string> _highCouncilManagedDaoRepository;
 
     public ElectionProvider(IGraphQlHelper graphQlHelper, ILogger<ElectionProvider> logger,
-        IGraphQLProvider graphQlProvider)
+        IGraphQLProvider graphQlProvider,
+        INESTRepository<HighCouncilManagedDaoIndex, string> highCouncilManagedDaoRepository)
     {
         _graphQlHelper = graphQlHelper;
         _logger = logger;
         _graphQlProvider = graphQlProvider;
-    }
-
-    [Obsolete]
-    public async Task<PagedResultDto<IndexerElection>> GetHighCouncilListAsync(GetHighCouncilListInput input)
-    {
-        try
-        {
-            var graphQlResponse = await _graphQlHelper.QueryAsync<IndexerElectionResult>(new GraphQLRequest
-            {
-                Query =
-                    @"query($sorting:String,$skipCount:Int!,$maxMaxResultCount:Int!,$chainId:String,$DAOId:String,$highCouncilType:String,$termNumber:Long!){
-            data:getHighCouncilListAsync(input: {sorting:$sorting,skipCount:$skipCount,maxMaxResultCount:$maxMaxResultCount,chainId:$chainId,DAOId:$DAOId,highCouncilType:$highCouncilType,termNumber:$termNumber})
-                dataList{
-                    id,chainId,DAOId,termNumber,highCouncilType,address,votesAmount,stakeAmount
-                }
-                ,totalCount
-            }",
-                Variables = new
-                {
-                    input.Sorting,
-                    input.SkipCount,
-                    input.MaxResultCount,
-                    input.ChainId,
-                    input.DAOId,
-                    input.HighCouncilType,
-                    input.TermNumber
-                }
-            });
-            return new PagedResultDto<IndexerElection>
-            {
-                TotalCount = graphQlResponse.TotalCount,
-                Items = graphQlResponse.DataList
-            };
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetHighCouncilListAsyncError chainId {chainId} DAOId {DAOId} termNumber{termNumber}",
-                input.ChainId, input.DAOId, input.TermNumber);
-        }
-
-        return new PagedResultDto<IndexerElection>(0, new List<IndexerElection>());
+        _highCouncilManagedDaoRepository = highCouncilManagedDaoRepository;
     }
 
     public async Task<ElectionPageResultDto<ElectionCandidateElectedDto>> GetCandidateElectedRecordsAsync(
@@ -200,5 +167,48 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
         return await _graphQlProvider.GetHighCouncilMembersAsync(chainId, daoId);
+    }
+
+    public async Task<List<HighCouncilManagedDaoIndex>> GetHighCouncilManagedDaoIndexAsync(
+        GetHighCouncilMemberManagedDaoInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<HighCouncilManagedDaoIndex>, QueryContainer>>();
+
+        if (!input.ChainId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.ChainId).Value(input.ChainId)));
+        }
+
+        if (!input.DaoId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.DaoId).Value(input.DaoId)));
+        }
+
+        if (!input.MemberAddress.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.MemberAddress).Value(input.MemberAddress)));
+        }
+
+
+        QueryContainer Filter(QueryContainerDescriptor<HighCouncilManagedDaoIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
+        var result =
+            await _highCouncilManagedDaoRepository.GetListAsync(Filter, skip: input.SkipCount,
+                limit: input.MaxResultCount);
+        return result?.Item2 ?? new List<HighCouncilManagedDaoIndex>();
+    }
+
+    public async Task SaveOrUpdateHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data)
+    {
+        await _highCouncilManagedDaoRepository.BulkAddOrUpdateAsync(data);
+    }
+
+    public async Task DeleteHighCouncilManagedDaoIndexAsync(List<HighCouncilManagedDaoIndex> data)
+    {
+        await _highCouncilManagedDaoRepository.BulkDeleteAsync(data);
     }
 }

@@ -75,6 +75,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
+        input.ProposalStatus = MapHelper.MapProposalStatus(input.ProposalStatus);
         var (total, proposalList) = await GetProposalListAsync(input);
         if (proposalList.IsNullOrEmpty())
         {
@@ -335,7 +336,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
 
         var voteRecord = voteRecords[0];
-        myProposalDto.AvailableUnStakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
+        myProposalDto.AvailableUnStakeAmount = DateTime.Now > voteRecord.EndTime && !voteRecord.IsWithdraw ? voteRecord.Amount : 0;
         myProposalDto.StakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
         myProposalDto.VotesAmountTokenBallot = voteRecord.Amount;
         myProposalDto.WithdrawList = new List<WithdrawDto>
@@ -477,23 +478,23 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return highCouncilMembers.Contains(address);
     }
 
-    private static bool CanWithdraw(DateTime endTime, List<string> votingItemIdList, string proposalId,
-        bool isUniqueVote = false)
-    {
-        return !isUniqueVote && DateTime.Now > endTime && !votingItemIdList.Contains(proposalId);
-    }
-
-    private async Task<List<string>> GetWithdrawVotingItemIdLis(string chainId, string DAOId, string address)
-    {
-        var withdrawVotingItemIdList = new List<string>();
-        var withdrawnInfo = await _voteProvider.GetVoteWithdrawnAsync(chainId, DAOId, address);
-        foreach (var withdrawnDto in withdrawnInfo)
-        {
-            withdrawVotingItemIdList.AddRange(withdrawnDto.VotingItemIdList);
-        }
-
-        return withdrawVotingItemIdList;
-    }
+    // private static bool CanWithdraw(DateTime endTime, List<string> votingItemIdList, string proposalId,
+    //     bool isUniqueVote = false)
+    // {
+    //     return !isUniqueVote && DateTime.Now > endTime && !votingItemIdList.Contains(proposalId);
+    // }
+    //
+    // private async Task<List<string>> GetWithdrawVotingItemIdLis(string chainId, string DAOId, string address)
+    // {
+    //     var withdrawVotingItemIdList = new List<string>();
+    //     var withdrawnInfo = await _voteProvider.GetVoteWithdrawnAsync(chainId, DAOId, address);
+    //     foreach (var withdrawnDto in withdrawnInfo)
+    //     {
+    //         withdrawVotingItemIdList.AddRange(withdrawnDto.VotingItemIdList);
+    //     }
+    //
+    //     return withdrawVotingItemIdList;
+    // }
 
     private async Task<string> GetAndValidateUserAddress(string chainId)
     {

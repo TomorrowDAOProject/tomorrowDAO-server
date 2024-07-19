@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
 using NSubstitute;
 using Shouldly;
 using TomorrowDAOServer.Common;
@@ -18,8 +19,10 @@ using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Users;
 using Xunit;
 
 namespace TomorrowDAOServer.DAO;
@@ -37,6 +40,9 @@ public class DaoAppServiceTest
     private readonly IContractProvider _contractProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly DAOAppService _service;
+    private readonly IUserProvider _userProvider;
+    private readonly ICurrentUser _currentUser;
+    private readonly Guid userId = Guid.Parse("158ff364-3264-4234-ab20-02aaada2aaad");
     private readonly ILogger<DAOAppService> _logger;
 
     public DaoAppServiceTest()
@@ -50,15 +56,19 @@ public class DaoAppServiceTest
         _testDaoOptions = Substitute.For<IOptionsMonitor<DaoOptions>>();
         _governanceProvider = Substitute.For<IGovernanceProvider>();
         _objectMapper = Substitute.For<IObjectMapper>();
+        _userProvider = Substitute.For<IUserProvider>();
+        _currentUser = Substitute.For<ICurrentUser>();
         _logger = Substitute.For<ILogger<DAOAppService>>();
 
         _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
-            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider, _logger);
+            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider,_logger,_userProvider);
     }
 
     [Fact]
     public async void GetDAOListAsync_Test()
     {
+        Login(userId);
+        
         _testDaoOptions.CurrentValue
             .Returns(new DaoOptions
             {
@@ -118,5 +128,13 @@ public class DaoAppServiceTest
         _daoProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>());
         var result = await _service.GetMemberListAsync(new GetMemberListInput());
         result.ShouldNotBeNull();
+    }
+    
+    //Login example
+    private void Login(Guid userId)
+    {
+        _currentUser.Id.Returns(userId);
+        _currentUser.IsAuthenticated.Returns(true);
+        _userProvider.GetAndValidateUserAddress(It.IsAny<Guid>(), It.IsAny<string>()).Returns("address");
     }
 }

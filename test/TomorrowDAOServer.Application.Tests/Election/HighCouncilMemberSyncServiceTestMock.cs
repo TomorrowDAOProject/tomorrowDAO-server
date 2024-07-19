@@ -22,61 +22,6 @@ namespace TomorrowDAOServer.Election;
 
 public partial class HighCouncilMemberSyncServiceTest
 {
-    private static IGraphQlHelper MockGraphQlHelper_QueryElectionDto()
-    {
-        var mock = new Mock<IGraphQlHelper>();
-        mock.Setup(m =>
-                m.QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionCandidateElectedDto>>>(
-                    It.IsAny<GraphQLRequest>()))
-            .ReturnsAsync(new IndexerCommonResult<ElectionPageResultDto<ElectionCandidateElectedDto>>()
-            {
-                Data = new ElectionPageResultDto<ElectionCandidateElectedDto>
-                {
-                    Items = new[]
-                    {
-                        new ElectionCandidateElectedDto
-                        {
-                            Id = "11",
-                            DaoId = HashHelper.ComputeFrom("DaoId1").ToHex(),
-                            PreTermNumber = 1,
-                            NewNumber = 2,
-                            CandidateElectedTime = DateTime.Now,
-                            ChainId = ChainIdAELF,
-                            BlockHash = HashHelper.ComputeFrom("BlockHash").ToHex(),
-                            BlockHeight = 1000,
-                            PreviousBlockHash = HashHelper.ComputeFrom("PreviousBlockHash").ToHex(),
-                            IsDeleted = false
-                        }
-                    },
-                    TotalCount = 1
-                }
-            });
-        mock.Setup(m =>
-                m.QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionHighCouncilConfigDto>>>(
-                    It.IsAny<GraphQLRequest>()))
-            .ReturnsAsync(new IndexerCommonResult<ElectionPageResultDto<ElectionHighCouncilConfigDto>>()
-            {
-                Data = new ElectionPageResultDto<ElectionHighCouncilConfigDto>
-                {
-                    Items = new[]
-                    {
-                        new ElectionHighCouncilConfigDto
-                        {
-                            Id = "11",
-                            DaoId = HashHelper.ComputeFrom("DaoId2").ToHex(),
-                            ChainId = ChainIdAELF,
-                            BlockHash = HashHelper.ComputeFrom("BlockHash").ToHex(),
-                            BlockHeight = 1000,
-                            PreviousBlockHash = HashHelper.ComputeFrom("PreviousBlockHash").ToHex(),
-                            IsDeleted = false
-                        }
-                    },
-                    TotalCount = 1
-                }
-            });
-        return mock.Object;
-    }
-
     private static ITransactionService MockTransactionService()
     {
         var mock = new Mock<ITransactionService>();
