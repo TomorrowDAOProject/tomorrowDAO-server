@@ -75,6 +75,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
+        input.ProposalStatus = MapHelper.MapProposalStatus(input.ProposalStatus);
         var (total, proposalList) = await GetProposalListAsync(input);
         if (proposalList.IsNullOrEmpty())
         {

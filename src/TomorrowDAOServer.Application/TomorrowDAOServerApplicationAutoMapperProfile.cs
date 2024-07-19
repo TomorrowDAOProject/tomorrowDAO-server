@@ -41,20 +41,24 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => MapTransactionParams(source.Params)))
             ;
         CreateMap<ProposalIndex, ProposalDto>()
+            .ForMember(des => des.RealProposalStatus, opt
+                => opt.MapFrom(source => source.ProposalStatus))
+            .ForMember(des => des.ProposalStatus, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStatusString(source.ProposalStatus)))
             .ForMember(des => des.ProposalType, opt
                 => opt.MapFrom(source => source.ProposalType.ToString()))
-            .ForMember(des => des.ProposalStatus, opt
-                => opt.MapFrom(source => source.ProposalStatus.ToString()))
             .ForMember(des => des.ProposalStage, opt
                 => opt.MapFrom(source => source.ProposalStage.ToString()))
             .ForMember(des => des.GovernanceMechanism, opt
                 => opt.MapFrom(source => source.GovernanceMechanism.ToString()))
             ;
         CreateMap<ProposalIndex, ProposalBasicDto>()
+            .ForMember(des => des.RealProposalStatus, opt
+                => opt.MapFrom(source => source.ProposalStatus))
+            .ForMember(des => des.ProposalStatus, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStatusString(source.ProposalStatus)))
             .ForMember(des => des.ProposalType, opt
                 => opt.MapFrom(source => source.ProposalType.ToString()))
-            .ForMember(des => des.ProposalStatus, opt
-                => opt.MapFrom(source => source.ProposalStatus.ToString()))
             .ForMember(des => des.ProposalStage, opt
                 => opt.MapFrom(source => source.ProposalStage.ToString()))
             .ForMember(des => des.GovernanceMechanism, opt
