@@ -5,18 +5,17 @@ using AElf;
 using GraphQL;
 using GraphQL.Client.Abstractions;
 using Moq;
-using Newtonsoft.Json;
-using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Election.Dto;
 using TomorrowDAOServer.Treasury.Dto;
 using Volo.Abp;
 using DateTime = System.DateTime;
+using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.Common.Mocks;
 
 public class GraphQLClientMock
 {
-    private const string ChainIdAELF = "AELF";
+    
 
     public static IGraphQLClient MockGraphQLClient<T>(Func<GraphQLRequest, T> func)
     {

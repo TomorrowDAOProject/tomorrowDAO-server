@@ -23,18 +23,15 @@ public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonD
 {
     private readonly ILogger<NetworkDaoElectionService> _logger;
     private readonly IContractProvider _contractProvider;
-    private readonly IDistributedCache<string> _distributedCache;
     private const long RefreshTime = 10 * 60 * 1000;
     private long _lastQueryAmount = 0;
     private long _lastUpdateTime = 0;
 
 
-    public NetworkDaoElectionService(ILogger<NetworkDaoElectionService> logger, IContractProvider contractProvider,
-        IDistributedCache<string> distributedCache)
+    public NetworkDaoElectionService(ILogger<NetworkDaoElectionService> logger, IContractProvider contractProvider)
     {
         _logger = logger;
         _contractProvider = contractProvider;
-        _distributedCache = distributedCache;
     }
 
     public async Task<long> GetBpVotingStakingAmount()
