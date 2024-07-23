@@ -12,7 +12,6 @@ using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using Volo.Abp;
 using Volo.Abp.Auditing;
-using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.NetworkDao;
@@ -26,8 +25,7 @@ public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonD
     private const long RefreshTime = 10 * 60 * 1000;
     private long _lastQueryAmount = 0;
     private long _lastUpdateTime = 0;
-
-
+    
     public NetworkDaoElectionService(ILogger<NetworkDaoElectionService> logger, IContractProvider contractProvider)
     {
         _logger = logger;
