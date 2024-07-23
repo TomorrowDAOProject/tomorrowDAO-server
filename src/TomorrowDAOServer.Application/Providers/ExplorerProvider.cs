@@ -160,7 +160,6 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         }
 
         var tokenInfo = await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
-        // 10 minute
         if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= 10 * 60 * 1000)
         {
             return tokenInfo;
