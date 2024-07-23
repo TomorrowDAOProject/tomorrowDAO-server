@@ -391,7 +391,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
                     ChainId = chainId, DaoId = daoId, VoterAddress = voter
                 }
             });
-            return response.Data?[0] ?? new IndexerDAOVoterRecord();
+            return response.Data.IsNullOrEmpty() ? new IndexerDAOVoterRecord() : response.Data[0];
         }
         catch (Exception e)
         {
