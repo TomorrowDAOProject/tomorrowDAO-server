@@ -1,5 +1,3 @@
-using System.Net.Http;
-using AElf.Contracts.Election;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Mocks;
