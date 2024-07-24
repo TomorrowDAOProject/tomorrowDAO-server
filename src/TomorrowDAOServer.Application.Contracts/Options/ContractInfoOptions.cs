@@ -12,4 +12,5 @@ public class ContractInfo
     public string ContractAddress { get; set; }
     public string ContractName { get; set; }
     public List<string> FunctionList { get; set; }
+    public List<string> MultiSigDaoMethodBlacklist { get; set; }
 }
