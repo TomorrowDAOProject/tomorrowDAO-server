@@ -229,6 +229,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input)
     {
+        var address = await GetAndValidateUserAddress(input.ChainId);
         _logger.LogInformation("ProposalService QueryProposalDetailAsync daoid:{ProposalId} start", input.ProposalId);
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
         if (proposalIndex == null)
@@ -297,7 +298,17 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             proposalDetailDto.ExecuteTime = null;
         }
 
+        proposalDetailDto.CanExecute = CanExecute(proposalDetailDto, input.Address);
         return proposalDetailDto;
+    }
+
+    private bool CanExecute(ProposalDetailDto proposalDetailDto, string address)
+    {
+        return proposalDetailDto.Proposer == address
+               && proposalDetailDto.ProposalStatus == ProposalStatus.Approved.ToString()
+               && proposalDetailDto.ProposalStage == ProposalStage.Execute.ToString()
+               && proposalDetailDto.ExecuteStartTime <= DateTime.Now
+               && proposalDetailDto.ExecuteEndTime >= DateTime.Now;
     }
 
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
@@ -422,7 +433,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     public async Task<ProposalPagedResultDto<ProposalBasicDto>> QueryExecutableProposalsAsync(
         QueryExecutableProposalsInput input)
     {
-        _logger.LogInformation("query executable proposals,  daoid={0}, proposalor={1}", input.DaoId, input.Proposer);
+        _logger.LogInformation("query executable proposals,  daoId={0}, proposer={1}", input.DaoId, input.Proposer);
         var proposalIndex =
             await _proposalProvider.QueryProposalsByProposerAsync(new QueryProposalByProposerRequest
             {
