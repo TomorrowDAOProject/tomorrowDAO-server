@@ -34,6 +34,7 @@ public interface IVoteProvider
     Task<List<IndexerVoteRecord>> GetSyncVoteRecordListAsync(GetChainBlockHeightInput input);
     Task<List<WithdrawnDto>> GetSyncVoteWithdrawListAsync(GetChainBlockHeightInput input);
     Task<List<VoteRecordIndex>> GetByVotingItemIdsAsync(string chainId, List<string> votingItemIds);
+    Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds);
     Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter);
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
 }
@@ -399,6 +400,18 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             _logger.LogError(e, "GetDaoVoterRecordAsyncException chainId={chainId}, daoId={daoId}, voter={voter}", chainId, daoId, voter);
         }
         return new IndexerDAOVoterRecord();
+    }
+    
+    public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(f => f.Voter).Value(voter)),
+            q => q.Terms(i => i.Field(f => f.VotingItemId).Terms(votingItemIds))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
     }
 
     private static async Task<List<T>> GetAllIndex<T>(Func<QueryContainerDescriptor<T>, QueryContainer> filter, 
