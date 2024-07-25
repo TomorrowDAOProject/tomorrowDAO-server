@@ -307,8 +307,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return proposalDetailDto.Proposer == address
                && proposalDetailDto.ProposalStatus == ProposalStatus.Approved.ToString()
                && proposalDetailDto.ProposalStage == ProposalStage.Execute.ToString()
-               && proposalDetailDto.ExecuteStartTime <= DateTime.Now
-               && proposalDetailDto.ExecuteEndTime >= DateTime.Now;
+               && proposalDetailDto.ExecuteStartTime != null &&  proposalDetailDto.ExecuteStartTime <= DateTime.Now
+               && proposalDetailDto.ExecuteEndTime != null && proposalDetailDto.ExecuteEndTime >= DateTime.Now;
     }
 
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
