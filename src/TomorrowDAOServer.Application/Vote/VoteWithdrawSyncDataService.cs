@@ -57,14 +57,16 @@ public class VoteWithdrawSyncDataService : ScheduleSyncDataService
                 break;
             }
             blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight).Max());
-            var votingItemsIds = queryList.Select(x => x.VotingItemIdList)
-                .Aggregate(new List<string>(), (current, list) => current.Concat(list).ToList());
-            var voteRecords = await _voteProvider.GetByVotingItemIdsAsync(chainId, votingItemsIds);
-            foreach (var voteRecordIndex in voteRecords)
+            var toUpdate = new List<VoteRecordIndex>();
+            foreach (var voteWithdraw in queryList)
+            {
+                toUpdate.AddRange(await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, voteWithdraw.Voter, voteWithdraw.VotingItemIdList));
+            }
+            foreach (var voteRecordIndex in toUpdate)
             {
                 voteRecordIndex.IsWithdraw = true;
             }
-            await _voteRecordIndexRepository.BulkAddOrUpdateAsync(voteRecords);
+            await _voteRecordIndexRepository.BulkAddOrUpdateAsync(toUpdate);
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
 

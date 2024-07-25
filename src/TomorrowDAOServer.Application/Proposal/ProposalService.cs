@@ -327,7 +327,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return new MyProposalDto { ChainId = input.ChainId };
         }
 
-        var voteRecords = await _voteProvider.GetByVotingItemIdsAsync(input.ChainId, new List<string>{input.ProposalId});
+        var voteRecords = await _voteProvider.GetByVoterAndVotingItemIdsAsync(input.ChainId, input.Address, new List<string>{input.ProposalId});
         var voted = !voteRecords.IsNullOrEmpty();
         var canVote = await CanVote(daoIndex, proposalIndex, input.Address, voted);
         if (daoIndex.GovernanceToken.IsNullOrEmpty())
@@ -348,10 +348,13 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         myProposalDto.AvailableUnStakeAmount = DateTime.Now > voteRecord.EndTime && !voteRecord.IsWithdraw ? voteRecord.Amount : 0;
         myProposalDto.StakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
         myProposalDto.VotesAmountTokenBallot = voteRecord.Amount;
-        myProposalDto.WithdrawList = new List<WithdrawDto>
+        if (!voteRecord.IsWithdraw)
         {
-            new() { ProposalIdList = new List<string> { input.ProposalId }, WithdrawAmount = voteRecord.Amount }
-        };
+            myProposalDto.WithdrawList = new List<WithdrawDto>
+            {
+                new() { ProposalIdList = new List<string> { input.ProposalId }, WithdrawAmount = voteRecord.Amount }
+            };
+        }
         return myProposalDto;
     }
 
