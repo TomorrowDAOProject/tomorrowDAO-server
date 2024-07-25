@@ -229,7 +229,6 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input)
     {
-        var address = await GetAndValidateUserAddress(input.ChainId);
         _logger.LogInformation("ProposalService QueryProposalDetailAsync daoid:{ProposalId} start", input.ProposalId);
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
         if (proposalIndex == null)
