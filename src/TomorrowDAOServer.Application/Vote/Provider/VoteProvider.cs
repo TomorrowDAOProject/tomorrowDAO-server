@@ -319,7 +319,8 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 			    query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!) {
                     dataList:getVoteWithdrawnList(input:{chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight}) {
                         votingItemIdList,
-                        voter
+                        voter,
+                        blockHeight
                     }
                   }",
                 Variables = new
