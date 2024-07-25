@@ -55,4 +55,11 @@ public class ProposalController : AbpController
     {
         return await _proposalService.QueryExecutableProposalsAsync(input);
     }
+    
+    // TestUse
+    [HttpGet("clear")]
+    public async Task Clear(string chainId)
+    {
+        await _proposalService.ClearData(chainId);
+    }
 }

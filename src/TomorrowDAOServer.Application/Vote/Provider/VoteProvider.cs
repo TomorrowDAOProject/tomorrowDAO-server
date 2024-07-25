@@ -36,6 +36,9 @@ public interface IVoteProvider
     Task<List<VoteRecordIndex>> GetByVotingItemIdsAsync(string chainId, List<string> votingItemIds);
     Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter);
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
+    
+    // TestUse
+    Task GetAllAsync(string chainId);
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -399,6 +402,23 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             _logger.LogError(e, "GetDaoVoterRecordAsyncException chainId={chainId}, daoId={daoId}, voter={voter}", chainId, daoId, voter);
         }
         return new IndexerDAOVoterRecord();
+    }
+
+    public async Task GetAllAsync(string chainId)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId))
+        };
+
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        var voteRecords = (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
+        foreach (var voteRecord in voteRecords)
+        {
+            voteRecord.IsWithdraw = false;
+        }
+
+        await _voteRecordIndexRepository.BulkAddOrUpdateAsync(voteRecords);
     }
 
     private static async Task<List<T>> GetAllIndex<T>(Func<QueryContainerDescriptor<T>, QueryContainer> filter, 
