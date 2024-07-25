@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using NSubstitute;
@@ -28,6 +29,7 @@ namespace TomorrowDAOServer.DAO;
 
 public class DaoAppServiceTest
 {
+    private readonly ILogger<DAOAppService> _logger;
     private readonly IDAOProvider _daoProvider;
     private readonly IElectionProvider _electionProvider;
     private readonly IProposalProvider _proposalProvider;
@@ -41,11 +43,12 @@ public class DaoAppServiceTest
     private readonly DAOAppService _service;
     private readonly IUserProvider _userProvider;
     private readonly ICurrentUser _currentUser;
-    
+
     private readonly Guid userId = Guid.Parse("158ff364-3264-4234-ab20-02aaada2aaad");
-    
+
     public DaoAppServiceTest()
     {
+        _logger = Substitute.For<ILogger<DAOAppService>>();
         _daoProvider = Substitute.For<IDAOProvider>();
         _electionProvider = Substitute.For<IElectionProvider>();
         _graphQlProvider = Substitute.For<IGraphQLProvider>();
@@ -58,14 +61,15 @@ public class DaoAppServiceTest
         _userProvider = Substitute.For<IUserProvider>();
         _currentUser = Substitute.For<ICurrentUser>();
         _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
-            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider,_userProvider);
+            _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider, _userProvider,
+            _logger);
     }
 
     [Fact]
     public async void GetDAOListAsync_Test()
     {
         Login(userId);
-        
+
         _testDaoOptions.CurrentValue
             .Returns(new DaoOptions
             {
@@ -126,7 +130,7 @@ public class DaoAppServiceTest
         var result = await _service.GetMemberListAsync(new GetMemberListInput());
         result.ShouldNotBeNull();
     }
-    
+
     //Login example
     private void Login(Guid userId)
     {

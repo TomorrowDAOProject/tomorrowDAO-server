@@ -14,4 +14,5 @@ public interface IDAOAppService
     Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput request);
     Task<List<string>> GetBPList(string chainId);
     Task<List<MyDAOListDto>> GetMyDAOListAsync(QueryMyDAOListInput input);
+    Task<bool> IsDaoMemberAsync(IsDaoMemberInput input);
 }

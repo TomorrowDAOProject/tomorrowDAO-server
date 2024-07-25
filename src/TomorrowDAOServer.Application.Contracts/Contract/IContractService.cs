@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TomorrowDAOServer.Contract.Dto;
 
 namespace TomorrowDAOServer.Contract;
@@ -6,5 +7,5 @@ namespace TomorrowDAOServer.Contract;
 public interface IContractService
 {
     FunctionDetailDto GetFunctionList(string chainId, string contractAddress);
-    ContractDetailDto GetContractInfo(string chainId);
+    Task<ContractDetailDto> GetContractInfoAsync(QueryContractsInfoInput input);
 }

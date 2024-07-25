@@ -37,6 +37,12 @@ public class DaoController
         return await _daoAppService.GetMemberListAsync(listInput);
     }
     
+    [HttpGet("is-member")]
+    public async Task<bool> IsDaoMemberAsync(IsDaoMemberInput input)
+    {
+        return await _daoAppService.IsDaoMemberAsync(input);
+    }
+
     [HttpGet("dao-list")]
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput request)
     {

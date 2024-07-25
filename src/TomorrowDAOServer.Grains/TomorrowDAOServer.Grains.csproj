@@ -41,6 +41,7 @@
         <Orleans_CodeGenInputs Remove="Grain\NFTInfo\NftCollectionExtensionGrainDto.cs" />
         <Orleans_CodeGenInputs Remove="Grain\NFTInfo\NftInfoExtensionGrainDto.cs" />
         <Orleans_CodeGenInputs Remove="Grain\Project\ProjectGrain.cs" />
+        <Orleans_CodeGenInputs Remove="State\Project\ProjectState.cs" />
     </ItemGroup>
     
     <ItemGroup>
