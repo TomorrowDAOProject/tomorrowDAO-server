@@ -44,8 +44,7 @@ public class TokenServiceTest
     public async Task GetTokenAsync_Test()
     {
         _clusterClient.GetGrain<ITokenGrain>(Arg.Any<string>()).Returns(_tokenGrain);
-        _tokenGrain.GetTokenAsync(Arg.Any<TokenGrainDto>())
-            .Returns(new GrainResultDto<TokenGrainDto>
+        _tokenGrain.GetTokenAsync(Arg.Any<TokenGrainDto>()).Returns(new GrainResultDto<TokenGrainDto>
         {
             Success = true, Data = new TokenGrainDto()
         });
