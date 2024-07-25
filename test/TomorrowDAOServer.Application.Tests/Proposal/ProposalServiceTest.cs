@@ -138,7 +138,7 @@ public class ProposalServiceTest
         myInfo.CanVote.ShouldBe(false);
         myInfo.AvailableUnStakeAmount.ShouldBe(0);
         
-        _voteProvider.GetByVotingItemIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+        _voteProvider.GetByVoterAndVotingItemIdsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<List<string>>())
             .Returns(new List<VoteRecordIndex>{new(){Amount = 10, IsWithdraw = false, EndTime = DateTime.Today.AddDays(-1)}});
         myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
         {
