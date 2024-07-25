@@ -11,7 +11,7 @@ using static TomorrowDAOServer.Common.TestConstant;
 namespace TomorrowDAOServer.Grain.Dao;
 
 [CollectionDefinition(ClusterCollection.Name)]
-public class DaoAliasGrainTest : TomorrowDAOServerSiloTestBase
+public class DaoAliasGrainTest : TomorrowDAOServerGrainsTestsBase
 {
     private const string Alias = "dao-name";
     public DaoAliasGrainTest(ITestOutputHelper output) : base(output)

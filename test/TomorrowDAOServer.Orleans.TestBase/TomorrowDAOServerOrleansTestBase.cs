@@ -1,11 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.TestingHost;
+using Volo.Abp.Modularity;
 using Xunit.Abstractions;
 
 namespace TomorrowDAOServer;
 
-public abstract class
-    TomorrowDAOServerOrleansTestBase : TomorrowDAOServerTestBase<TomorrowDAOServerOrleansTestBaseModule>
+public abstract class TomorrowDAOServerOrleansTestBase<TStartupModule> : 
+    TomorrowDAOServerTestBase<TStartupModule> where TStartupModule : IAbpModule
 {
     protected readonly TestCluster Cluster;
 
