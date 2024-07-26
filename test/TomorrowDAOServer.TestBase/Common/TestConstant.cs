@@ -6,6 +6,7 @@ namespace TomorrowDAOServer.Common;
 public static class TestConstant
 {
     public const string ChainIdAELF = "AELF";
+    public const string DaoId = "bfbd1a01fd5a931d2fef9ed77146d47b1ba18498cdd300ad6530cd832583152a";
     
     public const string PrivateKey1 = "87ec6028d6c4fa6fd43a1a68c589e737dc8bf4b8968373068dc39a91f70fbeb1";
     public const string PublicKey1 =
@@ -14,6 +15,7 @@ public static class TestConstant
     public const string PrivateKey2 = "7f089cb3e5e5045b5a8369b81009b023f67414d53ab94c1d2c44dff6e10005d4";
     public const string PublicKey2 =
         "04de4367b534d76e8586ac191e611c4ac05064b8bc585449aee19a8818e226ad29c24559216fd33c28abe7acaa8471d2b521152e8b40290dfc420d6eb89f70861a";
+    public const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
 
     public const long LongestChainHeight = 1000;
     public const string LongestChainHash = "c5f2066524b1654d1e391d5003c4365a9b369747f59c4399dcb9d506a3de8e96";
