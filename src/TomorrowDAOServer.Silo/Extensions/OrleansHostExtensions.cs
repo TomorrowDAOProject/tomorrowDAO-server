@@ -82,6 +82,21 @@ public static class OrleansHostExtensions
                 options.ServiceId = Environment.GetEnvironmentVariable("ORLEANS_SERVICE_ID");
             })
             .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
+            .Configure<GrainCollectionOptions>(opt =>
+            {
+                var collectionAge = configSection.GetValue<int>("CollectionAge");
+                if (collectionAge > 0)
+                {
+                    opt.CollectionAge = TimeSpan.FromSeconds(collectionAge);
+                }
+            })
+            .Configure<PerformanceTuningOptions>(opt =>
+            {
+                var minDotNetThreadPoolSize = configSection.GetValue<int>("MinDotNetThreadPoolSize");
+                var minIoThreadPoolSize = configSection.GetValue<int>("MinIOThreadPoolSize");
+                opt.MinDotNetThreadPoolSize = minDotNetThreadPoolSize > 0 ? minDotNetThreadPoolSize : 200;
+                opt.MinIOThreadPoolSize = minIoThreadPoolSize > 0 ? minIoThreadPoolSize : 200;
+            })
             .ConfigureLogging(logging => { logging.SetMinimumLevel(LogLevel.Debug).AddConsole(); });
     }
 
@@ -126,6 +141,21 @@ public static class OrleansHostExtensions
             })
             // .AddMemoryGrainStorage("PubSubStore")
             .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
+            .Configure<GrainCollectionOptions>(opt =>
+            {
+                var collectionAge = configSection.GetValue<int>("CollectionAge");
+                if (collectionAge > 0)
+                {
+                    opt.CollectionAge = TimeSpan.FromSeconds(collectionAge);
+                }
+            })
+            .Configure<PerformanceTuningOptions>(opt =>
+            {
+                var minDotNetThreadPoolSize = configSection.GetValue<int>("MinDotNetThreadPoolSize");
+                var minIoThreadPoolSize = configSection.GetValue<int>("MinIOThreadPoolSize");
+                opt.MinDotNetThreadPoolSize = minDotNetThreadPoolSize > 0 ? minDotNetThreadPoolSize : 200;
+                opt.MinIOThreadPoolSize = minIoThreadPoolSize > 0 ? minIoThreadPoolSize : 200;
+            })
             .UseDashboard(options =>
             {
                 options.Username = configSection.GetValue<string>("DashboardUserName");

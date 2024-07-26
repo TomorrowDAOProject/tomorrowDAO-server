@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Orleans;
 using Shouldly;
@@ -95,4 +96,6 @@ public class TokenServiceTest
         result = await _service.GetTokenPriceAsync("", "");
         result.Price.ShouldBe(0);
     }
+    
+    
 }
