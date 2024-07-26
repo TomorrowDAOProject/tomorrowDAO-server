@@ -9,6 +9,7 @@ using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.Grain.Election;
 
+[CollectionDefinition(ClusterCollection.Name)]
 public class HighCouncilMembersGrain : TomorrowDAOServerGrainsTestsBase
 {
     public HighCouncilMembersGrain(ITestOutputHelper output) : base(output)

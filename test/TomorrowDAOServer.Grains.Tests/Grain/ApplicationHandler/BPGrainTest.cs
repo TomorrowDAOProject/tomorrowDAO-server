@@ -4,13 +4,13 @@ using FluentAssertions;
 using Shouldly;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
-using TomorrowDAOServer.Grains.Grain.Dao;
 using Xunit;
 using Xunit.Abstractions;
 using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.Grain.ApplicationHandler;
 
+[CollectionDefinition(ClusterCollection.Name)]
 public class BPGrainTest : TomorrowDAOServerGrainsTestsBase
 {
     public BPGrainTest(ITestOutputHelper output) : base(output)

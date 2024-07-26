@@ -13,6 +13,7 @@ using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.Grain.ApplicationHandler;
 
+[CollectionDefinition(ClusterCollection.Name)]
 public class ContractServiceGraphQlGrainTest : TomorrowDAOServerGrainsTestsBase
 {
     public ContractServiceGraphQlGrainTest(ITestOutputHelper output) : base(output)
