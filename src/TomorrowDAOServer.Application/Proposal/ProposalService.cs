@@ -301,7 +301,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return proposalDetailDto;
     }
 
-    private bool CanExecute(ProposalDetailDto proposalDetailDto, string address)
+    public bool CanExecute(ProposalDetailDto proposalDetailDto, string address)
     {
         return proposalDetailDto.Proposer == address
                && proposalDetailDto.ProposalStatus == ProposalStatus.Approved.ToString()

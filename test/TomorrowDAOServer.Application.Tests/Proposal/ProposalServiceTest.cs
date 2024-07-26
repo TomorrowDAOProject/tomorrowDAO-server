@@ -192,4 +192,24 @@ public class ProposalServiceTest
         myInfo.ShouldNotBeNull();
         myInfo.Symbol.ShouldBeNull("ELF");
     }
+
+    [Fact]
+    public async void CanExecute_Test()
+    {
+        var canExecute = _service.CanExecute(new ProposalDetailDto(), "address");
+        canExecute.ShouldBe(false);
+        
+        canExecute = _service.CanExecute(new ProposalDetailDto
+        {
+            Proposer = "address"
+        }, "address");
+        canExecute.ShouldBe(false);
+        
+        canExecute = _service.CanExecute(new ProposalDetailDto
+        {
+            Proposer = "address", ProposalStatus = ProposalStatus.Approved.ToString(), ProposalStage = "Queued",
+            ExecuteStartTime = DateTime.Now.AddDays(-1), ExecuteEndTime = DateTime.Now.AddDays(1)
+        }, "address");
+        canExecute.ShouldBe(true);
+    }
 }
