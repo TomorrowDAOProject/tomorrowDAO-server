@@ -21,7 +21,7 @@
           ,**/src/TomorrowDAOServer.HttpApi.Host/**/*.cs
           ,**/src/TomorrowDAOServer.HttpApi.MongoDB/**/*.cs
           ,**/src/TomorrowDAOServer.Silo/**/*.cs
-          ,**/src/TomorrowDAOServer.Grains/**/*.cs
+          <!-- ,**/src/TomorrowDAOServer.Grains/**/*.cs -->
           ,**/src/TomorrowDAOServer.Worker/**/*.cs
           </ExcludeByFile>
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute</ExcludeByAttribute>

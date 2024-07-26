@@ -18,18 +18,16 @@ namespace TomorrowDAOServer;
     typeof(AbpAutoMapperModule),
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
-    typeof(TomorrowDAOServerDomainTestModule)
+    typeof(TomorrowDAOServerDomainTestModule),
+    typeof(TomorrowDAOServerOrleansTestBaseModule)
     // typeof(TomorrowDAOServerApplicationModule),
     // typeof(TomorrowDAOServerApplicationContractsModule)
 )]
-public class TomorrowDAOServerOrleansTestBaseModule : AbpModule
+public class TomorrowDAOServerGrainsTestsModule : AbpModule
 {
-    private readonly ClusterFixture _fixture = new();
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.AddSingleton(_fixture);
-        context.Services.AddSingleton<IClusterClient>(sp => _fixture.Cluster.Client);
     }
 
 }
