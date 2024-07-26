@@ -87,17 +87,24 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     public async Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
-
-        var shouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
-
+        var contentShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
+        var proposalShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         AssemblyBaseQuery(input, mustQuery);
-
-        AssemblyContentQuery(input.Content, shouldQuery);
+        AssemblyContentQuery(input.Content, contentShouldQuery);
+        AssemblyProposalStatusQuery(input.ProposalStatus, mustQuery, proposalShouldQuery);
 
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) =>
-            f.Bool(b => shouldQuery.Any()
-                ? b.Should(shouldQuery).MinimumShouldMatch(1).Must(mustQuery)
-                : b.Must(mustQuery));
+            f.Bool(b => proposalShouldQuery.Any() || contentShouldQuery.Any() 
+                ? b.Must(mustQuery)
+                    .Should(s => contentShouldQuery.Any() && proposalShouldQuery.Any() 
+                        ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)) 
+                          && s.Bool(sb => sb.Should(proposalShouldQuery).MinimumShouldMatch(1)) 
+                        : contentShouldQuery.Any() 
+                            ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)) 
+                            : s.Bool(sb => sb.Should(proposalShouldQuery).MinimumShouldMatch(1)))
+                    .MinimumShouldMatch(1)
+                : b.Must(mustQuery)
+            );
 
         //add sorting
         var sortDescriptor = GetDescendingDeployTimeSortDescriptor();
@@ -270,12 +277,6 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             mustQuery.Add(q => q.Term(i =>
                 i.Field(f => f.ProposalType).Value(input.ProposalType)));
         }
-
-        if (input.ProposalStatus != null)
-        {
-            mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.ProposalStatus).Value(input.ProposalStatus)));
-        }
     }
 
     private static void AssemblyContentQuery(string content,
@@ -290,6 +291,37 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.ProposalTitle).Query(content)));
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.ProposalDescription).Query(content)));
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.Proposer).Query(content)));
+    }
+    
+    private static void AssemblyProposalStatusQuery(ProposalStatus? proposalStatus,
+        ICollection<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> mustQuery,
+        ICollection<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> shouldQuery)
+    {
+        switch (proposalStatus)
+        {
+            case null:
+                return;
+            case ProposalStatus.Defeated:
+            {
+                shouldQuery.Add(q => q.Bool(b => b.Must(ProposalStatusMustQuery(ProposalStatus.Rejected))));
+                shouldQuery.Add(q => q.Bool(b => b.Must(ProposalStatusMustQuery(ProposalStatus.Abstained))));
+                shouldQuery.Add(q => q.Bool(b => b.Must(ProposalStatusMustQuery(ProposalStatus.BelowThreshold))));
+                break;
+            }
+            default:
+                mustQuery.Add(q => q.Term(i =>
+                    i.Field(f => f.ProposalStatus).Value(proposalStatus)));
+                break;
+        }
+    }
+
+    private static IEnumerable<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> ProposalStatusMustQuery(ProposalStatus proposalStatus)
+    {
+        return new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(i =>
+                i.Field(f => f.ProposalStatus).Value(proposalStatus))
+        };
     }
 
     private static Func<SortDescriptor<ProposalIndex>, IPromise<IList<ISort>>> GetDescendingDeployTimeSortDescriptor()

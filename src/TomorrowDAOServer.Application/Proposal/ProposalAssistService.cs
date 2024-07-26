@@ -237,8 +237,8 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     {
         result.AddLast(new ProposalLifeDto
         {
-            ProposalStage = proposalStage.ToString(),
-            ProposalStatus = proposalStatus.ToString()
+            ProposalStage = MapHelper.MapProposalStageString(proposalStage),
+            ProposalStatus = MapHelper.MapProposalStatus(proposalStatus).ToString()
         });
     }
 
