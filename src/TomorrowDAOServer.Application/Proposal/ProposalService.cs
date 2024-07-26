@@ -305,7 +305,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     {
         return proposalDetailDto.Proposer == address
                && proposalDetailDto.ProposalStatus == ProposalStatus.Approved.ToString()
-               && proposalDetailDto.ProposalStage == ProposalStage.Execute.ToString()
+               && proposalDetailDto.ProposalStage == MapHelper.MapProposalStageString(ProposalStage.Execute)
                && proposalDetailDto.ExecuteStartTime != null &&  proposalDetailDto.ExecuteStartTime <= DateTime.Now
                && proposalDetailDto.ExecuteEndTime != null && proposalDetailDto.ExecuteEndTime >= DateTime.Now;
     }
