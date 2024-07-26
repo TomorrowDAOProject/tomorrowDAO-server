@@ -23,4 +23,13 @@ public static class MapHelper
     {
         return MapProposalStatus(realProposalStatus).ToString();
     }
+    
+    public static string MapProposalStageString(ProposalStage realProposalStage)
+    {
+        return realProposalStage switch
+        {
+            ProposalStage.Execute => "Queued",
+            _ => realProposalStage.ToString()
+        };
+    }
 }
