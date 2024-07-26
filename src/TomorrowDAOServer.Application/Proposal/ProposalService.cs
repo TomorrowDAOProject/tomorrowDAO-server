@@ -312,8 +312,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
     {
-        // test env easy to test
-        // input.Address = await GetAndValidateUserAddress(input.ChainId);
+        input.Address = await GetAndValidateUserAddress(input.ChainId);
         return string.IsNullOrEmpty(input.ProposalId)
             ? await QueryDaoMyInfoAsync(input)
             : await QueryProposalMyInfoAsync(input);
