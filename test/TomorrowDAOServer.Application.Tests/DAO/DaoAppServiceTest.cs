@@ -60,8 +60,6 @@ public class DaoAppServiceTest
         _objectMapper = Substitute.For<IObjectMapper>();
         _userProvider = Substitute.For<IUserProvider>();
         _currentUser = Substitute.For<ICurrentUser>();
-        _logger = Substitute.For<ILogger<DAOAppService>>();
-
         _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
             _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider, _userProvider,
             _logger);

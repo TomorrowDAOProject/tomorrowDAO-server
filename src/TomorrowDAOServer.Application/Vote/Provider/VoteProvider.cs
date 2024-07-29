@@ -404,7 +404,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         return new IndexerDAOVoterRecord();
     }
-    
+
     public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
@@ -416,7 +416,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
     }
-
+    
     public async Task GetAllAsync(string chainId)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>

@@ -6,6 +6,5 @@ public class TomorrowDAOServerGrainsTestsBase : TomorrowDAOServerOrleansTestBase
 {
     public TomorrowDAOServerGrainsTestsBase(ITestOutputHelper output) : base(output)
     {
-        //Test
     }
 }

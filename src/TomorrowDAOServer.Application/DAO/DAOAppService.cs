@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using AElf.Types;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using TomorrowDAOServer.DAO.Dtos;
@@ -64,7 +63,6 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _objectMapper = objectMapper;
         _testDaoOptions = testDaoOptions;
         _contractProvider = contractProvider;
-        _logger = logger;
         _userProvider = userProvider;
         _logger = logger;
         _explorerProvider = explorerProvider;

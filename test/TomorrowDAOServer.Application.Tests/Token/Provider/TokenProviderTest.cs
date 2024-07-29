@@ -16,8 +16,8 @@ public class TokenProviderTest
 
     public TokenProviderTest()
     {
-        _tokenInfoOptionsMonitor = Substitute.For<IOptionsMonitor<TokenInfoOptions>>();;
-        _assetsInfoOptionsMonitor = Substitute.For<IOptionsMonitor<AssetsInfoOptions>>();;
+        _tokenInfoOptionsMonitor = Substitute.For<IOptionsMonitor<TokenInfoOptions>>();
+        _assetsInfoOptionsMonitor = Substitute.For<IOptionsMonitor<AssetsInfoOptions>>();
         _provider = new TokenProvider(_tokenInfoOptionsMonitor, _assetsInfoOptionsMonitor);
     }
 
