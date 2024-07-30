@@ -24,10 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\TomorrowDAOServer.Application\TomorrowDAOServer.Application.csproj" />
         <ProjectReference Include="..\..\src\TomorrowDAOServer.Domain.Shared\TomorrowDAOServer.Domain.Shared.csproj" />
-        <ProjectReference Include="..\..\src\TomorrowDAOServer.EntityEventHandler.Core\TomorrowDAOServer.EntityEventHandler.Core.csproj" />
-        <ProjectReference Include="..\..\src\TomorrowDAOServer.EntityEventHandler\TomorrowDAOServer.EntityEventHandler.csproj" />
         <ProjectReference Include="..\..\src\TomorrowDAOServer.Grains\TomorrowDAOServer.Grains.csproj" />
         <ProjectReference Include="..\TomorrowDAOServer.Domain.Tests\TomorrowDAOServer.Domain.Tests.csproj" />
         <ProjectReference Include="..\TomorrowDAOServer.Orleans.TestBase\TomorrowDAOServer.Orleans.TestBase.csproj" />

@@ -1,13 +1,4 @@
-using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
-using AElf.Indexing.Elasticsearch.Options;
-using Elasticsearch.Net;
-using Microsoft.Extensions.DependencyInjection;
-using TomorrowDAOServer.EntityEventHandler;
-using TomorrowDAOServer.EntityEventHandler.Core;
-using TomorrowDAOServer.Grains;
-using TomorrowDAOServer.ThirdPart.Exchange;
-using TomorrowDAOServer.User;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Authorization;
@@ -29,9 +20,9 @@ namespace TomorrowDAOServer;
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
     typeof(TomorrowDAOServerOrleansTestBaseModule),
-    typeof(AElfIndexingElasticsearchModule),
-    typeof(TomorrowDAOServerApplicationModule),
-    typeof(TomorrowDAOServerApplicationContractsModule)
+    typeof(AElfIndexingElasticsearchModule)
+    // typeof(TomorrowDAOServerApplicationModule),
+    // typeof(TomorrowDAOServerApplicationContractsModule)
 )]
 public class TomorrowDAOServerGrainsTestsModule : AbpModule
 {

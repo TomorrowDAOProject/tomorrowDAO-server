@@ -18,7 +18,6 @@ using Orleans.TestingHost;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.Entities;
-using TomorrowDAOServer.EntityEventHandler;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.ThirdPart.Exchange;
 using TomorrowDAOServer.User;
@@ -87,7 +86,6 @@ public class ClusterFixture : IDisposable, ISingletonDependency
                     services.AddSingleton(typeof(IDistributedCache), typeof(MemoryDistributedCache));
                     services.AddSingleton(typeof(IDistributedCache<,>), typeof(DistributedCache<,>));
 
-                    services.AddHostedService<TomorrowDAOServerHostedService>();
                     services.AddTransient<IExchangeProvider, OkxProvider>();
                     services.AddTransient<IExchangeProvider, BinanceProvider>();
                     services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
