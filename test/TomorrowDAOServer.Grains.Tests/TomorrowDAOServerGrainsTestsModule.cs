@@ -1,6 +1,15 @@
+using System.Collections.Generic;
+using AElf.Indexing.Elasticsearch;
+using AElf.Indexing.Elasticsearch.Options;
+using Elasticsearch.Net;
 using Microsoft.Extensions.DependencyInjection;
-using Orleans;
+using TomorrowDAOServer.EntityEventHandler;
+using TomorrowDAOServer.EntityEventHandler.Core;
+using TomorrowDAOServer.Grains;
+using TomorrowDAOServer.ThirdPart.Exchange;
+using TomorrowDAOServer.User;
 using Volo.Abp;
+using Volo.Abp.Auditing;
 using Volo.Abp.Authorization;
 using Volo.Abp.Autofac;
 using Volo.Abp.AutoMapper;
@@ -19,15 +28,20 @@ namespace TomorrowDAOServer;
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
-    typeof(TomorrowDAOServerOrleansTestBaseModule)
-    // typeof(TomorrowDAOServerApplicationModule),
-    // typeof(TomorrowDAOServerApplicationContractsModule)
+    typeof(TomorrowDAOServerOrleansTestBaseModule),
+    typeof(AElfIndexingElasticsearchModule),
+    typeof(TomorrowDAOServerApplicationModule),
+    typeof(TomorrowDAOServerApplicationContractsModule)
 )]
 public class TomorrowDAOServerGrainsTestsModule : AbpModule
 {
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        Configure<AbpAuditingOptions>(options =>
+        {
+            options.IsEnabled = false;
+        });
     }
 
 }

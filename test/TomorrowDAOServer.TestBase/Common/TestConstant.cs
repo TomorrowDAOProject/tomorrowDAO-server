@@ -6,6 +6,9 @@ namespace TomorrowDAOServer.Common;
 public static class TestConstant
 {
     public const string ChainIdAELF = "AELF";
+    public const string ChainIdtDVW = "tDVW";
+    public const string ELF = "ELF";
+    
     public const string DaoId = "bfbd1a01fd5a931d2fef9ed77146d47b1ba18498cdd300ad6530cd832583152a";
     
     public const string PrivateKey1 = "87ec6028d6c4fa6fd43a1a68c589e737dc8bf4b8968373068dc39a91f70fbeb1";
