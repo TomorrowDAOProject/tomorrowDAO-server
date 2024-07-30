@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="AElf.Client" Version="1.2.3" />
+    <PackageReference Include="AElf.Cryptography" Version="1.6.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
     <PackageReference Include="Moq" Version="4.18.4" />
     <PackageReference Include="Newtonsoft.Json " Version="13.0.1" />
