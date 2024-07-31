@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Common;
@@ -12,11 +11,13 @@ using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Treasury;
 using TomorrowDAOServer.Treasury.Dto;
 using TomorrowDAOServer.User;
+using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Users;
 
 namespace TomorrowDAOServer.Discussion;
 
@@ -27,30 +28,32 @@ public class DiscussionService : ApplicationService, IDiscussionService
     private readonly IDiscussionProvider _discussionProvider;
     private readonly ProposalProvider _proposalProvider;
     private readonly IObjectMapper _objectMapper;
-    private readonly IUserService _userService;
+    private readonly IUserProvider _userProvider;
     private readonly IDAOProvider _daoProvider;
     private readonly ITreasuryAssetsService _treasuryAssetsService;
 
     public DiscussionService(IDiscussionProvider discussionProvider, ProposalProvider proposalProvider,
-        IObjectMapper objectMapper, IUserService userService, IDAOProvider daoProvider, 
+        IObjectMapper objectMapper, IUserProvider userProvider, IDAOProvider daoProvider, 
         ITreasuryAssetsService treasuryAssetsService)
     {
         _discussionProvider = discussionProvider;
         _proposalProvider = proposalProvider;
         _objectMapper = objectMapper;
-        _userService = userService;
+        _userProvider = userProvider;
         _daoProvider = daoProvider;
         _treasuryAssetsService = treasuryAssetsService;
     }
 
     public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
-        // todo only root comment now
-        input.ParentId = CommonConstant.RootParentId;
-        var userAddress = await _userService.GetCurrentUserAddressAsync(input.ChainId);
-        if (string.IsNullOrEmpty(userAddress))
+        var userAddress = await _userProvider.GetAndValidateUserAddress(CurrentUser.GetId(), input.ChainId);
+        if (input.ParentId != CommonConstant.RootParentId)
         {
-            return new NewCommentResultDto { Reason = "Invalid user: not login." };
+            var commentExisted = await _discussionProvider.GetCommentExistedAsync(input.ParentId);
+            if (!commentExisted)
+            {
+                return new NewCommentResultDto { Reason = "Invalid parentId: not existed." };
+            }
         }
         
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
