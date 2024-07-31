@@ -1,4 +1,3 @@
-using AElf.Indexing.Elasticsearch;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Authorization;
@@ -19,8 +18,8 @@ namespace TomorrowDAOServer;
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
-    typeof(TomorrowDAOServerOrleansTestBaseModule),
-    typeof(AElfIndexingElasticsearchModule)
+    typeof(TomorrowDAOServerOrleansTestBaseModule)
+    //typeof(AElfIndexingElasticsearchModule)
     // typeof(TomorrowDAOServerApplicationModule),
     // typeof(TomorrowDAOServerApplicationContractsModule)
 )]

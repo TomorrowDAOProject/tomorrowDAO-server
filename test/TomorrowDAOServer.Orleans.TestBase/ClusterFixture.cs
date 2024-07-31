@@ -90,7 +90,6 @@ public class ClusterFixture : IDisposable, ISingletonDependency
                     services.AddTransient<IExchangeProvider, BinanceProvider>();
                     services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
                     services.AddTransient<IUserAppService, UserAppService>();
-                    // services.AddSingleton<INESTRepository<UserIndex, Guid>>(INESTRepository, NESTRepository<>);
 
                     // Do not modify this!!!
                     services.Configure<EsEndpointOption>(options =>
@@ -128,8 +127,8 @@ public class ClusterFixture : IDisposable, ISingletonDependency
                         typeof(IObjectMapper),
                         typeof(DefaultObjectMapper)
                     );
-                    services.AddTransient(typeof(INESTRepository<UserIndex, Guid>),
-                        typeof(NESTRepository<UserIndex, Guid>));
+                    services.AddTransient(typeof(INESTRepository<,>),
+                        typeof(NESTRepository<,>));
                     services.AddTransient(typeof(IEsClientProvider), typeof(DefaultEsClientProvider));
                     services.AddTransient(typeof(IAutoObjectMappingProvider),
                         typeof(AutoMapperAutoObjectMappingProvider));
