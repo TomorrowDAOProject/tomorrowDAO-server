@@ -4,6 +4,8 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Contract.Dto;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
+using TomorrowDAOServer.Discussion;
+using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
@@ -209,5 +211,8 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             ;
 
         CreateMap<ExplorerTokenInfoResponse, TokenInfoDto>();
+        CreateMap<ProposalIndex, CommentIndex>();
+        CreateMap<NewCommentInput, CommentIndex>();
+        CreateMap<CommentIndex, CommentDto>();
     }
 }
