@@ -33,6 +33,7 @@ public class ProposalBasicDto
     public DateTime? ExecuteEndTime { get; set; }
 
     public string ProposalStatus { get; set; }
+    public string RealProposalStatus { get; set; }
 
     public string ProposalStage { get; set; }
     

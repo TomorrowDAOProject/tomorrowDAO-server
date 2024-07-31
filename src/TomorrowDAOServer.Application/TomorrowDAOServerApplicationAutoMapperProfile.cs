@@ -18,6 +18,7 @@ using TomorrowDAOServer.Token;
 using TomorrowDAOServer.Token.Index;
 using TomorrowDAOServer.Treasury.Dto;
 using TomorrowDAOServer.User.Dtos;
+using TomorrowDAOServer.Vote;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
 
@@ -52,29 +53,48 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => MapTransactionParams(source.Params)))
             ;
         CreateMap<ProposalIndex, ProposalDto>()
+            .ForMember(des => des.RealProposalStatus, opt
+                => opt.MapFrom(source => source.ProposalStatus))
+            .ForMember(des => des.ProposalStatus, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStatusString(source.ProposalStatus)))
+            .ForMember(des => des.ProposalStage, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStageString(source.ProposalStage)))
             .ForMember(des => des.ProposalType, opt
                 => opt.MapFrom(source => source.ProposalType.ToString()))
-            .ForMember(des => des.ProposalStatus, opt
-                => opt.MapFrom(source => source.ProposalStatus.ToString()))
             .ForMember(des => des.ProposalStage, opt
                 => opt.MapFrom(source => source.ProposalStage.ToString()))
             .ForMember(des => des.GovernanceMechanism, opt
                 => opt.MapFrom(source => source.GovernanceMechanism.ToString()))
             ;
         CreateMap<ProposalIndex, ProposalBasicDto>()
+            .ForMember(des => des.RealProposalStatus, opt
+                => opt.MapFrom(source => source.ProposalStatus))
+            .ForMember(des => des.ProposalStatus, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStatusString(source.ProposalStatus)))
+            .ForMember(des => des.ProposalStage, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStageString(source.ProposalStage)))
             .ForMember(des => des.ProposalType, opt
                 => opt.MapFrom(source => source.ProposalType.ToString()))
-            .ForMember(des => des.ProposalStatus, opt
-                => opt.MapFrom(source => source.ProposalStatus.ToString()))
             .ForMember(des => des.ProposalStage, opt
                 => opt.MapFrom(source => source.ProposalStage.ToString()))
             .ForMember(des => des.GovernanceMechanism, opt
                 => opt.MapFrom(source => source.GovernanceMechanism.ToString()))
             ;
-        CreateMap<ProposalIndex, ProposalDetailDto>();
+        CreateMap<ProposalIndex, ProposalDetailDto>()
+            .ForMember(des => des.RealProposalStatus, opt
+                => opt.MapFrom(source => source.ProposalStatus))
+            .ForMember(des => des.ProposalStatus, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStatusString(source.ProposalStatus)))
+            .ForMember(des => des.ProposalStage, opt
+                => opt.MapFrom(source => MapHelper.MapProposalStageString(source.ProposalStage)))
+            ;
         CreateMap<ProposalIndex, MyProposalDto>();
         CreateMap<IndexerVote, ProposalDto>();
         CreateMap<IndexerVote, ProposalDetailDto>();
+        CreateMap<IndexerVoteRecord, VoteRecordIndex>()
+            .ForMember(des => des.IsWithdraw, opt
+                => opt.MapFrom(source => false))
+            ;
         CreateMap<IndexerVoteRecord, VoteRecordDto>()
             .ForMember(des => des.Option, opt
                 => opt.MapFrom(source => source.Option.ToString()))

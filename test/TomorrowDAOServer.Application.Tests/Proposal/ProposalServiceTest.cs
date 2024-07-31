@@ -20,10 +20,13 @@ using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.User.Provider;
+using TomorrowDAOServer.Vote;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
 using TomorrowDAOServer.Vote.Provider;
+using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Users;
 using Xunit;
 
 namespace TomorrowDAOServer.Proposal;
@@ -43,6 +46,8 @@ public class ProposalServiceTest
     private readonly IUserProvider _userProvider;
     private readonly IElectionProvider _electionProvider;
     private readonly ProposalService _service;
+    private readonly ICurrentUser _currentUser;
+    private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
 
     public ProposalServiceTest()
     {
@@ -61,6 +66,9 @@ public class ProposalServiceTest
         _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, _explorerProvider, 
             _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
             _logger, _userProvider, _electionProvider);
+        
+        _currentUser = Substitute.For<ICurrentUser>();
+        _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
     }
 
     [Fact]
@@ -90,5 +98,119 @@ public class ProposalServiceTest
             .Returns(new Dictionary<string, IndexerVoteSchemeInfo>());
         var result = await _service.QueryProposalListAsync(new QueryProposalListInput { ChainId = "AELF", DaoId = "DaoId" });
         result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async void QueryProposalMyInfoAsync_Test()
+    {
+        // null
+        var myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBeNull();
+        
+        // multi sig dao
+        _proposalProvider.GetProposalByIdAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new ProposalIndex{ProposalStage = ProposalStage.Execute});
+        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>()).Returns(new DAOIndex());
+        _voteProvider.GetByVotingItemIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+            .Returns(new List<VoteRecordIndex>());
+        myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBeNull();
+        myInfo.CanVote.ShouldBe(false);
+        
+        // token dao
+        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>()).Returns(new DAOIndex{GovernanceToken = "ELF"});
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new TokenInfoDto{Symbol = "ELF"});
+        myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBe("ELF");
+        myInfo.CanVote.ShouldBe(false);
+        myInfo.AvailableUnStakeAmount.ShouldBe(0);
+        
+        _voteProvider.GetByVoterAndVotingItemIdsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<List<string>>())
+            .Returns(new List<VoteRecordIndex>{new(){Amount = 10, IsWithdraw = false, EndTime = DateTime.Today.AddDays(-1)}});
+        myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBe("ELF");
+        myInfo.CanVote.ShouldBe(false);
+        myInfo.AvailableUnStakeAmount.ShouldBe(10);
+    }
+    
+    [Fact]
+    public async void QueryDaoMyInfoAsync_Test()
+    {
+        // dao is null
+        var myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBeNull();
+        
+        // multi sig dao
+        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
+            .Returns(new DAOIndex());
+        _voteProvider.GetDaoVoterRecordAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new IndexerDAOVoterRecord());
+        myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBeNull();
+        myInfo.VotesAmountUniqueVote.ShouldBe(0);
+        
+        // token dao
+        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
+            .Returns(new DAOIndex{GovernanceToken = "ELF"});
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new TokenInfoDto());
+        _voteProvider.GetNonWithdrawVoteRecordAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new List<VoteRecordIndex>
+            {
+                new() { EndTime = DateTime.Today.AddDays(1), Amount = 2 },
+                new() { EndTime = DateTime.Today.AddDays(-1), Amount = 2 }
+            });
+        myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
+        {
+            ChainId = "AELF", DAOId = "daoId", Address = "address"
+        });
+        myInfo.ShouldNotBeNull();
+        myInfo.Symbol.ShouldBeNull("ELF");
+    }
+
+
+    [Fact]
+    public async void CanExecute_Test()
+    {
+        var canExecute = _service.CanExecute(new ProposalDetailDto(), "address");
+        canExecute.ShouldBe(false);
+        
+        canExecute = _service.CanExecute(new ProposalDetailDto
+        {
+            Proposer = "address"
+        }, "address");
+        canExecute.ShouldBe(false);
+        
+        canExecute = _service.CanExecute(new ProposalDetailDto
+        {
+            Proposer = "address", ProposalStatus = ProposalStatus.Approved.ToString(), ProposalStage = "Queued",
+            ExecuteStartTime = DateTime.Now.AddDays(-1), ExecuteEndTime = DateTime.Now.AddDays(1)
+        }, "address");
+        canExecute.ShouldBe(true);
     }
 }

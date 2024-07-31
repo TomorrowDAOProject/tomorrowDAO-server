@@ -6,11 +6,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Chains;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.Election.Dto;
+using TomorrowDAOServer.Election.Index;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Enums;
+using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.Election;
 
@@ -61,6 +64,9 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
                 {
                     await _graphQlProvider.SetHighCouncilMembersAsync(chainId, daoId, addressList);
                 }
+                
+                await UpdateHighCouncilManagedDaoIndexAsync(chainId, daoId,
+                    new HashSet<string>(addressList ?? new List<string>()));
             }
             catch (Exception e)
             {
@@ -73,6 +79,61 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         _logger.LogInformation("high council member sync end: newIndexHeight={0}", newIndexHeight);
 
         return newIndexHeight;
+    }
+
+    private async Task UpdateHighCouncilManagedDaoIndexAsync(string chainId, string daoId, ISet<string> addressList)
+    {
+        _logger.LogInformation("Update HighCouncilManagedDAOIndex start... chain={0},daoId={1},current members={2}",
+            chainId, daoId, JsonConvert.SerializeObject(addressList));
+        try
+        {
+            var managedDaoIndices =
+                await _electionProvider.GetHighCouncilManagedDaoIndexAsync(new GetHighCouncilMemberManagedDaoInput
+                {
+                    MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+                    SkipCount = 0,
+                    ChainId = chainId,
+                    DaoId = daoId
+                });
+            _logger.LogInformation("Update HighCouncilManangedDAOIndex, historical members:{0}",
+                JsonConvert.SerializeObject(managedDaoIndices ?? new List<HighCouncilManagedDaoIndex>()));
+
+            var deleteIndices = new List<HighCouncilManagedDaoIndex>();
+            foreach (var managedDaoIndex in managedDaoIndices)
+            {
+                if (addressList.Contains(managedDaoIndex.MemberAddress))
+                {
+                    addressList.Remove(managedDaoIndex.MemberAddress);
+                    continue;
+                }
+                deleteIndices.Add(managedDaoIndex);
+            }
+
+            var addIndices = addressList.Select(address => new HighCouncilManagedDaoIndex
+                {
+                    Id = GuidHelper.GenerateId(chainId, daoId, address),
+                    MemberAddress = address,
+                    DaoId = daoId,
+                    ChainId = chainId,
+                    CreateTime = DateTime.Now
+                })
+                .ToList();
+            _logger.LogInformation("Update HighCouncilManagedDAOIndex, add members={0}, delete members={1}",
+                JsonConvert.SerializeObject(addIndices), JsonConvert.SerializeObject(deleteIndices));
+            if (!deleteIndices.IsNullOrEmpty())
+            {
+                await _electionProvider.DeleteHighCouncilManagedDaoIndexAsync(deleteIndices);
+            }
+
+            if (!addIndices.IsNullOrEmpty())
+            {
+                await _electionProvider.SaveOrUpdateHighCouncilManagedDaoIndexAsync(addIndices);
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Update HighCouncilManagedDAOIndex error.");
+        }
     }
 
     public override async Task<List<string>> GetChainIdsAsync()

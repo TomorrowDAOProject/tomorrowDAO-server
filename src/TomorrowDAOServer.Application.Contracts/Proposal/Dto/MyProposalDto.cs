@@ -14,9 +14,9 @@ public class MyProposalDto
 
     public long StakeAmount { get; set; }
     
-    public long votesAmountTokenBallot { get; set; }
+    public long VotesAmountTokenBallot { get; set; }
     
-    public long votesAmountUniqueVote { get; set; }
+    public long VotesAmountUniqueVote { get; set; }
 
     public bool CanVote { get; set; }
     public List<WithdrawDto> WithdrawList { get; set; } = new();

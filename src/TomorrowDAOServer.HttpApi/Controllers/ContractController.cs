@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.Contract.Dto;
@@ -25,8 +26,8 @@ public class ContractController
     }
     
     [HttpGet("contracts-info")]
-    public ContractDetailDto ContractsInfo(QueryContractsInfoInput input)
+    public async Task<ContractDetailDto> ContractsInfoAsync(QueryContractsInfoInput input)
     {
-        return _contractService.GetContractInfo(input.ChainId);
+        return await _contractService.GetContractInfoAsync(input);
     }
 }

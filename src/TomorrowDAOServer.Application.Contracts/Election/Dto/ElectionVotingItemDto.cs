@@ -1,4 +1,4 @@
-using Google.Type;
+using System;
 
 namespace TomorrowDAOServer.Election.Dto;
 

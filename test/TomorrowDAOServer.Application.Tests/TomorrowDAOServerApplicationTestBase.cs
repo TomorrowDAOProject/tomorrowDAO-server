@@ -5,9 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using Newtonsoft.Json;
 using TomorrowDAOServer.Common.Mocks;
-using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DistributedLocking;
 using Xunit.Abstractions;
@@ -48,8 +46,9 @@ public abstract partial class
         services.AddSingleton(MockGraphQlOptions());
         services.AddSingleton(MockExplorerOptions());
         services.AddSingleton(MockQueryContractOption());
+        services.AddSingleton(MockChainOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
-        
+        services.AddSingleton(ContractProviderMock.MockContractProvider());
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
@@ -78,7 +77,7 @@ public abstract partial class
         });
         return mock.Object;
     }
-    
+
     private static IOptionsSnapshot<QueryContractOption> MockQueryContractOption()
     {
         var mock = new Mock<IOptionsSnapshot<QueryContractOption>>();
@@ -107,5 +106,43 @@ public abstract partial class
             .Returns<string, TimeSpan, CancellationToken>((name, timeSpan, cancellationToken) =>
                 Task.FromResult<IAbpDistributedLockHandle>(new LocalAbpDistributedLockHandle(new SemaphoreSlim(0))));
         return mockLockProvider.Object;
+    }
+
+    private IOptionsMonitor<ChainOptions> MockChainOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<ChainOptions>>();
+        mock.Setup(e => e.CurrentValue).Returns(new ChainOptions
+        {
+            PrivateKeyForCallTx = PrivateKey1,
+            ChainInfos = new Dictionary<string, ChainOptions.ChainInfo>()
+            {
+                {
+                    ChainIdAELF, new ChainOptions.ChainInfo
+                    {
+                        BaseUrl = "https://test-node.io",
+                        IsMainChain = true,
+                        ContractAddress = new Dictionary<string, string>()
+                        {
+                            { "CaAddress", "CAContractAddress" },
+                            { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" }
+                        }
+                    }
+                },
+                {
+                    ChainIdTDVV, new ChainOptions.ChainInfo
+                    {
+                        BaseUrl = "https://test-tdvv-node.io",
+                        IsMainChain = false,
+                        ContractAddress = new Dictionary<string, string>()
+                        {
+                            { "CaAddress", "CAContractAddress" },
+                            { "TreasuryContractAddress", "TreasuryContractAddress" }
+                        }
+                    }
+                }
+            },
+            TokenImageRefreshDelaySeconds = 300
+        });
+        return mock.Object;
     }
 }

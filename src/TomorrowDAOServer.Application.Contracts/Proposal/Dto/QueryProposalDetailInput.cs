@@ -10,6 +10,7 @@ public class QueryProposalDetailInput : IValidatableObject
     [Required] public string ChainId { get; set; }
 
     [Required] public string ProposalId { get; set; }
+    public string Address { get; set; }
     
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

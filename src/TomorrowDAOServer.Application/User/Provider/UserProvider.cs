@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using TomorrowDAOServer.Grains.Grain.Users;
+using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.User.Provider;
@@ -11,6 +12,7 @@ public interface IUserProvider
 {
     Task<UserGrainDto> GetUserAsync(Guid userId);
     Task<string> GetUserAddress(Guid userId, string chainId);
+    Task<string> GetAndValidateUserAddress(Guid userId, string chainId);
 }
 
 public class UserProvider : IUserProvider, ISingletonDependency
@@ -63,5 +65,17 @@ public class UserProvider : IUserProvider, ISingletonDependency
 
         var addressInfo = userGrainDto.AddressInfos.Find(a => a.ChainId == chainId);
         return addressInfo == null ? string.Empty : addressInfo.Address;
+    }
+    
+    public async Task<string> GetAndValidateUserAddress(Guid userId, string chainId)
+    {
+        var userAddress = await GetUserAddress(userId, chainId);
+        if (!userAddress.IsNullOrWhiteSpace())
+        {
+            return userAddress;
+        }
+
+        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        throw new UserFriendlyException("No user address found");
     }
 }

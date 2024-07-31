@@ -9,7 +9,7 @@ public class VoteRecordDto
     
     public string TransactionId { get; set; }
     
-    public int Amount { get; set; }
+    public long Amount { get; set; }
     
     public string VotingItemId {get; set; }
     

@@ -28,7 +28,7 @@ public interface IDAOProvider
     Task<long> GetDAOListCountAsync(QueryDAOListInput input, ISet<string> excludeNames);
     Task<Tuple<long, List<DAOIndex>>> GetDAOListByNameAsync(string chainId, List<string> names);
     Task<Tuple<long, List<DAOIndex>>> GetMyOwneredDAOListAsync(QueryMyDAOListInput input, string address);
-    Task<DAOIndex> GetNetworkDAOAsync(string chainId);
+    Task<Tuple<long, List<DAOIndex>>> GetManagedDAOAsync(QueryMyDAOListInput input, List<string> daoIds, bool networkDao);
     Task<PageResultDto<IndexerDAOInfo>> GetMyParticipatedDaoListAsync(GetParticipatedInput input);
     Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput);
     Task<MemberDto> GetMemberAsync(GetMemberInput listInput);
@@ -199,17 +199,38 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
             sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
     }
 
-    public async Task<DAOIndex> GetNetworkDAOAsync(string chainId)
+    public async Task<Tuple<long, List<DAOIndex>>> GetManagedDAOAsync(QueryMyDAOListInput input, List<string> daoIds,
+        bool networkDao)
     {
+        if (!networkDao && daoIds.IsNullOrEmpty())
+        {
+            return new Tuple<long, List<DAOIndex>>(0, new List<DAOIndex>());
+        }
+
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
         {
             q =>
-                q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q =>
-                q.Term(i => i.Field(t => t.IsNetworkDAO).Value(true))
+                q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId))
         };
-        QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await _daoIndexRepository.GetAsync(Filter);
+
+        var shouldQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>();
+        if (!daoIds.IsNullOrEmpty())
+        {
+            shouldQuery.Add(q =>
+                q.Terms(i => i.Field(t => t.Id).Terms(daoIds)));
+        }
+
+        if (networkDao)
+        {
+            shouldQuery.Add(q =>
+                q.Term(i => i.Field(t => t.IsNetworkDAO).Value(true)));
+        }
+
+        QueryContainer Filter(QueryContainerDescriptor<DAOIndex> f) =>
+            f.Bool(b => b.Should(shouldQuery).MinimumShouldMatch(1).Must(mustQuery));
+
+        return await _daoIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
     }
 
     public async Task<PageResultDto<IndexerDAOInfo>> GetMyParticipatedDaoListAsync(GetParticipatedInput input)

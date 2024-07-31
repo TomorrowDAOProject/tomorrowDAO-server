@@ -9,15 +9,10 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.DAO.Provider;
-using TomorrowDAOServer.Election.Dto;
-using TomorrowDAOServer.Election.Index;
-using TomorrowDAOServer.Election.Provider;
-using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Governance.Dto;
 using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
-using Volo.Abp.Application.Dtos;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -35,7 +30,6 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
     protected override void AfterAddApplication(IServiceCollection services)
     {
         services.AddSingleton(MockDAOProvider());
-        services.AddSingleton(MockElectionProvider());
         services.AddSingleton(MockProposalProvider());
         services.AddSingleton(MockGovernanceProvider());
         services.AddSingleton(MockExplorerProvider());
@@ -53,14 +47,6 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
             DAOId = "test1"
         });
         result.ShouldNotBeNull();
-        
-        var ret = await _daoAppService.GetHcMemberListAsync(new GetHcMemberInput
-        {
-            ChainId = "AELF",
-            DAOId = "test1",
-            Type = HighCouncilType.Member.ToString()
-        });
-        ret.ShouldNotBeNull();
     }
 
     private IDAOProvider MockDAOProvider()
@@ -123,26 +109,6 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
         return mock.Object;
     }
 
-    private IElectionProvider MockElectionProvider()
-    {
-        var mock = new Mock<IElectionProvider>();
-
-        mock.Setup(p => p.GetHighCouncilListAsync(It.IsAny<GetHighCouncilListInput>())).ReturnsAsync(
-            new PagedResultDto<IndexerElection>(
-                1, 
-                new List<IndexerElection>
-                {
-                    new()
-                    {
-                        ChainId = "AELF",
-                        Address = "xxxx"
-                    }
-                }
-            ));
-
-        return mock.Object;
-    }
-    
     private IProposalProvider MockProposalProvider()
     {
         var mock = new Mock<IProposalProvider>();

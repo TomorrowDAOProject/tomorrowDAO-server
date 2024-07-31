@@ -30,19 +30,19 @@ public class DaoController
     {
         return await _daoAppService.GetDAOByIdAsync(input);
     }
-    
-    [HttpGet("hc-member-list")]
-    public async Task<PagedResultDto<HcMemberDto>> GetHcMemberListAsync(GetHcMemberInput input)
-    {
-        return await _daoAppService.GetHcMemberListAsync(input);
-    }
-    
+
     [HttpGet("member-list")]
     public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
     {
         return await _daoAppService.GetMemberListAsync(listInput);
     }
     
+    [HttpGet("is-member")]
+    public async Task<bool> IsDaoMemberAsync(IsDaoMemberInput input)
+    {
+        return await _daoAppService.IsDaoMemberAsync(input);
+    }
+
     [HttpGet("dao-list")]
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput request)
     {
@@ -56,6 +56,7 @@ public class DaoController
     }
 
     [HttpGet("my-dao-list")]
+    [Authorize]
     public async Task<List<MyDAOListDto>> MyDAOList(QueryMyDAOListInput input)
     {
         return await _daoAppService.GetMyDAOListAsync(input);
