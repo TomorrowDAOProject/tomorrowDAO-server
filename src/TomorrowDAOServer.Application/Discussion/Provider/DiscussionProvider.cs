@@ -17,7 +17,7 @@ public interface IDiscussionProvider
 {
     Task<long> GetCommentCountAsync(string proposalId);
     Task NewCommentAsync(CommentIndex index);
-    Task<Tuple<long, List<CommentIndex>>> GetRootCommentAsync(GetCommentListInput input);
+    Task<Tuple<long, List<CommentIndex>>> GetRootCommentListAsync(GetCommentListInput input);
     Task<bool> GetCommentExistedAsync(string parentId);
 }
 
@@ -55,7 +55,7 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         await _commentIndexRepository.AddOrUpdateAsync(index);
     }
 
-    public async Task<Tuple<long, List<CommentIndex>>> GetRootCommentAsync(GetCommentListInput input)
+    public async Task<Tuple<long, List<CommentIndex>>> GetRootCommentListAsync(GetCommentListInput input)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<CommentIndex>, QueryContainer>>
         {

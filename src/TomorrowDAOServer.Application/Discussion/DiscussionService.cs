@@ -109,7 +109,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public async Task<PagedResultDto<CommentDto>> GetCommentListAsync(GetCommentListInput input)
     {
-        var result = await _discussionProvider.GetRootCommentAsync(input);
+        var result = await _discussionProvider.GetRootCommentListAsync(input);
         return new PagedResultDto<CommentDto>
         {
             TotalCount = result.Item1,
