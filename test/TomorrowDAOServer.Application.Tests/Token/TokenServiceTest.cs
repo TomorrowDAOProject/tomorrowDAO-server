@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -10,6 +11,7 @@ using TomorrowDAOServer.Grains.Grain;
 using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.ThirdPart.Exchange;
 using Volo.Abp.ObjectMapping;
 using Xunit;
 
@@ -22,6 +24,10 @@ public class TokenServiceTest
     private readonly IExplorerProvider _explorerProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly IGraphQLProvider _graphQlProvider;
+    // private readonly Dictionary<string, IExchangeProvider> _exchangeProviders;
+    private IEnumerable<IExchangeProvider> _exchangeProviders;
+    private readonly IOptionsMonitor<NetWorkReflectionOptions> _netWorkReflectionOption;
+    private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
     private readonly ITokenService _service;
     
     private readonly ILogger<TokenGrain> _logger1;
@@ -36,7 +42,11 @@ public class TokenServiceTest
         _explorerProvider = Substitute.For<IExplorerProvider>();
         _objectMapper = Substitute.For<IObjectMapper>();
         _graphQlProvider = Substitute.For<IGraphQLProvider>();
-        _service = new TokenService(_clusterClient, _logger, _explorerProvider, _objectMapper, _graphQlProvider);
+        _exchangeProviders = Substitute.For<IEnumerable<IExchangeProvider>>();
+        _netWorkReflectionOption = Substitute.For<IOptionsMonitor<NetWorkReflectionOptions>>();
+        _exchangeOptions = Substitute.For<IOptionsMonitor<ExchangeOptions>>();
+        _service = new TokenService(_clusterClient, _logger, _explorerProvider, _objectMapper, _graphQlProvider, 
+            _exchangeProviders, _netWorkReflectionOption, _exchangeOptions);
     }
 
     [Fact]
