@@ -28,4 +28,10 @@ public class TreasuryControllers : AbpController
     {
         return await _treasuryAssetsService.GetTreasuryAssetsAsync(input);
     }
+    
+    [HttpPost("is-depositor")]
+    public async Task<bool> IsTreasuryDepositorAsync(IsTreasuryDepositorInput input)
+    {
+        return await _treasuryAssetsService.IsTreasuryDepositorAsync(input);
+    }
 }

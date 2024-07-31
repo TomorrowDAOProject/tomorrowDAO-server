@@ -12,6 +12,7 @@ public interface ITreasuryAssetsProvider
 {
     Task<GetTreasuryFundListResult> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input);
     Task<GetTreasuryFundListResult> GetAllTreasuryAssetsAsync(GetAllTreasuryAssetsInput input);
+    Task<GetTreasuryRecordListResult> GetTreasuryRecordListAsync(GetTreasuryRecordListInput input);
 }
 
 public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDependency
@@ -27,9 +28,10 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
 
     public async Task<GetTreasuryFundListResult> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input)
     {
-        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<GetTreasuryFundListResult>>(new GraphQLRequest
-        {
-            Query = @"
+        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<GetTreasuryFundListResult>>(
+            new GraphQLRequest
+            {
+                Query = @"
 			    query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$daoId:String!,$symbols: [String],$startBlockHeight:Long!,$endBlockHeight:Long!) {
                     data:getTreasuryFundList(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,daoId:$daoId,symbols:$symbols,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight})
                     {
@@ -46,24 +48,25 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
                         }
                     }
                 }",
-            Variables = new
-            {
-                chainId = input.ChainId,
-                daoId = input.DaoId,
-                skipCount = input.SkipCount,
-                maxResultCount = input.MaxResultCount,
-                startBlockHeight = 0,
-                endBlockHeight = 0
-            }
-        });
+                Variables = new
+                {
+                    chainId = input.ChainId,
+                    daoId = input.DaoId,
+                    skipCount = input.SkipCount,
+                    maxResultCount = input.MaxResultCount,
+                    startBlockHeight = 0,
+                    endBlockHeight = 0
+                }
+            });
         return response.Data ?? new GetTreasuryFundListResult();
     }
 
     public async Task<GetTreasuryFundListResult> GetAllTreasuryAssetsAsync(GetAllTreasuryAssetsInput input)
     {
-        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<GetTreasuryFundListResult>>(new GraphQLRequest
-        {
-            Query = @"
+        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<GetTreasuryFundListResult>>(
+            new GraphQLRequest
+            {
+                Query = @"
 			    query($chainId:String!,$daoId:String!) {
                     data:getAllTreasuryFundList(input: {chainId:$chainId,daoId:$daoId})
                     {
@@ -80,12 +83,56 @@ public class TreasuryAssetsProvider : ITreasuryAssetsProvider, ISingletonDepende
                         }
                     }
                 }",
-            Variables = new
-            {
-                chainId = input.ChainId,
-                daoId = input.DaoId,
-            }
-        });
+                Variables = new
+                {
+                    chainId = input.ChainId,
+                    daoId = input.DaoId,
+                }
+            });
         return response.Data ?? new GetTreasuryFundListResult();
+    }
+
+    public async Task<GetTreasuryRecordListResult> GetTreasuryRecordListAsync(GetTreasuryRecordListInput input)
+    {
+        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<GetTreasuryRecordListResult>>(
+            new GraphQLRequest
+            {
+                Query = @"
+			    query($chainId:String,$daoId:String,$treasuryAddress:String,$fromAddress:String,$skipCount:Int!,$maxResultCount:Int!,$symbols:[String!],$startBlockHeight:Long!,$endBlockHeight:Long!) {
+                    data:getTreasuryRecordList(input: {chainId:$chainId,daoId:$daoId,treasuryAddress:$treasuryAddress,fromAddress:$fromAddress,skipCount:$skipCount,maxResultCount:$maxResultCount,symbols:$symbols,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight})
+                    {
+                        item1,
+                        item2 {
+                            id,
+                            chainId,
+                            blockHeight,
+                            daoId,
+                            treasuryAddress,
+                            amount,
+                            symbol,
+                            executor,
+                            fromAddress,
+                            toAddress,
+                            memo,
+                            treasuryRecordType,
+                            createTime,
+                            proposalId
+                        }
+                    }
+                }",
+                Variables = new
+                {
+                    chainId = input.ChainId,
+                    daoId = input.DaoId,
+                    treasuryAddress = input.TreasuryAddress,
+                    fromAddress = input.Address,
+                    symbols = input.Symbols,
+                    skipCount = input.SkipCount,
+                    maxResultCount = input.MaxResultCount,
+                    startBlockHeight = input.StartBlockHeight,
+                    endBlockHeight = input.EndBlockHeight
+                }
+            });
+        return response.Data ?? new GetTreasuryRecordListResult();
     }
 }
