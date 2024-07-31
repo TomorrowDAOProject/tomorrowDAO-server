@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Token.Dto;
@@ -14,4 +15,5 @@ public interface ITokenService
     
     Task<double> GetTvlAsync(string chainId);
 
+    Task<Dictionary<string, TokenExchangeDto>> GetExchangePriceAsync(string baseCoin, string quoteCoin);
 }

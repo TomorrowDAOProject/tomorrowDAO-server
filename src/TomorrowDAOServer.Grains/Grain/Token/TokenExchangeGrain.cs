@@ -1,83 +1,32 @@
-using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.State.Token;
-using TomorrowDAOServer.Options;
-using TomorrowDAOServer.ThirdPart.Exchange;
 using TomorrowDAOServer.Token;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Orleans;
 
 namespace TomorrowDAOServer.Grains.Grain.Token;
 
 public interface ITokenExchangeGrain : IGrainWithStringKey
 {
-    Task<Dictionary<string, TokenExchangeDto>> GetAsync();
+    Task<TokenExchangeGrainDto> GetAsync();
+    Task SetAsync(TokenExchangeGrainDto tokenExchangeGrainDto);
 }
 
 public class TokenExchangeGrain : Grain<TokenExchangeState>, ITokenExchangeGrain
-{
-    private readonly ILogger<TokenExchangeGrain> _logger;
-    private readonly Dictionary<string, IExchangeProvider> _exchangeProviders;
-    private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
-    private readonly IOptionsMonitor<NetWorkReflectionOptions> _netWorkReflectionOption;
-
-    public TokenExchangeGrain(IEnumerable<IExchangeProvider> exchangeProviders,
-        IOptionsMonitor<ExchangeOptions> exchangeOptions,
-        IOptionsMonitor<NetWorkReflectionOptions> netWorkReflectionOption, ILogger<TokenExchangeGrain> logger)
+{ 
+    public async Task<TokenExchangeGrainDto> GetAsync()
     {
-        _exchangeOptions = exchangeOptions;
-        _netWorkReflectionOption = netWorkReflectionOption;
-        _logger = logger;
-        _exchangeProviders = exchangeProviders.ToDictionary(p => p.Name().ToString());
+        return await Task.FromResult(new TokenExchangeGrainDto
+        {
+            LastModifyTime = State.LastModifyTime,
+            ExpireTime = State.ExpireTime,
+            ExchangeInfos = State.ExchangeInfos
+        });
     }
 
-
-    public async Task<Dictionary<string, TokenExchangeDto>> GetAsync()
+    public async Task SetAsync(TokenExchangeGrainDto tokenExchangeGrainDto)
     {
-        var now = DateTime.UtcNow.ToUtcMilliSeconds();
-        if (State.LastModifyTime > 0 && State.ExpireTime > now)
-        {
-            return State.ExchangeInfos;
-        }
-
-        var symbolValue = this.GetPrimaryKeyString().Split(CommonConstant.Underline);
-        if (symbolValue.Length < 2)
-        {
-            return new Dictionary<string, TokenExchangeDto>();
-        }
-
-        var asyncTasks = new Dictionary<string, Task<TokenExchangeDto>>();
-        foreach (var provider in _exchangeProviders.Values)
-        {
-            asyncTasks[provider.Name().ToString()] =
-                provider.LatestAsync(MappingSymbol(symbolValue[0].ToUpper()), MappingSymbol(symbolValue[1].ToUpper()));
-        }
-        
-        State.LastModifyTime = now;
-        State.ExpireTime = now + _exchangeOptions.CurrentValue.DataExpireSeconds * 1000;
-        State.ExchangeInfos = new Dictionary<string, TokenExchangeDto>();
-        foreach (var (providerName, exchangeTask) in asyncTasks)
-        {
-            try
-            {
-                State.ExchangeInfos.Add(providerName, await exchangeTask);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Query exchange failed, providerName={ProviderName}", providerName);
-            }
-        }
-
+        State.LastModifyTime = tokenExchangeGrainDto.LastModifyTime;
+        State.ExpireTime = tokenExchangeGrainDto.ExpireTime;
+        State.ExchangeInfos = tokenExchangeGrainDto.ExchangeInfos;
         await WriteStateAsync();
-
-        return State.ExchangeInfos;
     }
-
-    private string MappingSymbol(string sourceSymbol)
-    {
-        return _netWorkReflectionOption.CurrentValue.SymbolItems.TryGetValue(sourceSymbol, out var targetSymbol)
-            ? targetSymbol
-            : sourceSymbol;
-    }
-    
 }
