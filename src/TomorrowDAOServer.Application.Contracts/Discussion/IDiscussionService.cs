@@ -6,6 +6,6 @@ namespace TomorrowDAOServer.Discussion;
 
 public interface IDiscussionService
 {
-    Task<bool> NewCommentAsync(NewCommentInput input);
+    Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input);
     Task<PagedResultDto<CommentDto>> GetCommentListAsync(GetCommentListInput input);
 }

@@ -9,6 +9,8 @@ using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Discussion.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Treasury;
+using TomorrowDAOServer.Treasury.Dto;
 using TomorrowDAOServer.User;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -27,37 +29,40 @@ public class DiscussionService : ApplicationService, IDiscussionService
     private readonly IObjectMapper _objectMapper;
     private readonly IUserService _userService;
     private readonly IDAOProvider _daoProvider;
+    private readonly ITreasuryAssetsService _treasuryAssetsService;
 
     public DiscussionService(IDiscussionProvider discussionProvider, ProposalProvider proposalProvider,
-        IObjectMapper objectMapper, IUserService userService, IDAOProvider daoProvider)
+        IObjectMapper objectMapper, IUserService userService, IDAOProvider daoProvider, 
+        ITreasuryAssetsService treasuryAssetsService)
     {
         _discussionProvider = discussionProvider;
         _proposalProvider = proposalProvider;
         _objectMapper = objectMapper;
         _userService = userService;
         _daoProvider = daoProvider;
+        _treasuryAssetsService = treasuryAssetsService;
     }
 
-    public async Task<bool> NewCommentAsync(NewCommentInput input)
+    public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
         // todo only root comment now
         input.ParentId = CommonConstant.RootParentId;
         var userAddress = await _userService.GetCurrentUserAddressAsync(input.ChainId);
         if (string.IsNullOrEmpty(userAddress))
         {
-            throw new UserFriendlyException("Invalid user: not existed.");
+            return new NewCommentResultDto { Reason = "Invalid user: not login." };
         }
         
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
         if (proposalIndex == null)
         {
-            throw new UserFriendlyException("Invalid proposalId: not existed.");
+            return new NewCommentResultDto { Reason = "Invalid proposalId: not existed." };
         }
 
         var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { ChainId = proposalIndex.ChainId, DAOId = proposalIndex.DAOId });
         if (daoIndex == null)
         {
-            throw new UserFriendlyException("Invalid proposalId: dao not existed.");
+            return new NewCommentResultDto { Reason = "Invalid proposalId: dao not existed." };
         }
 
         if (string.IsNullOrEmpty(daoIndex.GovernanceToken))
@@ -66,18 +71,26 @@ public class DiscussionService : ApplicationService, IDiscussionService
                 DAOId = proposalIndex.DAOId, Address = userAddress });
             if (member.Address != userAddress)
             {
-                throw new UserFriendlyException("Invalid user: not multi sig dao member.");
+                return new NewCommentResultDto { Reason = "Invalid proposalId: not multi sig dao member." };
             }
         }
         else
         {
-            // todo rely on treasury check
+            var isDepositor = await _treasuryAssetsService.IsTreasuryDepositorAsync(new IsTreasuryDepositorInput
+            {
+                ChainId = input.ChainId, Address = userAddress,
+                GovernanceToken = daoIndex.GovernanceToken, TreasuryAddress = daoIndex.TreasuryAccountAddress
+            });
+            if (!isDepositor)
+            {
+                return new NewCommentResultDto { Reason = "Invalid proposalId: not depositor." };
+            }
         }
 
         var count = await _discussionProvider.GetCommentCountAsync(input.ProposalId);
         if (count < 0)
         {
-            return false;
+            return new NewCommentResultDto { Reason = "Retry later." };
         }
 
         var commentIndex = _objectMapper.Map<ProposalIndex, CommentIndex>(proposalIndex);
@@ -88,7 +101,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
         commentIndex.CreateTime = commentIndex.ModificationTime = TimeHelper.GetTimeStampInMilliseconds();
         await _discussionProvider.NewCommentAsync(commentIndex);
         
-        return true;
+        return new NewCommentResultDto { Success = true};
     }
 
     public async Task<PagedResultDto<CommentDto>> GetCommentListAsync(GetCommentListInput input)

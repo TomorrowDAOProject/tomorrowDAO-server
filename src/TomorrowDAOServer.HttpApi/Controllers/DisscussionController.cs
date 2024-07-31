@@ -23,8 +23,8 @@ public class DiscussionController
     }
     
     [HttpGet("new-comment")]
-    // [Authorize]
-    public async Task<bool> NewCommentAsync(NewCommentInput input)
+    [Authorize]
+    public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
         return await _discussionService.NewCommentAsync(input);
     }
