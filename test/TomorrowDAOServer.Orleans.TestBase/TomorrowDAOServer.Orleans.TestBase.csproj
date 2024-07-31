@@ -16,7 +16,6 @@
     <PackageReference Include="xunit.extensibility.core" Version="2.4.1" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="AElf.AElfNode.EventHandler.BackgroundJob" Version="1.1.9" />
   </ItemGroup>
 
   <ItemGroup>
