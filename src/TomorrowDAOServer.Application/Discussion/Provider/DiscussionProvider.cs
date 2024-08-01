@@ -18,7 +18,8 @@ public interface IDiscussionProvider
     Task<long> GetCommentCountAsync(string proposalId);
     Task NewCommentAsync(CommentIndex index);
     Task<Tuple<long, List<CommentIndex>>> GetRootCommentListAsync(GetCommentListInput input);
-    Task<bool> GetCommentExistedAsync(string parentId);
+    Task<CommentIndex> GetCommentAsync(string parentId);
+    Task<Tuple<long, List<CommentIndex>>> GetAllCommentsByProposalIdAsync(string chainId, string proposalId);
 }
 
 public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
@@ -68,7 +69,7 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
             sortFunc: _ => new SortDescriptor<CommentIndex>().Descending(index => index.CreateTime));
     }
 
-    public async Task<bool> GetCommentExistedAsync(string parentId)
+    public async Task<CommentIndex> GetCommentAsync(string parentId)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<CommentIndex>, QueryContainer>>
         {
@@ -76,6 +77,17 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
             q => !q.Term(i => i.Field(t => t.CommentStatus).Value(CommentStatusEnum.Deleted))
         };
         QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return (await _commentIndexRepository.CountAsync(Filter)).Count > 0;
+        return await _commentIndexRepository.GetAsync(Filter);
+    }
+    
+    public async Task<Tuple<long, List<CommentIndex>>> GetAllCommentsByProposalIdAsync(string chainId, string proposalId)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<CommentIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(t => t.ProposalId).Value(proposalId)),
+        };
+        QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _commentIndexRepository.GetSortListAsync(Filter);
     }
 }

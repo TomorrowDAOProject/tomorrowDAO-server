@@ -16,8 +16,10 @@ public class CommentCountGrain : Grain<CommentState>, ICommentCountGrain
         return base.OnActivateAsync();
     }
 
-    public Task<long> GetNextCount()
+    public async Task<long> GetNextCount()
     {
-        return Task.FromResult(State.Count++);
+        State.Count++;
+        await WriteStateAsync();
+        return State.Count;
     }
 }
