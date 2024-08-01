@@ -30,11 +30,11 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
     private readonly ITreasuryAssetsProvider _treasuryAssetsProvider;
     private readonly ITokenService _tokenService;
     private readonly IDAOProvider _daoProvider;
-    private readonly NetworkDaoTreasuryService _networkDaoTreasuryService;
+    private readonly INetworkDaoTreasuryService _networkDaoTreasuryService;
 
     public TreasuryAssetsService(ILogger<TreasuryAssetsService> logger, ITreasuryAssetsProvider treasuryAssetsProvider,
         IObjectMapper objectMapper, ITokenService tokenService, IDAOProvider daoProvider,
-        NetworkDaoTreasuryService networkDaoTreasuryService)
+        INetworkDaoTreasuryService networkDaoTreasuryService)
     {
         _logger = logger;
         _treasuryAssetsProvider = treasuryAssetsProvider;
@@ -114,15 +114,15 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
 
     public async Task<bool> IsTreasuryDepositorAsync(IsTreasuryDepositorInput input)
     {
+        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.TreasuryAddress.IsNullOrWhiteSpace() ||
+            input.Address.IsNullOrWhiteSpace() || input.GovernanceToken.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("Invalid input.");
+        }
+
         try
         {
-            if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.TreasuryAddress.IsNullOrWhiteSpace() ||
-                input.Address.IsNullOrWhiteSpace() || input.GovernanceToken.IsNullOrWhiteSpace())
-            {
-                throw new UserFriendlyException("Invalid input.");
-            }
-
-            GetTreasuryRecordListResult result = await _treasuryAssetsProvider.GetTreasuryRecordListAsync(
+            var result = await _treasuryAssetsProvider.GetTreasuryRecordListAsync(
                 new GetTreasuryRecordListInput
                 {
                     MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,

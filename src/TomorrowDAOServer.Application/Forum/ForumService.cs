@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using PuppeteerSharp;
 using TomorrowDAOServer.Forum.Dto;
 using Volo.Abp;
 using Volo.Abp.Auditing;
@@ -31,8 +32,9 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
 
         try
         {
-            return await AnalyzePageByHtmlAgilityPack(input.ForumUrl);
+            //return await AnalyzePageByHtmlAgilityPack(input.ForumUrl);
             //return await AnalyzePageBySeleniumWebDriver(input.ForumUrl);
+            return await AnalyzePageByPuppeteerSharp(input.ForumUrl);
         }
         catch (Exception e)
         {
@@ -154,5 +156,31 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
                 Favicon = faviconUrl
             });
         }
+    }
+
+    private async Task<LinkPreviewDto> AnalyzePageByPuppeteerSharp(string url)
+    {
+        var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
+        {
+            Browser = SupportedBrowser.Chrome,
+            Platform = null,
+            Path = null,
+            Host = null,
+            CustomFileDownload = null
+        });
+        _logger.LogInformation(
+            "EVN: Browser={Browser}, CacheDir={CacheDir}, Platform={Platform}",
+            browserFetcher.Browser, browserFetcher.CacheDir, browserFetcher.Platform);
+        await browserFetcher.DownloadAsync();
+        await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
+        await using var page = await browser.NewPageAsync();
+        await page.GoToAsync(url);
+        var title = await page.GetTitleAsync();
+        return new LinkPreviewDto
+        {
+            Title = title,
+            Description = "",
+            Favicon = ""
+        };
     }
 }
