@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using PuppeteerSharp;
+using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Forum.Dto;
 using Volo.Abp;
 using Volo.Abp.Auditing;
@@ -32,9 +33,12 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
 
         try
         {
-            //return await AnalyzePageByHtmlAgilityPack(input.ForumUrl);
-            //return await AnalyzePageBySeleniumWebDriver(input.ForumUrl);
-            return await AnalyzePageByPuppeteerSharp(input.ForumUrl);
+            return input.AnalyzerType switch
+            {
+                AnalyzerType.SeleniumWebDriver => await AnalyzePageBySeleniumWebDriver(input.ForumUrl),
+                AnalyzerType.PuppeteerSharp => await AnalyzePageByPuppeteerSharp(input.ForumUrl),
+                _ => await AnalyzePageByHtmlAgilityPack(input.ForumUrl)
+            };
         }
         catch (Exception e)
         {
