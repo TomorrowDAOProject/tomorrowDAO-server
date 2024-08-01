@@ -94,7 +94,7 @@ public class TokenServiceTest
             ExpireTime =  DateTime.UtcNow.AddDays(1).ToUtcMilliSeconds(),
             ExchangeInfos = new Dictionary<string, TokenExchangeDto>
             {
-                {"a", new TokenExchangeDto{ Exchange = (decimal)0.4 }}
+                {"OKX", new TokenExchangeDto{ Exchange = (decimal)0.4 }}
             }
         });
         var result = await _service.GetTvlAsync("chainId");
