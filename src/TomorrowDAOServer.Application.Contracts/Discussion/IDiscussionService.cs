@@ -8,4 +8,5 @@ public interface IDiscussionService
 {
     Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input);
     Task<PagedResultDto<CommentDto>> GetCommentListAsync(GetCommentListInput input);
+    Task<CommentBuildingDto> GetCommentBuildingAsync(GetCommentBuildingInput input);
 }

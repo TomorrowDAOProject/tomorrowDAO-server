@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Enum;
@@ -49,10 +50,15 @@ public class DiscussionService : ApplicationService, IDiscussionService
         var userAddress = await _userProvider.GetAndValidateUserAddress(CurrentUser.GetId(), input.ChainId);
         if (input.ParentId != CommonConstant.RootParentId)
         {
-            var commentExisted = await _discussionProvider.GetCommentExistedAsync(input.ParentId);
-            if (!commentExisted)
+            var parentComment = await _discussionProvider.GetCommentAsync(input.ParentId);
+            if (parentComment == null || string.IsNullOrEmpty(parentComment.Commenter))
             {
                 return new NewCommentResultDto { Reason = "Invalid parentId: not existed." };
+            }
+
+            if (parentComment.Commenter == userAddress)
+            {
+                return new NewCommentResultDto { Reason = "Invalid parentId: can not comment self." };
             }
         }
         
@@ -115,5 +121,36 @@ public class DiscussionService : ApplicationService, IDiscussionService
             TotalCount = result.Item1,
             Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result.Item2)
         };
+    }
+    
+    public async Task<CommentBuildingDto> GetCommentBuildingAsync(GetCommentBuildingInput input)
+    {
+        var allComments = await _discussionProvider.GetAllCommentsByProposalIdAsync(input.ChainId, input.ProposalId);
+        var commentMap = allComments.Item2.GroupBy(x => x.ParentId)
+            .ToDictionary(x => x.Key, x => x.ToList());
+        var building = new CommentBuilding { Id = CommonConstant.RootParentId, Comment = null };
+        GenerateCommentBuilding(building, commentMap);
+        return new CommentBuildingDto
+        {
+            CommentBuilding = building, TotalCount = allComments.Item1
+        };
+    }
+    
+    private void GenerateCommentBuilding(CommentBuilding building, IReadOnlyDictionary<string, List<CommentIndex>> commentMap)
+    {
+        if (!commentMap.TryGetValue(building.Id, out var subCommentList))
+        {
+            return;
+        }
+
+        subCommentList = subCommentList.OrderByDescending(x => x.CreateTime).ToList();
+        foreach (var subBuilding in subCommentList.Select(subComment => new CommentBuilding
+                 {
+                     Id = subComment.Id, Comment = ObjectMapper.Map<CommentIndex, CommentDto>(subComment)
+                 }))
+        {
+            GenerateCommentBuilding(subBuilding, commentMap);
+            building.SubComments.Add(subBuilding);
+        }
     }
 }
