@@ -1,9 +1,8 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using TomorrowDAOServer.Forum;
 using TomorrowDAOServer.Forum.Dto;
-using TomorrowDAOServer.Treasury;
-using TomorrowDAOServer.Treasury.Dto;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Mvc;
 
@@ -16,17 +15,18 @@ namespace TomorrowDAOServer.Controllers;
 public class ForumController : AbpController
 {
     private readonly ILogger<TreasuryControllers> _logger;
-    private readonly ITreasuryAssetsService _treasuryAssetsService;
+    private readonly IForumService _forumService;
 
-    public ForumController(ILogger<TreasuryControllers> logger)
+
+    public ForumController(ILogger<TreasuryControllers> logger, IForumService forumService)
     {
         _logger = logger;
+        _forumService = forumService;
     }
 
     [HttpPost("link-preview")]
-    public async Task<LinkPreviewDto> LinkPreview(LinkPreviewInput input)
+    public async Task<LinkPreviewDto> LinkPreviewAsync(LinkPreviewInput input)
     {
-        //return await _treasuryAssetsService.GetTreasuryAssetsAsync(input);
-        return null;
+        return await _forumService.LinkPreviewAsync(input);
     }
 }

@@ -9,6 +9,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
 using Volo.Abp.Auditing;
+using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.User;
 
@@ -17,29 +18,35 @@ namespace TomorrowDAOServer.User;
 public class UserAppService : TomorrowDAOServerAppService, IUserAppService
 {
     private readonly INESTRepository<UserIndex, Guid> _userIndexRepository;
+    private readonly ILogger<UserAppService> _logger;
+    private readonly IObjectMapper _objectMapper;
 
-    public UserAppService(INESTRepository<UserIndex, Guid> userIndexRepository)
+    public UserAppService(INESTRepository<UserIndex, Guid> userIndexRepository, ILogger<UserAppService> logger,
+        IObjectMapper objectMapper)
     {
         _userIndexRepository = userIndexRepository;
+        _logger = logger;
+        _objectMapper = objectMapper;
     }
 
     public async Task CreateUserAsync(UserDto user)
     {
         try
         {
-            await _userIndexRepository.AddOrUpdateAsync(ObjectMapper.Map<UserDto, UserIndex>(user));
-            Logger.LogInformation("Create user success, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
+            var userIndex = _objectMapper.Map<UserDto, UserIndex>(user);
+            await _userIndexRepository.AddOrUpdateAsync(userIndex);
+            _logger.LogInformation("Create user success, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Create user error, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
+            _logger.LogError(e, "Create user error, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
         }
     }
 
     public async Task<UserDto> GetUserByIdAsync(string userId)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>() { };
-        mustQuery.Add(q => q.Term(i => i.Field(t=>t.UserId).Value(userId)));
+        mustQuery.Add(q => q.Term(i => i.Field(t => t.UserId).Value(userId)));
 
         QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
         var (totalCount, users) = await _userIndexRepository.GetListAsync(Filter);

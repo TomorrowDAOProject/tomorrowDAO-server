@@ -1,6 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
-using Orleans;
 using Volo.Abp;
+using Volo.Abp.Auditing;
 using Volo.Abp.Authorization;
 using Volo.Abp.Autofac;
 using Volo.Abp.AutoMapper;
@@ -20,6 +19,7 @@ namespace TomorrowDAOServer;
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
     typeof(TomorrowDAOServerOrleansTestBaseModule)
+    //typeof(AElfIndexingElasticsearchModule)
     // typeof(TomorrowDAOServerApplicationModule),
     // typeof(TomorrowDAOServerApplicationContractsModule)
 )]
@@ -28,6 +28,10 @@ public class TomorrowDAOServerGrainsTestsModule : AbpModule
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        Configure<AbpAuditingOptions>(options =>
+        {
+            options.IsEnabled = false;
+        });
     }
 
 }
