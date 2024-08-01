@@ -15,17 +15,81 @@ namespace TomorrowDAOServer.Common.Mocks;
 
 public class GraphQLClientMock
 {
-    
-
-    public static IGraphQLClient MockGraphQLClient<T>(Func<GraphQLRequest, T> func)
+    public static IGraphQLClient MockGraphQLClient<TT>(Func<GraphQLRequest, TT> func)
     {
         var mock = new Mock<IGraphQLClient>();
-        mock.Setup(m => m.SendQueryAsync<T>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
-            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<T>
+        mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
             {
                 Data = func(request)
             });
+        return mock.Object;
+    }
 
+    public static IGraphQLClient MockGraphQLClient<TT, TK>(Func<GraphQLRequest, TT> func,
+        Func<GraphQLRequest, TK>? funcTk)
+    {
+        var mock = new Mock<IGraphQLClient>();
+        mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
+            {
+                Data = func(request)
+            });
+        mock.Setup(m => m.SendQueryAsync<TK>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TK>
+            {
+                Data = funcTk(request)
+            });
+
+        return mock.Object;
+    }
+
+    public static IGraphQLClient MockGraphQLClient<TT, TK, TV>(Func<GraphQLRequest, TT> func,
+        Func<GraphQLRequest, TK>? funcTk, Func<GraphQLRequest, TV>? funcTv)
+    {
+        var mock = new Mock<IGraphQLClient>();
+        mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
+            {
+                Data = func(request)
+            });
+        mock.Setup(m => m.SendQueryAsync<TK>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TK>
+            {
+                Data = funcTk(request)
+            });
+        mock.Setup(m => m.SendQueryAsync<TV>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TV>
+            {
+                Data = funcTv(request)
+            });
+        return mock.Object;
+    }
+
+    public static IGraphQLClient MockGraphQLClient<TT, TK, TV, TI>(Func<GraphQLRequest, TT> func,
+        Func<GraphQLRequest, TK>? funcTk, Func<GraphQLRequest, TV>? funcTv, Func<GraphQLRequest, TI>? funcTi)
+    {
+        var mock = new Mock<IGraphQLClient>();
+        mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
+            {
+                Data = func(request)
+            });
+        mock.Setup(m => m.SendQueryAsync<TK>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TK>
+            {
+                Data = funcTk(request)
+            });
+        mock.Setup(m => m.SendQueryAsync<TV>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TV>
+            {
+                Data = funcTv(request)
+            });
+        mock.Setup(m => m.SendQueryAsync<TI>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
+            (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TI>
+            {
+                Data = funcTi(request)
+            });
         return mock.Object;
     }
 
@@ -35,30 +99,11 @@ public class GraphQLClientMock
         return MockGraphQLClient(Func);
     }
 
-    public static IGraphQLClient MockGetTreasuryFundListResult()
+    public static IGraphQLClient MockGraphQLClient<T, K>(T resultsT, K resultsK)
     {
-        return MockGraphQLClient<IndexerCommonResult<GetTreasuryFundListResult>>(
-            new IndexerCommonResult<GetTreasuryFundListResult>
-            {
-                Data = new GetTreasuryFundListResult
-                {
-                    Item1 = 10,
-                    Item2 = new List<TreasuryFundDto>()
-                    {
-                        new TreasuryFundDto
-                        {
-                            Id = "Id",
-                            ChainId = "AELF",
-                            BlockHeight = 100,
-                            DaoId = "DaoId",
-                            TreasuryAddress = "TreasuryAddress",
-                            Symbol = "ELF",
-                            AvailableFunds = 100000000,
-                            LockedFunds = 0
-                        }
-                    }
-                }
-            });
+        T FuncT(GraphQLRequest request) => resultsT;
+        K FuncK(GraphQLRequest request) => resultsK;
+        return MockGraphQLClient(FuncT, FuncK);
     }
 
     public static IGraphQLClient MockElectionCandidateElectedDto()
@@ -119,8 +164,9 @@ public class GraphQLClientMock
         {
             if (request.Variables == null || request.Variables.ToString().IndexOf("ThrowException") != -1)
             {
-                throw new UserFriendlyException("DaoId is Empty.");
+                throw new UserFriendlyException("GraphQL query exception.");
             }
+
             return new IndexerCommonResult<ElectionPageResultDto<ElectionVotingItemDto>>
             {
                 Data = new ElectionPageResultDto<ElectionVotingItemDto>
@@ -156,5 +202,76 @@ public class GraphQLClientMock
             };
         };
         return MockGraphQLClient(func);
+    }
+
+    public static IGraphQLClient MockTreasuryProviderGraphQL()
+    {
+        IndexerCommonResult<GetTreasuryFundListResult> FuncTreasuryFundList(GraphQLRequest request)
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerCommonResult<GetTreasuryFundListResult>
+            {
+                Data = new GetTreasuryFundListResult
+                {
+                    Item1 = 10,
+                    Item2 = new List<TreasuryFundDto>()
+                    {
+                        new TreasuryFundDto
+                        {
+                            Id = "Id",
+                            ChainId = "AELF",
+                            BlockHeight = 100,
+                            DaoId = "DaoId",
+                            TreasuryAddress = "TreasuryAddress",
+                            Symbol = "ELF",
+                            AvailableFunds = 100000000,
+                            LockedFunds = 0
+                        }
+                    }
+                }
+            };
+        }
+
+        IndexerCommonResult<GetTreasuryRecordListResult> FuncTreasuryRecordList(GraphQLRequest request)
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerCommonResult<GetTreasuryRecordListResult>
+            {
+                Data = new GetTreasuryRecordListResult
+                {
+                    Item1 = 10,
+                    Item2 = new List<TreasuryRecordDto>()
+                    {
+                        new TreasuryRecordDto
+                        {
+                            Id = "Id",
+                            ChainId = ChainIdAELF,
+                            BlockHeight = 100,
+                            DaoId = "DaoId",
+                            TreasuryAddress = "TreasuryAddress",
+                            Amount = 100000,
+                            Symbol = "ELF",
+                            Executor = "Executor",
+                            FromAddress = "FromAddress",
+                            ToAddress = "ToAddress",
+                            Memo = "Memo",
+                            TreasuryRecordType = 3,
+                            CreateTime = DateTime.Now,
+                            ProposalId = "ProposalId"
+                        }
+                    }
+                }
+            };
+        }
+
+        return MockGraphQLClient(FuncTreasuryFundList, FuncTreasuryRecordList);
     }
 }
