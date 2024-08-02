@@ -48,9 +48,14 @@ public class ClusterClientMock
     private static void MockTokenExchangeGrain(Mock<IClusterClient> clusterClientMock)
     {
         var mock = new Mock<ITokenExchangeGrain>();
-        mock.Setup(o => o.GetAsync()).ReturnsAsync(new Dictionary<string, TokenExchangeDto>
+        mock.Setup(o => o.GetAsync()).ReturnsAsync(new TokenExchangeGrainDto
         {
-            { "OKX", new TokenExchangeDto { Exchange = (decimal)0.4 } }
+            LastModifyTime = DateTime.UtcNow.ToUtcMilliSeconds(), 
+            ExpireTime =  DateTime.UtcNow.AddDays(1).ToUtcMilliSeconds(),
+            ExchangeInfos = new Dictionary<string, TokenExchangeDto>
+            {
+                {"OKX", new TokenExchangeDto{ Exchange = (decimal)0.4 }}
+            }
         });
         clusterClientMock.Setup(o => o.GetGrain<ITokenExchangeGrain>(It.IsAny<string>(), It.IsAny<string>())).Returns(mock.Object);
     }
