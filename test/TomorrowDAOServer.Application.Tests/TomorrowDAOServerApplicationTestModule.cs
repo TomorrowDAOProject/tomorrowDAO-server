@@ -36,6 +36,7 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
             options.IsEnabled = false;
         });
         
+        //Test
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerEntityEventHandlerCoreModule>(); });
 
