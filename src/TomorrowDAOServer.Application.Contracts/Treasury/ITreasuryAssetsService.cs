@@ -6,4 +6,5 @@ namespace TomorrowDAOServer.Treasury;
 public interface ITreasuryAssetsService
 {
     Task<TreasuryAssetsPagedResultDto> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input);
+    Task<bool> IsTreasuryDepositorAsync(IsTreasuryDepositorInput input);
 }
