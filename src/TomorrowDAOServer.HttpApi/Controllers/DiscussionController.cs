@@ -22,7 +22,7 @@ public class DiscussionController
         _discussionService = discussionService;
     }
     
-    [HttpGet("new-comment")]
+    [HttpPost("new-comment")]
     [Authorize]
     public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
