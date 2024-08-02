@@ -152,7 +152,12 @@ public class DiscussionService : ApplicationService, IDiscussionService
             CommentBuilding = building, TotalCount = allComments.Item1
         };
     }
-    
+
+    public Task<long> GetCommentCountAsync(string proposalId)
+    {
+        return _discussionProvider.GetCommentCountAsync(proposalId);
+    }
+
     private void GenerateCommentBuilding(CommentBuilding building, IReadOnlyDictionary<string, List<CommentIndex>> commentMap)
     {
         if (!commentMap.TryGetValue(building.Id, out var subCommentList))
