@@ -62,7 +62,7 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)),
             q => q.Term(i => i.Field(t => t.ProposalId).Value(input.ProposalId)),
-            q => q.Term(i => i.Field(t => t.ParentId).Value(CommonConstant.RootParentId))
+            q => q.Term(i => i.Field(t => t.ParentId).Value(input.ParentId))
         };
         QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _commentIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
