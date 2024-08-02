@@ -37,9 +37,9 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         {
             return input.AnalyzerType switch
             {
-                AnalyzerType.SeleniumWebDriver => await AnalyzePageBySeleniumWebDriver(input.ForumUrl),
-                AnalyzerType.PuppeteerSharp => await AnalyzePageByPuppeteerSharp(input.ForumUrl),
-                _ => await AnalyzePageByHtmlAgilityPack(input.ForumUrl)
+                AnalyzerType.SeleniumWebDriver => await AnalyzePageBySeleniumWebDriverAsync(input.ForumUrl),
+                AnalyzerType.PuppeteerSharp => await AnalyzePageByPuppeteerSharpAsync(input.ForumUrl),
+                _ => await AnalyzePageByHtmlAgilityPackAsync(input.ForumUrl)
             };
         }
         catch (Exception e)
@@ -49,7 +49,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         }
     }
 
-    private Task<LinkPreviewDto> AnalyzePageByHtmlAgilityPack(string url)
+    private Task<LinkPreviewDto> AnalyzePageByHtmlAgilityPackAsync(string url)
     {
         var web = new HtmlWeb();
         var doc = web.Load(url);
@@ -105,7 +105,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         });
     }
 
-    private Task<LinkPreviewDto> AnalyzePageBySeleniumWebDriver(string url)
+    private Task<LinkPreviewDto> AnalyzePageBySeleniumWebDriverAsync(string url)
     {
         ChromeOptions options = new ChromeOptions();
         options.AddArgument("--headless");
@@ -164,7 +164,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         }
     }
 
-    private async Task<LinkPreviewDto> AnalyzePageByPuppeteerSharp(string url)
+    private async Task<LinkPreviewDto> AnalyzePageByPuppeteerSharpAsync(string url)
     {
         var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
         {
