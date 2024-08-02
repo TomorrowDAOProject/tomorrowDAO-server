@@ -42,7 +42,7 @@ public class DiscussionController
     }
 
     [HttpGet("comment-count")]
-    public async Task<long> GetCommentBuildingAsync(string proposalId)
+    public async Task<long> GetCommentCountAsync(string proposalId)
     {
         return await _discussionService.GetCommentCountAsync(proposalId);
     }
