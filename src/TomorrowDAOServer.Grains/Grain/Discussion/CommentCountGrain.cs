@@ -6,6 +6,7 @@ namespace TomorrowDAOServer.Grains.Grain.Discussion;
 public interface ICommentCountGrain : IGrainWithStringKey
 {
     Task<long> GetNextCount();
+    Task<long> GetCurrentCount();
 }
 
 public class CommentCountGrain : Grain<CommentState>, ICommentCountGrain
@@ -21,5 +22,10 @@ public class CommentCountGrain : Grain<CommentState>, ICommentCountGrain
         State.Count++;
         await WriteStateAsync();
         return State.Count;
+    }
+    
+    public Task<long> GetCurrentCount()
+    {
+        return Task.FromResult(State.Count);
     }
 }

@@ -155,7 +155,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public Task<long> GetCommentCountAsync(string proposalId)
     {
-        return _discussionProvider.GetCommentCountAsync(proposalId);
+        return _discussionProvider.GetCurrentCommentCountAsync(proposalId);
     }
 
     private void GenerateCommentBuilding(CommentBuilding building, IReadOnlyDictionary<string, List<CommentIndex>> commentMap)
