@@ -164,7 +164,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         }
     }
 
-    private async Task<LinkPreviewDto> AnalyzePageByPuppeteerSharpAsync(string url)
+    public async Task<LinkPreviewDto> AnalyzePageByPuppeteerSharpAsync(string url, bool download = true)
     {
         var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
         {
@@ -173,8 +173,11 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         _logger.LogInformation(
             "Puppeteer: Browser={Browser}, CacheDir={CacheDir}, Platform={Platform}",
             browserFetcher.Browser, browserFetcher.CacheDir, browserFetcher.Platform);
-        
-        await browserFetcher.DownloadAsync();
+
+        if (download)
+        {
+            await browserFetcher.DownloadAsync();
+        }
 
         var launchOptions = new LaunchOptions { Headless = true };
         await using var browser = await Puppeteer.LaunchAsync(launchOptions);
