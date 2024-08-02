@@ -110,7 +110,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
         commentIndex.CreateTime = commentIndex.ModificationTime = TimeHelper.GetTimeStampInMilliseconds();
         await _discussionProvider.NewCommentAsync(commentIndex);
         
-        return new NewCommentResultDto { Success = true};
+        return new NewCommentResultDto { Success = true, Comment = commentIndex };
     }
 
     public async Task<PagedResultDto<CommentDto>> GetCommentListAsync(GetCommentListInput input)
