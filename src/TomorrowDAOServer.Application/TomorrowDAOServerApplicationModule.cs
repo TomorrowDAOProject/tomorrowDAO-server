@@ -46,7 +46,6 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddTransient<IScheduleSyncDataService, DAOSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, BPInfoUpdateService>();
         context.Services.AddTransient<IScheduleSyncDataService, HighCouncilMemberSyncService>();
-        context.Services.AddTransient<IScheduleSyncDataService, VoteRecordSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, VoteWithdrawSyncDataService>();
         context.Services.AddTransient<IExchangeProvider, OkxProvider>();
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
