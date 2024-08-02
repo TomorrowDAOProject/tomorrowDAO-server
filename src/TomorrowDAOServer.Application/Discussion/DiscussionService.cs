@@ -105,10 +105,11 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
         var commentIndex = _objectMapper.Map<ProposalIndex, CommentIndex>(proposalIndex);
         _objectMapper.Map(input, commentIndex);
-        commentIndex.Id = GuidHelper.GenerateId(proposalIndex.ProposalId, count.ToString());
+        var now = TimeHelper.GetTimeStampInMilliseconds();
+        commentIndex.Id = GuidHelper.GenerateId(proposalIndex.ProposalId, now.ToString(), count.ToString());
         commentIndex.Commenter = userAddress;
         commentIndex.CommentStatus = CommentStatusEnum.Normal;
-        commentIndex.CreateTime = commentIndex.ModificationTime = TimeHelper.GetTimeStampInMilliseconds();
+        commentIndex.CreateTime = commentIndex.ModificationTime = now;
         await _discussionProvider.NewCommentAsync(commentIndex);
         
         return new NewCommentResultDto { Success = true, Comment = commentIndex };
