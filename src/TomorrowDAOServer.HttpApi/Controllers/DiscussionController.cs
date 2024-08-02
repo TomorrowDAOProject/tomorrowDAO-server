@@ -30,7 +30,7 @@ public class DiscussionController
     }
     
     [HttpGet("comment-list")]
-    public async Task<PagedResultDto<CommentDto>> GetCommentListAsync(GetCommentListInput input)
+    public async Task<CommentListPageResultDto> GetCommentListAsync(GetCommentListInput input)
     {
         return await _discussionService.GetCommentListAsync(input);
     }
