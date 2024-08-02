@@ -173,20 +173,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         _logger.LogInformation(
             "Puppeteer: Browser={Browser}, CacheDir={CacheDir}, Platform={Platform}",
             browserFetcher.Browser, browserFetcher.CacheDir, browserFetcher.Platform);
-
-        var revisionInfo = Chrome.DefaultBuildId;
-        // var revisionFolder = new BrowserFetcher().GetExecutablePath(revisionInfo);
-        // _logger.LogInformation("Puppeteer: RevisionFolder={RevisionFolder}", revisionFolder);
-        //
-        // if (Directory.Exists(revisionFolder))
-        // {
-        //     _logger.LogInformation("Puppeteer: Chromium already downloaded. Skipping download.");
-        // }
-        // else
-        // {
-        //     await browserFetcher.DownloadAsync(revisionInfo);
-        //     _logger.LogInformation("Puppeteer: Chromium downloaded successfully.");
-        // }
+        
         await browserFetcher.DownloadAsync();
 
         var launchOptions = new LaunchOptions { Headless = true };
