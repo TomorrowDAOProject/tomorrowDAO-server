@@ -170,9 +170,4 @@ public class DiscussionService : ApplicationService, IDiscussionService
             building.SubComments.Add(subBuilding);
         }
     }
-    
-    private async Task<bool> HasMore()
-    {
-        return false;
-    }
 }
