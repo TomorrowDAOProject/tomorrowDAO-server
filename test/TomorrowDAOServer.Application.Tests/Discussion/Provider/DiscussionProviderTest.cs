@@ -44,9 +44,9 @@ public class DiscussionProviderTest
     }
     
     [Fact]
-    public async void GetRootCommentListAsync_Test()
+    public async void GetCommentListAsync_Test()
     {
-        await _provider.GetRootCommentListAsync(new GetCommentListInput
+        await _provider.GetCommentListAsync(new GetCommentListInput
         {
             ChainId = "chainId", ProposalId = "proposalId"
         });

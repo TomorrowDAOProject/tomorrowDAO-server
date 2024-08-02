@@ -17,9 +17,11 @@ public interface IDiscussionProvider
 {
     Task<long> GetCommentCountAsync(string proposalId);
     Task NewCommentAsync(CommentIndex index);
-    Task<Tuple<long, List<CommentIndex>>> GetRootCommentListAsync(GetCommentListInput input);
-    Task<CommentIndex> GetCommentAsync(string parentId);
+    Task<long> CountCommentListAsync(GetCommentListInput input);
+    Task<Tuple<long, List<CommentIndex>>> GetCommentListAsync(GetCommentListInput input);
+    Task<CommentIndex> GetCommentAsync(string id);
     Task<Tuple<long, List<CommentIndex>>> GetAllCommentsByProposalIdAsync(string chainId, string proposalId);
+    Task<Tuple<long, List<CommentIndex>>> GetEarlierAsync(string id, string proposalId, long time, int maxResultCount);
 }
 
 public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
@@ -56,7 +58,19 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         await _commentIndexRepository.AddOrUpdateAsync(index);
     }
 
-    public async Task<Tuple<long, List<CommentIndex>>> GetRootCommentListAsync(GetCommentListInput input)
+    public async Task<long> CountCommentListAsync(GetCommentListInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<CommentIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)),
+            q => q.Term(i => i.Field(t => t.ProposalId).Value(input.ProposalId)),
+            q => q.Term(i => i.Field(t => t.ParentId).Value(input.ParentId))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _commentIndexRepository.CountAsync(Filter)).Count;
+    }
+
+    public async Task<Tuple<long, List<CommentIndex>>> GetCommentListAsync(GetCommentListInput input)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<CommentIndex>, QueryContainer>>
         {
@@ -69,11 +83,11 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
             sortFunc: _ => new SortDescriptor<CommentIndex>().Descending(index => index.CreateTime));
     }
 
-    public async Task<CommentIndex> GetCommentAsync(string parentId)
+    public async Task<CommentIndex> GetCommentAsync(string id)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<CommentIndex>, QueryContainer>>
         {
-            q => q.Term(i => i.Field(t => t.Id).Value(parentId)),
+            q => q.Term(i => i.Field(t => t.Id).Value(id)),
             q => !q.Term(i => i.Field(t => t.CommentStatus).Value(CommentStatusEnum.Deleted))
         };
         QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
@@ -88,6 +102,19 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
             q => q.Term(i => i.Field(t => t.ProposalId).Value(proposalId)),
         };
         QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await _commentIndexRepository.GetSortListAsync(Filter);
+        return await _commentIndexRepository.GetListAsync(Filter);
+    }
+    
+    public async Task<Tuple<long, List<CommentIndex>>> GetEarlierAsync(string id, string proposalId, long time, int maxResultCount)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<CommentIndex>, QueryContainer>>
+        {
+            q => !q.Term(i => i.Field(t => t.Id).Value(id)),
+            q => q.Term(i => i.Field(t => t.ProposalId).Value(proposalId)),
+            q => q.TermRange(i => i.Field(t => t.CreateTime).LessThanOrEquals(time.ToString()))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _commentIndexRepository.GetSortListAsync(Filter, skip: 0, limit: maxResultCount,
+            sortFunc: _ => new SortDescriptor<CommentIndex>().Descending(index => index.CreateTime));
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -113,13 +114,28 @@ public class DiscussionService : ApplicationService, IDiscussionService
         return new NewCommentResultDto { Success = true, Comment = commentIndex };
     }
 
-    public async Task<PagedResultDto<CommentDto>> GetCommentListAsync(GetCommentListInput input)
+    public async Task<CommentListPageResultDto> GetCommentListAsync(GetCommentListInput input)
     {
-        var result = await _discussionProvider.GetRootCommentListAsync(input);
-        return new PagedResultDto<CommentDto>
+        if (string.IsNullOrEmpty(input.SkipId))
         {
-            TotalCount = result.Item1,
-            Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result.Item2)
+            var result = await _discussionProvider.GetCommentListAsync(input);
+            return new CommentListPageResultDto
+            {
+                TotalCount = result.Item1,
+                Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result.Item2),
+                HasMore = result.Item1 > input.SkipCount + input.MaxResultCount
+            };
+        }
+
+        var comment = await _discussionProvider.GetCommentAsync(input.SkipId) ?? new CommentIndex();
+        var totalCount = await _discussionProvider.CountCommentListAsync(input);
+        var result1 = await _discussionProvider.GetEarlierAsync(input.SkipId, input.ProposalId, comment.CreateTime,
+            input.MaxResultCount);
+        return new CommentListPageResultDto
+        {
+            TotalCount = totalCount,
+            Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result1.Item2),
+            HasMore = result1.Item1 > input.SkipCount + input.MaxResultCount
         };
     }
     
@@ -152,5 +168,10 @@ public class DiscussionService : ApplicationService, IDiscussionService
             GenerateCommentBuilding(subBuilding, commentMap);
             building.SubComments.Add(subBuilding);
         }
+    }
+    
+    private async Task<bool> HasMore()
+    {
+        return false;
     }
 }

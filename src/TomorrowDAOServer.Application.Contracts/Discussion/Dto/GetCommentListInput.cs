@@ -10,4 +10,5 @@ public class GetCommentListInput
     public string ParentId { get; set; } = CommonConstant.RootParentId;
     public int SkipCount { get; set; } = 0;
     public int MaxResultCount { get; set; } = 6;
+    public string SkipId { get; set; } = string.Empty;
 }
