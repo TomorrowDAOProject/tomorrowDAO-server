@@ -51,8 +51,6 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddTransient<IExchangeProvider, OkxProvider>();
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
-        context.Services.AddTransient<IScheduleSyncDataService, VoteRecordSyncDataService>();
-        context.Services.AddTransient<IScheduleSyncDataService, VoteWithdrawSyncDataService>();
         context.Services.AddHttpClient();
         context.Services.AddMemoryCache();
         context.Services.AddSingleton(typeof(ILocalMemoryCache<>), typeof(LocalMemoryCache<>));
