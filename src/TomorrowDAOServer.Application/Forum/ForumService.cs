@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
@@ -6,6 +7,7 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using PuppeteerSharp;
+using PuppeteerSharp.BrowserData;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Forum.Dto;
 using Volo.Abp;
@@ -35,9 +37,9 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         {
             return input.AnalyzerType switch
             {
-                AnalyzerType.SeleniumWebDriver => await AnalyzePageBySeleniumWebDriver(input.ForumUrl),
-                AnalyzerType.PuppeteerSharp => await AnalyzePageByPuppeteerSharp(input.ForumUrl),
-                _ => await AnalyzePageByHtmlAgilityPack(input.ForumUrl)
+                AnalyzerType.SeleniumWebDriver => await AnalyzePageBySeleniumWebDriverAsync(input.ForumUrl),
+                AnalyzerType.PuppeteerSharp => await AnalyzePageByPuppeteerSharpAsync(input.ForumUrl),
+                _ => await AnalyzePageByHtmlAgilityPackAsync(input.ForumUrl)
             };
         }
         catch (Exception e)
@@ -47,7 +49,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         }
     }
 
-    private Task<LinkPreviewDto> AnalyzePageByHtmlAgilityPack(string url)
+    private Task<LinkPreviewDto> AnalyzePageByHtmlAgilityPackAsync(string url)
     {
         var web = new HtmlWeb();
         var doc = web.Load(url);
@@ -103,7 +105,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         });
     }
 
-    private Task<LinkPreviewDto> AnalyzePageBySeleniumWebDriver(string url)
+    private Task<LinkPreviewDto> AnalyzePageBySeleniumWebDriverAsync(string url)
     {
         ChromeOptions options = new ChromeOptions();
         options.AddArgument("--headless");
@@ -162,29 +164,68 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
         }
     }
 
-    private async Task<LinkPreviewDto> AnalyzePageByPuppeteerSharp(string url)
+    private async Task<LinkPreviewDto> AnalyzePageByPuppeteerSharpAsync(string url)
     {
         var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
         {
-            Browser = SupportedBrowser.Chrome,
-            Platform = null,
-            Path = null,
-            Host = null,
-            CustomFileDownload = null
+            Browser = SupportedBrowser.Chromium
         });
         _logger.LogInformation(
-            "EVN: Browser={Browser}, CacheDir={CacheDir}, Platform={Platform}",
+            "Puppeteer: Browser={Browser}, CacheDir={CacheDir}, Platform={Platform}",
             browserFetcher.Browser, browserFetcher.CacheDir, browserFetcher.Platform);
+        
         await browserFetcher.DownloadAsync();
-        await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
+
+        var launchOptions = new LaunchOptions { Headless = true };
+        await using var browser = await Puppeteer.LaunchAsync(launchOptions);
         await using var page = await browser.NewPageAsync();
         await page.GoToAsync(url);
-        var title = await page.GetTitleAsync();
+
+        var title = await page.EvaluateExpressionAsync<string>(
+            "document.querySelector('meta[property=\"og:title\"]') ? document.querySelector('meta[property=\"og:title\"]').content : ''");
+        var description = await page.EvaluateExpressionAsync<string>(
+            "document.querySelector('meta[property=\"og:description\"]') ? document.querySelector('meta[property=\"og:description\"]').content : ''");
+        var faviconUrl = await page.EvaluateExpressionAsync<string>(
+            "document.querySelector('meta[property=\"og:image\"]') ? document.querySelector('meta[property=\"og:image\"]').content : ''");
+
+        if (title.IsNullOrWhiteSpace())
+        {
+            title = await page.GetTitleAsync();
+        }
+
+        if (description.IsNullOrWhiteSpace())
+        {
+            description = await page.EvaluateExpressionAsync<string>(
+                "document.querySelector('meta[name=\"description\"]') ? document.querySelector('meta[name=\"description\"]').content : ''");
+        }
+
+        if (faviconUrl.IsNullOrWhiteSpace())
+        {
+            var relativeUrl = await page.EvaluateExpressionAsync<string>(
+                "document.querySelector('link[rel=\"icon\"]') ? document.querySelector('link[rel=\"icon\"]').href : ''");
+            if (Uri.IsWellFormedUriString(relativeUrl, UriKind.Absolute))
+            {
+                faviconUrl = relativeUrl;
+            }
+            else
+            {
+                var baseUri = new Uri(url);
+                var faviconUri = new Uri(baseUri, relativeUrl);
+                faviconUrl = faviconUri.AbsoluteUri;
+            }
+
+            if (string.IsNullOrEmpty(faviconUrl))
+            {
+                var baseUri = new Uri(url);
+                faviconUrl = new Uri(baseUri, "/favicon.ico").AbsoluteUri;
+            }
+        }
+
         return new LinkPreviewDto
         {
             Title = title,
-            Description = "",
-            Favicon = ""
+            Description = description,
+            Favicon = faviconUrl
         };
     }
 }
