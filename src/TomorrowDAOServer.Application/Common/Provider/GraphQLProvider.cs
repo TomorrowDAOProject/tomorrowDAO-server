@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
@@ -95,7 +96,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetBPAsync error, chainId {chainId}", chainId);
+            _logger.LogError(e, "GetBPAsync Exception chainId {chainId}", chainId);
             return new List<string>();
         }
     }
@@ -242,11 +243,28 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
+        Stopwatch swt = Stopwatch.StartNew();
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
             var grainId = GuidHelper.GenerateId(chainId, daoId);
+            sw.Stop();
+            _logger.LogInformation("GetHighCouncilMembers generateId duration:{0}", sw.ElapsedMilliseconds);
+            
+            sw.Restart();
             var grain = _clusterClient.GetGrain<IHighCouncilMembersGrain>(grainId);
-            return await grain.GetHighCouncilMembersAsync();
+            sw.Stop();
+            _logger.LogInformation("GetHighCouncilMembers GetGrain duration:{0}", sw.ElapsedMilliseconds);
+            
+            sw.Restart();
+            var list = await grain.GetHighCouncilMembersAsync();
+            sw.Stop();
+            _logger.LogInformation("GetHighCouncilMembers GetHighCouncilMembersAsync duration:{0}", sw.ElapsedMilliseconds);
+            
+            swt.Stop();
+            _logger.LogInformation("GetHighCouncilMembers GetHighCouncilMembersAsync Total duration:{0}", swt.ElapsedMilliseconds);
+            
+            return list;
         }
         catch (Exception e)
         {

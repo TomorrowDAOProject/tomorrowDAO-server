@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Election.Dto;
@@ -25,9 +26,15 @@ public class ElectionService : TomorrowDAOServerAppService, IElectionService
 
     public async Task<List<string>> GetHighCouncilMembersAsync(HighCouncilMembersInput input)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
-            return await _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DaoId);
+            var list = await _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DaoId);
+            
+            sw.Stop();
+            _logger.LogInformation("GetHighCouncilMembers service duration:{0}", sw.ElapsedMilliseconds);
+            
+            return list;
         }
         catch (Exception e)
         {

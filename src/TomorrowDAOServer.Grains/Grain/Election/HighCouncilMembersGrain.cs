@@ -1,6 +1,6 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Orleans;
-using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Grains.State.ApplicationHandler;
 using TomorrowDAOServer.Grains.State.Election;
 
 namespace TomorrowDAOServer.Grains.Grain.Election;
@@ -13,6 +13,13 @@ public interface IHighCouncilMembersGrain : IGrainWithStringKey
 
 public class HighCouncilMembersGrain : Grain<HighCouncilMembersState>, IHighCouncilMembersGrain
 {
+    private readonly ILogger<HighCouncilMembersGrain> _logger;
+
+    public HighCouncilMembersGrain(ILogger<HighCouncilMembersGrain> logger)
+    {
+        _logger = logger;
+    }
+
     public override Task OnActivateAsync()
     {
         ReadStateAsync();
@@ -28,6 +35,10 @@ public class HighCouncilMembersGrain : Grain<HighCouncilMembersState>, IHighCoun
 
     public Task<List<string>> GetHighCouncilMembersAsync()
     {
-        return Task.FromResult(State.AddressList);
+        Stopwatch sw = Stopwatch.StartNew();
+        var result = Task.FromResult(State.AddressList);
+        sw.Stop();
+        _logger.LogInformation("GetHighCouncilMembers service duration:{0}", sw.ElapsedMilliseconds);
+        return result;
     }
 }
