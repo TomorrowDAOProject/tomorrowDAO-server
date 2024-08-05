@@ -16,7 +16,6 @@ namespace TomorrowDAOServer.Discussion.Provider;
 public interface IDiscussionProvider
 {
     Task<long> GetCommentCountAsync(string proposalId);
-    Task<long> GetCurrentCommentCountAsync(string proposalId);
     Task NewCommentAsync(CommentIndex index);
     Task<long> CountCommentListAsync(GetCommentListInput input);
     Task<Tuple<long, List<CommentIndex>>> GetCommentListAsync(GetCommentListInput input);
@@ -117,19 +116,5 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _commentIndexRepository.GetSortListAsync(Filter, skip: 0, limit: maxResultCount,
             sortFunc: _ => new SortDescriptor<CommentIndex>().Descending(index => index.CreateTime));
-    }
-    
-    public async Task<long> GetCurrentCommentCountAsync(string proposalId)
-    {
-        try
-        {
-            var grain = _clusterClient.GetGrain<ICommentCountGrain>(proposalId);
-            return await grain.GetCurrentCount();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetCurrentCommentCountAsyncException proposalId {proposalId}", proposalId);
-            return -1;
-        }
     }
 }

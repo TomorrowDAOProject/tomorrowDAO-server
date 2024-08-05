@@ -8,5 +8,4 @@ public interface IDiscussionService
     Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input);
     Task<CommentListPageResultDto> GetCommentListAsync(GetCommentListInput input);
     Task<CommentBuildingDto> GetCommentBuildingAsync(GetCommentBuildingInput input);
-    Task<long> GetCommentCountAsync(string proposalId);
 }
