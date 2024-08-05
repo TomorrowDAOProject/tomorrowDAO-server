@@ -34,4 +34,10 @@ public class TreasuryControllers : AbpController
     {
         return await _treasuryAssetsService.IsTreasuryDepositorAsync(input);
     }
+    
+    [HttpGet("address")]
+    public async Task<string> GetTreasuryAddressAsync(GetTreasuryAddressInput input)
+    {
+        return await _treasuryAssetsService.GetTreasuryAddressAsync(input);
+    }
 }

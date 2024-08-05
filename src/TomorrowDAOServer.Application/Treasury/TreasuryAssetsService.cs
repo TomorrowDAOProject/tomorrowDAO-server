@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
@@ -31,10 +32,11 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
     private readonly ITokenService _tokenService;
     private readonly IDAOProvider _daoProvider;
     private readonly INetworkDaoTreasuryService _networkDaoTreasuryService;
+    private readonly IContractProvider _contractProvider;
 
     public TreasuryAssetsService(ILogger<TreasuryAssetsService> logger, ITreasuryAssetsProvider treasuryAssetsProvider,
         IObjectMapper objectMapper, ITokenService tokenService, IDAOProvider daoProvider,
-        INetworkDaoTreasuryService networkDaoTreasuryService)
+        INetworkDaoTreasuryService networkDaoTreasuryService, IContractProvider contractProvider)
     {
         _logger = logger;
         _treasuryAssetsProvider = treasuryAssetsProvider;
@@ -42,19 +44,33 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         _tokenService = tokenService;
         _daoProvider = daoProvider;
         _networkDaoTreasuryService = networkDaoTreasuryService;
+        _contractProvider = contractProvider;
     }
 
     public async Task<TreasuryAssetsPagedResultDto> GetTreasuryAssetsAsync(GetTreasuryAssetsInput input)
     {
+        if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()) ||
+            input.ChainId.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("Invalid input.");
+        }
+        
         try
         {
-            if (input == null || input.DaoId.IsNullOrWhiteSpace() || input.ChainId.IsNullOrWhiteSpace())
+            var resultDto = new TreasuryAssetsPagedResultDto();
+            var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
             {
-                throw new UserFriendlyException("request parameters daoId or chainId cannot be empty.");
+                ChainId = input.ChainId,
+                DAOId = input.DaoId,
+                Alias = input.Alias
+            });
+            if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
+            {
+                throw new UserFriendlyException("No DAO information found.");
             }
 
-            var resultDto = new TreasuryAssetsPagedResultDto();
-            var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { DAOId = input.DaoId });
+            input.DaoId = daoIndex.Id;
+
             if (daoIndex.IsNetworkDAO)
             {
                 var response = await _networkDaoTreasuryService.GetBalanceAsync(new TreasuryBalanceRequest
@@ -108,7 +124,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         catch (Exception e)
         {
             _logger.LogError(e, "get treasury assets error. daoId={0}, chainId={1}", input?.DaoId, input?.ChainId);
-            throw;
+            throw new UserFriendlyException($"System exception occurred during querying treasury assets. {e.Message}");
         }
     }
 
@@ -139,6 +155,39 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             _logger.LogError(e, "exec IsTreasuryDepositorAsync error. {0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException(
                 $"An exception occurred when running the IsTreasuryDepositor method, {e.Message}");
+        }
+    }
+
+    public async Task<string> GetTreasuryAddressAsync(GetTreasuryAddressInput input)
+    {
+        if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
+        {
+            throw new UserFriendlyException("Invalid input.");
+        }
+
+        try
+        {
+            if (input.DaoId.IsNullOrWhiteSpace())
+            {
+                var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
+                {
+                    ChainId = input.ChainId,
+                    Alias = input.Alias
+                });
+                if (daoIndex == null)
+                {
+                    throw new UserFriendlyException("No DAO information found.");
+                }
+
+                input.DaoId = daoIndex.Id;
+            }
+
+            return await _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DaoId);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetTreasuryAddressAsync error, {0}", JsonConvert.SerializeObject(input));
+            throw new UserFriendlyException($"System exception occurred during querying treasury address. {e.Message}");
         }
     }
 

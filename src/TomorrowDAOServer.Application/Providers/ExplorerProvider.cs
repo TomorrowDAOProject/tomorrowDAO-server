@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -152,9 +153,9 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         return new ExplorerTokenInfoResponse();
     }
 
-    public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
+    public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, [CanBeNull] string symbol)
     {
-        if (symbol.IsNullOrEmpty())
+        if (symbol.IsNullOrWhiteSpace())
         {
             return new TokenInfoDto();
         }

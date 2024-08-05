@@ -24,6 +24,7 @@ using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp.Users;
 using Xunit;
+using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.DAO;
 
@@ -127,7 +128,14 @@ public class DaoAppServiceTest
     public async void GetMemberListAsync_Test()
     {
         _daoProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>());
-        var result = await _service.GetMemberListAsync(new GetMemberListInput());
+        var result = await _service.GetMemberListAsync(new GetMemberListInput
+        {
+            ChainId = ChainIdAELF,
+            DAOId = DaoId,
+            Alias = null,
+            SkipCount = 0,
+            MaxResultCount = 10
+        });
         result.ShouldNotBeNull();
     }
 

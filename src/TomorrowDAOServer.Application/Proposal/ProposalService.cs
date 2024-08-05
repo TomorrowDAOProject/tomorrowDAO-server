@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nest;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
@@ -25,7 +26,6 @@ using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.User.Provider;
-using TomorrowDAOServer.Vote;
 using Volo.Abp.Users;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
 
@@ -75,6 +75,26 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
+        if (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("Invalid input.");
+        }
+
+        //1. query DAO info by alias
+        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
+        {
+            ChainId = input.ChainId,
+            DAOId = input.DaoId,
+            Alias = input.Alias
+        });
+        if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("No DAO information found.");
+        }
+
+        input.DaoId = daoIndex.Id;
+
+        //2. query proposal info
         input.ProposalStatus = MapHelper.MapProposalStatus(input.ProposalStatus);
         var (total, proposalList) = await GetProposalListAsync(input);
         if (proposalList.IsNullOrEmpty())
@@ -82,25 +102,25 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return new ProposalPagedResultDto<ProposalDto>();
         }
 
-        var governanceMechanism = proposalList[0].GovernanceMechanism;
-        var councilMemberCountTask =
-            GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId, governanceMechanism);
-        //query proposal vote infos
+        //3. parallel exec: 
+        //3.1 query the actual number of voters
+        var councilMemberCountTask = GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId,
+            proposalList[0].GovernanceMechanism);
+        //3.2 query token info
+        var tokenInfoTask = _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken);
+        //3.3 query vote scheme
+        var getVoteSchemeTask =
+            _voteProvider.GetVoteSchemeDicAsync(new GetVoteSchemeInput { ChainId = input.ChainId });
+        //3.4 query proposal vote infos
         var proposalIds = proposalList.Select(item => item.ProposalId).ToList();
-        var voteItemsMap = await _voteProvider.GetVoteItemsAsync(input.ChainId, proposalIds);
-        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
-        {
-            ChainId = input.ChainId,
-            DAOId = input.DaoId
-        });
-        var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
-        var symbol = tokenInfo.Symbol;
-        var symbolDecimal = tokenInfo.Decimals;
-        var voteSchemeDic =
-            await _voteProvider.GetVoteSchemeDicAsync(new GetVoteSchemeInput { ChainId = input.ChainId });
-        await councilMemberCountTask;
+        var voteItemsMapTask = _voteProvider.GetVoteItemsAsync(input.ChainId, proposalIds);
+        
+        await Task.WhenAll(councilMemberCountTask, tokenInfoTask, getVoteSchemeTask, voteItemsMapTask);
         var councilMemberCount = councilMemberCountTask.Result;
+        var tokenInfo = tokenInfoTask.Result;
+        var voteSchemeDic = getVoteSchemeTask.Result;
+        var voteItemsMap = voteItemsMapTask.Result;
+
         foreach (var proposal in proposalList)
         {
             if (voteItemsMap.TryGetValue(proposal.ProposalId, out var voteInfo))
@@ -123,27 +143,28 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             if (voteSchemeDic.TryGetValue(proposal.VoteSchemeId, out var indexerVoteScheme))
             {
                 proposal.VoteMechanismName = indexerVoteScheme.VoteMechanism.ToString();
-                await CalculateRealVoteCountAsync(proposal, indexerVoteScheme, symbol, symbolDecimal);
+                await CalculateRealVoteCountAsync(proposal, indexerVoteScheme, tokenInfo.Symbol, tokenInfo.Decimals);
             }
 
             await CalculateHcRealVoterCountAsync(proposal, councilMemberCount);
 
-            proposal.Symbol = symbol;
-            proposal.Decimals = symbolDecimal;
+            proposal.Symbol = tokenInfo.Symbol;
+            proposal.Decimals = tokenInfo.Decimals;
         }
+
         var proposalPagedResultDto = new ProposalPagedResultDto<ProposalDto>
         {
             Items = proposalList,
             TotalCount = total,
         };
-        
+
         return proposalPagedResultDto;
     }
 
     private static Task CalculateHcRealVoterCountAsync(ProposalDto proposal, int councilMemberCount)
     {
         if (proposal.GovernanceMechanism == GovernanceMechanism.HighCouncil.ToString() ||
-             proposal.GovernanceMechanism == GovernanceMechanism.Organization.ToString())
+            proposal.GovernanceMechanism == GovernanceMechanism.Organization.ToString())
         {
             proposal.MinimalRequiredThreshold =
                 Convert.ToInt64(Math.Ceiling((decimal)proposal.MinimalRequiredThreshold /
@@ -306,12 +327,16 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         return proposalDetailDto.Proposer == address
                && proposalDetailDto.ProposalStatus == ProposalStatus.Approved.ToString()
                && proposalDetailDto.ProposalStage == MapHelper.MapProposalStageString(ProposalStage.Execute)
-               && proposalDetailDto.ExecuteStartTime != null &&  proposalDetailDto.ExecuteStartTime <= DateTime.Now
+               && proposalDetailDto.ExecuteStartTime != null && proposalDetailDto.ExecuteStartTime <= DateTime.Now
                && proposalDetailDto.ExecuteEndTime != null && proposalDetailDto.ExecuteEndTime >= DateTime.Now;
     }
 
     public async Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input)
     {
+        if (input == null || (input.DAOId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
+        {
+            throw new UserFriendlyException("Invalid input.");
+        }
         input.Address = await GetAndValidateUserAddress(input.ChainId);
         return string.IsNullOrEmpty(input.ProposalId)
             ? await QueryDaoMyInfoAsync(input)
@@ -320,23 +345,38 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<MyProposalDto> QueryProposalMyInfoAsync(QueryMyProposalInput input)
     {
-        var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
-        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
+        var getProposalTask = _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
+        var getDaoTask = _DAOProvider.GetAsync(new GetDAOInfoInput
+        {
+            ChainId = input.ChainId,
+            DAOId = input.DAOId,
+            Alias = input.Alias
+        });
+        var getVotingItemTask = _voteProvider.GetByVoterAndVotingItemIdsAsync(input.ChainId, input.Address,
+            new List<string> { input.ProposalId });
+
+        await Task.WhenAll(getProposalTask, getDaoTask, getVotingItemTask);
+        var proposalIndex = getProposalTask.Result;
+        var daoIndex = getDaoTask.Result;
         if (proposalIndex == null || daoIndex == null)
         {
             return new MyProposalDto { ChainId = input.ChainId };
         }
 
-        var voteRecords = await _voteProvider.GetByVoterAndVotingItemIdsAsync(input.ChainId, input.Address, new List<string>{input.ProposalId});
+        input.DAOId = daoIndex.Id;
+
+        var voteRecords = getVotingItemTask.Result;
         var voted = !voteRecords.IsNullOrEmpty();
         var canVote = await CanVote(daoIndex, proposalIndex, input.Address, voted);
         if (daoIndex.GovernanceToken.IsNullOrEmpty())
         {
-            return new MyProposalDto { ChainId = input.ChainId,  CanVote = canVote, VotesAmountUniqueVote = canVote ? 0 : 1 };
+            return new MyProposalDto
+                { ChainId = input.ChainId, CanVote = canVote, VotesAmountUniqueVote = canVote ? 0 : 1 };
         }
 
-        var myProposalDto = new MyProposalDto { ChainId = input.ChainId, CanVote = canVote }; 
-        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
+        var myProposalDto = new MyProposalDto { ChainId = input.ChainId, CanVote = canVote };
+        var tokenInfo =
+            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
         myProposalDto.Symbol = tokenInfo.Symbol;
         myProposalDto.Decimal = tokenInfo.Decimals;
         if (!voted)
@@ -345,7 +385,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
 
         var voteRecord = voteRecords[0];
-        myProposalDto.AvailableUnStakeAmount = DateTime.Now > voteRecord.EndTime && !voteRecord.IsWithdraw ? voteRecord.Amount : 0;
+        myProposalDto.AvailableUnStakeAmount =
+            DateTime.Now > voteRecord.EndTime && !voteRecord.IsWithdraw ? voteRecord.Amount : 0;
         myProposalDto.StakeAmount = voteRecord.IsWithdraw ? 0 : voteRecord.Amount;
         myProposalDto.VotesAmountTokenBallot = voteRecord.Amount;
         if (!voteRecord.IsWithdraw)
@@ -355,16 +396,24 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
                 new() { ProposalIdList = new List<string> { input.ProposalId }, WithdrawAmount = voteRecord.Amount }
             };
         }
+
         return myProposalDto;
     }
 
     public async Task<MyProposalDto> QueryDaoMyInfoAsync(QueryMyProposalInput input)
     {
-        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput { ChainId = input.ChainId, DAOId = input.DAOId });
+        var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
+        {
+            ChainId = input.ChainId,
+            DAOId = input.DAOId,
+            Alias = input.Alias
+        });
         if (daoIndex == null)
         {
             return new MyProposalDto { ChainId = input.ChainId };
         }
+
+        input.DAOId = daoIndex.Id;
 
         var daoVoterRecord = await _voteProvider.GetDaoVoterRecordAsync(input.ChainId, input.DAOId, input.Address);
         if (daoIndex.GovernanceToken.IsNullOrEmpty())
@@ -372,18 +421,21 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return new MyProposalDto { ChainId = input.ChainId, VotesAmountUniqueVote = daoVoterRecord.Count };
         }
 
-        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
-        var nonWithdrawVoteRecords = await _voteProvider.GetNonWithdrawVoteRecordAsync(input.ChainId, input.DAOId, input.Address);
+        var tokenInfo =
+            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
+        var nonWithdrawVoteRecords =
+            await _voteProvider.GetNonWithdrawVoteRecordAsync(input.ChainId, input.DAOId, input.Address);
         var canWithdrawVoteRecords = nonWithdrawVoteRecords.Where(x => DateTime.Now > x.EndTime).ToList();
         var withdrawList = new List<WithdrawDto>();
-        for (var i = 0; i < canWithdrawVoteRecords.Count; i += ProposalOnceWithdrawMax)  
-        {  
-            var group = canWithdrawVoteRecords.GetRange(i, Math.Min(ProposalOnceWithdrawMax, canWithdrawVoteRecords.Count - i));
+        for (var i = 0; i < canWithdrawVoteRecords.Count; i += ProposalOnceWithdrawMax)
+        {
+            var group = canWithdrawVoteRecords.GetRange(i,
+                Math.Min(ProposalOnceWithdrawMax, canWithdrawVoteRecords.Count - i));
             withdrawList.Add(new WithdrawDto
             {
                 ProposalIdList = group.Select(x => x.VotingItemId).ToList(),
                 WithdrawAmount = group.Sum(x => x.Amount)
-            });  
+            });
         }
 
         return new MyProposalDto

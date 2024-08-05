@@ -85,7 +85,7 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
                 Symbols = new HashSet<string>()
             });
         });
-        exception.Message.ShouldContain("GraphQL query exception");
+        exception.Message.ShouldContain("System exception occurred during querying treasury assets");
     }
 
     [Fact]
