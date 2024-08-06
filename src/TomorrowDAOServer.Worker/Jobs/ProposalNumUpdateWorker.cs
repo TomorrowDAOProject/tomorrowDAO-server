@@ -9,7 +9,7 @@ namespace TomorrowDAOServer.Worker.Jobs;
 
 public class ProposalNumUpdateWorker : TomorrowDAOServerWorkBase
 {
-    protected override WorkerBusinessType BusinessType => WorkerBusinessType.TokenPriceUpdate;
+    protected override WorkerBusinessType BusinessType => WorkerBusinessType.ProposalNumUpdate;
 
     public ProposalNumUpdateWorker(ILogger<ScheduleSyncDataContext> logger,
         AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
