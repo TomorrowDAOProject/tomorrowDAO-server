@@ -10,7 +10,7 @@ namespace TomorrowDAOServer.DAO;
 public interface IDAOAppService
 {
     Task<DAOInfoDto> GetDAOByIdAsync(GetDAOInfoInput input);
-    Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput);
+    Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput input);
     Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput request);
     Task<List<string>> GetBPList(string chainId);
     Task<List<MyDAOListDto>> GetMyDAOListAsync(QueryMyDAOListInput input);

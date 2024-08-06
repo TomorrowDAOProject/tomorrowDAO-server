@@ -12,7 +12,9 @@ public class QueryProposalListInput : PagedResultRequestDto
 {
     [Required] public string ChainId { get; set; }
 
-    [Required] public string DaoId { get; set; }
+    public string DaoId { get; set; }
+    
+    public string Alias { get; set; }
 
     public GovernanceMechanism? GovernanceMechanism { get; set; }
 

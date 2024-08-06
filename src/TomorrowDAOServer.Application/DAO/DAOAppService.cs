@@ -108,9 +108,38 @@ public class DAOAppService : ApplicationService, IDAOAppService
         return daoInfo;
     }
 
-    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
+    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput input)
     {
-        return await _daoProvider.GetMemberListAsync(listInput);
+        if (input == null || (input.DAOId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
+        {
+            throw new UserFriendlyException("Invalid input.");
+        }
+
+        try
+        {
+            if (input.DAOId.IsNullOrWhiteSpace())
+            {
+                var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
+                {
+                    ChainId = input.ChainId,
+                    DAOId = input.DAOId,
+                    Alias = input.Alias
+                });
+                if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
+                {
+                    throw new UserFriendlyException("No DAO information found.");
+                }
+
+                input.DAOId = daoIndex.Id;
+            }
+
+            return await _daoProvider.GetMemberListAsync(input);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetMemberListAsync error, {0}", JsonConvert.SerializeObject(input));
+            throw new UserFriendlyException($"System exception occurred during querying member list. {e.Message}");
+        }
     }
 
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput input)
@@ -251,13 +280,13 @@ public class DAOAppService : ApplicationService, IDAOAppService
     {
         try
         {
-           var memberDto = await _daoProvider.GetMemberAsync(new GetMemberInput
+            var memberDto = await _daoProvider.GetMemberAsync(new GetMemberInput
             {
                 ChainId = input.ChainId,
                 DAOId = input.DAOId,
                 Address = input.MemberAddress
             });
-           return memberDto != null && !memberDto.Address.IsNullOrWhiteSpace();
+            return memberDto != null && !memberDto.Address.IsNullOrWhiteSpace();
         }
         catch (Exception e)
         {

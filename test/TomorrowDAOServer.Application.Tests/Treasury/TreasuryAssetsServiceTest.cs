@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using TomorrowDAOServer.Common.Mocks;
+using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Treasury.Dto;
 using Volo.Abp;
 using Xunit;
@@ -26,6 +28,7 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
         services.AddSingleton(ClusterClientMock.MockClusterClient());
         services.AddSingleton(MockDaoProvider());
         services.AddSingleton(MockNetworkDaoTreasuryService());
+        services.AddSingleton(ContractProviderMock.MockContractProvider());
     }
 
     [Fact]
@@ -85,7 +88,7 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
                 Symbols = new HashSet<string>()
             });
         });
-        exception.Message.ShouldContain("GraphQL query exception");
+        exception.Message.ShouldContain("System exception occurred during querying treasury assets");
     }
 
     [Fact]
@@ -131,5 +134,48 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
             });
         });
         exception.Message.ShouldContain("An exception occurred when running the IsTreasuryDepositor method");
+    }
+
+    [Fact]
+    public async Task GetTreasuryAddressAsyncTest()
+    {
+        var address = await _treasuryAssetsService.GetTreasuryAddressAsync(new GetTreasuryAddressInput
+        {
+            ChainId = ChainIdAELF,
+            Alias = "Alias"
+        });
+        address.ShouldNotBeNull();
+        address.ShouldBe(Address1);
+    }
+    
+    [Fact]
+    public async Task GetTreasuryAddressAsyncTest_InvalidInput()
+    {
+        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
+        {
+            await _treasuryAssetsService.GetTreasuryAddressAsync(new GetTreasuryAddressInput
+            {
+                ChainId = ChainIdAELF,
+                DaoId = null,
+                Alias = null
+            });
+        });
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldBe("Invalid input.");
+    }
+    
+    [Fact]
+    public async Task GetTreasuryAddressAsyncTest_DAONotExist()
+    {
+        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
+        {
+            await _treasuryAssetsService.GetTreasuryAddressAsync(new GetTreasuryAddressInput
+            {
+                ChainId = ChainIdAELF,
+                Alias = "NotExist"
+            });
+        });
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldContain("No DAO information found.");
     }
 }
