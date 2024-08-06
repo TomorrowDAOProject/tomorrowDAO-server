@@ -22,9 +22,9 @@ public class TomorrowDAOServerOrleansSiloModule : AbpModule
     {
         var configuration = context.Services.GetConfiguration();
         Configure<ChainOptions>(configuration.GetSection("Chains"));
-        Configure<ExchangeOptions>(configuration.GetSection("Exchange"));
-        Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
-        Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
+        // Configure<ExchangeOptions>(configuration.GetSection("Exchange"));
+        // Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
+        // Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
         
         context.Services.AddHostedService<TomorrowDAOServerHostedService>();

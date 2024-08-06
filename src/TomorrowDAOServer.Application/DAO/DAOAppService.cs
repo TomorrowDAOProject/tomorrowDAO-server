@@ -47,10 +47,6 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IContractProvider _contractProvider;
     private readonly IUserProvider _userProvider;
     private readonly ITokenService _tokenService;
-    private const int ZeroSkipCount = 0;
-    private const int GetMemberListMaxResultCount = 100;
-    private const int CandidateTermNumber = 0;
-    private ValueTuple<long, long> ProposalCountCache = new(0, 0);
 
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
         IGovernanceProvider governanceProvider,
@@ -206,20 +202,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
             }
 
             dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(chainId)).Count;
-            if (DateTime.UtcNow.ToUtcMilliSeconds() - ProposalCountCache.Item2 >= 10 * 60 * 1000)
-            {
-                var parliamentTask = GetCountTask(Common.Enum.ProposalType.Parliament);
-                var associationTask = GetCountTask(Common.Enum.ProposalType.Association);
-                var referendumTask = GetCountTask(Common.Enum.ProposalType.Referendum);
-                await Task.WhenAll(parliamentTask, associationTask, referendumTask);
-                dao.ProposalsNum += (await parliamentTask).Total + (await associationTask).Total +
-                                    (await referendumTask).Total;
-                ProposalCountCache = new ValueTuple<long, long>(dao.ProposalsNum, DateTime.UtcNow.ToUtcMilliSeconds());
-            }
-            else
-            {
-                dao.ProposalsNum += ProposalCountCache.Item1;
-            }
+            dao.ProposalsNum = await _graphQlProvider.GetProposalNumAsync(chainId);
         }
 
         return new Tuple<long, List<DAOListDto>>(originResult.Item1, items);

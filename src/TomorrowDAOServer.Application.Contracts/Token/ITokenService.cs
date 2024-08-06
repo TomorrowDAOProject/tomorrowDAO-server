@@ -13,5 +13,5 @@ public interface ITokenService
     
     Task<double> GetTvlAsync(string chainId);
 
-    Task<Dictionary<string, TokenExchangeDto>> GetExchangePriceAsync(string baseCoin, string quoteCoin);
+    Task<Dictionary<string, TokenExchangeDto>> UpdateExchangePriceAsync(string baseCoin, string quoteCoin);
 }

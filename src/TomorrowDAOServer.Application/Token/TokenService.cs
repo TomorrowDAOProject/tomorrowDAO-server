@@ -20,7 +20,6 @@ using TomorrowDAOServer.ThirdPart.Exchange;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
-using TokenInfo = AElf.Contracts.MultiToken.TokenInfo;
 
 namespace TomorrowDAOServer.Token;
 
@@ -64,7 +63,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         }
 
         var tokenInfo = await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
-        if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= 10 * 60 * 1000)
+        if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= CommonConstant.OneDay)
         {
             return tokenInfo;
         }
@@ -103,36 +102,31 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
             _logger.LogError("GetTokenPriceAsync Get token price fail, baseCoin or quoteCoin is empty.");
             return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
         }
-        var exchange = await GetExchangePriceAsync(baseCoin, quoteCoin);
-        if (exchange.IsNullOrEmpty())
+        var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(string.Join(CommonConstant.Underline, baseCoin, quoteCoin));
+        var exchange = await exchangeGrain.GetAsync();
+        var now = DateTime.UtcNow.ToUtcMilliSeconds();
+        if (exchange.LastModifyTime > 0 && exchange.ExpireTime > now)
         {
-            _logger.LogError("GetTokenPriceAsync Exchange data not found baseCoin {baseCoin} quoteCoin {quoteCoin}", baseCoin, quoteCoin);
             return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
         }
-        var avgExchange = exchange.Values
+        var avgExchange = exchange.ExchangeInfos.Values
             .Where(ex => ex.Exchange > 0)
             .Average(ex => ex.Exchange);
         return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = avgExchange };
     }
 
-    public async Task<Dictionary<string, TokenExchangeDto>> GetExchangePriceAsync(string baseCoin, string quoteCoin)
+    public async Task<Dictionary<string, TokenExchangeDto>> UpdateExchangePriceAsync(string baseCoin, string quoteCoin)
     {
         var pair = string.Join(CommonConstant.Underline, baseCoin, quoteCoin);
         var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(pair);
         var now = DateTime.UtcNow.ToUtcMilliSeconds();
         var exchange = await exchangeGrain.GetAsync();
-        if (exchange.LastModifyTime > 0 && exchange.ExpireTime > now)
-        {
-            return exchange.ExchangeInfos;
-        }
-
         var asyncTasks = new Dictionary<string, Task<TokenExchangeDto>>();
         foreach (var provider in _exchangeProviders.Values)
         {
             asyncTasks[provider.Name().ToString()] =
                 provider.LatestAsync(MappingSymbol(baseCoin.ToUpper()), MappingSymbol(quoteCoin.ToUpper()));
         }
-        
         exchange.LastModifyTime = now;
         exchange.ExpireTime = now + _exchangeOptions.CurrentValue.DataExpireSeconds * 1000;
         exchange.ExchangeInfos = new Dictionary<string, TokenExchangeDto>();
@@ -155,8 +149,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     private string MappingSymbol(string sourceSymbol)
     {
         return _netWorkReflectionOption.CurrentValue.SymbolItems.TryGetValue(sourceSymbol, out var targetSymbol)
-            ? targetSymbol
-            : sourceSymbol;
+            ? targetSymbol : sourceSymbol;
     }
     
     private async Task<string> FixImageAsync(string chainId, string symbol, BlockChainTokenInfo tokenInfo = null)

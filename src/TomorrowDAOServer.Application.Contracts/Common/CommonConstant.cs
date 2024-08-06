@@ -21,4 +21,7 @@ public static class CommonConstant
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
 
     public const string RootParentId = "root";
+
+    public const long TenMinutes = 10 * 60 * 1000;
+    public const long OneDay = 24 * 60 * 60 * 1000;
 }
