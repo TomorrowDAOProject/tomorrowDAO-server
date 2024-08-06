@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
 using TomorrowDAOServer.Common.Provider;
-using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
@@ -47,39 +46,29 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         _exchangeOptions = exchangeOptions;
     }
 
-    public async Task<TokenGrainDto> GetTokenAsync(string chainId, string symbol)
+    public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
     {
-        try
+        if (symbol.IsNullOrEmpty())
         {
-            var grainId = GuidHelper.GenerateGrainId(chainId, symbol);
-            var tokenGrain = _clusterClient.GetGrain<ITokenGrain>(grainId);
-            var grainResultDto = await tokenGrain.GetTokenAsync(new TokenGrainDto
-            {
-                ChainId = chainId,
-                Symbol = symbol
-            });
-            AssertHelper.IsTrue(grainResultDto.Success, "GetTokenAsync  fail, chainId  {chainId} symbol {symbol}", chainId,
-                symbol);
-            return grainResultDto.Data;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetTokenAsyncException chainId{chainId}, symbol{symbol}", chainId, symbol);
+            return new TokenInfoDto();
         }
 
-        return new TokenGrainDto();
-    }
-
-    public async Task<TokenDto> GetTokenByExplorerAsync(string chainId, string symbol)
-    {
-        var tokenGrain = await GetTokenAsync(chainId, symbol);
-        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest()
+        var tokenInfo = await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
+        if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= 10 * 60 * 1000)
         {
-            Symbol = symbol
-        });
-        var tokenResult = _objectMapper.Map<ExplorerTokenInfoResponse, TokenDto>(tokenInfo);
-        tokenResult.ImageUrl = tokenGrain.ImageUrl;
-        return tokenResult;
+            return tokenInfo;
+        }
+
+        var tokenResponse = await _explorerProvider.GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest { Symbol = symbol.ToUpper() });
+        if (tokenResponse == null || tokenResponse.Symbol.IsNullOrWhiteSpace())
+        {
+            return tokenInfo;
+        }
+
+        tokenInfo = _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(tokenResponse);
+        tokenInfo.LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds();
+        await _graphQlProvider.SetTokenInfoAsync(tokenInfo);
+        return tokenInfo;
     }
 
     public async Task<double> GetTvlAsync(string chainId)
@@ -87,7 +76,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var list = await _graphQlProvider.GetDAOAmountAsync(chainId);
         var tokens = list.Where(x => x.Amount > 0).Where(x => !string.IsNullOrEmpty(x.GovernanceToken))
             .Select(x => x.GovernanceToken).Distinct().ToList();
-        var tokenInfoTasks = tokens.Select(x => _explorerProvider.GetTokenInfoAsync(chainId, x)).ToList();
+        var tokenInfoTasks = tokens.Select(x => GetTokenInfoAsync(chainId, x)).ToList();
         var priceTasks = tokens.Select(x => GetTokenPriceAsync(x, CommonConstant.USD)).ToList();
         var tokenInfoResults = (await Task.WhenAll(tokenInfoTasks)).ToDictionary(x => x.Symbol, x => x); 
         var priceResults = (await Task.WhenAll(priceTasks)).ToDictionary(x => x.BaseCoin, x => x);

@@ -19,6 +19,7 @@ using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
@@ -43,6 +44,7 @@ public class DaoAppServiceTest
     private readonly DAOAppService _service;
     private readonly IUserProvider _userProvider;
     private readonly ICurrentUser _currentUser;
+    private readonly ITokenService _tokenService;
 
     private readonly Guid userId = Guid.Parse("158ff364-3264-4234-ab20-02aaada2aaad");
 
@@ -60,9 +62,10 @@ public class DaoAppServiceTest
         _objectMapper = Substitute.For<IObjectMapper>();
         _userProvider = Substitute.For<IUserProvider>();
         _currentUser = Substitute.For<ICurrentUser>();
+        _tokenService = Substitute.For<ITokenService>();
         _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
             _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider, _userProvider,
-            _logger);
+            _logger, _tokenService);
     }
 
     [Fact]
@@ -92,8 +95,10 @@ public class DaoAppServiceTest
                 new() { Symbol = "ELF", IsNetworkDAO = false },
                 new() { Symbol = "USDT", IsNetworkDAO = true }
             });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new TokenInfoDto { Holders = "2" });
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        {
+            Symbol = "ELF", Decimals = "8", Holders = "2"
+        });
         _graphQlProvider.GetBPAsync(Arg.Any<string>())
             .Returns(new List<string> { "BP" });
         _explorerProvider.GetProposalPagerAsync(Arg.Any<string>(), Arg.Any<ExplorerProposalListRequest>())

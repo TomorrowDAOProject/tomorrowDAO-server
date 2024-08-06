@@ -1,7 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CAServer.Commons;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
@@ -59,7 +59,7 @@ public class NetworkDaoTreasuryService : INetworkDaoTreasuryService, ITransientD
 
         var balanceItems = balance.Select(b =>
         {
-            var token = AsyncHelper.RunSync(() => _tokenService.GetTokenAsync(request.ChainId, b.Symbol));
+            var token = AsyncHelper.RunSync(() => _tokenService.GetTokenInfoAsync(request.ChainId, b.Symbol));
             var exchange = _networkDaoOptions.CurrentValue.PopularSymbols.Contains(b.Symbol)
                 ? AsyncHelper.RunSync(() => _tokenService.GetTokenPriceAsync(b.Symbol, CommonConstant.USDT))
                 : null;
@@ -70,8 +70,8 @@ public class NetworkDaoTreasuryService : INetworkDaoTreasuryService, ITransientD
                 Token = new TokenDto
                 {
                     Symbol = b.Symbol,
-                    Name = token.TokenName,
-                    Decimals = token.Decimals,
+                    Name = token.Name,
+                    Decimals = Convert.ToInt32(token.Decimals),
                     ImageUrl = _tokenOptions.CurrentValue.TokenInfos.TryGetValue(b.Symbol, out var img)
                         ? img.ImageUrl
                         : null

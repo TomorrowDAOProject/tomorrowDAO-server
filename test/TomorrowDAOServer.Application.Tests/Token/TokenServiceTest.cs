@@ -9,7 +9,6 @@ using Shouldly;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Indexer;
-using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Grains.Grain;
 using TomorrowDAOServer.Grains.Grain.Token;
@@ -29,7 +28,6 @@ public class TokenServiceTest
     private readonly IObjectMapper _objectMapper;
     private readonly IGraphQLProvider _graphQlProvider;
     private IEnumerable<IExchangeProvider> _exchangeProviders;
-    // private readonly Dictionary<string, IExchangeProvider> _exchangeProviders;
     private readonly IOptionsMonitor<NetWorkReflectionOptions> _netWorkReflectionOption;
     private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
     private readonly TokenService _service;
@@ -60,19 +58,7 @@ public class TokenServiceTest
         {
             Success = true, Data = new TokenGrainDto()
         });
-        var result = await _service.GetTokenAsync("chainId", "symbol");
-        result.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public async Task GetTokenByExplorerAsync_Test()
-    {
-        await GetTokenAsync_Test();
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>())
-            .Returns(new ExplorerTokenInfoResponse());
-        _objectMapper.Map<ExplorerTokenInfoResponse, TokenDto>(Arg.Any<ExplorerTokenInfoResponse>())
-            .Returns(new TokenDto());
-        var result = await _service.GetTokenByExplorerAsync("chainId", "symbol");
+        var result = await _service.GetTokenInfoAsync("chainId", "symbol");
         result.ShouldNotBeNull();
     }
 
@@ -83,7 +69,7 @@ public class TokenServiceTest
         {
             new() { Amount = 100000000, GovernanceToken = "ELF" }
         });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
         {
             Symbol = "ELF", Decimals = "8"
         });

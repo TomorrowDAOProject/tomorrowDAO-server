@@ -24,6 +24,7 @@ using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp.Users;
@@ -45,6 +46,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IContractProvider _contractProvider;
     private readonly IUserProvider _userProvider;
+    private readonly ITokenService _tokenService;
     private const int ZeroSkipCount = 0;
     private const int GetMemberListMaxResultCount = 100;
     private const int CandidateTermNumber = 0;
@@ -54,7 +56,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
         IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider,
-        IUserProvider userProvider, ILogger<DAOAppService> logger)
+        IUserProvider userProvider, ILogger<DAOAppService> logger, ITokenService tokenService)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -65,6 +67,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _contractProvider = contractProvider;
         _userProvider = userProvider;
         _logger = logger;
+        _tokenService = tokenService;
         _explorerProvider = explorerProvider;
         _governanceProvider = governanceProvider;
     }
@@ -184,7 +187,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         var tokenInfos = new Dictionary<string, TokenInfoDto>();
         foreach (var symbol in symbols)
         {
-            tokenInfos[symbol] = await _explorerProvider.GetTokenInfoAsync(chainId, symbol);
+            tokenInfos[symbol] = await _tokenService.GetTokenInfoAsync(chainId, symbol);
         }
 
         foreach (var dao in items)
