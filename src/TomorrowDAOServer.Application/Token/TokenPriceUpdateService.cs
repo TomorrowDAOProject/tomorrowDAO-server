@@ -45,6 +45,6 @@ public class TokenPriceUpdateService : ScheduleSyncDataService
 
     public override WorkerBusinessType GetBusinessType()
     {
-        return WorkerBusinessType.DAOSync;
+        return WorkerBusinessType.TokenPriceUpdate;
     }
 }

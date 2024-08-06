@@ -21,7 +21,7 @@ public class TomorrowDAOServerOrleansSiloModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
-        Configure<ChainOptions>(configuration.GetSection("Chains"));
+        // Configure<ChainOptions>(configuration.GetSection("Chains"));
         // Configure<ExchangeOptions>(configuration.GetSection("Exchange"));
         // Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
         // Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
