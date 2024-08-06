@@ -4,13 +4,13 @@ using TomorrowDAOServer.Grains.State.Token;
 
 namespace TomorrowDAOServer.Grains.Grain.Token;
 
-public interface IExplorerTokenGrain : IGrainWithStringKey
+public interface ITokenGrain : IGrainWithStringKey
 {
     Task<TokenInfoDto> GetTokenInfoAsync();
     Task SetTokenInfoAsync(TokenInfoDto tokenInfo);
 }
 
-public class ExplorerTokenGrain : Grain<ExplorerTokenState>, IExplorerTokenGrain
+public class TokenGrain : Grain<ExplorerTokenState>, ITokenGrain
 {
     public override Task OnActivateAsync()
     {

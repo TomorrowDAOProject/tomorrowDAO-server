@@ -36,7 +36,6 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
         _secretProvider = secretProvider;
         _logger = logger;
         _securityServerOption = securityServerOption;
-        // todo not use aws now
         // InitAmazonS3Client();
     }
 

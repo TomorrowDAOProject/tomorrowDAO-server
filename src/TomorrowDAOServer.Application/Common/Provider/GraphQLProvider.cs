@@ -63,7 +63,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     {
         try
         {
-            var grain = _clusterClient.GetGrain<IExplorerTokenGrain>(GuidHelper.GenerateGrainId(chainId, symbol));
+            var grain = _clusterClient.GetGrain<ITokenGrain>(GuidHelper.GenerateGrainId(chainId, symbol));
             return await grain.GetTokenInfoAsync();
         }
         catch (Exception e)
@@ -77,7 +77,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     {
         try
         {
-            var grain = _clusterClient.GetGrain<IExplorerTokenGrain>(GuidHelper.GenerateGrainId(tokenInfo.ChainId, tokenInfo.Symbol));
+            var grain = _clusterClient.GetGrain<ITokenGrain>(GuidHelper.GenerateGrainId(tokenInfo.ChainId, tokenInfo.Symbol));
             await grain.SetTokenInfoAsync(tokenInfo);
         }
         catch (Exception e)
