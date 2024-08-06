@@ -1,6 +1,5 @@
 using Orleans;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Grains.State.ApplicationHandler;
 using TomorrowDAOServer.Grains.State.Token;
 
 namespace TomorrowDAOServer.Grains.Grain.Token;

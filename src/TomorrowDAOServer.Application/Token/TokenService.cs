@@ -2,12 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Contracts.MultiToken;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Token.Dto;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using TomorrowDAOServer.Common.AElfSdk;
+using TomorrowDAOServer.Common.AElfSdk.Dtos;
+using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Options;
@@ -16,6 +20,7 @@ using TomorrowDAOServer.ThirdPart.Exchange;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
+using TokenInfo = AElf.Contracts.MultiToken.TokenInfo;
 
 namespace TomorrowDAOServer.Token;
 
@@ -31,10 +36,13 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     private readonly Dictionary<string, IExchangeProvider> _exchangeProviders;
     private readonly IOptionsMonitor<NetWorkReflectionOptions> _netWorkReflectionOption;
     private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
+    private readonly IContractProvider _contractProvider;
+    private readonly IAwsS3Client _awsS3Client;
     
     public TokenService(IClusterClient clusterClient, ILogger<TokenService> logger, IExplorerProvider explorerProvider, 
         IObjectMapper objectMapper, IGraphQLProvider graphQlProvider, IEnumerable<IExchangeProvider> exchangeProviders,
-        IOptionsMonitor<NetWorkReflectionOptions> netWorkReflectionOption, IOptionsMonitor<ExchangeOptions> exchangeOptions)
+        IOptionsMonitor<NetWorkReflectionOptions> netWorkReflectionOption, IOptionsMonitor<ExchangeOptions> exchangeOptions, 
+        IContractProvider contractProvider, IAwsS3Client awsS3Client)
     {
         _clusterClient = clusterClient;
         _logger = logger;
@@ -44,6 +52,8 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         _exchangeProviders = exchangeProviders.ToDictionary(p => p.Name().ToString());
         _netWorkReflectionOption = netWorkReflectionOption;
         _exchangeOptions = exchangeOptions;
+        _contractProvider = contractProvider;
+        _awsS3Client = awsS3Client;
     }
 
     public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
@@ -147,5 +157,39 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         return _netWorkReflectionOption.CurrentValue.SymbolItems.TryGetValue(sourceSymbol, out var targetSymbol)
             ? targetSymbol
             : sourceSymbol;
+    }
+    
+    private async Task<string> FixImageAsync(string chainId, string symbol, BlockChainTokenInfo tokenInfo = null)
+    {
+        try
+        {
+            tokenInfo ??= await GetBlockChainTokenInfo(chainId, symbol);
+            var externalInfo = tokenInfo.ExternalInfo.Value.ToDictionary(f => f.Key, f => f.Value);
+            if (externalInfo.TryGetValue("__nft_image_url", out var nftImage))
+            {
+                // for common nft, save image url directly
+                return nftImage;
+            }
+
+            if (externalInfo.TryGetValue("inscription_image", out var inscriptionImage))
+            {
+                // for inscription nft, upload image to AwsS3 and save image url
+                return await _awsS3Client.UpLoadBase64FileAsync(inscriptionImage, symbol + ".png");
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "FixImageAsyncError, chainId {} symbol {}", chainId, symbol);
+        }
+
+        return string.Empty;
+    }
+
+    private async Task<BlockChainTokenInfo> GetBlockChainTokenInfo(string chainId, string symbol)
+    {
+        var (_, tx) = await _contractProvider.CreateCallTransactionAsync(chainId,
+            SystemContractName.TokenContract, "GetTokenInfo", new GetTokenInfoInput { Symbol = symbol });
+        var tokenInfo = await _contractProvider.CallTransactionAsync<BlockChainTokenInfo>(chainId, tx);
+        return tokenInfo;
     }
 }
