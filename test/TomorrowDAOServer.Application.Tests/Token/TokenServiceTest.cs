@@ -93,7 +93,12 @@ public class TokenServiceTest
         result.Price.ShouldBe(0);
         
         _clusterClient.GetGrain<ITokenExchangeGrain>(Arg.Any<string>()).Returns(_exchangeGrain);
-        result = await _service.GetTokenPriceAsync("", "");
+        _exchangeGrain.GetAsync().Returns(new TokenExchangeGrainDto
+        {
+            LastModifyTime = DateTime.UtcNow.ToUtcMilliSeconds(),
+            ExpireTime = DateTime.UtcNow.AddDays(1).ToUtcMilliSeconds()
+        });
+        result = await _service.GetTokenPriceAsync("ELF", "USD");
         result.Price.ShouldBe(0);
     }
     
