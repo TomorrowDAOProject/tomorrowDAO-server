@@ -45,10 +45,10 @@ public class GraphQlHelper : IGraphQlHelper, ISingletonDependency
         _monitor.TrackMetric(chart: MonitorConstant.GraphQl, type: MonitorConstant.GraphQl, duration: sw.ElapsedMilliseconds,
             properties: properties);
         
-        // if (sw.ElapsedMilliseconds > MonitorConstant.MaxDuration)
-        // {
+        if (sw.ElapsedMilliseconds > MonitorConstant.MaxDuration)
+        {
             _logger.LogInformation("Slow GraphQL Query, {0}, {1}", sw.ElapsedMilliseconds, request.Query);
-        // }
+        }
         
         if (isSuccess)
         {
