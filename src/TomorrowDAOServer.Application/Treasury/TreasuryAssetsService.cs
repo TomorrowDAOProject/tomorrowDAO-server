@@ -199,13 +199,25 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             MaxResultCount = input.MaxResultCount, SkipCount = input.SkipCount,
             ChainId = input.ChainId, TreasuryAddress = input.TreasuryAddress,
         });
-        foreach (var record in result.Item2)
+        var records = result.Item2;
+        var symbols = records.Select(x => x.Symbol).ToList();
+        var tasks = symbols.Select(symbol => _tokenService.GetTokenInfoAsync(input.ChainId, symbol)).ToList();
+        await Task.WhenAll(tasks);
+        var tokenInfoDic = tasks.Select(x => x.Result)
+            .Where(x => x != null && !string.IsNullOrEmpty(x.Symbol))
+            .ToDictionary(x => x.Symbol, x => x);
+        foreach (var record in records)
         {
             record.TransactionId = record.OfTransactionId(record.Id);
+            if (tokenInfoDic.TryGetValue(record.Symbol, out var tokenInfo))
+            {
+                record.Decimals = tokenInfo.Decimals;
+                record.AmountAfterDecimals = record.Amount / Math.Pow(10, record.Decimals.SafeToInt());
+            }
         }
         return new PageResultDto<TreasuryRecordDto>
         {
-            TotalCount = result.Item1, Data = result.Item2
+            TotalCount = result.Item1, Data = records
         };
     }
 
