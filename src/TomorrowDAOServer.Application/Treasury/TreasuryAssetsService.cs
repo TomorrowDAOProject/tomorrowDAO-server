@@ -200,7 +200,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
     }
 
     private async Task<Tuple<Dictionary<string, TokenInfoDto>, Dictionary<string, TokenPriceDto>>> GetTokenInfoAsync(
-        string chainId, HashSet<string> symbols)
+        string chainId, IReadOnlyCollection<string> symbols)
     {
         var tokenInfoTasks = symbols.Select(symbol => _tokenService.GetTokenInfoAsync(chainId, symbol)).ToList();
         var tokenPriceTasks = symbols.Select(symbol => _tokenService.GetTokenPriceAsync(symbol, CommonConstant.USD))

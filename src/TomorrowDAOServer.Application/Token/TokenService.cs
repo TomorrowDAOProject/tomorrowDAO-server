@@ -109,10 +109,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         {
             return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
         }
-        var avgExchange = exchange.ExchangeInfos.Values
-            .Where(ex => ex.Exchange > 0)
-            .Average(ex => ex.Exchange);
-        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = avgExchange };
+        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = AvgPrice(exchange) };
     }
 
     public async Task<Dictionary<string, TokenExchangeDto>> UpdateExchangePriceAsync(string baseCoin, string quoteCoin)
@@ -141,6 +138,8 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
                 _logger.LogError(e, "Query exchange failed, providerName={ProviderName}", providerName);
             }
         }
+        
+        _logger.LogInformation("UpdateExchangePriceAsync pair {pair}, price {price}", pair, AvgPrice(exchange));
         await exchangeGrain.SetAsync(exchange);
 
         return exchange.ExchangeInfos;
@@ -184,5 +183,12 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
             SystemContractName.TokenContract, "GetTokenInfo", new GetTokenInfoInput { Symbol = symbol });
         var tokenInfo = await _contractProvider.CallTransactionAsync<BlockChainTokenInfo>(chainId, tx);
         return tokenInfo;
+    }
+
+    private decimal AvgPrice(TokenExchangeGrainDto exchange)
+    {
+        return exchange.ExchangeInfos.Values
+            .Where(ex => ex.Exchange > 0)
+            .Average(ex => ex.Exchange);
     }
 }
