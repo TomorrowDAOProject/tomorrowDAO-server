@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
+using Microsoft.Extensions.Logging;
 using Nest;
 using NSubstitute;
 using Shouldly;
@@ -15,17 +16,20 @@ using Xunit;
 
 namespace TomorrowDAOServer.Proposal.Provider;
 
-public sealed class ProposalProviderTest 
+public sealed class ProposalProviderTest
 {
     private readonly IGraphQlHelper _graphQlHelper;
     private readonly INESTRepository<ProposalIndex, string> _proposalIndexRepository;
     private readonly IProposalProvider _provider;
+    private readonly ILogger<ProposalProvider> _logger;
 
     public ProposalProviderTest()
     {
-        _graphQlHelper = Substitute.For<IGraphQlHelper>();;
+        _graphQlHelper = Substitute.For<IGraphQlHelper>();
+        ;
         _proposalIndexRepository = Substitute.For<INESTRepository<ProposalIndex, string>>();
-        _provider = new ProposalProvider(_graphQlHelper, _proposalIndexRepository);
+        _logger = Substitute.For<ILogger<ProposalProvider>>();
+        _provider = new ProposalProvider(_graphQlHelper, _proposalIndexRepository, _logger);
     }
 
     [Fact]
@@ -35,9 +39,9 @@ public sealed class ProposalProviderTest
             .Returns(new IndexerProposalSync());
         var result = await _provider.GetSyncProposalDataAsync(0, "AELF", 0, 0, 100);
         result.ShouldNotBeNull();
-        
+
         _graphQlHelper.QueryAsync<IndexerProposalSync>(Arg.Any<GraphQLRequest>())
-            .Returns(new IndexerProposalSync{DataList = new List<IndexerProposal>()});
+            .Returns(new IndexerProposalSync { DataList = new List<IndexerProposal>() });
         result.ShouldNotBeNull();
     }
 
@@ -56,7 +60,7 @@ public sealed class ProposalProviderTest
             ProposalType = ProposalType.Advisory, ProposalStatus = ProposalStatus.Abstained
         });
         result.ShouldNotBeNull();
-        
+
         result = await _provider.GetProposalListAsync(new QueryProposalListInput
         {
             ChainId = "AELF", DaoId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization,
@@ -81,14 +85,15 @@ public sealed class ProposalProviderTest
                 Arg.Any<Expression<Func<ProposalIndex, object>>>(), Arg.Any<SortOrder>(),
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>())
             .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() }));
-        var result = await _provider.GetProposalByIdsAsync("chainId", new List<string>{"proposalId"});
+        var result = await _provider.GetProposalByIdsAsync("chainId", new List<string> { "proposalId" });
         result.ShouldNotBeNull();
     }
 
     [Fact]
     public async void GetProposalCountByDAOIds_Test()
     {
-        _proposalIndexRepository.CountAsync(Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(), Arg.Any<string>())
+        _proposalIndexRepository.CountAsync(Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
+                Arg.Any<string>())
             .Returns(new CountResponse());
         var result = await _provider.GetProposalCountByDAOIds("ChainId", "DaoId");
         result.ShouldBe(0);
@@ -125,7 +130,7 @@ public sealed class ProposalProviderTest
         var result = await _provider.GetNeedChangeProposalListAsync(0);
         result.ShouldNotBeNull();
     }
-    
+
     [Fact]
     public async void QueryProposalsByProposerAsync_Test()
     {
@@ -137,7 +142,7 @@ public sealed class ProposalProviderTest
         {
             e.Message.ShouldBe("");
         }
-        
+
         try
         {
             await _provider.QueryProposalsByProposerAsync(new QueryProposalByProposerRequest());
@@ -146,7 +151,7 @@ public sealed class ProposalProviderTest
         {
             e.Message.ShouldBe("");
         }
-        
+
         _proposalIndexRepository.GetSortListAsync(
                 Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
                 Arg.Any<Func<SourceFilterDescriptor<ProposalIndex>, ISourceFilter>>(),
@@ -155,7 +160,8 @@ public sealed class ProposalProviderTest
             .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() }));
         var result = await _provider.QueryProposalsByProposerAsync(new QueryProposalByProposerRequest
         {
-            ChainId = "ChainId", DaoId = "DaoId", ProposalStatus = ProposalStatus.Abstained, ProposalStage = ProposalStage.Active,
+            ChainId = "ChainId", DaoId = "DaoId", ProposalStatus = ProposalStatus.Abstained,
+            ProposalStage = ProposalStage.Active,
             MaxResultCount = 10, Proposer = "Propposer", SkipCount = 0
         });
         result.ShouldNotBeNull();
