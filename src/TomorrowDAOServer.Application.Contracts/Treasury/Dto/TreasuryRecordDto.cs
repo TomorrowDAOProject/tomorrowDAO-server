@@ -20,6 +20,8 @@ public class TreasuryRecordDto
     public string TreasuryAddress { get; set; }
     public long Amount { get; set; }
     public string Symbol { get; set; }
+    public string Decimals { get; set; }
+    public double AmountAfterDecimals { get; set; }
     public string Executor { get; set; }
     public string FromAddress { get; set; }
     public string ToAddress { get; set; }
