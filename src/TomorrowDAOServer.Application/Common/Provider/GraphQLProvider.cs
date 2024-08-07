@@ -15,6 +15,7 @@ using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
 using TomorrowDAOServer.Grains.Grain.Dao;
 using TomorrowDAOServer.Grains.Grain.Election;
+using TomorrowDAOServer.Grains.Grain.Proposal;
 using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Providers;
 using Volo.Abp;
@@ -29,6 +30,8 @@ public interface IGraphQLProvider
     public Task<List<string>> GetBPAsync(string chainId);
     public Task<BpInfoDto> GetBPWithRoundAsync(string chainId);
     public Task SetBPAsync(string chainId, List<string> addressList, long round);
+    public Task<long> GetProposalNumAsync(string chainId);
+    public Task SetProposalNumAsync(string chainId, long parliamentCount, long associationCount, long referendumCount);
     public Task<long> GetLastEndHeightAsync(string chainId, WorkerBusinessType queryChainType);
     public Task SetLastEndHeightAsync(string chainId, WorkerBusinessType queryChainType, long height);
     public Task<long> GetIndexBlockHeightAsync(string chainId);
@@ -64,7 +67,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     {
         try
         {
-            var grain = _clusterClient.GetGrain<IExplorerTokenGrain>(GuidHelper.GenerateGrainId(chainId, symbol));
+            var grain = _clusterClient.GetGrain<ITokenGrain>(GuidHelper.GenerateGrainId(chainId, symbol));
             return await grain.GetTokenInfoAsync();
         }
         catch (Exception e)
@@ -78,7 +81,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     {
         try
         {
-            var grain = _clusterClient.GetGrain<IExplorerTokenGrain>(GuidHelper.GenerateGrainId(tokenInfo.ChainId, tokenInfo.Symbol));
+            var grain = _clusterClient.GetGrain<ITokenGrain>(GuidHelper.GenerateGrainId(tokenInfo.ChainId, tokenInfo.Symbol));
             await grain.SetTokenInfoAsync(tokenInfo);
         }
         catch (Exception e)
@@ -125,6 +128,33 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         catch (Exception e)
         {
             _logger.LogError(e, "SetBPAsync Exception chainId {chainId}", chainId);
+        }
+    }
+
+    public async Task<long> GetProposalNumAsync(string chainId)
+    {
+        try
+        {
+            var grain = _clusterClient.GetGrain<IProposalNumGrain>(chainId);
+            return await grain.GetProposalNumAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetProposalNumAsyncException chainId {chainId}", chainId);
+            return 0;
+        }
+    }
+
+    public async Task SetProposalNumAsync(string chainId, long parliamentCount, long associationCount, long referendumCount)
+    {
+        try
+        {
+            var grain = _clusterClient.GetGrain<IProposalNumGrain>(chainId);
+            await grain.SetProposalNumAsync(parliamentCount, associationCount, referendumCount);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "SetProposalNumAsyncException chainId {chainId}", chainId);
         }
     }
 

@@ -24,6 +24,7 @@ using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp.Users;
@@ -45,16 +46,13 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IContractProvider _contractProvider;
     private readonly IUserProvider _userProvider;
-    private const int ZeroSkipCount = 0;
-    private const int GetMemberListMaxResultCount = 100;
-    private const int CandidateTermNumber = 0;
-    private ValueTuple<long, long> ProposalCountCache = new(0, 0);
+    private readonly ITokenService _tokenService;
 
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
         IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
         IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider,
-        IUserProvider userProvider, ILogger<DAOAppService> logger)
+        IUserProvider userProvider, ILogger<DAOAppService> logger, ITokenService tokenService)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -65,6 +63,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _contractProvider = contractProvider;
         _userProvider = userProvider;
         _logger = logger;
+        _tokenService = tokenService;
         _explorerProvider = explorerProvider;
         _governanceProvider = governanceProvider;
     }
@@ -215,7 +214,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         var tokenInfos = new Dictionary<string, TokenInfoDto>();
         foreach (var symbol in symbols)
         {
-            tokenInfos[symbol] = await _explorerProvider.GetTokenInfoAsync(chainId, symbol);
+            tokenInfos[symbol] = await _tokenService.GetTokenInfoAsync(chainId, symbol);
         }
 
         foreach (var dao in items)
@@ -234,20 +233,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
             }
 
             dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(chainId)).Count;
-            if (DateTime.UtcNow.ToUtcMilliSeconds() - ProposalCountCache.Item2 >= 10 * 60 * 1000)
-            {
-                var parliamentTask = GetCountTask(Common.Enum.ProposalType.Parliament);
-                var associationTask = GetCountTask(Common.Enum.ProposalType.Association);
-                var referendumTask = GetCountTask(Common.Enum.ProposalType.Referendum);
-                await Task.WhenAll(parliamentTask, associationTask, referendumTask);
-                dao.ProposalsNum += (await parliamentTask).Total + (await associationTask).Total +
-                                    (await referendumTask).Total;
-                ProposalCountCache = new ValueTuple<long, long>(dao.ProposalsNum, DateTime.UtcNow.ToUtcMilliSeconds());
-            }
-            else
-            {
-                dao.ProposalsNum += ProposalCountCache.Item1;
-            }
+            dao.ProposalsNum = await _graphQlProvider.GetProposalNumAsync(chainId);
         }
 
         return new Tuple<long, List<DAOListDto>>(originResult.Item1, items);

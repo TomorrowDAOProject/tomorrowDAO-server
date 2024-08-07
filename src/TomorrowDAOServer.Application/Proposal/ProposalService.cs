@@ -25,6 +25,7 @@ using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp.Users;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
@@ -45,7 +46,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private readonly IDAOProvider _DAOProvider;
     private readonly IProposalAssistService _proposalAssistService;
     private readonly ILogger<ProposalProvider> _logger;
-    private readonly IExplorerProvider _explorerProvider;
+    private readonly ITokenService _tokenService;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IScriptService _scriptService;
     private readonly IUserProvider _userProvider;
@@ -54,10 +55,9 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
 
     public ProposalService(IObjectMapper objectMapper, IProposalProvider proposalProvider, IVoteProvider voteProvider,
-        IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService,
-        IProposalAssistService proposalAssistService,
+        IGraphQLProvider graphQlProvider, IScriptService scriptService, IProposalAssistService proposalAssistService,
         IDAOProvider DAOProvider, IOptionsMonitor<ProposalTagOptions> proposalTagOptionsMonitor,
-        ILogger<ProposalProvider> logger, IUserProvider userProvider, IElectionProvider electionProvider)
+        ILogger<ProposalProvider> logger, IUserProvider userProvider, IElectionProvider electionProvider, ITokenService tokenService)
     {
         _objectMapper = objectMapper;
         _proposalProvider = proposalProvider;
@@ -66,9 +66,9 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         _logger = logger;
         _userProvider = userProvider;
         _electionProvider = electionProvider;
+        _tokenService = tokenService;
         _DAOProvider = DAOProvider;
         _proposalAssistService = proposalAssistService;
-        _explorerProvider = explorerProvider;
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
     }
@@ -107,7 +107,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var councilMemberCountTask = GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId,
             proposalList[0].GovernanceMechanism);
         //3.2 query token info
-        var tokenInfoTask = _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken);
+        var tokenInfoTask = _tokenService.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken);
         //3.3 query vote scheme
         var getVoteSchemeTask =
             _voteProvider.GetVoteSchemeDicAsync(new GetVoteSchemeInput { ChainId = input.ChainId });
@@ -273,7 +273,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             GetHighCouncilMemberCountAsync(daoIndex.IsNetworkDAO, input.ChainId, proposalDetailDto.DAOId,
                 proposalIndex.GovernanceMechanism.ToString());
         var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
+            await _tokenService.GetTokenInfoAsync(input.ChainId, daoIndex?.GovernanceToken ?? string.Empty);
         var symbol = tokenInfo.Symbol;
         var symbolDecimal = tokenInfo.Decimals;
         var voteInfos = await _voteProvider.GetVoteItemsAsync(input.ChainId, new List<string> { input.ProposalId });
@@ -376,7 +376,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
         var myProposalDto = new MyProposalDto { ChainId = input.ChainId, CanVote = canVote };
         var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
+            await _tokenService.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
         myProposalDto.Symbol = tokenInfo.Symbol;
         myProposalDto.Decimal = tokenInfo.Decimals;
         if (!voted)
@@ -422,7 +422,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
 
         var tokenInfo =
-            await _explorerProvider.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
+            await _tokenService.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken ?? string.Empty);
         var nonWithdrawVoteRecords =
             await _voteProvider.GetNonWithdrawVoteRecordAsync(input.ChainId, input.DAOId, input.Address);
         var canWithdrawVoteRecords = nonWithdrawVoteRecords.Where(x => DateTime.Now > x.EndTime).ToList();

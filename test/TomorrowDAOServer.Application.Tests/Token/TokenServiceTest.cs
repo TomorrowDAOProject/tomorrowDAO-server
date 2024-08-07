@@ -7,9 +7,10 @@ using NSubstitute;
 using Orleans;
 using Shouldly;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.AElfSdk;
+using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Indexer;
-using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Grains.Grain;
 using TomorrowDAOServer.Grains.Grain.Token;
@@ -28,12 +29,12 @@ public class TokenServiceTest
     private readonly IExplorerProvider _explorerProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly IGraphQLProvider _graphQlProvider;
-    private IEnumerable<IExchangeProvider> _exchangeProviders;
-    // private readonly Dictionary<string, IExchangeProvider> _exchangeProviders;
+    private readonly IEnumerable<IExchangeProvider> _exchangeProviders;
     private readonly IOptionsMonitor<NetWorkReflectionOptions> _netWorkReflectionOption;
     private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
+    private readonly IContractProvider _contractProvider;
+    private readonly IAwsS3Client _awsS3Client;
     private readonly TokenService _service;
-    private readonly ITokenGrain _tokenGrain;
     private readonly ITokenExchangeGrain _exchangeGrain;
 
     public TokenServiceTest()
@@ -46,33 +47,17 @@ public class TokenServiceTest
         _exchangeProviders = Substitute.For<IEnumerable<IExchangeProvider>>();
         _netWorkReflectionOption = Substitute.For<IOptionsMonitor<NetWorkReflectionOptions>>();
         _exchangeOptions = Substitute.For<IOptionsMonitor<ExchangeOptions>>();
+        _awsS3Client = Substitute.For<IAwsS3Client>();
+        _contractProvider = Substitute.For<IContractProvider>();
         _service = new TokenService(_clusterClient, _logger, _explorerProvider, _objectMapper, _graphQlProvider, 
-            _exchangeProviders, _netWorkReflectionOption, _exchangeOptions);
-        _tokenGrain = Substitute.For<ITokenGrain>();
+            _exchangeProviders, _netWorkReflectionOption, _exchangeOptions, _contractProvider, _awsS3Client);
         _exchangeGrain = Substitute.For<ITokenExchangeGrain>();
     }
 
     [Fact]
     public async Task GetTokenAsync_Test()
     {
-        _clusterClient.GetGrain<ITokenGrain>(Arg.Any<string>()).Returns(_tokenGrain);
-        _tokenGrain.GetTokenAsync(Arg.Any<TokenGrainDto>()).Returns(new GrainResultDto<TokenGrainDto>
-        {
-            Success = true, Data = new TokenGrainDto()
-        });
-        var result = await _service.GetTokenAsync("chainId", "symbol");
-        result.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public async Task GetTokenByExplorerAsync_Test()
-    {
-        await GetTokenAsync_Test();
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>())
-            .Returns(new ExplorerTokenInfoResponse());
-        _objectMapper.Map<ExplorerTokenInfoResponse, TokenDto>(Arg.Any<ExplorerTokenInfoResponse>())
-            .Returns(new TokenDto());
-        var result = await _service.GetTokenByExplorerAsync("chainId", "symbol");
+        var result = await _service.GetTokenInfoAsync("chainId", "");
         result.ShouldNotBeNull();
     }
 
@@ -83,7 +68,7 @@ public class TokenServiceTest
         {
             new() { Amount = 100000000, GovernanceToken = "ELF" }
         });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
         {
             Symbol = "ELF", Decimals = "8"
         });

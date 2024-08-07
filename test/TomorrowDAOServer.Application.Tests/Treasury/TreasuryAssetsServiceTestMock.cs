@@ -1,9 +1,6 @@
+using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Shouldly;
-using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
@@ -11,10 +8,6 @@ using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.NetworkDao;
-using TomorrowDAOServer.Treasury.Dto;
-using Volo.Abp;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace TomorrowDAOServer.Treasury;
 
@@ -28,9 +21,9 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
         {
             var daoIndex = new DAOIndex
             {
-                Id = input.DAOId,
+                Id = input.DAOId?? DAOId,
                 ChainId = input.ChainId,
-                Alias = input.DAOId,
+                Alias = input.DAOId ?? DAOId,
                 AliasHexString = null,
                 BlockHeight = 0,
                 Creator = null,
@@ -61,11 +54,13 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
                 VoterCount = 0,
                 GovernanceMechanism = GovernanceMechanism.Referendum
             };
-            if (input.DAOId.IndexOf("NetworkDao") != -1)
+            if (!input.DAOId.IsNullOrWhiteSpace() && input.DAOId.IndexOf("NetworkDao") != -1)
             {
                 daoIndex.IsNetworkDAO = true;
-            }
-            else
+            } else if (!input.Alias.IsNullOrWhiteSpace() && input.Alias.IndexOf("NotExist") != -1)
+            {
+                return new DAOIndex();
+            } else
             {
                 daoIndex.IsNetworkDAO = false;
             }

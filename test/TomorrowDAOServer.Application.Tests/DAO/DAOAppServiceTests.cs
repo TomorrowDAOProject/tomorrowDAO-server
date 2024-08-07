@@ -13,6 +13,7 @@ using TomorrowDAOServer.Governance.Dto;
 using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -32,7 +33,7 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
         services.AddSingleton(MockDAOProvider());
         services.AddSingleton(MockProposalProvider());
         services.AddSingleton(MockGovernanceProvider());
-        services.AddSingleton(MockExplorerProvider());
+        services.AddSingleton(MockTokenService());
         services.AddSingleton(MockGraphQlProvider());
         services.AddSingleton(MockContractProvider());
         base.AfterAddApplication(services);
@@ -131,11 +132,11 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
             });
         return mock.Object;
     }
-
-    private IExplorerProvider MockExplorerProvider()
+    
+    private ITokenService MockTokenService()
     {
-        var mock = new Mock<IExplorerProvider>();
-        mock.Setup(p => p.GetTokenInfoAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(new TokenInfoDto
+        var mock = new Mock<ITokenService>();
+        mock.Setup(t => t.GetTokenInfoAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(new TokenInfoDto
         {
             Symbol = ELF,
             Holders = "222"

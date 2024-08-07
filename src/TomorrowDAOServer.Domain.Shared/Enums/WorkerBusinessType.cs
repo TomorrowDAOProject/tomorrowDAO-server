@@ -9,5 +9,7 @@ public enum WorkerBusinessType
     ProposalNewUpdate,
     HighCouncilMemberSync,
     VoteRecordSync,
-    VoteWithdrawSync
+    VoteWithdrawSync,
+    TokenPriceUpdate,
+    ProposalNumUpdate
 }

@@ -26,6 +26,7 @@ public class ContractProviderMock
         MockCreateCallTransactionAsync(mock);
         MockCallTransactionAsync<PubkeyList>(mock);
         MockCallTransactionAsync<CandidateVote>(mock);
+        MockGetTreasuryAddressAsync(mock);
 
         return mock.Object;
     }
@@ -56,15 +57,21 @@ public class ContractProviderMock
 
     private static void MockCallTransactionAsync<T>(Mock<IContractProvider> mock) where T : class
     {
-        Func<string, Transaction, Task<T>> factory = async (chainId, transaction) =>  
-        {  
-            if (typeof(T) == typeof(PubkeyList) && transaction.MethodName == CommonConstant.ElectionMethodGetVotedCandidates)  
-            {  
-                return await Task.FromResult<T>((T)(object)new PubkeyList()  
-                {  
-                    Value = { new[] { ByteStringHelper.FromHexString(PublicKey1), ByteStringHelper.FromHexString(PublicKey2) } }  
-                });  
-            } else if (typeof(T) == typeof(CandidateVote) && transaction.MethodName == CommonConstant.ElectionMethodGetCandidateVote)
+        Func<string, Transaction, Task<T>> factory = async (chainId, transaction) =>
+        {
+            if (typeof(T) == typeof(PubkeyList) &&
+                transaction.MethodName == CommonConstant.ElectionMethodGetVotedCandidates)
+            {
+                return await Task.FromResult<T>((T)(object)new PubkeyList()
+                {
+                    Value =
+                    {
+                        new[] { ByteStringHelper.FromHexString(PublicKey1), ByteStringHelper.FromHexString(PublicKey2) }
+                    }
+                });
+            }
+            else if (typeof(T) == typeof(CandidateVote) &&
+                     transaction.MethodName == CommonConstant.ElectionMethodGetCandidateVote)
             {
                 return await Task.FromResult<T>((T)(object)new CandidateVote
                 {
@@ -76,11 +83,11 @@ public class ContractProviderMock
 
             throw new Exception("Not support type.");
             //return await Task.FromResult<T>(Activator.CreateInstance(typeof(T)) as T);
-        };  
-        
-        mock.Setup(e => e.CallTransactionAsync<T>(It.IsAny<string>(), It.IsAny<Transaction>()))  
-            .Returns((string chainId, Transaction transaction) => factory(chainId, transaction)); 
-        
+        };
+
+        mock.Setup(e => e.CallTransactionAsync<T>(It.IsAny<string>(), It.IsAny<Transaction>()))
+            .Returns((string chainId, Transaction transaction) => factory(chainId, transaction));
+
         // string localChainId = null;
         // Transaction localTransaction = null;
         // mock.Setup(e => e.CallTransactionAsync<T>(It.IsAny<string>(), It.IsAny<Transaction>()))  
@@ -88,7 +95,7 @@ public class ContractProviderMock
         //         localTransaction = transaction;
         //     })  
         //     .ReturnsAsync(() => factory(localChainId, localTransaction));
-        
+
         // mock.Setup(e => e.CallTransactionAsync<object>(It.IsAny<string>(), It.IsAny<Transaction>())).ReturnsAsync(
         //     (string chainId, Transaction transaction) =>
         //     {
@@ -113,6 +120,10 @@ public class ContractProviderMock
         //     });
     }
 
+    private static void MockGetTreasuryAddressAsync(Mock<IContractProvider> mock)
+    {
+        mock.Setup(o => o.GetTreasuryAddressAsync(It.IsAny<string>(),It.IsAny<string>())).ReturnsAsync(Address1);
+    }
 
     public static void MockGetChainStatusAsync()
     {
