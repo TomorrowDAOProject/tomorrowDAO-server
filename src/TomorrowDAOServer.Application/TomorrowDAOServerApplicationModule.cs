@@ -3,6 +3,9 @@ using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election;
 using TomorrowDAOServer.Grains;
+using TomorrowDAOServer.Monitor;
+using TomorrowDAOServer.Monitor.Http;
+using TomorrowDAOServer.Monitor.Logging;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.ThirdPart.Exchange;
@@ -39,6 +42,8 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<ApiOption>(configuration.GetSection("Api"));
         Configure<ExchangeOptions>(configuration.GetSection("Exchange"));
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
+        Configure<PerformanceMonitorMiddlewareOptions>(configuration.GetSection("PerformanceMonitorMiddleware"));
+        Configure<MonitorForLoggingOptions>(configuration.GetSection("MonitorForLoggingOptions"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         context.Services.AddTransient<IScheduleSyncDataService, ProposalSyncDataService>();
         // context.Services.AddTransient<IScheduleSyncDataService, ProposalUpdateService>();
@@ -51,6 +56,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddTransient<IExchangeProvider, OkxProvider>();
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
+        context.Services.AddSingleton<IMonitor, MonitorForLogging>();
         context.Services.AddHttpClient();
         context.Services.AddMemoryCache();
         context.Services.AddSingleton(typeof(ILocalMemoryCache<>), typeof(LocalMemoryCache<>));

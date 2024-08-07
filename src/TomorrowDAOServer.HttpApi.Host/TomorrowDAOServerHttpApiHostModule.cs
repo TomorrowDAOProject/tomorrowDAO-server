@@ -23,6 +23,7 @@ using TomorrowDAOServer.Middleware;
 using TomorrowDAOServer.MongoDB;
 using TomorrowDAOServer.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using TomorrowDAOServer.Monitor.Http;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
@@ -288,6 +289,7 @@ namespace TomorrowDAOServer
             // }
 
             app.UseMiddleware<DeviceInfoMiddleware>();
+            app.UseMiddleware<PerformanceMonitorMiddleware>();
             app.UseAuditing();
             app.UseAbpSerilogEnrichers();
             app.UseUnitOfWork();
