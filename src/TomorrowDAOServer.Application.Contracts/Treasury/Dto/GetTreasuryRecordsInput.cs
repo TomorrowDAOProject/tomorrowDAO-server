@@ -5,5 +5,5 @@ public class GetTreasuryRecordsInput
     public string ChainId { get; set; }
     public string TreasuryAddress { get; set; }
     public int SkipCount { get; set; } = 0;
-    public int MaxResultCount { get; set; } = 6;
+    public int MaxResultCount { get; set; } = 5;
 }
