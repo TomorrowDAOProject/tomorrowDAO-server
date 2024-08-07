@@ -24,6 +24,7 @@ using TomorrowDAOServer.MongoDB;
 using TomorrowDAOServer.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using TomorrowDAOServer.Monitor.Http;
+using TomorrowDAOServer.Monitor.Orleans.Filters;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
@@ -246,6 +247,7 @@ namespace TomorrowDAOServer
                     .ConfigureApplicationParts(parts =>
                         parts.AddApplicationPart(typeof(TomorrowDAOServerGrainsModule).Assembly).WithReferences())
                     .ConfigureLogging(builder => builder.AddProvider(o.GetService<ILoggerProvider>()))
+                    .AddMethodFilter(o)
                     .Build();
             });
         }

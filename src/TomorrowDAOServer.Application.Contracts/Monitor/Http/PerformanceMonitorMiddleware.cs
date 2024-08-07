@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -58,7 +59,11 @@ public class PerformanceMonitorMiddleware
             stopwatch.Stop();
             var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
             var path = context.Request.Path;
-            _monitor.TrackMetric(chart: MonitorConstant.Api, type: path, duration: elapsedMs);
+            IDictionary<string, string> properties = new Dictionary<string, string>()
+            {
+                { MonitorConstant.LabelSuccess, (!isException).ToString() }
+            };
+            _monitor.TrackMetric(chart: MonitorConstant.Api, type: path, duration: elapsedMs, properties: properties);
         }
         catch (Exception e)
         {
