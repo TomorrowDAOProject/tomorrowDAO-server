@@ -199,6 +199,10 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             MaxResultCount = input.MaxResultCount, SkipCount = input.SkipCount,
             ChainId = input.ChainId, TreasuryAddress = input.TreasuryAddress,
         });
+        foreach (var record in result.Item2)
+        {
+            record.TransactionId = record.OfTransactionId(record.Id);
+        }
         return new PageResultDto<TreasuryRecordDto>
         {
             TotalCount = result.Item1, Data = result.Item2

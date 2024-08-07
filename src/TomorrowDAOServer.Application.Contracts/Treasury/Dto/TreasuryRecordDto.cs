@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TomorrowDAOServer.Common;
 using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.Treasury.Dto;
@@ -26,6 +27,18 @@ public class TreasuryRecordDto
     public int TreasuryRecordType { get; set; }
     public DateTime CreateTime { get; set; }
     public string ProposalId { get; set; }
+    public string TransactionId { get; set; }
+    
+    public string OfTransactionId(string id)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return string.Empty;
+        }
+
+        var result = id.Split(CommonConstant.Middleline);
+        return result.Length <= 2 ? string.Empty : result[1];
+    }
 }
 
 public class GetTreasuryRecordListInput : PagedResultRequestDto
