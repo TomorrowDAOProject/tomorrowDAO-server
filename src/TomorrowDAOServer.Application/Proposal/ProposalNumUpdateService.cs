@@ -34,8 +34,12 @@ public class ProposalNumUpdateService : ScheduleSyncDataService
         var associationTask = GetCountTask(Common.Enum.ProposalType.Association);
         var referendumTask = GetCountTask(Common.Enum.ProposalType.Referendum);
         await Task.WhenAll(parliamentTask, associationTask, referendumTask);
-        await _graphQlProvider.SetProposalNumAsync(chainId, (await parliamentTask).Total,
-            (await associationTask).Total, (await referendumTask).Total);
+        var parliamentCount = (await parliamentTask).Total;
+        var associationCount = (await associationTask).Total;
+        var referendumCount = (await referendumTask).Total;
+        _logger.LogInformation("ProposalNumUpdate parliamentCount {parliamentCount}, associationCount {associationCount}, referendumCount {referendumCount}",
+            parliamentCount, associationCount, referendumCount);
+        await _graphQlProvider.SetProposalNumAsync(chainId, parliamentCount, associationCount, referendumCount);
         return -1;
     }
 
