@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
@@ -105,6 +106,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<BpInfoDto> GetBPWithRoundAsync(string chainId)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
             var grain = _clusterClient.GetGrain<IBPGrain>(chainId);
@@ -114,6 +116,11 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         {
             _logger.LogError(e, "GetBPWithRoundAsync Exception chainId {chainId}", chainId);
             return new BpInfoDto();
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation("GetDAOByIdDuration: GetBPWithRound {0}", sw.ElapsedMilliseconds);
         }
     }
 
@@ -272,6 +279,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
             var grainId = GuidHelper.GenerateId(chainId, daoId);
@@ -281,6 +289,11 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         catch (Exception e)
         {
             _logger.LogError(e, "SetHighCouncilMembersAsync error: chain={id},DaoId={daoId}", chainId, daoId);
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation("GetDAOByIdDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
         }
 
         return new List<string>();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
@@ -57,6 +58,8 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
 
     public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
     {
+        Stopwatch sw = Stopwatch.StartNew();
+        
         if (symbol.IsNullOrEmpty())
         {
             return new TokenInfoDto();
@@ -65,18 +68,25 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var tokenInfo = await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
         if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= CommonConstant.OneDay)
         {
+            sw.Stop();
+            _logger.LogInformation("ProposalListDuration: GetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            
             return tokenInfo;
         }
 
         var tokenResponse = await _explorerProvider.GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest { Symbol = symbol.ToUpper() });
         if (tokenResponse == null || tokenResponse.Symbol.IsNullOrWhiteSpace())
         {
+            sw.Stop();
+            _logger.LogInformation("ProposalListDuration: ExplorerGetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            
             return tokenInfo;
         }
 
         tokenInfo = _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(tokenResponse);
         tokenInfo.LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds();
         await _graphQlProvider.SetTokenInfoAsync(tokenInfo);
+        
         return tokenInfo;
     }
 

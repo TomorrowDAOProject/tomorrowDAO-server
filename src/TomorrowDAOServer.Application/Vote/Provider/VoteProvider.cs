@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
@@ -55,6 +56,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 
     public async Task<Dictionary<string, IndexerVote>> GetVoteItemsAsync(string chainId, List<string> votingItemIds)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         if (votingItemIds.IsNullOrEmpty())
         {
             return new Dictionary<string, IndexerVote>();
@@ -86,6 +88,10 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
                 }
             });
             var voteItems = result.Data?? new List<IndexerVote>();
+            
+            sw.Stop();
+            _logger.LogInformation("ProposalListDuration: GetVoteItemsAsync {0}", sw.ElapsedMilliseconds);
+            
             return voteItems.ToDictionary(vote => vote.VotingItemId, vote => vote);
         }
         catch (Exception e)
@@ -267,7 +273,12 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 
     public async Task<IDictionary<string, IndexerVoteSchemeInfo>> GetVoteSchemeDicAsync(GetVoteSchemeInput input)
     {
+        var sw = Stopwatch.StartNew();
         var voteSchemeInfos = await GetVoteSchemeAsync(input);
+        
+        sw.Stop();
+        _logger.LogInformation("ProposalListDuration: GetVoteSchemeDicAsync {0}", sw.ElapsedMilliseconds);
+        
         return voteSchemeInfos.ToDictionary(x => x.VoteSchemeId, x => x);
     }
 

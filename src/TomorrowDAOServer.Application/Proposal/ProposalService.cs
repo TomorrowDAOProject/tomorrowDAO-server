@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -81,12 +82,15 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
 
         //1. query DAO info by alias
+        Stopwatch sw = Stopwatch.StartNew();
         var daoIndex = await _DAOProvider.GetAsync(new GetDAOInfoInput
         {
             ChainId = input.ChainId,
             DAOId = input.DaoId,
             Alias = input.Alias
         });
+        sw.Stop();
+        _logger.LogInformation("ProposalListDuration: GetDAO {0}", sw.ElapsedMilliseconds);
         if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
         {
             throw new UserFriendlyException("No DAO information found.");
@@ -94,6 +98,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
         input.DaoId = daoIndex.Id;
 
+        sw.Restart();
+        
         //2. query proposal info
         input.ProposalStatus = MapHelper.MapProposalStatus(input.ProposalStatus);
         var (total, proposalList) = await GetProposalListAsync(input);
@@ -101,7 +107,11 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         {
             return new ProposalPagedResultDto<ProposalDto>();
         }
+        
+        sw.Stop();
+        _logger.LogInformation("ProposalListDuration: GetProposalList {0}", sw.ElapsedMilliseconds);
 
+        sw.Restart();
         //3. parallel exec: 
         //3.1 query the actual number of voters
         var councilMemberCountTask = GetHighCouncilMemberCountAsync(input.IsNetworkDao, input.ChainId, input.DaoId,
@@ -116,11 +126,17 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var voteItemsMapTask = _voteProvider.GetVoteItemsAsync(input.ChainId, proposalIds);
         
         await Task.WhenAll(councilMemberCountTask, tokenInfoTask, getVoteSchemeTask, voteItemsMapTask);
+        
+        sw.Stop();
+        _logger.LogInformation("ProposalListDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
+        
         var councilMemberCount = councilMemberCountTask.Result;
         var tokenInfo = tokenInfoTask.Result;
         var voteSchemeDic = getVoteSchemeTask.Result;
         var voteItemsMap = voteItemsMapTask.Result;
 
+        sw.Restart();
+        
         foreach (var proposal in proposalList)
         {
             if (voteItemsMap.TryGetValue(proposal.ProposalId, out var voteInfo))
@@ -157,6 +173,9 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             Items = proposalList,
             TotalCount = total,
         };
+        
+        sw.Stop();
+        _logger.LogInformation("ProposalListDuration: foreach {0}", sw.ElapsedMilliseconds);
 
         return proposalPagedResultDto;
     }
@@ -175,6 +194,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId,
         string governanceMechanism)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         var count = 0;
         try
         {
@@ -182,6 +202,9 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             {
                 var bpList = await _graphQlProvider.GetBPAsync(chainId);
                 count = bpList.IsNullOrEmpty() ? 0 : bpList.Count;
+                
+                sw.Stop();
+                _logger.LogInformation("ProposalListDuration: GetBPA {0}", sw.ElapsedMilliseconds);
             }
             else
             {
@@ -192,11 +215,17 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
                         ChainId = chainId, DAOId = daoId, SkipCount = 0, MaxResultCount = 1
                     });
                     count = (int)result.TotalCount;
+                    
+                    sw.Stop();
+                    _logger.LogInformation("ProposalListDuration: GetMemberList {0}", sw.ElapsedMilliseconds);
                 }
                 else
                 {
                     var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
                     count = hcList.IsNullOrEmpty() ? 0 : hcList.Count;
+                    
+                    sw.Stop();
+                    _logger.LogInformation("ProposalListDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
                 }
             }
         }

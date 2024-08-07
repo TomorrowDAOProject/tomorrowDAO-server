@@ -80,33 +80,49 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
         input.DAOId = daoIndex.Id;
 
+        var sw = Stopwatch.StartNew();
+        
         var getTreasuryAddressTask = _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DAOId);
-        var getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
+        var getGovernanceSchemeTask = _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId);
+
+        Task<BpInfoDto> getBpWithRoundTask = null;
+        Task<List<string>> getHighCouncilMembersTask = null;
+        if (daoIndex.IsNetworkDAO)
+        {
+            getBpWithRoundTask = _graphQlProvider.GetBPWithRoundAsync(input.ChainId);
+        }
+        else
+        {
+            getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
+        }
 
         var daoInfo = _objectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
-        var governanceSchemeDto = await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId);
-        var governanceScheme = governanceSchemeDto.Data;
-        daoInfo.OfGovernanceSchemeThreshold(governanceScheme?.FirstOrDefault());
-        await getTreasuryAddressTask;
-        daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
         if (daoInfo.TreasuryContractAddress.IsNullOrWhiteSpace())
         {
             daoInfo.TreasuryContractAddress =
                 _contractProvider.ContractAddress(input.ChainId, CommonConstant.TreasuryContractAddressName);
         }
 
-        if (!daoInfo.IsNetworkDAO)
+        if (daoIndex.IsNetworkDAO)
         {
-            await getHighCouncilMembersTask;
-            daoInfo.HighCouncilMemberCount = getHighCouncilMembersTask.Result.IsNullOrEmpty()
-                ? 0
-                : getHighCouncilMembersTask.Result.Count;
-            return daoInfo;
+            await Task.WhenAll(getTreasuryAddressTask, getGovernanceSchemeTask, getBpWithRoundTask);
+            var bpInfo = getBpWithRoundTask.Result;
+            daoInfo.HighCouncilTermNumber = bpInfo.Round;
+            daoInfo.HighCouncilMemberCount = bpInfo.AddressList.Count;
         }
-
-        var bpInfo = await _graphQlProvider.GetBPWithRoundAsync(input.ChainId);
-        daoInfo.HighCouncilTermNumber = bpInfo.Round;
-        daoInfo.HighCouncilMemberCount = bpInfo.AddressList.Count;
+        else
+        {
+            await Task.WhenAll(getTreasuryAddressTask, getGovernanceSchemeTask, getHighCouncilMembersTask);
+            daoInfo.HighCouncilMemberCount = getHighCouncilMembersTask.Result.IsNullOrEmpty() ? 0 : getHighCouncilMembersTask.Result.Count;
+        }
+        
+        daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
+        var governanceSchemeDto = getGovernanceSchemeTask.Result;
+        daoInfo.OfGovernanceSchemeThreshold(governanceSchemeDto.Data?.FirstOrDefault());
+        
+        sw.Stop();
+        _logger.LogInformation("GetDAOByIdDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
+        
         return daoInfo;
     }
 
