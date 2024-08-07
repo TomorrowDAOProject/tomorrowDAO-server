@@ -99,7 +99,6 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     {
         if (baseCoin.IsNullOrEmpty() || quoteCoin.IsNullOrEmpty())
         {
-            _logger.LogError("GetTokenPriceAsync Get token price fail, baseCoin or quoteCoin is empty.");
             return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
         }
         var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(string.Join(CommonConstant.Underline, baseCoin, quoteCoin));
