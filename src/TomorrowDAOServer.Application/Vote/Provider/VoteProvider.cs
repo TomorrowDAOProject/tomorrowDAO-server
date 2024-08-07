@@ -276,7 +276,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 
     public async Task<IDictionary<string, IndexerVoteSchemeInfo>> GetVoteSchemeDicAsync(GetVoteSchemeInput input)
     {
-        Stopwatch sw = Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
         var voteSchemeInfos = await GetVoteSchemeAsync(input);
         
         sw.Stop();

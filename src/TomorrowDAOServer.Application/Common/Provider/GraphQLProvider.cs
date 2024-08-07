@@ -106,6 +106,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<BpInfoDto> GetBPWithRoundAsync(string chainId)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
             var grain = _clusterClient.GetGrain<IBPGrain>(chainId);
@@ -115,6 +116,11 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         {
             _logger.LogError(e, "GetBPWithRoundAsync Exception chainId {chainId}", chainId);
             return new BpInfoDto();
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation("GetDAOByIdDuration: GetBPWithRound {0}", sw.ElapsedMilliseconds);
         }
     }
 
@@ -273,32 +279,21 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
-        Stopwatch swt = Stopwatch.StartNew();
         Stopwatch sw = Stopwatch.StartNew();
         try
         {
             var grainId = GuidHelper.GenerateId(chainId, daoId);
-            sw.Stop();
-            _logger.LogInformation("GetHighCouncilMembers generateId duration:{0}", sw.ElapsedMilliseconds);
-            
-            sw.Restart();
             var grain = _clusterClient.GetGrain<IHighCouncilMembersGrain>(grainId);
-            sw.Stop();
-            _logger.LogInformation("GetHighCouncilMembers GetGrain duration:{0}", sw.ElapsedMilliseconds);
-            
-            sw.Restart();
-            var list = await grain.GetHighCouncilMembersAsync();
-            sw.Stop();
-            _logger.LogInformation("GetHighCouncilMembers GetHighCouncilMembersAsync duration:{0}", sw.ElapsedMilliseconds);
-            
-            swt.Stop();
-            _logger.LogInformation("GetHighCouncilMembers GetHighCouncilMembersAsync Total duration:{0}", swt.ElapsedMilliseconds);
-            
-            return list;
+            return await grain.GetHighCouncilMembersAsync();
         }
         catch (Exception e)
         {
             _logger.LogError(e, "SetHighCouncilMembersAsync error: chain={id},DaoId={daoId}", chainId, daoId);
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation("GetDAOByIdDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
         }
 
         return new List<string>();

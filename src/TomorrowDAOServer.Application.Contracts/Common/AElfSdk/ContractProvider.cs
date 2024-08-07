@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf;
@@ -116,10 +117,17 @@ public class ContractProvider : IContractProvider, ISingletonDependency
             {
                 return string.Empty;
             }
+            
+            var sw = Stopwatch.StartNew();
+            
             var (_, transaction) = await CreateCallTransactionAsync(chainId,
                 "TreasuryContractAddress", CommonConstant.TreasuryMethodGetTreasuryAccountAddress, Hash.LoadFromHex(daoId));
             var treasuryAddress =
                 await CallTransactionAsync<Address>(chainId, transaction);
+            
+            sw.Stop();
+            _logger.LogInformation("GetDAOByIdDuration: GetTreasuryAddress {0}", sw.ElapsedMilliseconds);
+            
             return treasuryAddress == null ? string.Empty : treasuryAddress.ToBase58();
         }
         catch (Exception e)
