@@ -106,6 +106,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<BpInfoDto> GetBPWithRoundAsync(string chainId)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
             var grain = _clusterClient.GetGrain<IBPGrain>(chainId);
@@ -115,6 +116,11 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         {
             _logger.LogError(e, "GetBPWithRoundAsync Exception chainId {chainId}", chainId);
             return new BpInfoDto();
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation("GetDAOByIdDuration: GetBPWithRound {0}", sw.ElapsedMilliseconds);
         }
     }
 
