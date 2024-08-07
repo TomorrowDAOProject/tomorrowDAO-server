@@ -200,7 +200,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             ChainId = input.ChainId, TreasuryAddress = input.TreasuryAddress,
         });
         var records = result.Item2;
-        var symbols = records.Select(x => x.Symbol).ToList();
+        var symbols = records.Select(x => x.Symbol).Distinct().ToList();
         var tasks = symbols.Select(symbol => _tokenService.GetTokenInfoAsync(input.ChainId, symbol)).ToList();
         await Task.WhenAll(tasks);
         var tokenInfoDic = tasks.Select(x => x.Result)
