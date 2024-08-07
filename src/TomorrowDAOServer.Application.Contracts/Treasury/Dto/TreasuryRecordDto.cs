@@ -34,7 +34,7 @@ public class GetTreasuryRecordListInput : PagedResultRequestDto
     public string DaoId { get; set; }
     public string TreasuryAddress { get; set; }
     public string Address { get; set; }
-    public List<string> Symbols { get; set; }
+    public List<string> Symbols { get; set; } = new();
     public long StartBlockHeight { get; set; }
     public long EndBlockHeight { get; set; }
 }

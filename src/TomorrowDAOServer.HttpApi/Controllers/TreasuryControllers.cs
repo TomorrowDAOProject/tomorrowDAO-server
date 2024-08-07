@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Treasury;
 using TomorrowDAOServer.Treasury.Dto;
 using Volo.Abp;
@@ -39,5 +40,11 @@ public class TreasuryControllers : AbpController
     public async Task<string> GetTreasuryAddressAsync(GetTreasuryAddressInput input)
     {
         return await _treasuryAssetsService.GetTreasuryAddressAsync(input);
+    }
+    
+    [HttpGet("records")]
+    public async Task<PageResultDto<TreasuryRecordDto>> GetTreasuryRecordsAsync(GetTreasuryRecordsInput input)
+    {
+        return await _treasuryAssetsService.GetTreasuryRecordsAsync(input);
     }
 }

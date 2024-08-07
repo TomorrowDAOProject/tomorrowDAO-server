@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
@@ -189,6 +190,19 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
             _logger.LogError(e, "GetTreasuryAddressAsync error, {0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException($"System exception occurred during querying treasury address. {e.Message}");
         }
+    }
+
+    public async Task<PageResultDto<TreasuryRecordDto>> GetTreasuryRecordsAsync(GetTreasuryRecordsInput input)
+    {
+        var result = await _treasuryAssetsProvider.GetTreasuryRecordListAsync(new GetTreasuryRecordListInput
+        {
+            MaxResultCount = input.MaxResultCount, SkipCount = input.SkipCount,
+            ChainId = input.ChainId, TreasuryAddress = input.TreasuryAddress,
+        });
+        return new PageResultDto<TreasuryRecordDto>
+        {
+            TotalCount = result.Item1, Data = result.Item2
+        };
     }
 
     private static List<TreasuryFundDto> GetRangeTreasuryFunds(int skipCount, int maxResult,

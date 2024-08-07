@@ -273,9 +273,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
                 var participatedTask = GetMyParticipatedDaoListDto(input, address);
                 var managedTask = GetMyManagedDaoListDto(input, address);
                 await Task.WhenAll(ownedTask, participatedTask, managedTask);
-                result.Add(await ownedTask);
-                result.Add(await participatedTask);
-                result.Add(await managedTask);
+                result.Add(ownedTask.Result);
+                result.Add(participatedTask.Result);
+                result.Add(managedTask.Result);
                 break;
             case MyDAOType.Owned:
                 result.Add(await GetMyOwnedDaoListDto(input, address));
