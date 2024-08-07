@@ -28,14 +28,7 @@ public class ProposalController : AbpController
     [HttpPost("list")]
     public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)
     {
-        var sw = Stopwatch.StartNew();
-
-        var result = await _proposalService.QueryProposalListAsync(input);
-        
-        sw.Stop();
-        _logger.LogInformation("ProposalController QueryProposalListAsync duration:{0}", sw.ElapsedMilliseconds);
-        
-        return result;
+        return await _proposalService.QueryProposalListAsync(input);
     }
     
     [HttpGet]
