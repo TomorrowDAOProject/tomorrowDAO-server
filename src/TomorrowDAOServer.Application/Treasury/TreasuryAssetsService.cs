@@ -205,9 +205,9 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         var tokenInfoTasks = symbols.Select(symbol => _tokenService.GetTokenInfoAsync(chainId, symbol)).ToList();
         var tokenPriceTasks = symbols.Select(symbol => _tokenService.GetTokenPriceAsync(symbol, CommonConstant.USD))
             .ToList();
-        var tokenInfoResults = (await Task.WhenAll(tokenInfoTasks)).Where(x => x != null)
+        var tokenInfoResults = (await Task.WhenAll(tokenInfoTasks)).Where(x => x != null && !string.IsNullOrEmpty(x.Symbol))
             .ToDictionary(x => x.Symbol, x => x);
-        var priceResults = (await Task.WhenAll(tokenPriceTasks)).Where(x => x != null)
+        var priceResults = (await Task.WhenAll(tokenPriceTasks)).Where(x => x != null && !string.IsNullOrEmpty(x.BaseCoin))
             .ToDictionary(x => x.BaseCoin, x => x);
         return new Tuple<Dictionary<string, TokenInfoDto>, Dictionary<string, TokenPriceDto>>(tokenInfoResults,
             priceResults);

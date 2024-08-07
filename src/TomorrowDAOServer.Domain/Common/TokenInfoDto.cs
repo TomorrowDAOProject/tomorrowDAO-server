@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace TomorrowDAOServer.Common;
 
 public class TokenInfoDto
