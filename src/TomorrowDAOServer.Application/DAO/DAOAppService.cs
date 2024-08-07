@@ -219,13 +219,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
             tokenInfos[symbol] = await _tokenService.GetTokenInfoAsync(chainId, symbol);
         }
 
-        Stopwatch sw = Stopwatch.StartNew();
         var daoIds = items.Select(s => s.DaoId).ToHashSet();
         var proposalCountDic = await _proposalProvider.GetProposalCountByDaoIds(chainId, daoIds);
-        sw.Stop();
-        _logger.LogInformation("DAOListDuration: batch time={0}", sw.ElapsedMilliseconds);
 
-        sw.Restart();
         foreach (var dao in items)
         {
             if (!dao.Symbol.IsNullOrEmpty())
@@ -234,22 +230,20 @@ public class DAOAppService : ApplicationService, IDAOAppService
                     ? long.Parse(tokenInfo.Holders)
                     : 0L;
             }
-
-            Stopwatch swq = Stopwatch.StartNew();
-            dao.ProposalsNum = await _proposalProvider.GetProposalCountByDAOIds(chainId, dao.DaoId);
-            swq.Stop();
-            _logger.LogInformation("DAOListDuration: every time={0}", swq.ElapsedMilliseconds);
+            
             if (!dao.IsNetworkDAO)
             {
-                continue;
+                if (proposalCountDic.ContainsKey(dao.DaoId))
+                {
+                    dao.ProposalsNum = proposalCountDic[dao.DaoId];
+                }
             }
-
-            dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(chainId)).Count;
-            dao.ProposalsNum = await _graphQlProvider.GetProposalNumAsync(chainId);
+            else
+            {
+                dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(chainId)).Count;
+                dao.ProposalsNum = await _graphQlProvider.GetProposalNumAsync(chainId);
+            }
         }
-        
-        sw.Stop();
-        _logger.LogInformation("DAOListDuration: total every time={0}", sw.ElapsedMilliseconds);
 
         return new Tuple<long, List<DAOListDto>>(originResult.Item1, items);
     }
