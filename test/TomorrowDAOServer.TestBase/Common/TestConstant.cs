@@ -27,4 +27,7 @@ public static class TestConstant
     public const string LastIrreversibleBlockHash = "8724b42cafd7c758ddfd2647b1910e23c8688c2fa2ce703a2fa056a7370145e8";
     public const long LastIrreversibleBlockHeight = 999;
     public static Hash TransactionHash = Hash.LoadFromHex("20e3a65e0f8c2a70c06d2bee8376293438cf926c0b1974ec2d2aa315fcfab12e");
+
+    public const string TreasuryContractAddress = "3FdTVXDuBMVAsXJ598aTm3GifQQey5ahFsonjhanTLs4qnukT";
+    public const string TreasuryAddress = "2Svg2WHtfgd9L2AMTj1gkMatByRgLk88kwyX8H7zL6pejKfL32";
 }
