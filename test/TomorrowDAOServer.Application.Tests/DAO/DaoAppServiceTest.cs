@@ -96,7 +96,7 @@ public class DaoAppServiceTest
                 new() { Symbol = "ELF", IsNetworkDAO = false },
                 new() { Symbol = "USDT", IsNetworkDAO = true }
             });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
         {
             Symbol = "ELF", Decimals = "8", Holders = "2"
         });

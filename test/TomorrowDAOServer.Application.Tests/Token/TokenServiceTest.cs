@@ -82,6 +82,10 @@ public class TokenServiceTest
                 {"OKX", new TokenExchangeDto{ Exchange = (decimal)0.4 }}
             }
         });
+        _graphQlProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
+        {
+            Symbol = "ELF", Decimals = "8", LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds()
+        });
         var result = await _service.GetTvlAsync("chainId");
         result.ShouldBe(0.40000000000000002);
     }
