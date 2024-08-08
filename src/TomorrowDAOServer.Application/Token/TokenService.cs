@@ -194,7 +194,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         return tokenInfo;
     }
 
-    public static decimal AvgPrice(TokenExchangeGrainDto exchange)
+    private static decimal AvgPrice(TokenExchangeGrainDto exchange)
     {
         if (exchange == null || !exchange.ExchangeInfos.Any())
         {
