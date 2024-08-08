@@ -55,10 +55,30 @@ public class TokenServiceTest
     }
 
     [Fact]
-    public async Task GetTokenAsync_Test()
+    public async Task GetTokenInfoAsync_Test()
     {
         var result = await _service.GetTokenInfoAsync("chainId", "");
         result.ShouldNotBeNull();
+
+        _graphQlProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8", LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds()});
+        result = await _service.GetTokenInfoAsync("chainId", "ELF");
+        result.ShouldNotBeNull();
+        result.Symbol.ShouldBe("ELF");
+        
+        _graphQlProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8"});
+        result = await _service.GetTokenInfoAsync("chainId", "ELF");
+        result.ShouldNotBeNull();
+        result.Symbol.ShouldBe("ELF");
+        
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>())
+            .Returns(new ExplorerTokenInfoResponse { Symbol = "ELF", Decimals = "8" });
+        _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(Arg.Any<ExplorerTokenInfoResponse>())
+            .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8" });
+        result = await _service.GetTokenInfoAsync("chainId", "ELF");
+        result.ShouldNotBeNull();
+        result.Symbol.ShouldBe("ELF");
     }
 
     [Fact]
