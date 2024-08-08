@@ -35,6 +35,6 @@ public class AssertHelperTest : TomorrowDaoServerApplicationContractsTestsBase
         //     AssertHelper.NotNull(null, "", null);
         // });
         //
-        // return Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }
