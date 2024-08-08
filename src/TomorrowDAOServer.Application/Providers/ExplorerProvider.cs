@@ -2,21 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Serilog;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
-using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
-using ProposalType = TomorrowDAOServer.Common.Enum.ProposalType;
 
 namespace TomorrowDAOServer.Providers;
 
@@ -26,9 +21,6 @@ public interface IExplorerProvider
     Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request);
     Task<List<ExplorerBalanceOutput>> GetBalancesAsync(string chainId, ExplorerBalanceRequest request);
     Task<ExplorerTokenInfoResponse> GetTokenInfoAsync(string chainId, ExplorerTokenInfoRequest request);
-    Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol);
-    Task<string> GetTokenDecimalAsync(string chainId, string symbol);
-
     Task<ExplorerPagerResult<ExplorerTransactionResponse>> GetTransactionPagerAsync(string chainId,
         ExplorerTransactionRequest request);
 
@@ -151,45 +143,6 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         }
 
         return new ExplorerTokenInfoResponse();
-    }
-
-    public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, [CanBeNull] string symbol)
-    {
-        if (symbol.IsNullOrWhiteSpace())
-        {
-            return new TokenInfoDto();
-        }
-
-        var tokenInfo = await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
-        // 10 minute
-        if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= 10 * 60 * 1000)
-        {
-            return tokenInfo;
-        }
-
-        var tokenResponse =
-            await GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest { Symbol = symbol.ToUpper() });
-        if (tokenResponse != null && !tokenResponse.Symbol.IsNullOrWhiteSpace())
-        {
-            tokenInfo = _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(tokenResponse);
-            tokenInfo.LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds();
-            await _graphQlProvider.SetTokenInfoAsync(tokenInfo);
-        }
-
-        return tokenInfo;
-    }
-
-    public async Task<string> GetTokenDecimalAsync(string chainId, string symbol)
-    {
-        if (symbol.IsNullOrWhiteSpace())
-        {
-            return string.Empty;
-        }
-
-        return (await GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest
-        {
-            Symbol = symbol
-        }))?.Decimals ?? string.Empty;
     }
 
     /// <summary>

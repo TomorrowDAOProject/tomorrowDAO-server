@@ -45,10 +45,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<UserIndex, UserDto>().ReverseMap();
         CreateMap<AddressInfo, UserAddressInfo>().ReverseMap();
         CreateMap<IndexerUserToken, UserTokenDto>();
-        CreateMap<TokenGrainDto, TokenBasicInfo>()
-            .ForMember(des => des.Name, opt
-                => opt.MapFrom(source => source.TokenName))
-            .ReverseMap();
         CreateMap<IndexerProposal, ProposalIndex>();
         CreateMap<ExecuteTransactionDto, ExecuteTransaction>()
             .ForMember(des => des.Params, opt
@@ -93,6 +89,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<ProposalIndex, MyProposalDto>();
         CreateMap<IndexerVote, ProposalDto>();
         CreateMap<IndexerVote, ProposalDetailDto>();
+        CreateMap<VoteRecordIndex, VoteRecordDto>();
         CreateMap<IndexerVoteRecord, VoteRecordIndex>()
             .ForMember(des => des.IsWithdraw, opt
                 => opt.MapFrom(source => false))

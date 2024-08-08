@@ -1,15 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Contracts.MultiToken;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Token.Dto;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using TomorrowDAOServer.Common.AElfSdk;
+using TomorrowDAOServer.Common.AElfSdk.Dtos;
+using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.Common.Provider;
-using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
@@ -32,10 +36,13 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     private readonly Dictionary<string, IExchangeProvider> _exchangeProviders;
     private readonly IOptionsMonitor<NetWorkReflectionOptions> _netWorkReflectionOption;
     private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
+    private readonly IContractProvider _contractProvider;
+    private readonly IAwsS3Client _awsS3Client;
     
     public TokenService(IClusterClient clusterClient, ILogger<TokenService> logger, IExplorerProvider explorerProvider, 
         IObjectMapper objectMapper, IGraphQLProvider graphQlProvider, IEnumerable<IExchangeProvider> exchangeProviders,
-        IOptionsMonitor<NetWorkReflectionOptions> netWorkReflectionOption, IOptionsMonitor<ExchangeOptions> exchangeOptions)
+        IOptionsMonitor<NetWorkReflectionOptions> netWorkReflectionOption, IOptionsMonitor<ExchangeOptions> exchangeOptions, 
+        IContractProvider contractProvider, IAwsS3Client awsS3Client)
     {
         _clusterClient = clusterClient;
         _logger = logger;
@@ -45,41 +52,42 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         _exchangeProviders = exchangeProviders.ToDictionary(p => p.Name().ToString());
         _netWorkReflectionOption = netWorkReflectionOption;
         _exchangeOptions = exchangeOptions;
+        _contractProvider = contractProvider;
+        _awsS3Client = awsS3Client;
     }
 
-    public async Task<TokenGrainDto> GetTokenAsync(string chainId, string symbol)
+    public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
     {
-        try
+        Stopwatch sw = Stopwatch.StartNew();
+        
+        if (symbol.IsNullOrEmpty())
         {
-            var grainId = GuidHelper.GenerateGrainId(chainId, symbol);
-            var tokenGrain = _clusterClient.GetGrain<ITokenGrain>(grainId);
-            var grainResultDto = await tokenGrain.GetTokenAsync(new TokenGrainDto
-            {
-                ChainId = chainId,
-                Symbol = symbol
-            });
-            AssertHelper.IsTrue(grainResultDto.Success, "GetTokenAsync  fail, chainId  {chainId} symbol {symbol}", chainId,
-                symbol);
-            return grainResultDto.Data;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetTokenAsyncException chainId{chainId}, symbol{symbol}", chainId, symbol);
+            return new TokenInfoDto();
         }
 
-        return new TokenGrainDto();
-    }
-
-    public async Task<TokenDto> GetTokenByExplorerAsync(string chainId, string symbol)
-    {
-        var tokenGrain = await GetTokenAsync(chainId, symbol);
-        var tokenInfo = await _explorerProvider.GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest()
+        var tokenInfo = await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
+        if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= CommonConstant.OneDay)
         {
-            Symbol = symbol
-        });
-        var tokenResult = _objectMapper.Map<ExplorerTokenInfoResponse, TokenDto>(tokenInfo);
-        tokenResult.ImageUrl = tokenGrain.ImageUrl;
-        return tokenResult;
+            sw.Stop();
+            _logger.LogInformation("ProposalListDuration: GetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            
+            return tokenInfo;
+        }
+
+        var tokenResponse = await _explorerProvider.GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest { Symbol = symbol.ToUpper() });
+        if (tokenResponse == null || tokenResponse.Symbol.IsNullOrWhiteSpace())
+        {
+            sw.Stop();
+            _logger.LogInformation("ProposalListDuration: ExplorerGetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            
+            return tokenInfo;
+        }
+
+        tokenInfo = _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(tokenResponse);
+        tokenInfo.LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds();
+        await _graphQlProvider.SetTokenInfoAsync(tokenInfo);
+        
+        return tokenInfo;
     }
 
     public async Task<double> GetTvlAsync(string chainId)
@@ -87,7 +95,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var list = await _graphQlProvider.GetDAOAmountAsync(chainId);
         var tokens = list.Where(x => x.Amount > 0).Where(x => !string.IsNullOrEmpty(x.GovernanceToken))
             .Select(x => x.GovernanceToken).Distinct().ToList();
-        var tokenInfoTasks = tokens.Select(x => _explorerProvider.GetTokenInfoAsync(chainId, x)).ToList();
+        var tokenInfoTasks = tokens.Select(x => GetTokenInfoAsync(chainId, x)).ToList();
         var priceTasks = tokens.Select(x => GetTokenPriceAsync(x, CommonConstant.USD)).ToList();
         var tokenInfoResults = (await Task.WhenAll(tokenInfoTasks)).ToDictionary(x => x.Symbol, x => x); 
         var priceResults = (await Task.WhenAll(priceTasks)).ToDictionary(x => x.BaseCoin, x => x);
@@ -101,39 +109,30 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     {
         if (baseCoin.IsNullOrEmpty() || quoteCoin.IsNullOrEmpty())
         {
-            _logger.LogError("GetTokenPriceAsync Get token price fail, baseCoin or quoteCoin is empty.");
             return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
         }
-        var exchange = await GetExchangePriceAsync(baseCoin, quoteCoin);
-        if (exchange.IsNullOrEmpty())
+        var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(string.Join(CommonConstant.Underline, baseCoin, quoteCoin));
+        var exchange = await exchangeGrain.GetAsync();
+        var now = DateTime.UtcNow.ToUtcMilliSeconds();
+        if (exchange.LastModifyTime > 0 && exchange.ExpireTime < now)
         {
-            _logger.LogError("GetTokenPriceAsync Exchange data not found baseCoin {baseCoin} quoteCoin {quoteCoin}", baseCoin, quoteCoin);
             return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
         }
-        var avgExchange = exchange.Values
-            .Where(ex => ex.Exchange > 0)
-            .Average(ex => ex.Exchange);
-        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = avgExchange };
+        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = AvgPrice(exchange) };
     }
 
-    public async Task<Dictionary<string, TokenExchangeDto>> GetExchangePriceAsync(string baseCoin, string quoteCoin)
+    public async Task<Dictionary<string, TokenExchangeDto>> UpdateExchangePriceAsync(string baseCoin, string quoteCoin)
     {
         var pair = string.Join(CommonConstant.Underline, baseCoin, quoteCoin);
         var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(pair);
         var now = DateTime.UtcNow.ToUtcMilliSeconds();
         var exchange = await exchangeGrain.GetAsync();
-        if (exchange.LastModifyTime > 0 && exchange.ExpireTime > now)
-        {
-            return exchange.ExchangeInfos;
-        }
-
         var asyncTasks = new Dictionary<string, Task<TokenExchangeDto>>();
         foreach (var provider in _exchangeProviders.Values)
         {
             asyncTasks[provider.Name().ToString()] =
                 provider.LatestAsync(MappingSymbol(baseCoin.ToUpper()), MappingSymbol(quoteCoin.ToUpper()));
         }
-        
         exchange.LastModifyTime = now;
         exchange.ExpireTime = now + _exchangeOptions.CurrentValue.DataExpireSeconds * 1000;
         exchange.ExchangeInfos = new Dictionary<string, TokenExchangeDto>();
@@ -148,6 +147,8 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
                 _logger.LogError(e, "Query exchange failed, providerName={ProviderName}", providerName);
             }
         }
+        
+        _logger.LogInformation("UpdateExchangePriceAsync pair {pair}, price {price}", pair, AvgPrice(exchange));
         await exchangeGrain.SetAsync(exchange);
 
         return exchange.ExchangeInfos;
@@ -156,7 +157,49 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     private string MappingSymbol(string sourceSymbol)
     {
         return _netWorkReflectionOption.CurrentValue.SymbolItems.TryGetValue(sourceSymbol, out var targetSymbol)
-            ? targetSymbol
-            : sourceSymbol;
+            ? targetSymbol : sourceSymbol;
+    }
+    
+    private async Task<string> FixImageAsync(string chainId, string symbol, BlockChainTokenInfo tokenInfo = null)
+    {
+        try
+        {
+            tokenInfo ??= await GetBlockChainTokenInfo(chainId, symbol);
+            var externalInfo = tokenInfo.ExternalInfo.Value.ToDictionary(f => f.Key, f => f.Value);
+            if (externalInfo.TryGetValue("__nft_image_url", out var nftImage))
+            {
+                // for common nft, save image url directly
+                return nftImage;
+            }
+
+            if (externalInfo.TryGetValue("inscription_image", out var inscriptionImage))
+            {
+                // for inscription nft, upload image to AwsS3 and save image url
+                return await _awsS3Client.UpLoadBase64FileAsync(inscriptionImage, symbol + ".png");
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "FixImageAsyncError, chainId {} symbol {}", chainId, symbol);
+        }
+
+        return string.Empty;
+    }
+
+    private async Task<BlockChainTokenInfo> GetBlockChainTokenInfo(string chainId, string symbol)
+    {
+        var (_, tx) = await _contractProvider.CreateCallTransactionAsync(chainId,
+            SystemContractName.TokenContract, "GetTokenInfo", new GetTokenInfoInput { Symbol = symbol });
+        var tokenInfo = await _contractProvider.CallTransactionAsync<BlockChainTokenInfo>(chainId, tx);
+        return tokenInfo;
+    }
+
+    private static decimal AvgPrice(TokenExchangeGrainDto exchange)
+    {
+        var validExchanges = exchange.ExchangeInfos.Values
+            .Where(ex => ex.Exchange > 0)
+            .ToList();
+
+        return validExchanges.Any() ? validExchanges.Average(ex => ex.Exchange) : 0;
     }
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace CAServer.Commons;
+namespace TomorrowDAOServer.Common;
 
 public static class DecimalHelper
 {

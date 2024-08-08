@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Moq;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
@@ -8,6 +9,8 @@ using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.NetworkDao;
+using TomorrowDAOServer.Token;
+using TomorrowDAOServer.Token.Dto;
 
 namespace TomorrowDAOServer.Treasury;
 
@@ -95,6 +98,16 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
                 }
             });
 
+        return mock.Object;
+    }
+
+    private static ITokenService MockTokenService()
+    {
+        var mock = new Mock<ITokenService>();
+        mock.Setup(o => o.GetTokenInfoAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new TokenInfoDto { Symbol = "ELF", Decimals = "8", LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds() });
+        mock.Setup(o => o.GetTokenPriceAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new TokenPriceDto { BaseCoin = "ELF", QuoteCoin = "USD", Price = new decimal(0.4)});
         return mock.Object;
     }
 }

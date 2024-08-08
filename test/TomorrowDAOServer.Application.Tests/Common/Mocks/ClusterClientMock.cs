@@ -15,34 +15,10 @@ public class ClusterClientMock
     {
         var clusterClientMock = new Mock<IClusterClient>();
 
-        //ITokenGrain
-        MockTokenGrain(clusterClientMock);
         //ITokenExchangeGrain
         MockTokenExchangeGrain(clusterClientMock);
             
         return clusterClientMock.Object;
-    }
-
-    private static void MockTokenGrain(Mock<IClusterClient> clusterClientMock)
-    {
-        var mock = new Mock<ITokenGrain>();
-        mock.Setup(o => o.GetTokenAsync(It.IsAny<TokenGrainDto>())).ReturnsAsync(
-            new GrainResultDto<TokenGrainDto>
-            {
-                Success = true, Data = new TokenGrainDto
-                {
-                    Id = "Id",
-                    ChainId = ChainIdAELF,
-                    Address = "Address",
-                    Symbol = "ELF",
-                    Decimals = 8,
-                    TokenName = "AELF",
-                    ImageUrl = "ImageUrl",
-                    LastUpdateTime = DateTime.Now.Millisecond
-                }
-            });
-
-        clusterClientMock.Setup(o => o.GetGrain<ITokenGrain>(It.IsAny<string>(), It.IsAny<string>())).Returns(mock.Object);
     }
 
     private static void MockTokenExchangeGrain(Mock<IClusterClient> clusterClientMock)

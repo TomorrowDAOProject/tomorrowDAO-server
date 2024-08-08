@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using Newtonsoft.Json;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Common.Provider;
@@ -24,6 +26,7 @@ using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp.Users;
@@ -45,16 +48,13 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IContractProvider _contractProvider;
     private readonly IUserProvider _userProvider;
-    private const int ZeroSkipCount = 0;
-    private const int GetMemberListMaxResultCount = 100;
-    private const int CandidateTermNumber = 0;
-    private ValueTuple<long, long> ProposalCountCache = new(0, 0);
+    private readonly ITokenService _tokenService;
 
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
         IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
         IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider,
-        IUserProvider userProvider, ILogger<DAOAppService> logger)
+        IUserProvider userProvider, ILogger<DAOAppService> logger, ITokenService tokenService)
     {
         _daoProvider = daoProvider;
         _electionProvider = electionProvider;
@@ -65,6 +65,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _contractProvider = contractProvider;
         _userProvider = userProvider;
         _logger = logger;
+        _tokenService = tokenService;
         _explorerProvider = explorerProvider;
         _governanceProvider = governanceProvider;
     }
@@ -79,33 +80,49 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
         input.DAOId = daoIndex.Id;
 
+        var sw = Stopwatch.StartNew();
+        
         var getTreasuryAddressTask = _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DAOId);
-        var getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
+        var getGovernanceSchemeTask = _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId);
+
+        Task<BpInfoDto> getBpWithRoundTask = null;
+        Task<List<string>> getHighCouncilMembersTask = null;
+        if (daoIndex.IsNetworkDAO)
+        {
+            getBpWithRoundTask = _graphQlProvider.GetBPWithRoundAsync(input.ChainId);
+        }
+        else
+        {
+            getHighCouncilMembersTask = _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DAOId);
+        }
 
         var daoInfo = _objectMapper.Map<DAOIndex, DAOInfoDto>(daoIndex);
-        var governanceSchemeDto = await _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId);
-        var governanceScheme = governanceSchemeDto.Data;
-        daoInfo.OfGovernanceSchemeThreshold(governanceScheme?.FirstOrDefault());
-        await getTreasuryAddressTask;
-        daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
         if (daoInfo.TreasuryContractAddress.IsNullOrWhiteSpace())
         {
             daoInfo.TreasuryContractAddress =
                 _contractProvider.ContractAddress(input.ChainId, CommonConstant.TreasuryContractAddressName);
         }
 
-        if (!daoInfo.IsNetworkDAO)
+        if (daoIndex.IsNetworkDAO)
         {
-            await getHighCouncilMembersTask;
-            daoInfo.HighCouncilMemberCount = getHighCouncilMembersTask.Result.IsNullOrEmpty()
-                ? 0
-                : getHighCouncilMembersTask.Result.Count;
-            return daoInfo;
+            await Task.WhenAll(getTreasuryAddressTask, getGovernanceSchemeTask, getBpWithRoundTask);
+            var bpInfo = getBpWithRoundTask.Result;
+            daoInfo.HighCouncilTermNumber = bpInfo.Round;
+            daoInfo.HighCouncilMemberCount = bpInfo.AddressList.Count;
         }
-
-        var bpInfo = await _graphQlProvider.GetBPWithRoundAsync(input.ChainId);
-        daoInfo.HighCouncilTermNumber = bpInfo.Round;
-        daoInfo.HighCouncilMemberCount = bpInfo.AddressList.Count;
+        else
+        {
+            await Task.WhenAll(getTreasuryAddressTask, getGovernanceSchemeTask, getHighCouncilMembersTask);
+            daoInfo.HighCouncilMemberCount = getHighCouncilMembersTask.Result.IsNullOrEmpty() ? 0 : getHighCouncilMembersTask.Result.Count;
+        }
+        
+        daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
+        var governanceSchemeDto = getGovernanceSchemeTask.Result;
+        daoInfo.OfGovernanceSchemeThreshold(governanceSchemeDto.Data?.FirstOrDefault());
+        
+        sw.Stop();
+        _logger.LogInformation("GetDAOByIdDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
+        
         return daoInfo;
     }
 
@@ -213,8 +230,11 @@ public class DAOAppService : ApplicationService, IDAOAppService
         var tokenInfos = new Dictionary<string, TokenInfoDto>();
         foreach (var symbol in symbols)
         {
-            tokenInfos[symbol] = await _explorerProvider.GetTokenInfoAsync(chainId, symbol);
+            tokenInfos[symbol] = await _tokenService.GetTokenInfoAsync(chainId, symbol);
         }
+
+        var daoIds = items.Select(s => s.DaoId).ToHashSet();
+        var proposalCountDic = await _proposalProvider.GetProposalCountByDaoIds(chainId, daoIds);
 
         foreach (var dao in items)
         {
@@ -224,27 +244,18 @@ public class DAOAppService : ApplicationService, IDAOAppService
                     ? long.Parse(tokenInfo.Holders)
                     : 0L;
             }
-
-            dao.ProposalsNum = await _proposalProvider.GetProposalCountByDAOIds(chainId, dao.DaoId);
+            
             if (!dao.IsNetworkDAO)
             {
-                continue;
-            }
-
-            dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(chainId)).Count;
-            if (DateTime.UtcNow.ToUtcMilliSeconds() - ProposalCountCache.Item2 >= 10 * 60 * 1000)
-            {
-                var parliamentTask = GetCountTask(Common.Enum.ProposalType.Parliament);
-                var associationTask = GetCountTask(Common.Enum.ProposalType.Association);
-                var referendumTask = GetCountTask(Common.Enum.ProposalType.Referendum);
-                await Task.WhenAll(parliamentTask, associationTask, referendumTask);
-                dao.ProposalsNum += (await parliamentTask).Total + (await associationTask).Total +
-                                    (await referendumTask).Total;
-                ProposalCountCache = new ValueTuple<long, long>(dao.ProposalsNum, DateTime.UtcNow.ToUtcMilliSeconds());
+                if (proposalCountDic.ContainsKey(dao.DaoId))
+                {
+                    dao.ProposalsNum = proposalCountDic[dao.DaoId];
+                }
             }
             else
             {
-                dao.ProposalsNum += ProposalCountCache.Item1;
+                dao.HighCouncilMemberCount = (await _graphQlProvider.GetBPAsync(chainId)).Count;
+                dao.ProposalsNum = await _graphQlProvider.GetProposalNumAsync(chainId);
             }
         }
 
@@ -272,9 +283,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
                 var participatedTask = GetMyParticipatedDaoListDto(input, address);
                 var managedTask = GetMyManagedDaoListDto(input, address);
                 await Task.WhenAll(ownedTask, participatedTask, managedTask);
-                result.Add(await ownedTask);
-                result.Add(await participatedTask);
-                result.Add(await managedTask);
+                result.Add(ownedTask.Result);
+                result.Add(participatedTask.Result);
+                result.Add(managedTask.Result);
                 break;
             case MyDAOType.Owned:
                 result.Add(await GetMyOwnedDaoListDto(input, address));

@@ -22,7 +22,7 @@ public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonD
 {
     private readonly ILogger<NetworkDaoElectionService> _logger;
     private readonly IContractProvider _contractProvider;
-    private const long RefreshTime = 10 * 60 * 1000;
+    private const long RefreshTime = CommonConstant.TenMinutes;
     private long _lastQueryAmount = 0;
     private long _lastUpdateTime = 0;
     

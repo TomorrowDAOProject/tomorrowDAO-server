@@ -29,6 +29,7 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
         services.AddSingleton(MockDaoProvider());
         services.AddSingleton(MockNetworkDaoTreasuryService());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
+        services.AddSingleton(MockTokenService());
     }
 
     [Fact]
