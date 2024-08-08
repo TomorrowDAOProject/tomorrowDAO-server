@@ -478,9 +478,11 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
 
         var votingItemIds = voteRecords.Select(x => x.VotingItemId).ToList();
-        var voteInfos = await _voteProvider.GetVoteItemsAsync(input.ChainId, votingItemIds);
-        var proposalInfos = (await _proposalProvider.GetProposalByIdsAsync(input.ChainId, votingItemIds))
-            .ToDictionary(x => x.ProposalId, x => x);
+        var voteInfoTask = _voteProvider.GetVoteItemsAsync(input.ChainId, votingItemIds);
+        var proposalInfosTask = _proposalProvider.GetProposalByIdsAsync(input.ChainId, votingItemIds);
+        await Task.WhenAll(voteInfoTask, proposalInfosTask);
+        var voteInfos = voteInfoTask.Result;
+        var proposalInfos = proposalInfosTask.Result.ToDictionary(x => x.ProposalId, x => x);
         var historyList = _objectMapper.Map<List<IndexerVoteRecord>, List<IndexerVoteHistoryDto>>(voteRecords);
         foreach (var history in historyList)
         {

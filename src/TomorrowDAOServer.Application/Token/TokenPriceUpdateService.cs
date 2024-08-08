@@ -13,7 +13,7 @@ namespace TomorrowDAOServer.Token;
 
 public class TokenPriceUpdateService : ScheduleSyncDataService
 {
-    private readonly ILogger<ScheduleSyncDataService> _logger;
+    private readonly ILogger<TokenPriceUpdateService> _logger;
     private readonly IChainAppService _chainAppService;
     private readonly IOptionsMonitor<NetworkDaoOptions> _networkDaoOptions;
     private readonly ITokenService _tokenService;

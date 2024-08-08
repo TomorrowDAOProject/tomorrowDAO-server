@@ -102,6 +102,8 @@ public class ProposalServiceTest
         });
         _voteProvider.GetVoteSchemeDicAsync(Arg.Any<GetVoteSchemeInput>())
             .Returns(new Dictionary<string, IndexerVoteSchemeInfo>());
+        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8" });
         var result = await _service.QueryProposalListAsync(new QueryProposalListInput { ChainId = "AELF", DaoId = "DaoId" });
         result.ShouldNotBeNull();
     }
@@ -133,7 +135,7 @@ public class ProposalServiceTest
         
         // token dao
         _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>()).Returns(new DAOIndex{GovernanceToken = "ELF"});
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
         {
             Symbol = "ELF", Decimals = "8"
         });
@@ -185,7 +187,7 @@ public class ProposalServiceTest
         // token dao
         _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
             .Returns(new DAOIndex{GovernanceToken = "ELF"});
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
         {
             Symbol = "ELF", Decimals = "8"
         });
@@ -200,7 +202,7 @@ public class ProposalServiceTest
             ChainId = "AELF", DAOId = "daoId", Address = "address"
         });
         myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBeNull("ELF");
+        myInfo.Symbol.ShouldBe("ELF");
     }
 
 

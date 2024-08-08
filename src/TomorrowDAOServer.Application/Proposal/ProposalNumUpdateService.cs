@@ -13,7 +13,7 @@ namespace TomorrowDAOServer.Proposal;
 
 public class ProposalNumUpdateService : ScheduleSyncDataService
 {
-    private readonly ILogger<ScheduleSyncDataService> _logger;
+    private readonly ILogger<ProposalNumUpdateService> _logger;
     private readonly IChainAppService _chainAppService;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGraphQLProvider _graphQlProvider;
