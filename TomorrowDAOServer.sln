@@ -47,6 +47,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TomorrowDAOServer.Worker", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TomorrowDAOServer.Grains.Tests", "test\TomorrowDAOServer.Grains.Tests\TomorrowDAOServer.Grains.Tests.csproj", "{3DB1F470-9567-4339-BE45-158E410BCBC3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TomorrowDAOServer.Application.Contracts.Tests", "test\TomorrowDAOServer.Application.Contracts.Tests\TomorrowDAOServer.Application.Contracts.Tests.csproj", "{ADFB8BA2-7EF4-4FF5-AF3E-7C197893251A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -133,6 +135,10 @@ Global
 		{3DB1F470-9567-4339-BE45-158E410BCBC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3DB1F470-9567-4339-BE45-158E410BCBC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3DB1F470-9567-4339-BE45-158E410BCBC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADFB8BA2-7EF4-4FF5-AF3E-7C197893251A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADFB8BA2-7EF4-4FF5-AF3E-7C197893251A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADFB8BA2-7EF4-4FF5-AF3E-7C197893251A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADFB8BA2-7EF4-4FF5-AF3E-7C197893251A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -158,6 +164,7 @@ Global
 		{9C4A4029-BCAF-498B-988D-61FF5B24C948} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{4F345738-9BE5-4ACB-8DEC-5FEA16AE8071} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{3DB1F470-9567-4339-BE45-158E410BCBC3} = {04DBDB01-70F4-4E06-B468-8F87850B22BE}
+		{ADFB8BA2-7EF4-4FF5-AF3E-7C197893251A} = {04DBDB01-70F4-4E06-B468-8F87850B22BE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {28315BFD-90E7-4E14-A2EA-F3D23AF4126F}

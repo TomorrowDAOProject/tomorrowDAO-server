@@ -43,9 +43,9 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<ApiOption>(configuration.GetSection("Api"));
         Configure<ExchangeOptions>(configuration.GetSection("Exchange"));
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
-        Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<PerformanceMonitorMiddlewareOptions>(configuration.GetSection("PerformanceMonitorMiddleware"));
         Configure<MonitorForLoggingOptions>(configuration.GetSection("MonitorForLoggingOptions"));
+        Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         context.Services.AddTransient<IScheduleSyncDataService, ProposalSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, ProposalNewUpdateService>();

@@ -279,6 +279,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
 
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         Stopwatch swt = Stopwatch.StartNew();
         Stopwatch sw = Stopwatch.StartNew();
         try
@@ -305,6 +306,11 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         catch (Exception e)
         {
             _logger.LogError(e, "SetHighCouncilMembersAsync error: chain={id},DaoId={daoId}", chainId, daoId);
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation("GetDAOByIdDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
         }
 
         return new List<string>();
