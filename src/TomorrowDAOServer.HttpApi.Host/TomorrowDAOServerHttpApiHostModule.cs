@@ -83,7 +83,7 @@ namespace TomorrowDAOServer
             ConfigureTokenCleanupService();
             ConfigureOrleans(context, configuration);
             ConfigureGraphQl(context, configuration);
-            ConfigFilter(context);
+            // ConfigFilter(context);
             context.Services.AddAutoResponseWrapper();
         }
 
