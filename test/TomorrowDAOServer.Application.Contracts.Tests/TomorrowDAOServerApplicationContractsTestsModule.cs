@@ -1,4 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using TomorrowDAOServer.Monitor;
+using TomorrowDAOServer.Monitor.Http;
+using TomorrowDAOServer.Monitor.Logging;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Authorization;
@@ -33,6 +36,8 @@ public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
         
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDaoServerApplicationContractsTestsModule>(); });
         
+        context.Services.AddSingleton<PerformanceMonitorMiddleware>();
+        context.Services.AddSingleton<IMonitor, MonitorForLogging>();
 
         context.Services.AddMemoryCache();
         

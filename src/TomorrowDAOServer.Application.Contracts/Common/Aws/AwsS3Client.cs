@@ -36,7 +36,7 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
         _secretProvider = secretProvider;
         _logger = logger;
         _securityServerOption = securityServerOption;
-        InitAmazonS3Client();
+        // InitAmazonS3Client();
     }
 
     private void InitAmazonS3Client()

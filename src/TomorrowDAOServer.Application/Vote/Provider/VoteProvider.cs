@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
@@ -36,6 +37,7 @@ public interface IVoteProvider
     Task<List<VoteRecordIndex>> GetByVotingItemIdsAsync(string chainId, List<string> votingItemIds);
     Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds);
     Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter);
+    Task<List<VoteRecordIndex>> GetPageVoteRecordAsync(string chainId, string votingItemId, int skipCount, int maxResultCount);
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
 }
 
@@ -55,6 +57,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 
     public async Task<Dictionary<string, IndexerVote>> GetVoteItemsAsync(string chainId, List<string> votingItemIds)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         if (votingItemIds.IsNullOrEmpty())
         {
             return new Dictionary<string, IndexerVote>();
@@ -86,6 +89,10 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
                 }
             });
             var voteItems = result.Data?? new List<IndexerVote>();
+            
+            sw.Stop();
+            _logger.LogInformation("ProposalListDuration: GetVoteItemsAsync {0}", sw.ElapsedMilliseconds);
+            
             return voteItems.ToDictionary(vote => vote.VotingItemId, vote => vote);
         }
         catch (Exception e)
@@ -267,7 +274,12 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 
     public async Task<IDictionary<string, IndexerVoteSchemeInfo>> GetVoteSchemeDicAsync(GetVoteSchemeInput input)
     {
+        var sw = Stopwatch.StartNew();
         var voteSchemeInfos = await GetVoteSchemeAsync(input);
+        
+        sw.Stop();
+        _logger.LogInformation("ProposalListDuration: GetVoteSchemeDicAsync {0}", sw.ElapsedMilliseconds);
+        
         return voteSchemeInfos.ToDictionary(x => x.VoteSchemeId, x => x);
     }
 
@@ -368,6 +380,18 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await GetAllIndex(Filter, _voteRecordIndexRepository);
+    }
+
+    public async Task<List<VoteRecordIndex>> GetPageVoteRecordAsync(string chainId, string votingItemId, int skipCount, int maxResultCount)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(f => f.VotingItemId).Value(votingItemId)),
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _voteRecordIndexRepository.GetSortListAsync(Filter, skip: 0, limit: maxResultCount,
+            sortFunc: _ => new SortDescriptor<VoteRecordIndex>().Descending(index => index.BlockHeight))).Item2;
     }
 
     public async Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter)

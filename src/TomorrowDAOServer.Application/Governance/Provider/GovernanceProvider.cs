@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using GraphQL;
+using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Governance.Dto;
 using Volo.Abp.DependencyInjection;
@@ -15,14 +17,17 @@ public interface IGovernanceProvider
 public class GovernanceProvider : IGovernanceProvider, ISingletonDependency
 {
     private readonly IGraphQlHelper _graphQlHelper;
+    private readonly ILogger<GovernanceProvider> _logger;
 
-    public GovernanceProvider(IGraphQlHelper graphQlHelper)
+    public GovernanceProvider(IGraphQlHelper graphQlHelper, ILogger<GovernanceProvider> logger)
     {
         _graphQlHelper = graphQlHelper;
+        _logger = logger;
     }
 
     public async Task<IndexerGovernanceSchemeDto> GetGovernanceSchemeAsync(string chainId, string daoId)
     {
+        var sw = Stopwatch.StartNew();
         var graphQlResponse = await _graphQlHelper.QueryAsync<IndexerGovernanceSchemeDto>(new GraphQLRequest
         {
             Query =
@@ -50,6 +55,10 @@ public class GovernanceProvider : IGovernanceProvider, ISingletonDependency
                 daoId = daoId
             }
         });
+        
+        sw.Stop();
+        _logger.LogInformation("GetDAOByIdDuration: GetGovernanceScheme {0}", sw.ElapsedMilliseconds);
+        
         return graphQlResponse ?? new IndexerGovernanceSchemeDto();
     }
 }

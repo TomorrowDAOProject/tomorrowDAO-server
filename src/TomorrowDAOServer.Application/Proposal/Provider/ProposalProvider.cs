@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
+using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
@@ -29,10 +30,12 @@ public interface IProposalProvider
 
     public Task<long> GetProposalCountByDAOIds(string chainId, string DAOId);
 
+    public Task<IDictionary<string, long>> GetProposalCountByDaoIds(string chainId, ISet<string> daoIds);
+
     public Task BulkAddOrUpdateAsync(List<ProposalIndex> list);
 
     public Task<List<ProposalIndex>> GetNonFinishedProposalListAsync(int skipCount, List<ProposalStage> stageList);
-    
+
     public Task<List<ProposalIndex>> GetNeedChangeProposalListAsync(int skipCount);
 
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
@@ -40,14 +43,16 @@ public interface IProposalProvider
 
 public class ProposalProvider : IProposalProvider, ISingletonDependency
 {
+    private readonly ILogger<ProposalProvider> _logger;
     private readonly IGraphQlHelper _graphQlHelper;
     private readonly INESTRepository<ProposalIndex, string> _proposalIndexRepository;
 
     public ProposalProvider(IGraphQlHelper graphQlHelper,
-        INESTRepository<ProposalIndex, string> proposalIndexRepository)
+        INESTRepository<ProposalIndex, string> proposalIndexRepository, ILogger<ProposalProvider> logger)
     {
         _graphQlHelper = graphQlHelper;
         _proposalIndexRepository = proposalIndexRepository;
+        _logger = logger;
     }
 
     public async Task<List<IndexerProposal>> GetSyncProposalDataAsync(int skipCount, string chainId,
@@ -94,13 +99,13 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         AssemblyProposalStatusQuery(input.ProposalStatus, mustQuery, proposalShouldQuery);
 
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) =>
-            f.Bool(b => proposalShouldQuery.Any() || contentShouldQuery.Any() 
+            f.Bool(b => proposalShouldQuery.Any() || contentShouldQuery.Any()
                 ? b.Must(mustQuery)
-                    .Should(s => contentShouldQuery.Any() && proposalShouldQuery.Any() 
-                        ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)) 
-                          && s.Bool(sb => sb.Should(proposalShouldQuery).MinimumShouldMatch(1)) 
-                        : contentShouldQuery.Any() 
-                            ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)) 
+                    .Should(s => contentShouldQuery.Any() && proposalShouldQuery.Any()
+                        ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1))
+                          && s.Bool(sb => sb.Should(proposalShouldQuery).MinimumShouldMatch(1))
+                        : contentShouldQuery.Any()
+                            ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1))
                             : s.Bool(sb => sb.Should(proposalShouldQuery).MinimumShouldMatch(1)))
                     .MinimumShouldMatch(1)
                 : b.Must(mustQuery)
@@ -198,6 +203,38 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         return (await _proposalIndexRepository.CountAsync(Filter)).Count;
     }
 
+    public async Task<IDictionary<string, long>> GetProposalCountByDaoIds(string chainId, ISet<string> daoIds)
+    {
+        var result = new Dictionary<string, long>();
+
+        var query = new SearchDescriptor<ProposalIndex>().Size(0)
+            .Query(q => q.Term(t => t.Field(f => f.ChainId).Value(chainId)))
+            .Query(q => q.Terms(t => t.Field(f => f.DAOId).Terms(daoIds)))
+            .Aggregations(a => a.Terms("dao_ids", t => t.Field(f => f.DAOId).Size(Int32.MaxValue).Aggregations(aa =>
+                aa.ValueCount("proposal_count", vc => vc
+                    .Field(f => f.Id)))));
+
+        var response = await _proposalIndexRepository.SearchAsync(query, 0, Int32.MaxValue);
+        var daoIdsAgg = response.Aggregations.Terms("dao_ids");
+        foreach (var bucket in daoIdsAgg.Buckets)
+        {
+            var daoId = bucket.Key;
+            var count = bucket.ValueCount("proposal_count").Value;
+            try  
+            {  
+                var safeLong = checked((long)count);
+                result.Add(daoId, safeLong);
+            }  
+            catch (OverflowException e)  
+            {  
+                _logger.LogError(e, "The number is too large or too small for a long.");  
+                result.Add(daoId, 0);
+            } 
+        }
+
+        return result;
+    }
+
     public async Task BulkAddOrUpdateAsync(List<ProposalIndex> list)
     {
         await _proposalIndexRepository.BulkAddOrUpdateAsync(list);
@@ -218,31 +255,35 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             sortExp: o => o.BlockHeight);
         return tuple.Item2;
     }
-    
+
     public async Task<List<ProposalIndex>> GetNeedChangeProposalListAsync(int skipCount)
     {
         var currentStr = DateTime.UtcNow.ToString("O");
         var activeMustQuery = GetNeedChangeMustQuery(ProposalStage.Active,
             tr => tr.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).LessThan(currentStr));
         var pendingMustQuery = GetNeedChangeMustQuery(ProposalStage.Pending,
-            tr => tr.Field(f => f.ExecuteStartTime.ToUtcMilliSeconds()).LessThan(currentStr));;
+            tr => tr.Field(f => f.ExecuteStartTime.ToUtcMilliSeconds()).LessThan(currentStr));
+        ;
         var executeMustQuery = GetNeedChangeMustQuery(ProposalStage.Execute,
-            tr => tr.Field(f => f.ExecuteEndTime.ToUtcMilliSeconds()).LessThan(currentStr));;
+            tr => tr.Field(f => f.ExecuteEndTime.ToUtcMilliSeconds()).LessThan(currentStr));
+        ;
         var shouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Bool(b => b.Must(activeMustQuery)),
             q => q.Bool(b => b.Must(pendingMustQuery)),
             q => q.Bool(b => b.Must(executeMustQuery))
         };
+
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) =>
             f.Bool(b => b.Should(shouldQuery).MinimumShouldMatch(1));
-       
+
         var tuple = await _proposalIndexRepository.GetListAsync(Filter, skip: skipCount, sortType: SortOrder.Ascending,
             sortExp: o => o.BlockHeight);
         return tuple.Item2;
     }
 
-    private List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> GetNeedChangeMustQuery(ProposalStage proposalStage, Func<TermRangeQueryDescriptor<ProposalIndex>, ITermRangeQuery> selector)
+    private List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> GetNeedChangeMustQuery(
+        ProposalStage proposalStage, Func<TermRangeQueryDescriptor<ProposalIndex>, ITermRangeQuery> selector)
     {
         return new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
@@ -292,7 +333,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.ProposalDescription).Query(content)));
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.Proposer).Query(content)));
     }
-    
+
     private static void AssemblyProposalStatusQuery(ProposalStatus? proposalStatus,
         ICollection<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> mustQuery,
         ICollection<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> shouldQuery)
@@ -315,7 +356,8 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         }
     }
 
-    private static IEnumerable<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> ProposalStatusMustQuery(ProposalStatus proposalStatus)
+    private static IEnumerable<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> ProposalStatusMustQuery(
+        ProposalStatus proposalStatus)
     {
         return new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {

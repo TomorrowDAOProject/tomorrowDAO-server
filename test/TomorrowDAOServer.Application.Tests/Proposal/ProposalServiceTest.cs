@@ -12,6 +12,7 @@ using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -19,6 +20,7 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
 using TomorrowDAOServer.Vote.Dto;
@@ -45,6 +47,7 @@ public class ProposalServiceTest
     private readonly IScriptService _scriptService;
     private readonly IUserProvider _userProvider;
     private readonly IElectionProvider _electionProvider;
+    private readonly ITokenService _tokenService;
     private readonly ProposalService _service;
     private readonly ICurrentUser _currentUser;
     private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
@@ -63,9 +66,10 @@ public class ProposalServiceTest
         _scriptService = Substitute.For<IScriptService>();
         _userProvider = Substitute.For<IUserProvider>();
         _electionProvider = Substitute.For<IElectionProvider>();
-        _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, _explorerProvider, 
+        _tokenService = Substitute.For<ITokenService>();
+        _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, 
             _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
-            _logger, _userProvider, _electionProvider);
+            _logger, _userProvider, _electionProvider, _tokenService);
         
         _currentUser = Substitute.For<ICurrentUser>();
         _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
@@ -92,10 +96,14 @@ public class ProposalServiceTest
             .Returns(new Dictionary<string, IndexerVote>());
         _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
             .Returns(new DAOIndex { Id = "DaoId" });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new TokenInfoDto());
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        {
+            Symbol = "ELF", Decimals = "8"
+        });
         _voteProvider.GetVoteSchemeDicAsync(Arg.Any<GetVoteSchemeInput>())
             .Returns(new Dictionary<string, IndexerVoteSchemeInfo>());
+        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8" });
         var result = await _service.QueryProposalListAsync(new QueryProposalListInput { ChainId = "AELF", DaoId = "DaoId" });
         result.ShouldNotBeNull();
     }
@@ -127,8 +135,10 @@ public class ProposalServiceTest
         
         // token dao
         _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>()).Returns(new DAOIndex{GovernanceToken = "ELF"});
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new TokenInfoDto{Symbol = "ELF"});
+        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
+        {
+            Symbol = "ELF", Decimals = "8"
+        });
         myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
         {
             ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
@@ -177,8 +187,10 @@ public class ProposalServiceTest
         // token dao
         _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
             .Returns(new DAOIndex{GovernanceToken = "ELF"});
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new TokenInfoDto());
+        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
+        {
+            Symbol = "ELF", Decimals = "8"
+        });
         _voteProvider.GetNonWithdrawVoteRecordAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns(new List<VoteRecordIndex>
             {
@@ -190,7 +202,7 @@ public class ProposalServiceTest
             ChainId = "AELF", DAOId = "daoId", Address = "address"
         });
         myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBeNull("ELF");
+        myInfo.Symbol.ShouldBe("ELF");
     }
 
 

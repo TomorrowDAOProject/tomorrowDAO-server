@@ -11,9 +11,9 @@ using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.Grain.Token;
 
-public class ExplorerTokenGrainTest : TomorrowDAOServerGrainsTestsBase
+public class TokenGrainTest : TomorrowDAOServerGrainsTestsBase
 {
-    public ExplorerTokenGrainTest(ITestOutputHelper output) : base(output)
+    public TokenGrainTest(ITestOutputHelper output) : base(output)
     {
     }
     
@@ -21,7 +21,7 @@ public class ExplorerTokenGrainTest : TomorrowDAOServerGrainsTestsBase
     public async Task SetTokenInfoAsyncTest()
     {
         var grainId = GuidHelper.GenerateId(ChainIdAELF, ELF);
-        var grain = Cluster.GrainFactory.GetGrain<IExplorerTokenGrain>(grainId);
+        var grain = Cluster.GrainFactory.GetGrain<ITokenGrain>(grainId);
 
         await grain.SetTokenInfoAsync(new TokenInfoDto
         {

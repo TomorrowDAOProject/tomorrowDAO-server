@@ -15,7 +15,6 @@ public class TomorrowDAOServerGrainsAutoMapperProfile : Profile
     {
         CreateMap<UserGrainDto, UserState>().ReverseMap();
         CreateMap<UserState, UserDto>().ReverseMap();
-        CreateMap<TokenGrainDto, TokenState>().ReverseMap();
         CreateMap<DaoAliasDto, DaoAlias>().ReverseMap();
     }
 }
