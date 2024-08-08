@@ -13,7 +13,7 @@
           **/test/**/*.cs
           ,**/src/TomorrowDAOServer.Domain/**/*.cs
           ,**/src/TomorrowDAOServer.Domain.Shared/**/*.cs
-          ,**/src/TomorrowDAOServer.Application.Contracts/**/*.cs
+          <!-- ,**/src/TomorrowDAOServer.Application.Contracts/**/*.cs  -->
           ,**/src/TomorrowDAOServer.AuthServer/**/*.cs
           ,**/src/TomorrowDAOServer.DbMigrator/**/*.cs
           ,**/src/TomorrowDAOServer.HttpApi/**/*.cs
