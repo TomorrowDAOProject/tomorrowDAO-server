@@ -8,6 +8,7 @@ namespace TomorrowDAOServer.Application.Contracts.Tests.Monitor.Http;
 
 public partial class PerformanceMonitorMiddlewareTest : TomorrowDaoServerApplicationContractsTestsBase
 {
+    //http middleware
     private readonly PerformanceMonitorMiddleware _middleware;
     public PerformanceMonitorMiddlewareTest(ITestOutputHelper output) : base(output)
     {
