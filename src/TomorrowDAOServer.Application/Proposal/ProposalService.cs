@@ -118,6 +118,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         //3.2 query token info
         var tokenInfoTask = _tokenService.GetTokenInfoAsync(input.ChainId, daoIndex.GovernanceToken);
         //3.3 query vote scheme
+        
         //3.4 query proposal vote infos
         var proposalIds = proposalList.Select(item => item.ProposalId).ToList();
         var voteItemsMapTask = _voteProvider.GetVoteItemsAsync(input.ChainId, proposalIds);
