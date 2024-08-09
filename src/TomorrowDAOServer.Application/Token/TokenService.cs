@@ -114,11 +114,11 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(string.Join(CommonConstant.Underline, baseCoin, quoteCoin));
         var exchange = await exchangeGrain.GetAsync();
         var now = DateTime.UtcNow.ToUtcMilliSeconds();
-        if (exchange.LastModifyTime > 0 && exchange.ExpireTime < now)
+        if (exchange.ExpireTime > now)
         {
-            return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
+            return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = AvgPrice(exchange) };
         }
-        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = AvgPrice(exchange) };
+        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
     }
 
     public async Task<Dictionary<string, TokenExchangeDto>> UpdateExchangePriceAsync(string baseCoin, string quoteCoin)
@@ -196,6 +196,10 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
 
     private static decimal AvgPrice(TokenExchangeGrainDto exchange)
     {
+        if (exchange == null || !exchange.ExchangeInfos.Any())
+        {
+            return 0;
+        }
         var validExchanges = exchange.ExchangeInfos.Values
             .Where(ex => ex.Exchange > 0)
             .ToList();
