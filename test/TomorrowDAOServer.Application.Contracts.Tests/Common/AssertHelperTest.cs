@@ -12,28 +12,24 @@ public class AssertHelperTest : TomorrowDaoServerApplicationContractsTestsBase
     }
 
     [Fact]
-    public Task AssertHelperMethodTest()
+    public void AssertHelperMethodTest()
     {
         AssertHelper.IsTrue(true, "");
         AssertHelper.IsEmpty(null, "", null);
         AssertHelper.IsEmpty(Guid.Empty, "", null);
         AssertHelper.NotNull("NotNull", "", null);
+        AssertHelper.NotEmpty(Guid.NewGuid(), "", null);
+        AssertHelper.IsEmpty(new List<string>(), "", null);
+        AssertHelper.NotEmpty(new List<string>() { "aa" }, "", null);
 
-        Assert.Throws<UserFriendlyException>(() =>
-        {
-            AssertHelper.IsEmpty("NotNull", "", null);
-        });
-        
-        Assert.Throws<UserFriendlyException>(() =>
-        {
-            AssertHelper.IsEmpty(Guid.NewGuid(), "", null);
-        });
-        
-        Assert.Throws<UserFriendlyException>(() =>
-        {
-            AssertHelper.NotNull(null, "", null);
-        });
-        
-        return Task.CompletedTask;
+        Assert.Throws<UserFriendlyException>(() => { AssertHelper.IsEmpty("NotNull", "", null); });
+
+        Assert.Throws<UserFriendlyException>(() => { AssertHelper.IsEmpty(Guid.NewGuid(), "", null); });
+
+        Assert.Throws<UserFriendlyException>(() => { AssertHelper.NotNull(null, "", null); });
+
+        Assert.Throws<UserFriendlyException>(() => { AssertHelper.NotEmpty(Guid.Empty, "", null); });
+
+        Assert.Throws<UserFriendlyException>(() => { AssertHelper.IsNull(new object(), "", null); });
     }
 }
