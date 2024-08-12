@@ -458,7 +458,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
-        input.Address = await GetAndValidateUserAddress(input.ChainId);
+        // input.Address = await GetAndValidateUserAddress(input.ChainId);
 
         var voteHistoryDto = new VoteHistoryDto { ChainId = input.ChainId };
         var voteRecords = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
