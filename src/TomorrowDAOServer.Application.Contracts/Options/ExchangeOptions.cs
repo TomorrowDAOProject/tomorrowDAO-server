@@ -5,6 +5,7 @@ public class ExchangeOptions
     public BinanceOptions Binance {get; set; }
     
     public OkxOptions Okx { get; set; }
+    public AwakenOptions Awaken { get; set; }
     
     public int DataExpireSeconds { get; set; } = 60;
 }
@@ -17,6 +18,11 @@ public class BinanceOptions
 }
 
 public class OkxOptions
+{
+    public string BaseUrl { get; set; }
+}
+
+public class AwakenOptions
 {
     public string BaseUrl { get; set; }
 }
