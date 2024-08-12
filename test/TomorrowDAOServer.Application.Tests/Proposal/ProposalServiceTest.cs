@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -224,5 +225,91 @@ public class ProposalServiceTest
             ExecuteStartTime = DateTime.Now.AddDays(-1), ExecuteEndTime = DateTime.Now.AddDays(1)
         }, "address");
         canExecute.ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task QueryVoteHistoryAsync_Test()
+    {
+        //1
+        var result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        {
+            ChainId = "tDVW", DAOId = "daoId"
+        });
+        result.ShouldNotBeNull();
+
+        _voteProvider.GetPageVoteRecordAsync(Arg.Any<GetPageVoteRecordInput>()).Returns(new List<VoteRecordIndex>
+        {
+            new()
+            {
+                Id = "daoId", VotingItemId = "proposalId", Amount = 100000000
+            }
+        });
+        _voteProvider.GetVoteItemsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+            .Returns(new Dictionary<string, IndexerVote>());
+        _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+            .Returns(new List<ProposalIndex>());
+        _DAOProvider.GetDaoListByDaoIds(Arg.Any<string>(), Arg.Any<List<string>>()).Returns(new List<DAOIndex>());
+        _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(Arg.Any<List<VoteRecordIndex>>())
+            .Returns(new List<IndexerVoteHistoryDto>
+            {
+                new()
+                {
+                    DAOId = "daoId", ProposalId = "proposalId", VoteNum = 100000000
+                }
+            });
+        result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        {
+            ChainId = "tDVW", DAOId = "daoId"
+        });
+        result.ShouldNotBeNull();
+        
+        //2
+        _voteProvider.GetVoteItemsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+            .Returns(new Dictionary<string, IndexerVote>
+            {
+                ["proposalId"] = new()
+                {
+                    VotingItemId = "proposalId", Executer = "user"
+                }
+            });
+        _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+            .Returns(new List<ProposalIndex>
+            {
+                new()
+                {
+                    ProposalId = "proposalId", ProposalTitle = "title"
+                }
+            });
+        result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        {
+            ChainId = "tDVW", DAOId = "daoId"
+        });
+        result.ShouldNotBeNull();
+        
+        //3
+        _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+            .Returns(new List<ProposalIndex>
+            {
+                new()
+                {
+                    ProposalId = "proposalId", ProposalTitle = "title", VoteMechanism = VoteMechanism.TOKEN_BALLOT
+                }
+            });
+        _DAOProvider.GetDaoListByDaoIds(Arg.Any<string>(), Arg.Any<List<string>>()).Returns(new List<DAOIndex>
+        {
+            new()
+            {
+                Id = "daoId", GovernanceToken = "ELF"
+            }
+        });
+        _tokenService.GetTokenInfoWithoutUpdateAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
+        {
+            Symbol = "ELF", Decimals = "8"
+        });
+        result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        {
+            ChainId = "tDVW", DAOId = "daoId"
+        });
+        result.ShouldNotBeNull();
     }
 }
