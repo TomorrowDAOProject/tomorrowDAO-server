@@ -90,6 +90,16 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         return tokenInfo;
     }
 
+    public async Task<TokenInfoDto> GetTokenInfoWithoutUpdateAsync(string chainId, string symbol)
+    {
+        if (symbol.IsNullOrEmpty())
+        {
+            return new TokenInfoDto();
+        }
+
+        return await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
+    }
+
     public async Task<double> GetTvlAsync(string chainId)
     {
         var list = await _graphQlProvider.GetDAOAmountAsync(chainId);

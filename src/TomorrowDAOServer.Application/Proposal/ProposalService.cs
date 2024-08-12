@@ -473,20 +473,47 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
 
         var votingItemIds = voteRecords.Select(x => x.VotingItemId).ToList();
+        var daoIds = voteRecords.Select(x => x.DAOId).ToList();
         var voteInfoTask = _voteProvider.GetVoteItemsAsync(input.ChainId, votingItemIds);
         var proposalInfosTask = _proposalProvider.GetProposalByIdsAsync(input.ChainId, votingItemIds);
-        await Task.WhenAll(voteInfoTask, proposalInfosTask);
+        var daoInfosTask = _DAOProvider.GetDaoListByDaoIds(input.ChainId, daoIds);
+        await Task.WhenAll(voteInfoTask, proposalInfosTask, daoInfosTask);
         var voteInfos = voteInfoTask.Result;
         var proposalInfos = proposalInfosTask.Result.ToDictionary(x => x.ProposalId, x => x);
+        var daoInfos = daoInfosTask.Result.ToDictionary(x => x.Id, x => x);
+        var symbols = daoInfosTask.Result.Where(x => !string.IsNullOrEmpty(x.GovernanceToken)).Select(x => x.GovernanceToken).Distinct().ToList();
+        var tokenInfosTasks = symbols.Select(symbol => _tokenService.GetTokenInfoWithoutUpdateAsync(input.ChainId, symbol)).ToList();
+        var tokenInfos = (await Task.WhenAll(tokenInfosTasks)).Where(x => x != null && !string.IsNullOrEmpty(x.Symbol))
+            .ToDictionary(x => x.Symbol, x => x);
         var historyList = _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(voteRecords);
         foreach (var history in historyList)
         {
             history.Executer = voteInfos.TryGetValue(history.ProposalId, out var voteInfo)
                 ? voteInfo.Executer
                 : string.Empty;
-            history.ProposalTitle = proposalInfos.TryGetValue(history.ProposalId, out var proposalIndex)
-                ? proposalIndex.ProposalTitle
-                : string.Empty;
+            var proposalExisted = proposalInfos.TryGetValue(history.ProposalId, out var proposalIndex);
+            if (!proposalExisted)
+            {
+                continue;
+            }
+            history.ProposalTitle = proposalIndex.ProposalTitle;
+            if (VoteMechanism.UNIQUE_VOTE == proposalIndex.VoteMechanism)
+            {
+                continue;
+            }
+
+            var daoExisted = daoInfos.TryGetValue(history.DAOId, out var daoIndex);
+            if (!daoExisted)
+            {
+                continue;
+            }
+            var tokenExisted = tokenInfos.TryGetValue(daoIndex.GovernanceToken, out var tokenInfo);
+            if (!tokenExisted)
+            {
+                continue;
+            }
+            history.VoteNumAfterDecimals = history.VoteNum / Math.Pow(10, tokenInfo.Decimals.SafeToDouble());
+            history.Decimals = tokenInfo.Decimals;
         }
 
         voteHistoryDto.Items = historyList;
