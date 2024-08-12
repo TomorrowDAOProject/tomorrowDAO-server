@@ -35,7 +35,7 @@ public class AwakenProviderTest
     }
     
     [Fact]
-    public async Task HistoryAsync_Test()
+    public async Task LatestAsync_Test()
     {
         _httpProvider.InvokeAsync<CommonResponseDto<string>>(Arg.Any<string>(), Arg.Any<ApiInfo>(),
                 Arg.Any<Dictionary<string, string>>(), Arg.Any<Dictionary<string, string>>(),
@@ -54,5 +54,12 @@ public class AwakenProviderTest
         var result = await _provider.LatestAsync("ELF", "USD");
         result.ShouldNotBeNull();
         result.Exchange.ShouldBe((decimal)0.4);
+    }
+
+    [Fact]
+    public async Task HistoryAsync_Test()
+    {
+        var result = await _provider.HistoryAsync("ELF", "USD", 0);
+        result.ShouldNotBeNull();
     }
 }
