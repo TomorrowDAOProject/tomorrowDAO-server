@@ -81,10 +81,3 @@ public class AwakenRequest
 {
     public string Symbol { get; set; }
 }
-
-public class AwakenResponse
-{
-    public string code { get; set; }
-    public string data { get; set; }
-    public string message { get; set; }
-}
