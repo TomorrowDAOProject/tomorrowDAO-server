@@ -42,7 +42,7 @@ public class ProposalController : AbpController
     }
     
     [HttpGet("vote-history")]
-    [Authorize]
+    // [Authorize]
     public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         return await _proposalService.QueryVoteHistoryAsync(input);
