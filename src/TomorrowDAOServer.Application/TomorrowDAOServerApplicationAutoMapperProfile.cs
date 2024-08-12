@@ -206,6 +206,18 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.TransactionId, opt
                 => opt.MapFrom(source => source.TransactionId))
             ;
+        CreateMap<VoteRecordIndex, IndexerVoteHistoryDto>()
+            .ForMember(des => des.TimeStamp, opt
+                => opt.MapFrom(source => source.VoteTime))
+            .ForMember(des => des.ProposalId, opt
+                => opt.MapFrom(source => source.VotingItemId))
+            .ForMember(des => des.MyOption, opt
+                => opt.MapFrom(source => source.Option))
+            .ForMember(des => des.VoteNum, opt
+                => opt.MapFrom(source => source.Amount))
+            .ForMember(des => des.TransactionId, opt
+                => opt.MapFrom(source => source.TransactionId))
+            ;
 
         CreateMap<ExplorerTokenInfoResponse, TokenInfoDto>();
         CreateMap<ProposalIndex, CommentIndex>();
