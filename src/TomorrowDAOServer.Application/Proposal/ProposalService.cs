@@ -478,7 +478,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         await Task.WhenAll(voteInfoTask, proposalInfosTask);
         var voteInfos = voteInfoTask.Result;
         var proposalInfos = proposalInfosTask.Result.ToDictionary(x => x.ProposalId, x => x);
-        var historyList = _objectMapper.Map<List<IndexerVoteRecord>, List<IndexerVoteHistoryDto>>(voteRecords);
+        var historyList = _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(voteRecords);
         foreach (var history in historyList)
         {
             history.Executer = voteInfos.TryGetValue(history.ProposalId, out var voteInfo)
