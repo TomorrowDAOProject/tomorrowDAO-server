@@ -514,6 +514,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             }
             history.VoteNumAfterDecimals = history.VoteNum / Math.Pow(10, tokenInfo.Decimals.SafeToDouble());
             history.Decimals = tokenInfo.Decimals;
+            history.Decimals = tokenInfo.Symbol;
         }
 
         voteHistoryDto.Items = historyList;
