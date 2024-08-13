@@ -1,17 +1,11 @@
 using System;
-using System.Collections.Generic;
 using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Proposal.Dto;
 
-public class VoteHistoryDto
-{
-    public string ChainId { get; set; }
-    public List<IndexerVoteHistoryDto> Items { get; set; } = new();
-}
-
 public class IndexerVoteHistoryDto
 {
+    public string ChainId { get; set; }
     public string DAOId { get; set; }
     public DateTime TimeStamp { get; set; }
     public string ProposalId { get; set; }
