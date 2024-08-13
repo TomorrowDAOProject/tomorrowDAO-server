@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -6,7 +5,6 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 using TomorrowDAOServer.Chains;
-using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
@@ -37,17 +35,6 @@ public class TokenPriceUpdateServiceTest
     public async Task SyncIndexerRecordsAsync_Test()
     {
         _networkDaoOptions.CurrentValue.Returns(new NetworkDaoOptions { PopularSymbols = new List<string> { "ELF" } });
-        _tokenService.UpdateExchangePriceAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(
-            new Dictionary<string, TokenExchangeDto>
-            {
-                {
-                    "ELF", new TokenExchangeDto
-                    {
-                        FromSymbol = "ELF", ToSymbol = "USD", Exchange = new decimal(0.4),
-                        Timestamp = DateTime.UtcNow.ToUtcMilliSeconds()
-                    }
-                }
-            });
         var result = await _service.SyncIndexerRecordsAsync("tDVW", 0, 0);
         result.ShouldBe(-1);
     }

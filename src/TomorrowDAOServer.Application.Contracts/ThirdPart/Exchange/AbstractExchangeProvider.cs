@@ -24,8 +24,12 @@ public abstract class AbstractExchangeProvider : IExchangeProvider, ISingletonDe
 
     public abstract ExchangeProviderName Name();
     public abstract Task<TokenExchangeDto> LatestAsync(string fromSymbol, string toSymbol);
-    public abstract Task<TokenExchangeDto> HistoryAsync(string fromSymbol, string toSymbol, long timestamp);
-    
+
+    public virtual Task<TokenExchangeDto> HistoryAsync(string fromSymbol, string toSymbol, long timestamp)
+    {
+        return Task.FromResult(new TokenExchangeDto());
+    }
+
     public async Task<TokenExchangeDto> LatestWithCacheAsync(string fromSymbol, string toSymbol)
     {
         var cacheKey = string.Join(Name().ToString(), fromSymbol, toSymbol);

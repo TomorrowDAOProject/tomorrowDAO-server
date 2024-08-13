@@ -1,3 +1,4 @@
+using Aetherlink.PriceServer;
 using Volo.Abp.Account;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
@@ -17,7 +18,8 @@ namespace TomorrowDAOServer;
     typeof(AbpPermissionManagementApplicationContractsModule),
     typeof(AbpSettingManagementApplicationContractsModule),
     typeof(AbpTenantManagementApplicationContractsModule),
-    typeof(AbpObjectExtendingModule)
+    typeof(AbpObjectExtendingModule),
+    typeof(AetherlinkPriceServerModule)
 )]
 public class TomorrowDAOServerApplicationContractsModule : AbpModule
 {
