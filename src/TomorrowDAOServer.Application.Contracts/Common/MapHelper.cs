@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Enums;
 
@@ -31,5 +32,22 @@ public static class MapHelper
             ProposalStage.Execute => "Queued",
             _ => realProposalStage.ToString()
         };
+    }
+    
+    public static Dictionary<string, string> ToDictionary(object param)
+    {
+        switch (param)
+        {
+            case null:
+                return null;
+            case Dictionary<string, string> dictionary:
+                return dictionary;
+            default:
+            {
+                var json = param as string ?? JsonConvert.SerializeObject(param, JsonSettingsBuilder.New()
+                    .WithCamelCasePropertyNamesResolver().IgnoreNullValue().Build());
+                return JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+            }
+        }
     }
 }

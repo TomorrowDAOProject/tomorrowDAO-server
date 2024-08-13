@@ -60,6 +60,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
         context.Services.AddTransient<IExchangeProvider, AwakenProvider>();
+        context.Services.AddTransient<IExchangeProvider, AetherLinkProvider>();
         context.Services.AddSingleton<IMonitor, MonitorForLogging>();
         context.Services.AddHttpClient();
         context.Services.AddMemoryCache();
