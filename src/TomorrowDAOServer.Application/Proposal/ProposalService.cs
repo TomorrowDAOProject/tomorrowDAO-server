@@ -472,8 +472,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return voteHistoryDto;
         }
 
-        var votingItemIds = voteRecords.Select(x => x.VotingItemId).ToList();
-        var daoIds = voteRecords.Select(x => x.DAOId).ToList();
+        var votingItemIds = voteRecords.Select(x => x.VotingItemId).Distinct().ToList();
+        var daoIds = voteRecords.Select(x => x.DAOId).Distinct().ToList();
         var voteInfoTask = _voteProvider.GetVoteItemsAsync(input.ChainId, votingItemIds);
         var proposalInfosTask = _proposalProvider.GetProposalByIdsAsync(input.ChainId, votingItemIds);
         var daoInfosTask = _DAOProvider.GetDaoListByDaoIds(input.ChainId, daoIds);
@@ -485,8 +485,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var tokenInfosTasks = symbols.Select(symbol => _tokenService.GetTokenInfoWithoutUpdateAsync(input.ChainId, symbol)).ToList();
         var tokenInfos = (await Task.WhenAll(tokenInfosTasks)).Where(x => x != null && !string.IsNullOrEmpty(x.Symbol))
             .ToDictionary(x => x.Symbol, x => x);
-        _logger.LogInformation("QueryVoteHistoryAsyncDaoInfos {count} {daoIds}", daoInfos.Count, daoIds);
-        _logger.LogInformation("QueryVoteHistoryAsyncSymbols {count} {symbols}", tokenInfos.Count, symbols);
+        _logger.LogInformation("QueryVoteHistoryAsyncDaoInfosSymbols {count} {daoIds} {count1} {symbols}", daoInfos.Count, daoIds, tokenInfos.Count, symbols);
         var historyList = _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(voteRecords);
         foreach (var history in historyList)
         {
@@ -505,11 +504,13 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             }
 
             var daoExisted = daoInfos.TryGetValue(history.DAOId, out var daoIndex);
+            _logger.LogInformation("QueryVoteHistoryAsyncDaoExisted {daoId} {daoExisted}", history.DAOId, daoExisted);
             if (!daoExisted)
             {
                 continue;
             }
             var tokenExisted = tokenInfos.TryGetValue(daoIndex.GovernanceToken, out var tokenInfo);
+            _logger.LogInformation("QueryVoteHistoryAsyncTokenExisted {daoId} {token} {tokenExisted}", history.DAOId, daoIndex.GovernanceToken, tokenExisted);
             if (!tokenExisted)
             {
                 continue;
