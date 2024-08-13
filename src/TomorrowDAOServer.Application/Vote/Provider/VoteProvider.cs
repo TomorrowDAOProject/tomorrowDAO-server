@@ -34,7 +34,7 @@ public interface IVoteProvider
     Task<List<VoteRecordIndex>> GetByVotingItemIdsAsync(string chainId, List<string> votingItemIds);
     Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds);
     Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter);
-    Task<List<VoteRecordIndex>> GetPageVoteRecordAsync(GetPageVoteRecordInput input);
+    Task<Tuple<long, List<VoteRecordIndex>>> GetPageVoteRecordAsync(GetPageVoteRecordInput input);
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
 }
 
@@ -379,7 +379,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         return await GetAllIndex(Filter, _voteRecordIndexRepository);
     }
 
-    public async Task<List<VoteRecordIndex>> GetPageVoteRecordAsync(GetPageVoteRecordInput input)
+    public async Task<Tuple<long, List<VoteRecordIndex>>> GetPageVoteRecordAsync(GetPageVoteRecordInput input)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
         {
@@ -402,8 +402,8 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             mustQuery.Add(q => q.Term(i => i.Field(f => f.Option).Value(option)));
         }
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return (await _voteRecordIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
-            sortFunc: _ => new SortDescriptor<VoteRecordIndex>().Descending(index => index.BlockHeight))).Item2;
+        return await _voteRecordIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<VoteRecordIndex>().Descending(index => index.BlockHeight));
     }
 
     public async Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter)

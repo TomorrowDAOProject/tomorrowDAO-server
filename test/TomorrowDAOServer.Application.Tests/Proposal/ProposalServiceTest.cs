@@ -231,7 +231,8 @@ public class ProposalServiceTest
     public async Task QueryVoteHistoryAsync_Test()
     {
         _voteProvider.GetPageVoteRecordAsync(Arg.Any<GetPageVoteRecordInput>())
-            .Returns(new List<VoteRecordIndex> { new() { Id = "daoId", VotingItemId = "proposalId", Amount = 100000000 } });
+            .Returns(new Tuple<long, List<VoteRecordIndex>>(1,
+                new List<VoteRecordIndex> { new() { Id = "daoId", VotingItemId = "proposalId", Amount = 100000000 } }));
         _voteProvider.GetVoteItemsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
             .Returns(new Dictionary<string, IndexerVote> { ["proposalId"] = new(){Executer = "user"} });
         _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())

@@ -27,6 +27,7 @@ using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Users;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
 
@@ -456,22 +457,17 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         };
     }
 
-    public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
+    public async Task<PagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         // input.Address = await GetAndValidateUserAddress(input.ChainId);
-
-        var voteHistoryDto = new VoteHistoryDto { ChainId = input.ChainId };
-        var voteRecords = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
+        var voteResult = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
         {
             ChainId = input.ChainId, DaoId = input.DAOId, Voter = input.Address,
             VotingItemId = input.ProposalId, SkipCount = input.SkipCount, MaxResultCount = input.MaxResultCount,
             VoteOption = input.VoteOption
         });
-        if (voteRecords.IsNullOrEmpty())
-        {
-            return voteHistoryDto;
-        }
 
+        var voteRecords = voteResult.Item2;
         var votingItemIds = voteRecords.Select(x => x.VotingItemId).Distinct().ToList();
         var daoIds = voteRecords.Select(x => x.DAOId).Distinct().ToList();
         var voteInfoTask = _voteProvider.GetVoteItemsAsync(input.ChainId, votingItemIds);
@@ -507,8 +503,10 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             history.Symbol = tokenInfo?.Symbol ?? string.Empty;
         }
 
-        voteHistoryDto.Items = historyList;
-        return voteHistoryDto;
+        return new PagedResultDto<IndexerVoteHistoryDto>
+        {
+            TotalCount = voteResult.Item1, Items = historyList
+        };
     }
 
     public async Task<ProposalPagedResultDto<ProposalBasicDto>> QueryExecutableProposalsAsync(

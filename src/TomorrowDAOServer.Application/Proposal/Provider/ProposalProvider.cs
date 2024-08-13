@@ -134,6 +134,10 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
     public async Task<List<ProposalIndex>> GetProposalByIdsAsync(string chainId, List<string> proposalIds)
     {
+        if (proposalIds.IsNullOrEmpty())
+        {
+            return new List<ProposalIndex>();
+        }
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)),
