@@ -485,6 +485,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var tokenInfosTasks = symbols.Select(symbol => _tokenService.GetTokenInfoWithoutUpdateAsync(input.ChainId, symbol)).ToList();
         var tokenInfos = (await Task.WhenAll(tokenInfosTasks)).Where(x => x != null && !string.IsNullOrEmpty(x.Symbol))
             .ToDictionary(x => x.Symbol, x => x);
+        _logger.LogInformation("QueryVoteHistoryAsyncDaoInfos {count} {daoIds}", daoInfos.Count, daoIds);
+        _logger.LogInformation("QueryVoteHistoryAsyncSymbols {count} {symbols}", tokenInfos.Count, symbols);
         var historyList = _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(voteRecords);
         foreach (var history in historyList)
         {
