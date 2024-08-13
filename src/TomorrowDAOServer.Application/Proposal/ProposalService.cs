@@ -490,33 +490,21 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var historyList = _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(voteRecords);
         foreach (var history in historyList)
         {
-            history.Executer = voteInfos.TryGetValue(history.ProposalId, out var voteInfo)
-                ? voteInfo.Executer
-                : string.Empty;
-            var proposalExisted = proposalInfos.TryGetValue(history.ProposalId, out var proposalIndex);
-            if (!proposalExisted)
-            {
-                continue;
-            }
-            history.ProposalTitle = proposalIndex.ProposalTitle;
-            if (voteSchemeDic.TryGetValue(proposalIndex.VoteSchemeId, out var voteMechanism) && VoteMechanism.UNIQUE_VOTE == voteMechanism)
-            {
-                continue;
-            }
+            voteInfos.TryGetValue(history.ProposalId, out var voteInfo);
+            proposalInfos.TryGetValue(history.ProposalId, out var proposalIndex);
+            voteSchemeDic.TryGetValue(proposalIndex!.VoteSchemeId, out var voteMechanism);
+            daoInfos.TryGetValue(history.DAOId, out var daoIndex);
+            tokenInfos.TryGetValue(daoIndex!.GovernanceToken ?? string.Empty, out var tokenInfo);
 
-            var daoExisted = daoInfos.TryGetValue(history.DAOId, out var daoIndex);
-            if (!daoExisted)
+            history.ProposalTitle = proposalIndex.ProposalTitle;
+            history.Executer = voteInfo!.Executer;
+            if (VoteMechanism.UNIQUE_VOTE == voteMechanism)
             {
                 continue;
             }
-            var tokenExisted = tokenInfos.TryGetValue(daoIndex.GovernanceToken, out var tokenInfo);
-            if (!tokenExisted)
-            {
-                continue;
-            }
-            history.VoteNumAfterDecimals = history.VoteNum / Math.Pow(10, tokenInfo.Decimals.SafeToDouble());
-            history.Decimals = tokenInfo.Decimals;
-            history.Symbol = tokenInfo.Symbol;
+            history.VoteNumAfterDecimals = history.VoteNum / Math.Pow(10, (tokenInfo?.Decimals?? string.Empty).SafeToDouble());
+            history.Decimals = tokenInfo?.Decimals ?? string.Empty;
+            history.Symbol = tokenInfo?.Symbol ?? string.Empty;
         }
 
         voteHistoryDto.Items = historyList;
