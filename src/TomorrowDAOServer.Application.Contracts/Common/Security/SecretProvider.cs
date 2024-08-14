@@ -102,13 +102,13 @@ public class SecretProvider : ISecretProvider, ITransientDependency
         };
     }
     
-    private class SendSignatureDto
+    public class SendSignatureDto
     {
         public string PublicKey { get; set; }
         public string HexMsg { get; set; }
     }
 
-    private class SignResponseDto
+    public class SignResponseDto
     {
         public string Signature { get; set; }
     }

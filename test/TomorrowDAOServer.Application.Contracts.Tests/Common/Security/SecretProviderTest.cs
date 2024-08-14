@@ -1,9 +1,12 @@
+using AElf.Types;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using NSubstitute;
 using Shouldly;
 using TomorrowDAOServer.Common.Cache;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.Options;
@@ -36,5 +39,21 @@ public class SecretProviderTest
             .Returns("secret");
         var result = await _provider.GetSecretWithCacheAsync("key");
         result.ShouldBe("secret");
+    }
+    
+    [Fact]
+    public async void GetSignatureFromHashAsync_Test()
+    {
+        _securityServerOption.CurrentValue.Returns(new SecurityServerOptions { BaseUrl = "url", AppId = "appid", AppSecret = "secret"});
+        _httpProvider.InvokeAsync<CommonResponseDto<SecretProvider.SignResponseDto>>(
+                Arg.Any<HttpMethod>(), Arg.Any<string>(), Arg.Any<Dictionary<string, string>>(),
+                Arg.Any<Dictionary<string, string>>(), Arg.Any<string>(), Arg.Any<Dictionary<string, string>>(),
+                Arg.Any<JsonSerializerSettings>(), Arg.Any<int?>(), Arg.Any<bool>(), Arg.Any<bool>())
+            .Returns(new CommonResponseDto<SecretProvider.SignResponseDto>
+            {
+                Data = new SecretProvider.SignResponseDto { Signature = "sig" }, Message = "", Code = "20000"
+            });
+        var result = await _provider.GetSignatureFromHashAsync("key", Hash.Empty);
+        result.ShouldNotBeNull();
     }
 }
