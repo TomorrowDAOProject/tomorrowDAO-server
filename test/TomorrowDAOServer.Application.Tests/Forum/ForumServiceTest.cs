@@ -2,7 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
-using TomorrowDAOServer.Forum.Dto;
+using TomorrowDAOServer.Spider;
+using TomorrowDAOServer.Spider.Dto;
 using Volo.Abp;
 using Xunit;
 using Xunit.Abstractions;
@@ -11,19 +12,19 @@ namespace TomorrowDAOServer.Forum;
 
 public class ForumServiceTest : TomorrowDaoServerApplicationTestBase
 {
-    private readonly IForumService _forumService;
-    private readonly ForumService _forumServiceClass;
+    private readonly IForumSpiderService _forumSpiderService;
+    private readonly ForumSpiderService _forumSpiderServiceClass;
     
     public ForumServiceTest(ITestOutputHelper output) : base(output)
     {
-        _forumService = ServiceProvider.GetRequiredService<IForumService>();
-        _forumServiceClass = ServiceProvider.GetRequiredService<ForumService>();
+        _forumSpiderService = ServiceProvider.GetRequiredService<IForumSpiderService>();
+        _forumSpiderServiceClass = ServiceProvider.GetRequiredService<ForumSpiderService>();
     }
 
     [Fact]
     public async Task LinkPreviewAsyncTest()
     {
-        var previewDto = await _forumService.LinkPreviewAsync(input: new LinkPreviewInput
+        var previewDto = await _forumSpiderService.LinkPreviewAsync(input: new LinkPreviewInput
         {
             ProposalId = null,
             ChainId = null,
@@ -37,7 +38,7 @@ public class ForumServiceTest : TomorrowDaoServerApplicationTestBase
     {
         var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            await _forumService.LinkPreviewAsync(input: new LinkPreviewInput
+            await _forumSpiderService.LinkPreviewAsync(input: new LinkPreviewInput
             {
                 ProposalId = null,
                 ChainId = null,
@@ -53,7 +54,7 @@ public class ForumServiceTest : TomorrowDaoServerApplicationTestBase
         string url = "https://www.google.com.hk/";
         var exception = await Assert.ThrowsAsync<System.ComponentModel.Win32Exception>(async () =>
         {
-            await _forumServiceClass.AnalyzePageByPuppeteerSharpAsync(url, false);
+            await _forumSpiderServiceClass.AnalyzePageByPuppeteerSharpAsync(url, false);
         });
         exception.ShouldNotBeNull();
     }

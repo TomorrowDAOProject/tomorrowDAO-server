@@ -16,6 +16,8 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Spider.Dto;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.Token.Index;
 using TomorrowDAOServer.Treasury.Dto;
@@ -44,6 +46,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             ;
         CreateMap<UserIndex, UserDto>().ReverseMap();
         CreateMap<AddressInfo, UserAddressInfo>().ReverseMap();
+        CreateMap<TelegramAppDto, TelegramAppIndex>().ReverseMap();
         CreateMap<IndexerUserToken, UserTokenDto>();
         CreateMap<IndexerProposal, ProposalIndex>();
         CreateMap<ExecuteTransactionDto, ExecuteTransaction>()

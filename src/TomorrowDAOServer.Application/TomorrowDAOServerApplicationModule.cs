@@ -46,6 +46,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<PerformanceMonitorMiddlewareOptions>(configuration.GetSection("PerformanceMonitorMiddleware"));
         Configure<MonitorForLoggingOptions>(configuration.GetSection("MonitorForLoggingOptions"));
         Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
+        Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         context.Services.AddTransient<IScheduleSyncDataService, ProposalSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, ProposalNewUpdateService>();
