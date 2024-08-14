@@ -1,21 +1,19 @@
-using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
-using TomorrowDAOServer.Spider;
 using TomorrowDAOServer.Spider.Dto;
 using Volo.Abp;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace TomorrowDAOServer.Forum;
+namespace TomorrowDAOServer.Spider;
 
-public class ForumServiceTest : TomorrowDaoServerApplicationTestBase
+public class ForumSpiderServiceTest : TomorrowDaoServerApplicationTestBase
 {
     private readonly IForumSpiderService _forumSpiderService;
     private readonly ForumSpiderService _forumSpiderServiceClass;
     
-    public ForumServiceTest(ITestOutputHelper output) : base(output)
+    public ForumSpiderServiceTest(ITestOutputHelper output) : base(output)
     {
         _forumSpiderService = ServiceProvider.GetRequiredService<IForumSpiderService>();
         _forumSpiderServiceClass = ServiceProvider.GetRequiredService<ForumSpiderService>();

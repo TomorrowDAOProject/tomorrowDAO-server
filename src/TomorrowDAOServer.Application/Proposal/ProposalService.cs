@@ -578,7 +578,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private async Task<string> GetAndValidateUserAddress(string chainId)
     {
         var userId = CurrentUser.GetId();
-        var userAddress = await _userProvider.GetUserAddress(userId, chainId);
+        var userAddress = await _userProvider.GetUserAddressAsync(userId, chainId);
         if (!userAddress.IsNullOrWhiteSpace())
         {
             return userAddress;

@@ -45,7 +45,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             return;
         }
 
-        var address = await _userProvider.GetAndValidateUserAddress(CurrentUser.GetId(), chainId);
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
             throw new UserFriendlyException("Access denied.");

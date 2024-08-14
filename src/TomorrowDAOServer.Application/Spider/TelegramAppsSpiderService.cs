@@ -48,7 +48,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             throw new UserFriendlyException("Invalid input.");
         }
 
-        var address = await _userProvider.GetAndValidateUserAddress(CurrentUser.GetId(), input.ChainId);
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), input.ChainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
             throw new UserFriendlyException("Access denied.");
@@ -188,7 +188,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
 
     private async Task<List<TelegramAppDto>> AnalyzePageScriptByHtmlAgilityPackAsync(string url)
     {
-        throw new UserFriendlyException("Analyze script is not supported yet");
+        throw new UserFriendlyException("Analyze script is not supported yet.");
         // var web = new HtmlWeb();
         // var doc = web.Load(url);
         // var scriptNodes = doc.DocumentNode.SelectNodes("//script[contains(text(), 'self.__next_f.push')]");
