@@ -603,4 +603,5 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
         throw new UserFriendlyException("No user address found");
     }
+    
 }
