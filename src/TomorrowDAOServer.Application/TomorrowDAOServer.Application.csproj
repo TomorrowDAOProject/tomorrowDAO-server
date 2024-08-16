@@ -37,8 +37,4 @@
     <PackageReference Include="AElf.Contracts.Association" Version="1.6.0" />
     <PackageReference Include="AElf.Contracts.Referendum" Version="1.6.0" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Forum\Provider" />
-  </ItemGroup>
 </Project>

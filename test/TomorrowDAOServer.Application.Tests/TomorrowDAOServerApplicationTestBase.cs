@@ -5,9 +5,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using NSubstitute;
+using OpenQA.Selenium.DevTools.V123.Autofill;
 using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.User.Provider;
 using Volo.Abp.DistributedLocking;
+using Volo.Abp.Users;
 using Xunit.Abstractions;
 using GraphQLOptions = TomorrowDAOServer.Common.GraphQL.GraphQLOptions;
 
@@ -35,6 +39,10 @@ public abstract partial class
 
     protected const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
 
+    protected readonly Mock<IUserProvider> UserProviderMock = new Mock<IUserProvider>();
+    protected readonly IUserProvider UserProvider = new Mock<IUserProvider>().Object;
+    protected readonly ICurrentUser CurrentUser = Substitute.For<ICurrentUser>();
+
     public TomorrowDaoServerApplicationTestBase(ITestOutputHelper output) : base(output)
     {
     }
@@ -49,6 +57,8 @@ public abstract partial class
         services.AddSingleton(MockChainOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
+        services.AddSingleton(UserProviderMock.Object);
+        services.AddSingleton(CurrentUser);
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
@@ -144,5 +154,15 @@ public abstract partial class
             TokenImageRefreshDelaySeconds = 300
         });
         return mock.Object;
+    }
+
+    //Login example
+    protected void Login(Guid userId, string userAddress = null)
+    {
+        CurrentUser.Id.Returns(userId);
+        CurrentUser.IsAuthenticated.Returns(true);
+        //UserProvider.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()).return(userAddress ?? Address1);
+        UserProviderMock.Setup(o => o.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(userAddress ?? Address1);
     }
 }

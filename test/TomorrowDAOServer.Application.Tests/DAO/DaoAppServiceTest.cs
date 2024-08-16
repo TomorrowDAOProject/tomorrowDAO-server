@@ -149,6 +149,6 @@ public class DaoAppServiceTest
     {
         _currentUser.Id.Returns(userId);
         _currentUser.IsAuthenticated.Returns(true);
-        _userProvider.GetAndValidateUserAddress(It.IsAny<Guid>(), It.IsAny<string>()).Returns("address");
+        _userProvider.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()).Returns("address");
     }
 }
