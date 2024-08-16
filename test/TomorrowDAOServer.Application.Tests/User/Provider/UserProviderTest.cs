@@ -53,10 +53,10 @@ public class UserProviderTest
     [Fact]
     public async Task GetUserAddress_Test()
     {
-        var result = await _provider.GetUserAddress(Guid.Empty, "");
+        var result = await _provider.GetUserAddressAsync(Guid.Empty, "");
         result.ShouldBe(string.Empty);
         
-        result = await _provider.GetUserAddress(Guid.Empty, "chainId");
+        result = await _provider.GetUserAddressAsync(Guid.Empty, "chainId");
         result.ShouldBe(string.Empty);
         
         _clusterClient.GetGrain<IUserGrain>(Arg.Any<Guid>()).Returns(_userGrain);
@@ -64,14 +64,14 @@ public class UserProviderTest
         {
             Success = true, Data = new UserGrainDto{AddressInfos = new List<AddressInfo>{new(){Address = "address", ChainId = "otherChainId"}}}
         });
-        result = await _provider.GetUserAddress(Guid.Parse(UserId), "chainId");
+        result = await _provider.GetUserAddressAsync(Guid.Parse(UserId), "chainId");
         result.ShouldBe(string.Empty);
         
         _userGrain.GetUser().Returns(new GrainResultDto<UserGrainDto>
         {
             Success = true, Data = new UserGrainDto{AddressInfos = new List<AddressInfo>{new(){Address = "address", ChainId = "chainId"}}}
         });
-        result = await _provider.GetUserAddress(Guid.Parse(UserId), "chainId");
+        result = await _provider.GetUserAddressAsync(Guid.Parse(UserId), "chainId");
         result.ShouldBe("address");
     }
 
@@ -79,7 +79,7 @@ public class UserProviderTest
     public async Task GetAndValidateUserAddress_Test()
     {
         await GetUserAddress_Test();
-        var result = await _provider.GetUserAddress(Guid.Parse(UserId), "chainId");
+        var result = await _provider.GetUserAddressAsync(Guid.Parse(UserId), "chainId");
         result.ShouldBe("address");
     }
 }

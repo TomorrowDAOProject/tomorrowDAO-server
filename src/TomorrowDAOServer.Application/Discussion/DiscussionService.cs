@@ -48,7 +48,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
-        var userAddress = await _userProvider.GetAndValidateUserAddress(CurrentUser.GetId(), input.ChainId);
+        var userAddress = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), input.ChainId);
         if (input.ParentId != CommonConstant.RootParentId)
         {
             var parentComment = await _discussionProvider.GetCommentAsync(input.ParentId);
