@@ -1,3 +1,4 @@
+using System;
 using AElf.Indexing.Elasticsearch;
 using Nest;
 using TomorrowDAOServer.Proposal.Index;
@@ -16,10 +17,12 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public string Icon { get; set; }
     public string Description { get; set; }
     public bool EditorChoice { get; set; }
+    public DateTime DeployTime { get; set; }
     
     public void OfProposal(IndexerProposalDto proposal)
     {
         ProposalId = proposal.ProposalId;
         ProposalDescription = proposal.ProposalDescription;
+        DeployTime = proposal.DeployTime;
     }
 }
