@@ -90,7 +90,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
             }
         }
 
-        var proposalList = _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+        var proposalList = _objectMapper.Map<List<IndexerProposalDto>, List<ProposalIndex>>(mapList);
         return new Tuple<List<ProposalIndex>, List<IndexerProposalDto>>(proposalList, rankingProposalList);
     }
 

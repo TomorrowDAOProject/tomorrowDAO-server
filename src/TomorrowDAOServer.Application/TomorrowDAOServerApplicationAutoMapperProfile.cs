@@ -234,5 +234,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.Id))
             ;
         CreateMap<IndexerProposalDto, RankingAppIndex>();
+        CreateMap<IndexerProposalDto, ProposalIndex>();
     }
 }
