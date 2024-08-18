@@ -8,6 +8,9 @@ namespace TomorrowDAOServer.Entities;
 public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
 {
     [Keyword] public override string Id { get; set; }
+    [Keyword] public string ChainId { get; set; }
+    [PropertyName("DAOId")]
+    [Keyword] public string DAOId { get; set; }
     [Keyword] public string ProposalId { get; set; }
     [Keyword] public string ProposalTitle { get; set; }
     [Keyword] public string ProposalDescription { get; set; }
@@ -21,6 +24,8 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     
     public void OfProposal(IndexerProposalDto proposal)
     {
+        ChainId = proposal.ChainId;
+        DAOId = proposal.DAOId;
         ProposalId = proposal.ProposalId;
         ProposalDescription = proposal.ProposalDescription;
         DeployTime = proposal.DeployTime;
