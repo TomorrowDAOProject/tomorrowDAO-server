@@ -26,6 +26,7 @@ public interface IProposalAssistService
     public Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list);
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex);
     public Task ReRunProposalList(string chainId, List<string> proposalIds);
+    public Task ChangeRegex(string pattern);
 }
 
 public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssistService
@@ -38,7 +39,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IScriptService _scriptService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
-    private readonly Regex _regex;
+    private Regex _regex;
 
     public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
         IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService, 
@@ -74,6 +75,8 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
                 if (rankingDaoIds.Contains(proposal.DAOId))
                 {
                     rankingProposalList.Add(proposal);
+                    _logger.LogInformation("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
+                        proposal.ProposalId, proposal.ProposalDescription);
                 }
             }
             else
@@ -254,6 +257,12 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         {
             await _proposalProvider.BulkAddOrUpdateAsync(resultList);
         }
+    }
+
+    public Task ChangeRegex(string pattern)
+    {
+        _regex = new Regex(pattern, RegexOptions.Compiled);
+        return Task.CompletedTask;
     }
 
     private static void AddProposalLife(ref List<ProposalLifeDto> result, ProposalStage proposalStage, ProposalStatus proposalStatus)
