@@ -58,7 +58,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task<RankingResultDto> GetDefaultProposalAsync(string chainId)
     {
-        //todo supplement
+        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
         return new RankingResultDto();
     }
 }
