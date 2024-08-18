@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
@@ -20,16 +22,18 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IRankingAppProvider _rankingAppProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly IObjectMapper _objectMapper;
+    private readonly IProposalProvider _proposalProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider, 
-        IObjectMapper objectMapper)
+        IObjectMapper objectMapper, IProposalProvider proposalProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
         _objectMapper = objectMapper;
+        _proposalProvider = proposalProvider;
     }
 
-    public async Task GenerateRankingApp(List<IndexerProposalDto> proposalList)
+    public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
     {
         var toUpdate = new List<RankingAppIndex>();
         foreach (var proposal in proposalList)
@@ -43,12 +47,18 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(telegramApps);
             foreach (var rankingApp in rankingApps)
             {
-                rankingApp.OfProposal(proposal);
+                _objectMapper.Map<IndexerProposal, RankingAppIndex>(proposal);
                 rankingApp.Id = GuidHelper.GenerateGrainId(proposal.ChainId, proposal.DAOId, proposal.Id, rankingApp.AppId);
             }
             toUpdate.AddRange(rankingApps);
         }
 
         await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
+    }
+
+    public async Task<RankingResultDto> GetDefaultProposalAsync(string chainId)
+    {
+        //todo supplement
+        return new RankingResultDto();
     }
 }

@@ -14,6 +14,9 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string ProposalId { get; set; }
     [Keyword] public string ProposalTitle { get; set; }
     [Keyword] public string ProposalDescription { get; set; }
+    public DateTime ActiveStartTime { get; set; }
+   
+    public DateTime ActiveEndTime { get; set; }
     [Keyword] public string AppId { get; set; }
     [Keyword] public string Alias { get; set; }
     [Keyword] public string Title { get; set; }
@@ -21,13 +24,4 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public string Description { get; set; }
     public bool EditorChoice { get; set; }
     public DateTime DeployTime { get; set; }
-    
-    public void OfProposal(IndexerProposalDto proposal)
-    {
-        ChainId = proposal.ChainId;
-        DAOId = proposal.DAOId;
-        ProposalId = proposal.ProposalId;
-        ProposalDescription = proposal.ProposalDescription;
-        DeployTime = proposal.DeployTime;
-    }
 }

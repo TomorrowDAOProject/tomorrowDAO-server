@@ -21,7 +21,7 @@ namespace TomorrowDAOServer.Proposal;
 
 public interface IProposalAssistService
 {
-    public Task<Tuple<List<ProposalIndex>, List<IndexerProposalDto>>> ConvertProposalList(string chainId, List<IndexerProposal> list);
+    public Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list);
     // public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<ProposalIndex> list);
     public Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list);
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex);
@@ -55,24 +55,18 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _regex = new Regex(_rankingOptions.CurrentValue.DescriptionPattern, RegexOptions.Compiled);
     }
 
-    public async Task<Tuple<List<ProposalIndex>, List<IndexerProposalDto>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
+    public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
     {
-        var mapList = _objectMapper.Map<List<IndexerProposal>, List<IndexerProposalDto>>(list);
         var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
-        var rankingProposalList = new List<IndexerProposalDto>();
+        var rankingProposalList = new List<IndexerProposal>();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var serverProposalList = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
         var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
-        foreach (var proposal in mapList)
+        foreach (var proposal in list)
         {
-            if (rankingDaoIds.Contains(proposal.DAOId))
-            {
-                proposal.ProposalCategory = _regex.IsMatch(proposal.ProposalDescription) ? ProposalCategory.Ranking : ProposalCategory.Normal;
-            }
-            
             if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
             {
-                if (rankingDaoIds.Contains(proposal.DAOId) && ProposalCategory.Ranking == proposal.ProposalCategory)
+                if (rankingDaoIds.Contains(proposal.DAOId) && _regex.IsMatch(proposal.ProposalDescription))
                 {
                     rankingProposalList.Add(proposal);
                     _logger.LogInformation("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
@@ -91,7 +85,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         }
 
         var proposalList = _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
-        return new Tuple<List<ProposalIndex>, List<IndexerProposalDto>>(proposalList, rankingProposalList);
+        return new Tuple<List<ProposalIndex>, List<IndexerProposal>>(proposalList, rankingProposalList);
     }
 
     public async Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list)
