@@ -26,8 +26,8 @@ public class IndexerProposal
     public string ProposalId { get; set; }
 
     public string ProposalTitle { get; set; }
-    
-    public string ProposalDescription { get; set; }
+
+    public string ProposalDescription { get; set; } = string.Empty;
     
     public string ForumUrl { get; set; }
     
@@ -103,4 +103,9 @@ public class ExecuteTransactionDto
     
     //key is paramName, value is param value
     public string Params { get; set; }
+}
+
+public class IndexerProposalDto : IndexerProposal
+{
+    public ProposalCategory ProposalCategory { get; set; }
 }

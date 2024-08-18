@@ -1,19 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
-using TomorrowDAOServer.Vote.Dto;
-using TomorrowDAOServer.Vote.Index;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
 
@@ -21,7 +21,7 @@ namespace TomorrowDAOServer.Proposal;
 
 public interface IProposalAssistService
 {
-    public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<IndexerProposal> list);
+    public Task<Tuple<List<ProposalIndex>, List<IndexerProposalDto>>> ConvertProposalList(string chainId, List<IndexerProposal> list);
     // public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<ProposalIndex> list);
     public Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list);
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex);
@@ -37,9 +37,12 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IScriptService _scriptService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private readonly Regex _regex;
 
     public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
-        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService)
+        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService, 
+        IOptionsMonitor<RankingOptions> rankingOptions)
     {
         _logger = logger;
         _objectMapper = objectMapper;
@@ -47,25 +50,45 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _proposalProvider = proposalProvider;
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
+        _rankingOptions = rankingOptions;
+        _regex = new Regex(_rankingOptions.CurrentValue.DescriptionPattern, RegexOptions.Compiled);
     }
 
-    public async Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<IndexerProposal> list)
+    public async Task<Tuple<List<ProposalIndex>, List<IndexerProposalDto>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
     {
+        var mapList = _objectMapper.Map<List<IndexerProposal>, List<IndexerProposalDto>>(list);
+        var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+        var rankingProposalList = new List<IndexerProposalDto>();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var serverProposalList = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
         var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
-        foreach (var proposal in list)
+        foreach (var proposal in mapList)
         {
-            if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal) || serverProposal.ProposalStage.CompareTo(proposal.ProposalStage) <= 0)
+            if (rankingDaoIds.Contains(proposal.DAOId))
             {
-                continue;
+                proposal.ProposalCategory = _regex.IsMatch(proposal.ProposalDescription) ? ProposalCategory.Ranking : ProposalCategory.Normal;
             }
-
-            proposal.ProposalStatus = serverProposal.ProposalStatus;
-            proposal.ProposalStage = serverProposal.ProposalStage;
+            
+            if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
+            {
+                if (rankingDaoIds.Contains(proposal.DAOId))
+                {
+                    rankingProposalList.Add(proposal);
+                }
+            }
+            else
+            {
+                if (serverProposal.ProposalStage.CompareTo(proposal.ProposalStage) <= 0)
+                {
+                    continue;
+                }
+                proposal.ProposalStatus = serverProposal.ProposalStatus;
+                proposal.ProposalStage = serverProposal.ProposalStage;
+            }
         }
 
-        return _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+        var proposalList = _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+        return new Tuple<List<ProposalIndex>, List<IndexerProposalDto>>(proposalList, rankingProposalList);
     }
 
     public async Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list)
