@@ -44,7 +44,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             foreach (var rankingApp in rankingApps)
             {
                 rankingApp.OfProposal(proposal);
-                rankingApp.Id = GuidHelper.GenerateGrainId(proposal.Id, rankingApp.AppId);
+                rankingApp.Id = GuidHelper.GenerateGrainId(proposal.ChainId, proposal.DAOId, proposal.Id, rankingApp.AppId);
             }
             toUpdate.AddRange(rankingApps);
         }
