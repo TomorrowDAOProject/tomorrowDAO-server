@@ -228,10 +228,11 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<ProposalIndex, CommentIndex>();
         CreateMap<NewCommentInput, CommentIndex>();
         CreateMap<CommentIndex, CommentDto>();
+        CreateMap<IndexerProposal, IndexerProposalDto>();
         CreateMap<TelegramAppIndex, RankingAppIndex>()
             .ForMember(des => des.AppId, opt
                 => opt.MapFrom(source => source.Id))
             ;
-        CreateMap<IndexerProposal, RankingAppIndex>();
+        CreateMap<IndexerProposalDto, RankingAppIndex>();
     }
 }

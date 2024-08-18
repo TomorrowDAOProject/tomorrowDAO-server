@@ -33,7 +33,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _proposalProvider = proposalProvider;
     }
 
-    public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
+    public async Task GenerateRankingApp(List<IndexerProposalDto> proposalList)
     {
         var toUpdate = new List<RankingAppIndex>();
         foreach (var proposal in proposalList)

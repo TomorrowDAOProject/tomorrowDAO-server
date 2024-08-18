@@ -7,6 +7,6 @@ namespace TomorrowDAOServer.Ranking;
 
 public interface IRankingAppService
 {
-    Task GenerateRankingApp(List<IndexerProposal> proposalList);
+    Task GenerateRankingApp(List<IndexerProposalDto> proposalList);
     Task<RankingResultDto> GetDefaultProposalAsync(string chainId);
 }
