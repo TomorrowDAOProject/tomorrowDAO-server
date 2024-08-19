@@ -48,7 +48,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(telegramApps);
             foreach (var rankingApp in rankingApps)
             {
-                _objectMapper.Map<IndexerProposal, RankingAppIndex>(proposal);
+                _objectMapper.Map<IndexerProposal, RankingAppIndex>(proposal, rankingApp);
                 rankingApp.Id = GuidHelper.GenerateGrainId(proposal.ChainId, proposal.DAOId, proposal.Id, rankingApp.AppId);
             }
             toUpdate.AddRange(rankingApps);
