@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Dto;
@@ -28,24 +30,28 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IObjectMapper _objectMapper;
     private readonly IProposalProvider _proposalProvider;
     private readonly IUserProvider _userProvider;
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider, 
-        IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider)
+        IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider, 
+        IOptionsMonitor<RankingOptions> rankingOptions)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
         _objectMapper = objectMapper;
         _proposalProvider = proposalProvider;
         _userProvider = userProvider;
+        _rankingOptions = rankingOptions;
     }
 
     public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
     {
         var toUpdate = new List<RankingAppIndex>();
+        var descriptionBegin = _rankingOptions.CurrentValue.DescriptionBegin;
         foreach (var proposal in proposalList)
         {
-            var aliases = proposal.ProposalDescription.Replace("##GameRanking:", "").Trim()
-                .Split(',').Select(alias => alias.Trim()).Distinct().ToList();
+            var aliases = proposal.ProposalDescription.Replace(descriptionBegin, CommonConstant.EmptyString)
+                .Trim().Split(CommonConstant.Comma).Select(alias => alias.Trim()).Distinct().ToList();
             var telegramApps = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
             {
                 Aliases = aliases
