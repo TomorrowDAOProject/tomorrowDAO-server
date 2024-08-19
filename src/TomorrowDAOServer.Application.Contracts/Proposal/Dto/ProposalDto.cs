@@ -1,6 +1,7 @@
 using System;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Proposal.Dto;
 
@@ -69,6 +70,7 @@ public class ProposalBasicDto
     public long MaximalAbstentionThreshold { get; set; }
     
     public ProposalSourceEnum ProposalSource { get; set; }
+    public ProposalCategory ProposalCategory { get; set; }
 }
 
 public class ProposalDto : ProposalBasicDto

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Ranking.Dto;
 
@@ -8,5 +9,7 @@ namespace TomorrowDAOServer.Ranking;
 public interface IRankingAppService
 {
     Task GenerateRankingApp(List<IndexerProposalDto> proposalList);
-    Task<RankingResultDto> GetDefaultProposalAsync(string chainId);
+    Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId);
+    Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input);
+    Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId);
 }
