@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,9 +11,11 @@ using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
+using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Users;
 
 namespace TomorrowDAOServer.Ranking;
 
@@ -24,14 +27,16 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly IProposalProvider _proposalProvider;
+    private readonly IUserProvider _userProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider, 
-        IObjectMapper objectMapper, IProposalProvider proposalProvider)
+        IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
         _objectMapper = objectMapper;
         _proposalProvider = proposalProvider;
+        _userProvider = userProvider;
     }
 
     public async Task GenerateRankingApp(List<IndexerProposalDto> proposalList)
@@ -80,6 +85,21 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     }
 
     public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)
+    {
+        var userAddress = string.Empty;
+        try
+        {
+            userAddress = await _userProvider.GetUserAddressAsync(CurrentUser.GetId(), chainId);
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
+
+        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId);
+    }
+
+    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId, string proposalId)
     {
         var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
         if (rankingAppList.IsNullOrEmpty())
