@@ -66,7 +66,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         {
             if (rankingDaoIds.Contains(proposal.DAOId))
             {
-                proposal.ProposalCategory = _regex.IsMatch(proposal.ProposalDescription) ? ProposalCategory.Ranking : ProposalCategory.Normal;
+                proposal.ProposalCategory = _regex.IsMatch(proposal.ProposalDescription.Trim()) ? ProposalCategory.Ranking : ProposalCategory.Normal;
             }
             
             if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
