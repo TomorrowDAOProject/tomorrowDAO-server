@@ -61,6 +61,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         Configure<ChainOptions>(configuration.GetSection("Chains"));
         Configure<NetworkDaoOptions>(configuration.GetSection("TokenPrice"));
         Configure<ExplorerOptions>(configuration.GetSection("Explorer"));
+        Configure<RankingOptions>(configuration.GetSection("Ranking"));
         ConfigureHangfire(context, configuration);
         // Configure<AbpRabbitMqBackgroundJobOptions>(configuration.GetSection("AbpRabbitMqBackgroundJob"));
         context.Services.AddHostedService<TomorrowDAOServerHostedService>();

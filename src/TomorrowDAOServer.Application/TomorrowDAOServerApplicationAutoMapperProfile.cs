@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Common;
@@ -16,6 +17,7 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Spider.Dto;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Token;
@@ -228,5 +230,18 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<ProposalIndex, CommentIndex>();
         CreateMap<NewCommentInput, CommentIndex>();
         CreateMap<CommentIndex, CommentDto>();
+        CreateMap<IndexerProposal, IndexerProposalDto>();
+        CreateMap<TelegramAppIndex, RankingAppIndex>()
+            .ForMember(des => des.AppId, opt
+                => opt.MapFrom(source => source.Id))
+            ;
+        CreateMap<IndexerProposalDto, RankingAppIndex>();
+        CreateMap<IndexerProposalDto, ProposalIndex>();
+        CreateMap<RankingAppIndex, RankingAppDetailDto>();
+        CreateMap<ProposalIndex, RankingListDto>()
+            .ForMember(des => des.Active, opt
+                => opt.MapFrom(source => DateTime.UtcNow <= source.ActiveEndTime && DateTime.UtcNow >= source.ActiveStartTime))
+            ;
+        
     }
 }
