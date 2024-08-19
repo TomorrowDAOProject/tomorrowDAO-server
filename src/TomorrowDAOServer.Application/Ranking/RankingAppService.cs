@@ -39,7 +39,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _userProvider = userProvider;
     }
 
-    public async Task GenerateRankingApp(List<IndexerProposalDto> proposalList)
+    public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
     {
         var toUpdate = new List<RankingAppIndex>();
         foreach (var proposal in proposalList)
@@ -53,7 +53,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(telegramApps);
             foreach (var rankingApp in rankingApps)
             {
-                _objectMapper.Map<IndexerProposal, RankingAppIndex>(proposal, rankingApp);
+                _objectMapper.Map(proposal, rankingApp);
                 rankingApp.Id = GuidHelper.GenerateGrainId(proposal.ChainId, proposal.DAOId, proposal.Id, rankingApp.AppId);
             }
             toUpdate.AddRange(rankingApps);

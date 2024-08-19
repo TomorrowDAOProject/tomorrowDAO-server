@@ -91,6 +91,7 @@ public class IndexerProposal
     public bool VoteFinished { get; set; }
     
     public bool IsNetworkDAO { get; set; }
+    public ProposalCategory ProposalCategory { get; set; }
 }
 
 public class ExecuteTransactionDto
@@ -103,9 +104,4 @@ public class ExecuteTransactionDto
     
     //key is paramName, value is param value
     public string Params { get; set; }
-}
-
-public class IndexerProposalDto : IndexerProposal
-{
-    public ProposalCategory ProposalCategory { get; set; }
 }
