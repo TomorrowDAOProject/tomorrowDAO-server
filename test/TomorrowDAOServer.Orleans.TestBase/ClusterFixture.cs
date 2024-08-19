@@ -185,6 +185,11 @@ public class ClusterFixture : IDisposable, ISingletonDependency
         {
             throw new NotImplementedException();
         }
+
+        public Task<SendTransactionOutput> SendTransactionAsync(string chainId, Transaction transaction)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class AwsS3ClientMock : IAwsS3Client, ITransientDependency

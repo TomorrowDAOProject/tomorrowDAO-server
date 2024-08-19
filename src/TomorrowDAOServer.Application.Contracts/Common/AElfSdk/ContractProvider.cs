@@ -36,6 +36,8 @@ public interface IContractProvider
     Task<TransactionResultDto> QueryTransactionResultAsync(string transactionId, string chainId);
 
     Task<string> GetTreasuryAddressAsync(string chainId, string daoId);
+
+    Task<SendTransactionOutput> SendTransactionAsync(string chainId, Transaction transaction);
 }
 
 public class ContractProvider : IContractProvider, ISingletonDependency
@@ -186,5 +188,15 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         }
 
         return (T)JsonConvert.DeserializeObject(rawTransactionResult, typeof(T), DefaultJsonSettings);
+    }
+
+    public async Task<SendTransactionOutput> SendTransactionAsync(string chainId, Transaction transaction)
+    {
+        var client = Client(chainId);
+
+        return await client.SendTransactionAsync(new SendTransactionInput
+        {
+            RawTransaction = transaction.ToByteArray().ToHex()
+        });
     }
 }

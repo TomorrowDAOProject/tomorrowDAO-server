@@ -4,14 +4,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Dtos;
-using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.Token.Dto;
 using TomorrowDAOServer.User;
 using Volo.Abp;
 
 namespace TomorrowDAOServer.Controllers;
-
 
 [RemoteService]
 [Area("app")]
@@ -22,12 +20,15 @@ public class TokenController
     private readonly IUserTokenService _userTokenService;
     private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
+    private readonly ITransferTokenService _transferTokenService;
 
-    public TokenController(IUserTokenService userTokenService, IUserService userService, ITokenService tokenService)
+    public TokenController(IUserTokenService userTokenService, IUserService userService, ITokenService tokenService,
+        ITransferTokenService transferTokenService)
     {
         _userTokenService = userTokenService;
         _userService = userService;
         _tokenService = tokenService;
+        _transferTokenService = transferTokenService;
     }
 
     [HttpGet]
@@ -44,7 +45,7 @@ public class TokenController
         var userAddress = await _userService.GetCurrentUserAddressAsync(input.ChainId);
         return await _userTokenService.GetUserTokensAsync(input.ChainId, userAddress);
     }
-    
+
     [HttpGet]
     [Route("price")]
     public async Task<TokenPriceDto> GetTokenPriceAsync(GetTokenPriceInput input)
@@ -59,4 +60,16 @@ public class TokenController
         return await _tokenService.GetTvlAsync(chainId);
     }
 
+    [HttpPost("transfer")]
+    [Authorize]
+    public async Task<TransferTokenResponse> TransferTokenAsync(TransferTokenInput input)
+    {
+        return await _transferTokenService.TransferTokenAsync(input);
+    }
+
+    [HttpPost("transfer/status")]
+    public async Task<TokenClaimRecord> GetTransferTokenStatusAsync(TransferTokenStatusInput input)
+    {
+        return await _transferTokenService.GetTransferTokenStatusAsync(input);
+    }
 }

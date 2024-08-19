@@ -30,7 +30,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
     {
         if (input == null || input.ForumUrl.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         try

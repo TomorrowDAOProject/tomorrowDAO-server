@@ -32,7 +32,7 @@ public class ElectionService : TomorrowDAOServerAppService, IElectionService
     {
         if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         try

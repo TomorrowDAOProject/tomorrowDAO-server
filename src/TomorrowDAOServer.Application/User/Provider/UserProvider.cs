@@ -32,6 +32,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         {
             return null;
         }
+
         try
         {
             var userGrain = _clusterClient.GetGrain<IUserGrain>(userId);
@@ -66,7 +67,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         var addressInfo = userGrainDto.AddressInfos.Find(a => a.ChainId == chainId);
         return addressInfo == null ? string.Empty : addressInfo.Address;
     }
-    
+
     public async Task<string> GetAndValidateUserAddress(Guid userId, string chainId)
     {
         var userAddress = await GetUserAddress(userId, chainId);
