@@ -70,7 +70,7 @@ public class ProposalServiceTest
         _tokenService = Substitute.For<ITokenService>();
         _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, 
             _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
-            _logger, _userProvider, _electionProvider, _tokenService);
+            _logger, _userProvider, _electionProvider, _tokenService, default);
         
         _currentUser = Substitute.For<ICurrentUser>();
         _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
