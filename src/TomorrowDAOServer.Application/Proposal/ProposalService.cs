@@ -78,7 +78,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     {
         if (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         //1. query DAO info by alias
@@ -344,7 +344,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     {
         if (input == null || (input.DAOId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
         input.Address = await GetAndValidateUserAddress(input.ChainId);
         return string.IsNullOrEmpty(input.ProposalId)

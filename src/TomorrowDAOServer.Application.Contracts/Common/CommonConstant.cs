@@ -25,6 +25,14 @@ public static class CommonConstant
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
+    public const string TokenMethodGetBalance = "GetBalance";
+    public const string TokenMethodTransfer = "Transfer";
+    
+    public const string TransactionStateMined = "MINED";
+    public const string TransactionStatePending = "PENDING";
+    public const string TransactionStateNotExisted = "NOTEXISTED";
+    public const string TransactionStateFailed = "FAILED";
+    public const string TransactionStateNodeValidationFailed = "NODEVALIDATIONFAILED";
 
     public const string RootParentId = "root";
 
