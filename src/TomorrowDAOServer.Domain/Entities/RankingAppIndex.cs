@@ -1,7 +1,6 @@
 using System;
 using AElf.Indexing.Elasticsearch;
 using Nest;
-using TomorrowDAOServer.Proposal.Index;
 
 namespace TomorrowDAOServer.Entities;
 

@@ -80,6 +80,7 @@ namespace TomorrowDAOServer
             Configure<DaoOptions>(configuration.GetSection("TestDao"));
             Configure<NetworkDaoOptions>(configuration.GetSection("NetworkDao"));
             Configure<DaoAliasOptions>(configuration.GetSection("DaoAlias"));
+            Configure<RankingOptions>(configuration.GetSection("Ranking"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
