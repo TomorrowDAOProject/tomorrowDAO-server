@@ -52,6 +52,7 @@ public class ProposalServiceTest
     private readonly ProposalService _service;
     private readonly ICurrentUser _currentUser;
     private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
 
     public ProposalServiceTest()
     {
@@ -68,9 +69,10 @@ public class ProposalServiceTest
         _userProvider = Substitute.For<IUserProvider>();
         _electionProvider = Substitute.For<IElectionProvider>();
         _tokenService = Substitute.For<ITokenService>();
+        _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
         _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, 
             _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
-            _logger, _userProvider, _electionProvider, _tokenService);
+            _logger, _userProvider, _electionProvider, _tokenService, _rankingOptions);
         
         _currentUser = Substitute.For<ICurrentUser>();
         _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
