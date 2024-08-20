@@ -32,6 +32,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         {
             return null;
         }
+
         try
         {
             var userGrain = _clusterClient.GetGrain<IUserGrain>(userId);

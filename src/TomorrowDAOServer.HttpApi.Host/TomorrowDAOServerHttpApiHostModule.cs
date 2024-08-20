@@ -79,9 +79,10 @@ namespace TomorrowDAOServer
             Configure<AelfApiInfoOptions>(configuration.GetSection("AelfApiInfoOptions"));
             Configure<DaoOptions>(configuration.GetSection("TestDao"));
             Configure<NetworkDaoOptions>(configuration.GetSection("NetworkDao"));
+            Configure<TransferTokenOption>(configuration.GetSection("TransferToken"));
             Configure<DaoAliasOptions>(configuration.GetSection("DaoAlias"));
             Configure<RankingOptions>(configuration.GetSection("Ranking"));
-
+            
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
             ConfigureLocalization();
@@ -107,10 +108,7 @@ namespace TomorrowDAOServer
         private void ConfigFilter(ServiceConfigurationContext context)
         {
             context.Services.AddScoped<LoggingFilter>();
-            context.Services.Configure<MvcOptions>(options =>
-            {
-                options.Filters.AddService<LoggingFilter>();
-            });
+            context.Services.Configure<MvcOptions>(options => { options.Filters.AddService<LoggingFilter>(); });
         }
 
         private void ConfigureCache(IConfiguration configuration)
@@ -268,6 +266,7 @@ namespace TomorrowDAOServer
                         {
                             timeout = settings;
                         }
+
                         options.ResponseTimeout = TimeSpan.FromSeconds(timeout);
                     })
                     .ConfigureApplicationParts(parts =>

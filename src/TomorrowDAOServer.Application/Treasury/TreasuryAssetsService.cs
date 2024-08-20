@@ -53,7 +53,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()) ||
             input.ChainId.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
         
         try
@@ -134,7 +134,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.TreasuryAddress.IsNullOrWhiteSpace() ||
             input.Address.IsNullOrWhiteSpace() || input.GovernanceToken.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         try
@@ -163,7 +163,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
     {
         if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         try

@@ -157,7 +157,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     {
         if (request == null || request.Proposer.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
