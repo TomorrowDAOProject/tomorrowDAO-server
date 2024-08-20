@@ -20,6 +20,8 @@ public static class CommonConstant
     
     public const int AbstractVoteTotal = 10000;
 
+    public const string CaContractAddressName = "CaAddress";
+    public const string VoteContractAddressName = "VoteContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
         
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";

@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 using AElf;
 using AElf.Client.Dto;
 using AElf.Types;
+using Google.Protobuf;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Portkey.Contracts.CA;
 using TomorrowDAO.Contracts.Vote;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
@@ -154,7 +156,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         _logger.LogInformation("Ranking vote, parse rawTransaction. {0}", address);
-        var (voteInput, transaction) = ParseRawTransaction(input.RawTransaction);
+        var (voteInput, transaction) = ParseRawTransaction(input.ChainId, input.RawTransaction);
         var votingItemId = voteInput.VotingItemId.ToHex();
 
         _logger.LogInformation("Ranking vote, query voting record.{0}", address);
@@ -272,14 +274,35 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         };
     }
 
-    private Tuple<VoteInput, Transaction> ParseRawTransaction(string rawTransaction)
+    private Tuple<VoteInput, Transaction> ParseRawTransaction(string chainId, string rawTransaction)
     {
         try
         {
             var bytes = ByteArrayHelper.HexStringToByteArray(rawTransaction);
             var transaction = Transaction.Parser.ParseFrom(bytes);
-            var voteInput = VoteInput.Parser.ParseFrom(transaction.Params);
 
+            VoteInput voteInput = null;
+            var caAddress = _contractProvider.ContractAddress(chainId, CommonConstant.CaContractAddressName);
+            var voteAddress = _contractProvider.ContractAddress(chainId, CommonConstant.VoteContractAddressName);
+            if (transaction.To.ToBase58() == caAddress && transaction.MethodName == "ManagerForwardCall")
+            {
+                var managerForwardCallInput = ManagerForwardCallInput.Parser.ParseFrom(transaction.Params);
+                if (managerForwardCallInput.MethodName == "Vote" &&
+                    managerForwardCallInput.ContractAddress.ToBase58() == voteAddress)
+                {
+                    voteInput = VoteInput.Parser.ParseFrom(managerForwardCallInput.Args);
+                }
+            }
+            else if (transaction.To.ToBase58() == voteAddress && transaction.MethodName == "Vote")
+            {
+                voteInput = VoteInput.Parser.ParseFrom(transaction.Params);
+            }
+
+            if (voteInput == null)
+            { 
+                ExceptionHelper.ThrowArgumentException();
+            }
+            
             return new Tuple<VoteInput, Transaction>(voteInput, transaction);
         }
         catch (Exception e)
