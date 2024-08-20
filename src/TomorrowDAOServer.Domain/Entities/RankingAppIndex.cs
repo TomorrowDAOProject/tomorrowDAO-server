@@ -24,4 +24,5 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public string Description { get; set; }
     public bool EditorChoice { get; set; }
     public DateTime DeployTime { get; set; }
+    public long VoteAmount { get; set; }
 }
