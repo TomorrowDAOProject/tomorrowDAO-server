@@ -36,7 +36,7 @@ public class RankingController
     [HttpGet("detail")]
     public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)
     {
-        return await _rankingAppService.GetRankingProposalDetailAsync(chainId, proposalId);
+        return await _rankingAppService.GetRankingProposalDetailAsync(chainId, proposalId, string.Empty);
     }
 
     [HttpPost("vote")]

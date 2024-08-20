@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
-using AElf.Client.Dto;
 using AElf.Types;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -15,6 +14,8 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.DAO.Dtos;
+using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
@@ -23,9 +24,8 @@ using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
+using TomorrowDAOServer.Token.Provider;
 using TomorrowDAOServer.User.Provider;
-using TomorrowDAOServer.Vote;
-using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Caching;
@@ -49,6 +49,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IAbpDistributedLock _distributedLock;
     private readonly IDistributedCache<string> _distributedCache;
     private readonly IContractProvider _contractProvider;
+    private readonly ITransferTokenProvider _transferTokenProvider;
+    private readonly IDAOProvider _daoProvider;
 
     private const string DistributedLockPrefix = "RankingVote";
     private const string DistributedCachePrefix = "RankingVotingRecord";
@@ -59,7 +61,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
         IOptionsMonitor<RankingOptions> rankingOptions, IAbpDistributedLock distributedLock,
         ILogger<RankingAppService> logger, IContractProvider contractProvider,
-        IDistributedCache<string> distributedCache)
+        IDistributedCache<string> distributedCache, ITransferTokenProvider transferTokenProvider, IDAOProvider daoProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -71,6 +73,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _logger = logger;
         _contractProvider = contractProvider;
         _distributedCache = distributedCache;
+        _transferTokenProvider = transferTokenProvider;
+        _daoProvider = daoProvider;
     }
 
     public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
@@ -107,7 +111,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             return new RankingDetailDto();
         }
 
-        return await GetRankingProposalDetailAsync(chainId, defaultProposal.ProposalId);
+        return await GetRankingProposalDetailAsync(chainId, defaultProposal.ProposalId, defaultProposal.DAOId);
     }
 
     public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
@@ -121,7 +125,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         };
     }
 
-    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)
+    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId, string daoId)
     {
         var userAddress = string.Empty;
         try
@@ -134,7 +138,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             // ignored
         }
 
-        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId);
+        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId, string.Empty);
     }
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
@@ -251,24 +255,47 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             });
     }
 
-    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
-        string proposalId)
+    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId, 
+        string proposalId, string daoId)
     {
         var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
         if (rankingAppList.IsNullOrEmpty())
         {
             return new RankingDetailDto();
         }
-
-        // todo vote related logic
+        
+        var canVoteAmount = 0;
+        if (!string.IsNullOrEmpty(userAddress))
+        {
+            var rankingVoteRecord = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
+            if (rankingVoteRecord.Status is RankingVoteStatusEnum.Failed or RankingVoteStatusEnum.NotVoted)
+            {
+                var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { ChainId = chainId, DAOId = daoId });
+                var balance = await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
+                if (balance.Balance <= 0)
+                {
+                    canVoteAmount = 1;
+                }
+            }
+        }
         var rankingApp = rankingAppList[0];
+        var totalVoteAmount = rankingAppList.Sum(x => x.VoteAmount);
+        var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
+        if (totalVoteAmount > 0)
+        {
+            foreach (var rankingAppDetailDto in rankingList)
+            {
+                rankingAppDetailDto.VotePercent = (double)rankingAppDetailDto.VoteAmount / totalVoteAmount;
+            }
+        }
+       
         return new RankingDetailDto
         {
             StartTime = rankingApp.ActiveStartTime,
             EndTime = rankingApp.ActiveEndTime,
-            CanVoteAmount = 0,
-            TotalVoteAmount = 0,
-            RankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList)
+            CanVoteAmount = canVoteAmount,
+            TotalVoteAmount = totalVoteAmount,
+            RankingList = rankingList
         };
     }
 
