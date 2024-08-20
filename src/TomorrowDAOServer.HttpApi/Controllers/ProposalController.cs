@@ -62,7 +62,7 @@ public class ProposalController : AbpController
     
     [HttpGet("vote-history")]
     // [Authorize]
-    public async Task<PagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
+    public async Task<VoteHistoryPagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         var sw = Stopwatch.StartNew();
         

@@ -17,5 +17,7 @@ public class IndexerVoteSchemeInfo
     public string ChainId { get; set; }
     public string VoteSchemeId { get; set; }
     public VoteMechanism VoteMechanism { get; set; }
+    public bool WithoutLockToken { get; set; }
+    public VoteStrategy VoteStrategy { get; set; }
 }
 

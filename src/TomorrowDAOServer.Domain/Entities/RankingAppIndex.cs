@@ -1,7 +1,6 @@
 using System;
 using AElf.Indexing.Elasticsearch;
 using Nest;
-using TomorrowDAOServer.Proposal.Index;
 
 namespace TomorrowDAOServer.Entities;
 
@@ -24,4 +23,5 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public string Description { get; set; }
     public bool EditorChoice { get; set; }
     public DateTime DeployTime { get; set; }
+    public long VoteAmount { get; set; }
 }

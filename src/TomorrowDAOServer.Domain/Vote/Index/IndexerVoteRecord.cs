@@ -25,4 +25,5 @@ public class IndexerVoteRecord
     public DateTime VoteTime { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
+    public string Memo { get; set; }
 }

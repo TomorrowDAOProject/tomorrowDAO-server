@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Ranking;
@@ -35,6 +36,20 @@ public class RankingController
     [HttpGet("detail")]
     public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)
     {
-        return await _rankingAppService.GetRankingProposalDetailAsync(chainId, proposalId);
+        return await _rankingAppService.GetRankingProposalDetailAsync(chainId, proposalId, string.Empty);
+    }
+
+    [HttpPost("vote")]
+    [Authorize]
+    public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
+    {
+        return await _rankingAppService.VoteAsync(input);
+    }
+    
+    [HttpPost("vote/status")]
+    [Authorize]
+    public async Task<RankingVoteRecord> GetVoteStatusAsync(GetVoteStatusInput input)
+    {
+        return await _rankingAppService.GetVoteStatusAsync(input);
     }
 }

@@ -18,4 +18,5 @@ public class IndexerVoteHistoryDto
     public string Decimals { get; set; } = "0";
     public string Symbol { get; set; } = string.Empty;
     public string Voter { get; set; } = string.Empty;
+    public long Points { get; set; }
 }

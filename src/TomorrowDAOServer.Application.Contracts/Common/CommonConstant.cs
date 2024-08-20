@@ -20,6 +20,8 @@ public static class CommonConstant
     
     public const int AbstractVoteTotal = 10000;
 
+    public const string CaContractAddressName = "CaAddress";
+    public const string VoteContractAddressName = "VoteContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
         
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
@@ -35,6 +37,9 @@ public static class CommonConstant
     public const string TransactionStateNodeValidationFailed = "NODEVALIDATIONFAILED";
 
     public const string RootParentId = "root";
+    
+    //LogEvent
+    public const string VoteEventVoted = "Voted";
 
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;

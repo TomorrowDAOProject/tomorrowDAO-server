@@ -11,7 +11,7 @@ public interface IProposalService
     Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input);
 
     Task<MyProposalDto> QueryMyInfoAsync(QueryMyProposalInput input);
-    Task<PagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input);
+    Task<VoteHistoryPagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input);
     Task<ProposalPagedResultDto<ProposalBasicDto>> QueryExecutableProposalsAsync(QueryExecutableProposalsInput input);
     // TestUse
     Task ClearData(string chainId);
