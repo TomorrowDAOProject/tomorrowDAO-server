@@ -5,12 +5,10 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Types;
-using Google.Protobuf;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Portkey.Contracts.CA;
 using TomorrowDAO.Contracts.Vote;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
@@ -313,7 +311,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var voteAddress = _contractProvider.ContractAddress(chainId, CommonConstant.VoteContractAddressName);
             if (transaction.To.ToBase58() == caAddress && transaction.MethodName == "ManagerForwardCall")
             {
-                var managerForwardCallInput = ManagerForwardCallInput.Parser.ParseFrom(transaction.Params);
+                var managerForwardCallInput = Portkey.Contracts.CA.ManagerForwardCallInput.Parser.ParseFrom(transaction.Params);
                 if (managerForwardCallInput.MethodName == "Vote" &&
                     managerForwardCallInput.ContractAddress.ToBase58() == voteAddress)
                 {
