@@ -44,7 +44,7 @@ public class ProposalController : AbpController
     
     [HttpGet("vote-history")]
     // [Authorize]
-    public async Task<PagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
+    public async Task<VoteHistoryPagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         return await _proposalService.QueryVoteHistoryAsync(input);
     }

@@ -24,4 +24,5 @@ public class VoteRecordIndex : AbstractEntity<string>, IIndexBuild
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public string Memo { get; set; }
+    public bool ValidRankingVote { get; set; }
 }

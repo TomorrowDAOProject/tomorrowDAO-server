@@ -28,7 +28,7 @@ public class ForumSpiderService : TomorrowDAOServerAppService, IForumSpiderServi
     {
         if (input == null || input.ForumUrl.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         try
