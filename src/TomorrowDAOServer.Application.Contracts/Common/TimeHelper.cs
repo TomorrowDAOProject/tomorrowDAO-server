@@ -38,9 +38,9 @@ public static class TimeHelper
         return (long)timeSpan.TotalSeconds;
     }
 
-    public static string ToUtcString(this DateTime dateTime)
+    public static string ToUtcString(this DateTime dateTime, string pattern = null)
     {
-        return dateTime.ToString("o");
+        return dateTime.ToString(pattern ?? "o");
     }
 
     public static string ToUtc8String(this DateTime dateTime, string pattern = DefaultPattern)

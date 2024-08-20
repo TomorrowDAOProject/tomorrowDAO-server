@@ -12,4 +12,7 @@ public interface IRankingAppService
     Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId);
     Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input);
     Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId);
+    Task<RankingVoteRecord> GetRankingVoteRecordAsync(string chainId, string address, string proposalId);
+    Task<RankingVoteResponse> VoteAsync(RankingVoteInput input);
+    Task<RankingVoteRecord> GetVoteStatusAsync(GetVoteStatusInput input);
 }
