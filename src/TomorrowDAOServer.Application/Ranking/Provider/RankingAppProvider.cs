@@ -75,7 +75,7 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
             var rankingAppIndex = await GetByProposalIdAndAliasAsync(chainId, proposalId, alias);
             if (rankingAppIndex != null && !rankingAppIndex.Id.IsNullOrWhiteSpace())
             {
-                rankingAppIndex.Amount += amount;
+                rankingAppIndex.VoteAmount += amount;
             }
 
             await BulkAddOrUpdateAsync(new List<RankingAppIndex>() { rankingAppIndex });
