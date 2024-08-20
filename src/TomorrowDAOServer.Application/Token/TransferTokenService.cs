@@ -63,7 +63,7 @@ public class TransferTokenService : TomorrowDAOServerAppService, ITransferTokenS
             _logger.LogInformation("Transfer token, start...");
 
             var address =
-                await _userProvider.GetAndValidateUserAddress(
+                await _userProvider.GetAndValidateUserAddressAsync(
                     CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
             if (address.IsNullOrWhiteSpace())
             {
