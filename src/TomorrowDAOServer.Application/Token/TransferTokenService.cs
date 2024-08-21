@@ -227,9 +227,12 @@ public class TransferTokenService : TomorrowDAOServerAppService, ITransferTokenS
                 transactionResult = await _transferTokenProvider.GetTransactionResultAsync(chainId, transactionId);
             }
 
-            await SaveTokenClaimRecordAsync(transactionId, TransferTokenStatus.AlreadyClaimed,
-                chainId, address, symbol);
-
+            if (transactionResult.Status == CommonConstant.TransactionStateMined)
+            {
+                _logger.LogInformation("Transfer token, save token claim success.{0}", transactionId);
+                await SaveTokenClaimRecordAsync(transactionId, TransferTokenStatus.AlreadyClaimed,
+                    chainId, address, symbol);
+            }
             _logger.LogInformation("Transfer token, update transaction status finished.{0}", address);
         }
         catch (Exception e)
