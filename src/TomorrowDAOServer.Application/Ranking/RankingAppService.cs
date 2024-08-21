@@ -449,11 +449,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
             }
 
-            _logger.LogInformation("Transfer token, update transaction status finished.{0}", address);
+            _logger.LogInformation("Ranking vote, update transaction status finished.{0}", address);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Transfer token, update transaction status error.{0}", transactionId);
+            _logger.LogError(e, "Ranking vote, update transaction status error.{0}", transactionId);
         }
     }
 }
