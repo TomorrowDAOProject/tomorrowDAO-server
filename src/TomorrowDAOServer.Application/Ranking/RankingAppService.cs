@@ -9,6 +9,7 @@ using Google.Protobuf;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver.Linq;
 using Newtonsoft.Json;
 using Portkey.Contracts.CA;
 using TomorrowDAO.Contracts.Vote;
@@ -28,6 +29,8 @@ using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Token.Provider;
 using TomorrowDAOServer.User.Provider;
+using TomorrowDAOServer.Vote;
+using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Caching;
@@ -53,6 +56,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IContractProvider _contractProvider;
     private readonly ITransferTokenProvider _transferTokenProvider;
     private readonly IDAOProvider _daoProvider;
+    private readonly IVoteProvider _voteProvider;
 
     private const string DistributedLockPrefix = "RankingVote";
     private const string DistributedCachePrefix = "RankingVotingRecord";
@@ -63,7 +67,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
         IOptionsMonitor<RankingOptions> rankingOptions, IAbpDistributedLock distributedLock,
         ILogger<RankingAppService> logger, IContractProvider contractProvider,
-        IDistributedCache<string> distributedCache, ITransferTokenProvider transferTokenProvider, IDAOProvider daoProvider)
+        IDistributedCache<string> distributedCache, ITransferTokenProvider transferTokenProvider, IDAOProvider daoProvider, 
+        IVoteProvider voteProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -77,6 +82,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _distributedCache = distributedCache;
         _transferTokenProvider = transferTokenProvider;
         _daoProvider = daoProvider;
+        _voteProvider = voteProvider;
     }
 
     public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
@@ -277,14 +283,22 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var canVoteAmount = 0;
         if (!string.IsNullOrEmpty(userAddress))
         {
-            var rankingVoteRecord = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
-            if (rankingVoteRecord == null || rankingVoteRecord.Status is RankingVoteStatusEnum.Failed or RankingVoteStatusEnum.NotVoted)
+            var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
+            if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
             {
-                var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { ChainId = chainId, DAOId = daoId });
-                var balance = await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
-                if (balance.Balance > 0)
+                canVoteAmount = 0;
+            }
+            else
+            {
+                var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
+                if (voteRecordEs == null)
                 {
-                    canVoteAmount = 1;
+                    var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { ChainId = chainId, DAOId = daoId });
+                    var balance = await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
+                    if (balance.Balance > 0)
+                    {
+                        canVoteAmount = 1;
+                    }
                 }
             }
         }
@@ -371,6 +385,22 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var distributeCacheKey = GenerateDistributeCacheKey(chainId, address, proposalId);
         var cache = await _distributedCache.GetAsync(distributeCacheKey);
         return cache.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<RankingVoteRecord>(cache);
+    }
+    
+    public async Task<VoteRecordIndex> GetRankingVoteRecordEsAsync(string chainId, string address, string proposalId)
+    {
+        try
+        {
+            return (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, address, new List<string> { proposalId }))
+                .Where(x => x.ValidRankingVote
+                            && x.VoteTime.ToString(CommonConstant.DayFormatString) == DateTime.UtcNow.ToString(CommonConstant.DayFormatString))
+                .ToList().SingleOrDefault();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetRankingVoteRecordEsAsyncException");
+            return null;
+        }
     }
 
     private TimeSpan GetCacheExpireTimeSpan()
