@@ -61,8 +61,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private const string DistributedLockPrefix = "RankingVote";
     private const string DistributedCachePrefix = "RankingVotingRecord";
 
-    private const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
-
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
         IOptionsMonitor<RankingOptions> rankingOptions, IAbpDistributedLock distributedLock,
@@ -438,7 +436,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     transactionId);
 
                 _logger.LogInformation("Ranking vote, update app vote.{0}", address);
-                var match = Regex.Match(memo ?? string.Empty, MemoPattern);
+                var match = Regex.Match(memo ?? string.Empty, CommonConstant.MemoPattern);
                 if (match.Success)
                 {
                     var alias = match.Groups[1].Value;
