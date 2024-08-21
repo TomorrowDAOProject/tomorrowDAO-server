@@ -21,7 +21,7 @@ using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.Vote;
 
-public class VoteRecordSyncDataService : ScheduleSyncDataService
+public partial class VoteRecordSyncDataService : ScheduleSyncDataService
 {
     private readonly ILogger<VoteRecordSyncDataService> _logger;
     private readonly IObjectMapper _objectMapper;
@@ -91,7 +91,6 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
     {
         try
         {
-            var pattern = @"^##GameRanking:\{([a-zA-Z0-9\-]+)\}$";
             var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
             var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId))
                 .Select(x => x.VotingItemId).Distinct().ToList();
@@ -99,8 +98,8 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                 .Where(x => x.ProposalCategory == ProposalCategory.Ranking)
                 .Select(x => x.ProposalId).ToList();
             var validMemoList = list.Where(x => rankingProposalIds.Contains(x.VotingItemId) && !string.IsNullOrEmpty(x.Memo) 
-                    && Regex.IsMatch(x.Memo, pattern))
-                .Select(x => new { Record = x, Alias = Regex.Match(x.Memo, pattern).Groups[1].Value })
+                    && Regex.IsMatch(x.Memo, CommonConstant.MemoPattern))
+                .Select(x => new { Record = x, Alias = Regex.Match(x.Memo, CommonConstant.MemoPattern).Groups[1].Value })
                 .ToList();
             var aliasList = validMemoList.Select(x => x.Alias).ToList();
             var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
