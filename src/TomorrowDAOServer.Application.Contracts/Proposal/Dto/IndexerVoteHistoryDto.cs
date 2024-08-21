@@ -20,6 +20,7 @@ public class IndexerVoteHistoryDto
     public string Voter { get; set; } = string.Empty;
     public bool ValidRankingVote { get; set; }
     public string Alias { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
     public long Points { get; set; }
     public string VoteFor { get; set; } = string.Empty;
     public string Memo { get; set; } = string.Empty;
