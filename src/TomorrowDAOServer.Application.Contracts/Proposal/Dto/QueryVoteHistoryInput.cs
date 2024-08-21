@@ -9,7 +9,8 @@ namespace TomorrowDAOServer.Proposal.Dto;
 public class QueryVoteHistoryInput : IValidatableObject
 {
     [Required] public string ChainId { get; set; }
-    [Required] public string DAOId { get; set; }
+    // [Required] 
+    public string DAOId { get; set; }
     public string ProposalId { get; set; } = string.Empty;
     public int SkipCount { get; set; } = 0;
     public int MaxResultCount { get; set; } = 100;
