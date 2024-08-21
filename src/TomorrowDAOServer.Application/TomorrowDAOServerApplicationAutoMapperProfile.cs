@@ -227,7 +227,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Points, opt
                 => opt.MapFrom(source => source.ValidRankingVote ? 100 : 0))
             .ForMember(des => des.VoteFor, opt
-                => opt.MapFrom(source => source.Alias))
+                => opt.MapFrom(source => MapHelper.MapAlias(source.Memo, source.Alias, source.ValidRankingVote)))
             ;
 
         CreateMap<ExplorerTokenInfoResponse, TokenInfoDto>();
