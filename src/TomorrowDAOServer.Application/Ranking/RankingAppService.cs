@@ -274,6 +274,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
         string proposalId, string daoId)
     {
+        _logger.LogInformation("GetRankingProposalDetailAsync userAddress: {}", userAddress);
         var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
         if (rankingAppList.IsNullOrEmpty())
         {
@@ -291,6 +292,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             else
             {
                 var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
+                _logger.LogInformation("GetRankingProposalDetailAsync voteRecordEs: {}", voteRecordEs==null);
                 if (voteRecordEs == null)
                 {
                     var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
