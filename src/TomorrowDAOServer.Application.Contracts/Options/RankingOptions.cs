@@ -14,7 +14,7 @@ public class RankingOptions
     //millisecond
     public long VoteTimeout { get; set; } = 60000;
 
-    public int RetryTimes { get; set; } = 20;
+    public int RetryTimes { get; set; } = 30;
 
     public int RetryDelay { get; set; } = 2000;
     
