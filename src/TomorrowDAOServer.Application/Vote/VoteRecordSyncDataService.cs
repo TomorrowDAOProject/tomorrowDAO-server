@@ -92,7 +92,7 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
         try
         {
             var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
-            var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId))
+            var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId) && x.Option == VoteOption.Approved)
                 .Select(x => x.VotingItemId).Distinct().ToList();
             var rankingProposalIds = (await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds))
                 .Where(x => x.ProposalCategory == ProposalCategory.Ranking)
