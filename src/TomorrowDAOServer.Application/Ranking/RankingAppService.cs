@@ -140,7 +140,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             // ignored
         }
 
-        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId, string.Empty);
+        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId, daoId);
     }
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
@@ -278,7 +278,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         if (!string.IsNullOrEmpty(userAddress))
         {
             var rankingVoteRecord = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
-            if (rankingVoteRecord.Status is RankingVoteStatusEnum.Failed or RankingVoteStatusEnum.NotVoted)
+            if (rankingVoteRecord == null || rankingVoteRecord.Status is RankingVoteStatusEnum.Failed or RankingVoteStatusEnum.NotVoted)
             {
                 var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { ChainId = chainId, DAOId = daoId });
                 var balance = await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
