@@ -16,7 +16,7 @@ public class RankingOptions
 
     public int RetryTimes { get; set; } = 20;
 
-    public int RetryDelay { get; set; } = 2;
+    public int RetryDelay { get; set; } = 2000;
     
     public TimeSpan GetLockUserTimeoutTimeSpan()
     {
