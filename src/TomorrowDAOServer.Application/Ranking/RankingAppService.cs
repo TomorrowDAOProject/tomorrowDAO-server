@@ -140,7 +140,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             // ignored
         }
 
-        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId, string.Empty);
+        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId, daoId);
     }
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
