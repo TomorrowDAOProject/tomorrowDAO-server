@@ -269,7 +269,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public async Task<List<MyDAOListDto>> GetMyDAOListAsync(QueryMyDAOListInput input)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), input.ChainId);
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         var result = new List<MyDAOListDto>();
         if (address.IsNullOrEmpty())
         {
