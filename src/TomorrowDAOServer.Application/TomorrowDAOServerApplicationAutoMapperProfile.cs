@@ -235,6 +235,8 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<TelegramAppIndex, RankingAppIndex>()
             .ForMember(des => des.AppId, opt
                 => opt.MapFrom(source => source.Id))
+            .ForMember(des => des.VoteAmount, opt
+                => opt.MapFrom(source => 0))
             ;
         CreateMap<IndexerProposal, RankingAppIndex>();
         CreateMap<RankingAppIndex, RankingAppDetailDto>();
