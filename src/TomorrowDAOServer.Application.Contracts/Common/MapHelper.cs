@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Enums;
 
@@ -49,5 +51,28 @@ public static class MapHelper
                 return JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
             }
         }
+    }
+
+    public static string MapAlias(string memo, string alias, bool validRankingVote)
+    {
+        try
+        {
+            if (!validRankingVote)
+            {
+                return string.Empty;
+            }
+        
+            if (!string.IsNullOrEmpty(alias))
+            {
+                return alias;
+            }
+
+            return Regex.Match(memo, CommonConstant.MemoPattern).Groups[1].Value;
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+        
     }
 }
