@@ -19,4 +19,6 @@ public class IndexerVoteHistoryDto
     public string Symbol { get; set; } = string.Empty;
     public string Voter { get; set; } = string.Empty;
     public long Points { get; set; }
+    public string VoteFor { get; set; } = string.Empty;
+    public string Memo { get; set; } = string.Empty;
 }

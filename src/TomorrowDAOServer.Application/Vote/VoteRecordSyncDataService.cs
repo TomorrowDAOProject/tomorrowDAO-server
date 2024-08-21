@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nest;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -107,6 +108,7 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
             foreach (var item in validMemoList.Where(x => validAliasList.Contains(x.Alias)))
             {
                 item.Record.ValidRankingVote = true;
+                item.Record.Alias = item.Alias;
             }
         }
         catch (Exception e)
