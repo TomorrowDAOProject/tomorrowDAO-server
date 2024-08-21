@@ -288,14 +288,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 rankingAppDetailDto.VotePercent = (double)rankingAppDetailDto.VoteAmount / totalVoteAmount;
             }
         }
-       
         return new RankingDetailDto
         {
             StartTime = rankingApp.ActiveStartTime,
             EndTime = rankingApp.ActiveEndTime,
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
-            RankingList = rankingList
+            RankingList = rankingList.OrderByDescending(r => r.VoteAmount).ToList()
         };
     }
 

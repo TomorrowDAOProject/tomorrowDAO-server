@@ -48,7 +48,7 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
         };
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
-        return (await _rankingAppIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<RankingAppIndex>().Descending(index => index.VoteAmount))).Item2;
+        return (await _rankingAppIndexRepository.GetListAsync(Filter)).Item2;
     }
 
     public async Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias)
