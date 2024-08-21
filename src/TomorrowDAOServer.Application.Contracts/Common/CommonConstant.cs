@@ -40,7 +40,7 @@ public static class CommonConstant
     
     //LogEvent
     public const string VoteEventVoted = "Voted";
-
+    public const string MemoPattern = @"^##GameRanking:\{([a-zA-Z0-9\-]+)\}$";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;
 
