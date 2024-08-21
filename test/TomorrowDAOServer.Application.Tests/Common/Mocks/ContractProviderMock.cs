@@ -24,11 +24,22 @@ public class ContractProviderMock
         var mock = new Mock<IContractProvider>();
 
         MockCreateCallTransactionAsync(mock);
+        MockCreateTransactionAsync(mock);
         MockCallTransactionAsync<PubkeyList>(mock);
         MockCallTransactionAsync<CandidateVote>(mock);
         MockGetTreasuryAddressAsync(mock);
+        MockSendTransactionAsync(mock);
 
         return mock.Object;
+    }
+
+    private static void MockSendTransactionAsync(Mock<IContractProvider> mock)
+    {
+        mock.Setup(o => o.SendTransactionAsync(It.IsAny<string>(), It.IsAny<Transaction>()))
+            .ReturnsAsync(new SendTransactionOutput
+            {
+                TransactionId = TransactionHash.ToHex()
+            });
     }
 
     private static void MockCreateCallTransactionAsync(Mock<IContractProvider> mock)
@@ -39,6 +50,35 @@ public class ContractProviderMock
             .ReturnsAsync((string chainId, string contractName, string methodName, IMessage param) =>
             {
                 var transaction = new Transaction();
+                transaction.MethodName = methodName;
+                switch (methodName)
+                {
+                    //Return Task<(Hash transactionId, Transaction transaction)>
+                    case CommonConstant.ElectionMethodGetVotedCandidates:
+                    case CommonConstant.ElectionMethodGetCandidateVote:
+                        return new(TransactionHash, transaction);
+                        break;
+                    default:
+                        return new(TransactionHash, transaction);
+                        break;
+                }
+                // throw new Exception("Not support method" + methodName);
+            });
+    }
+
+    private static void MockCreateTransactionAsync(Mock<IContractProvider> mock)
+    {
+        mock.Setup(e =>
+                e.CreateTransactionAsync(It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IMessage>()))
+            .ReturnsAsync((string chainId, string senderPublicKey, string contractName, string methodName,
+                IMessage param) =>
+            {
+                var transaction = new Transaction();
+                transaction.MethodName = methodName;
+                transaction.From = Address.FromBase58(Address1);
+                transaction.To = Address.FromBase58(Address2);
+                transaction.RefBlockNumber = 100;
                 transaction.MethodName = methodName;
                 switch (methodName)
                 {
@@ -122,7 +162,7 @@ public class ContractProviderMock
 
     private static void MockGetTreasuryAddressAsync(Mock<IContractProvider> mock)
     {
-        mock.Setup(o => o.GetTreasuryAddressAsync(It.IsAny<string>(),It.IsAny<string>())).ReturnsAsync(Address1);
+        mock.Setup(o => o.GetTreasuryAddressAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(Address1);
     }
 
     public static void MockGetChainStatusAsync()

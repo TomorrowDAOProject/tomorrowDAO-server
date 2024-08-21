@@ -14,6 +14,7 @@ using Volo.Abp.DistributedLocking;
 using Volo.Abp.Users;
 using Xunit.Abstractions;
 using GraphQLOptions = TomorrowDAOServer.Common.GraphQL.GraphQLOptions;
+using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer;
 
@@ -134,7 +135,9 @@ public abstract partial class
                         ContractAddress = new Dictionary<string, string>()
                         {
                             { "CaAddress", "CAContractAddress" },
-                            { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" }
+                            { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" },
+                            {"AElf.ContractNames.Token", "AElfContractNamesToken"},
+                            {"VoteContractAddress", "VoteContractAddress"}
                         }
                     }
                 },
@@ -146,7 +149,9 @@ public abstract partial class
                         ContractAddress = new Dictionary<string, string>()
                         {
                             { "CaAddress", "CAContractAddress" },
-                            { "TreasuryContractAddress", "TreasuryContractAddress" }
+                            { "TreasuryContractAddress", "TreasuryContractAddress" },
+                            {"AElf.ContractNames.Token", "AElfContractNamesToken"},
+                            {"VoteContractAddress", "VoteContractAddress"}
                         }
                     }
                 }
@@ -160,9 +165,9 @@ public abstract partial class
     protected void Login(Guid userId, string userAddress = null)
     {
         CurrentUser.Id.Returns(userId);
-        CurrentUser.IsAuthenticated.Returns(true);
-        //UserProvider.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()).return(userAddress ?? Address1);
+        CurrentUser.IsAuthenticated.Returns(userId != Guid.Empty);
+        var address = userId != Guid.Empty ? (userAddress ?? Address1) : null;
         UserProviderMock.Setup(o => o.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
-            .ReturnsAsync(userAddress ?? Address1);
+            .ReturnsAsync(address);
     }
 }
