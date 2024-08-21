@@ -104,11 +104,12 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
                 .ToList();
             var aliasList = validMemoList.Select(x => x.Alias).ToList();
             var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
-            var validAliasList = telegramApps.Item2.Select(x => x.Alias).ToList();
-            foreach (var item in validMemoList.Where(x => validAliasList.Contains(x.Alias)))
+            var validAliasDic = telegramApps.Item2.ToDictionary(x => x.Alias, x => x.Title);
+            foreach (var item in validMemoList.Where(x => validAliasDic.ContainsKey(x.Alias)))
             {
                 item.Record.ValidRankingVote = true;
                 item.Record.Alias = item.Alias;
+                item.Record.Title = validAliasDic.GetValueOrDefault(item.Alias);
             }
         }
         catch (Exception e)
