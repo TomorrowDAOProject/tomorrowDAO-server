@@ -65,7 +65,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
         IOptionsMonitor<RankingOptions> rankingOptions, IAbpDistributedLock distributedLock,
         ILogger<RankingAppService> logger, IContractProvider contractProvider,
-        IDistributedCache<string> distributedCache, ITransferTokenProvider transferTokenProvider, IDAOProvider daoProvider, 
+        IDistributedCache<string> distributedCache, ITransferTokenProvider transferTokenProvider,
+        IDAOProvider daoProvider,
         IVoteProvider voteProvider)
     {
         _rankingAppProvider = rankingAppProvider;
@@ -250,6 +251,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 Status = RankingVoteStatusEnum.Failed
             };
         }
+
         return voteRecord;
     }
 
@@ -269,7 +271,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             });
     }
 
-    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId, 
+    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
         string proposalId, string daoId)
     {
         var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
@@ -277,7 +279,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             return new RankingDetailDto();
         }
-        
+
         var canVoteAmount = 0;
         if (!string.IsNullOrEmpty(userAddress))
         {
@@ -291,8 +293,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
                 if (voteRecordEs == null)
                 {
-                    var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { ChainId = chainId, DAOId = daoId });
-                    var balance = await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
+                    var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
+                        { ChainId = chainId, DAOId = daoId });
+                    var balance =
+                        await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
                     if (balance.Balance > 0)
                     {
                         canVoteAmount = 1;
@@ -300,6 +304,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
             }
         }
+
         var rankingApp = rankingAppList[0];
         var totalVoteAmount = rankingAppList.Sum(x => x.VoteAmount);
         var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
@@ -310,6 +315,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 rankingAppDetailDto.VotePercent = (double)rankingAppDetailDto.VoteAmount / totalVoteAmount;
             }
         }
+
         return new RankingDetailDto
         {
             StartTime = rankingApp.ActiveStartTime,
@@ -332,7 +338,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var voteAddress = _contractProvider.ContractAddress(chainId, CommonConstant.VoteContractAddressName);
             if (transaction.To.ToBase58() == caAddress && transaction.MethodName == "ManagerForwardCall")
             {
-                var managerForwardCallInput = Portkey.Contracts.CA.ManagerForwardCallInput.Parser.ParseFrom(transaction.Params);
+                var managerForwardCallInput =
+                    Portkey.Contracts.CA.ManagerForwardCallInput.Parser.ParseFrom(transaction.Params);
                 if (managerForwardCallInput.MethodName == "Vote" &&
                     managerForwardCallInput.ContractAddress.ToBase58() == voteAddress)
                 {
@@ -345,10 +352,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
 
             if (voteInput == null)
-            { 
+            {
                 ExceptionHelper.ThrowArgumentException();
             }
-            
+
             return new Tuple<VoteInput, Transaction>(voteInput, transaction);
         }
         catch (Exception e)
@@ -384,14 +391,16 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var cache = await _distributedCache.GetAsync(distributeCacheKey);
         return cache.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<RankingVoteRecord>(cache);
     }
-    
+
     public async Task<VoteRecordIndex> GetRankingVoteRecordEsAsync(string chainId, string address, string proposalId)
     {
         try
         {
-            return (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, address, new List<string> { proposalId }))
+            return (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, address,
+                    new List<string> { proposalId }))
                 .Where(x => x.ValidRankingVote
-                            && x.VoteTime.ToString(CommonConstant.DayFormatString) == DateTime.UtcNow.ToString(CommonConstant.DayFormatString))
+                            && x.VoteTime.ToString(CommonConstant.DayFormatString) ==
+                            DateTime.UtcNow.ToString(CommonConstant.DayFormatString))
                 .ToList().SingleOrDefault();
         }
         catch (Exception e)
@@ -415,6 +424,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             _logger.LogInformation("Ranking vote, update transaction status start.{0}", address);
             var transactionResult = await _contractProvider.QueryTransactionResultAsync(transactionId, chainId);
+            _logger.LogInformation("Ranking vote, transaction status {0}, {1}", transactionId,
+                JsonConvert.SerializeObject(transactionResult));
             var times = 0;
             while ((transactionResult.Status == CommonConstant.TransactionStatePending ||
                     transactionResult.Status == CommonConstant.TransactionStateNotExisted) &&
