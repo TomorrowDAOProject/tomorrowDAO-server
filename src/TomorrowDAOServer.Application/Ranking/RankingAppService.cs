@@ -169,13 +169,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId);
         }
 
+        IAbpDistributedLockHandle lockHandle = null;
         try
         {
             _logger.LogInformation("Ranking vote, lock. {0}", address);
             var distributedLockKey =
                 GenerateDistributedLockKey(input.ChainId, address, voteInput.VotingItemId?.ToHex());
-            using (var lockHandle = _distributedLock.TryAcquireAsync(distributedLockKey,
-                       _rankingOptions.CurrentValue.GetLockUserTimeoutTimeSpan()))
+            lockHandle = await _distributedLock.TryAcquireAsync(distributedLockKey,
+                _rankingOptions.CurrentValue.GetLockUserTimeoutTimeSpan());
             {
                 if (lockHandle == null)
                 {
@@ -215,6 +216,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             _logger.LogError(e, "Ranking vote, error. {0}", JsonConvert.SerializeObject(input));
             ExceptionHelper.ThrowSystemException("voting", e);
             return new RankingVoteResponse();
+        }
+        finally
+        {
+            if (lockHandle != null)
+            {
+                await lockHandle.DisposeAsync();
+            }
         }
     }
 
