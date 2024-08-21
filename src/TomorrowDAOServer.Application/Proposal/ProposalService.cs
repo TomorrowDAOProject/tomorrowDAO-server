@@ -461,7 +461,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     public async Task<VoteHistoryPagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         // input.Address = await GetAndValidateUserAddress(input.ChainId);
-        var isRankingDao = (_rankingOptions.CurrentValue.DaoIds).Contains(input.DAOId);
+        var isRankingDao = _rankingOptions.CurrentValue.DaoIds.Contains(input.DAOId);
         var totalPoints = 0L;
         if (isRankingDao)
         { 
