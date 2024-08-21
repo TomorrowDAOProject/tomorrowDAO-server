@@ -98,7 +98,7 @@ public class UserProviderTest : TomorrowDaoServerApplicationTestBase
             Success = true, Data = new UserGrainDto{AddressInfos = new List<AddressInfo>{new(){Address = "address", ChainId = "chainId"}}}
         });
         
-        var address = await _provider.GetAndValidateUserAddress(Guid.Parse(UserId), "chainId");
+        var address = await _provider.GetAndValidateUserAddressAsync(Guid.Parse(UserId), "chainId");
         address.ShouldBe("address");
     }
     
@@ -107,7 +107,7 @@ public class UserProviderTest : TomorrowDaoServerApplicationTestBase
     {
         var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            await _provider.GetAndValidateUserAddress(Guid.Parse(UserId), "chainId");
+            await _provider.GetAndValidateUserAddressAsync(Guid.Parse(UserId), "chainId");
         });
         exception.ShouldNotBeNull();
         exception.Message.ShouldNotBeNull();
