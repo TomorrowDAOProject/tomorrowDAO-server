@@ -5,11 +5,15 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using NSubstitute;
 using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.User.Provider;
 using Volo.Abp.DistributedLocking;
+using Volo.Abp.Users;
 using Xunit.Abstractions;
 using GraphQLOptions = TomorrowDAOServer.Common.GraphQL.GraphQLOptions;
+using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer;
 
@@ -35,6 +39,10 @@ public abstract partial class
 
     protected const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
 
+    protected readonly Mock<IUserProvider> UserProviderMock = new Mock<IUserProvider>();
+    protected readonly IUserProvider UserProvider = new Mock<IUserProvider>().Object;
+    protected readonly ICurrentUser CurrentUser = Substitute.For<ICurrentUser>();
+
     public TomorrowDaoServerApplicationTestBase(ITestOutputHelper output) : base(output)
     {
     }
@@ -49,6 +57,8 @@ public abstract partial class
         services.AddSingleton(MockChainOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
+        services.AddSingleton(UserProviderMock.Object);
+        services.AddSingleton(CurrentUser);
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
@@ -124,7 +134,9 @@ public abstract partial class
                         ContractAddress = new Dictionary<string, string>()
                         {
                             { "CaAddress", "CAContractAddress" },
-                            { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" }
+                            { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" },
+                            {"AElf.ContractNames.Token", "AElfContractNamesToken"},
+                            {"VoteContractAddress", "VoteContractAddress"}
                         }
                     }
                 },
@@ -136,7 +148,9 @@ public abstract partial class
                         ContractAddress = new Dictionary<string, string>()
                         {
                             { "CaAddress", "CAContractAddress" },
-                            { "TreasuryContractAddress", "TreasuryContractAddress" }
+                            { "TreasuryContractAddress", "TreasuryContractAddress" },
+                            {"AElf.ContractNames.Token", "AElfContractNamesToken"},
+                            {"VoteContractAddress", "VoteContractAddress"}
                         }
                     }
                 }
@@ -144,5 +158,15 @@ public abstract partial class
             TokenImageRefreshDelaySeconds = 300
         });
         return mock.Object;
+    }
+
+    //Login example
+    protected void Login(Guid userId, string userAddress = null)
+    {
+        CurrentUser.Id.Returns(userId);
+        CurrentUser.IsAuthenticated.Returns(userId != Guid.Empty);
+        var address = userId != Guid.Empty ? (userAddress ?? Address1) : null;
+        UserProviderMock.Setup(o => o.GetAndValidateUserAddress(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(address);
     }
 }
