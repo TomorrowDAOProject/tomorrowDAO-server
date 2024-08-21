@@ -17,8 +17,8 @@ public class TransferTokenOption
     public IDictionary<string, int> SymbolDecimal { get; set; } = new Dictionary<string, int>();
 
     public int RetryTimes { get; set; } = 20;
-
-    public int RetryDelay { get; set; } = 3;
+    //millisecond
+    public int RetryDelay { get; set; } = 3000;
 
     public TimeSpan GetLockUserTimeoutTimeSpan()
     {
