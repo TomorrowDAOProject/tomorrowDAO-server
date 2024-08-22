@@ -4,11 +4,15 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Moq;
 using NSubstitute;
+using TomorrowDAOServer.DAO;
+using TomorrowDAOServer.DAO.Dtos;
+using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
+using TomorrowDAOServer.User.Provider;
 
 namespace TomorrowDAOServer.Ranking;
 
@@ -31,6 +35,25 @@ public partial class RankingAppServiceTest
         var mock = new Mock<ITelegramAppsProvider>();
         mock.Setup(o => o.GetTelegramAppsAsync(It.IsAny<QueryTelegramAppsInput>()))
             .ReturnsAsync(new Tuple<long, List<TelegramAppIndex>>(1L, new List<TelegramAppIndex>{new() {Id = "id" }}));
+        return mock.Object;
+    }
+    
+    private IUserProvider MockUserProvider()
+    {
+        var mock = new Mock<IUserProvider>();
+        mock.Setup(o => o.GetUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(Address1);
+        return mock.Object;
+    }
+    
+    private IDAOProvider MockDAOProvider()
+    {
+        var mock = new Mock<IDAOProvider>();
+        mock.Setup(o => o.GetAsync(It.IsAny<GetDAOInfoInput>()))
+            .ReturnsAsync(new DAOIndex
+            {
+                GovernanceToken = ELF
+            });
         return mock.Object;
     }
     
