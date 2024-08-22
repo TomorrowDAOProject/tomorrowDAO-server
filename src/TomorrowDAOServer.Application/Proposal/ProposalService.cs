@@ -470,7 +470,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var totalPoints = 0L;
         if (isRankingDao)
         { 
-            totalPoints = await _voteProvider.GetVotePoints(input.ChainId, input.DAOId, input.Address) * 100;
+            totalPoints = await _voteProvider.GetVotePoints(input.ChainId, input.DAOId, input.Address) * 10000;
         }
         var voteResult = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
         {

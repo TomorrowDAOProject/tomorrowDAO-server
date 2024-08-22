@@ -205,7 +205,9 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Terms(i =>
                 i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking)),
             q => q.TermRange(
-                i => i.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).GreaterThanOrEquals(currentStr))
+                i => i.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).GreaterThanOrEquals(currentStr)),
+            q => q.TermRange(
+                i => i.Field(f => f.ActiveStartTime.ToUtcMilliSeconds()).LessThanOrEquals(currentStr))
             
         };
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));

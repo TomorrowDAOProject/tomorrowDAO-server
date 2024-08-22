@@ -87,8 +87,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var descriptionBegin = _rankingOptions.CurrentValue.DescriptionBegin;
         foreach (var proposal in proposalList)
         {
-            var aliases = proposal.ProposalDescription.Replace(descriptionBegin, CommonConstant.EmptyString)
-                .Trim().Split(CommonConstant.Comma).Select(alias => alias.Trim()).Distinct().ToList();
+            var aliases = GetAliasList(proposal.ProposalDescription);
             var telegramApps = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
             {
                 Aliases = aliases
@@ -273,7 +272,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId, 
         string proposalId, string daoId)
     {
-        _logger.LogInformation("GetRankingProposalDetailAsync userAddress: {}", userAddress);
+        _logger.LogInformation("GetRankingProposalDetailAsync userAddress: {userAddress}", userAddress);
         var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
         if (rankingAppList.IsNullOrEmpty())
         {
@@ -282,6 +281,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         
         var canVoteAmount = 0;
         var rankingApp = rankingAppList[0];
+        var proposalDescription = rankingApp.ProposalDescription;
         if ( rankingApp.ActiveEndTime < DateTime.UtcNow)
         {
             return new RankingDetailDto();
@@ -297,7 +297,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             else
             {
                 var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
-                _logger.LogInformation("GetRankingProposalDetailAsync voteRecordEs: {}", voteRecordEs==null);
                 if (voteRecordEs == null)
                 {
                     var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput { ChainId = chainId, DAOId = daoId });
@@ -319,13 +318,16 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 rankingAppDetailDto.VotePercent = (double)rankingAppDetailDto.VoteAmount / totalVoteAmount;
             }
         }
+
+        var aliasList = GetAliasList(proposalDescription);
         return new RankingDetailDto
         {
             StartTime = rankingApp.ActiveStartTime,
             EndTime = rankingApp.ActiveEndTime,
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
-            RankingList = rankingList.OrderByDescending(r => r.VoteAmount).ToList()
+            RankingList = rankingList.OrderByDescending(r => r.VoteAmount)
+                .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList()
         };
     }
 
@@ -399,8 +401,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         try
         {
             return (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, address, new List<string> { proposalId }))
-                .Where(x => x.ValidRankingVote
-                            && x.VoteTime.ToString(CommonConstant.DayFormatString) == DateTime.UtcNow.ToString(CommonConstant.DayFormatString))
+                .Where(x => x.VoteTime.ToString(CommonConstant.DayFormatString) == DateTime.UtcNow.ToString(CommonConstant.DayFormatString))
                 .ToList().SingleOrDefault();
         }
         catch (Exception e)
@@ -462,5 +463,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             _logger.LogError(e, "Ranking vote, update transaction status error.{0}", transactionId);
         }
+    }
+
+    private List<string> GetAliasList(string description)
+    {
+        return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString)
+            .Trim().Split(CommonConstant.Comma).Select(alias => alias.Trim()).Distinct().ToList();
     }
 }
