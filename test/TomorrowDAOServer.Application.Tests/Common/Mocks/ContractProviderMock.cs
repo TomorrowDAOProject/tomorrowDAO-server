@@ -29,8 +29,59 @@ public class ContractProviderMock
         MockCallTransactionAsync<CandidateVote>(mock);
         MockGetTreasuryAddressAsync(mock);
         MockSendTransactionAsync(mock);
+        MockContractAddress(mock);
+        MockQueryTransactionResultAsync(mock);
 
         return mock.Object;
+    }
+
+    private static void MockQueryTransactionResultAsync(Mock<IContractProvider> mock)
+    {
+        mock.Setup(o => o.QueryTransactionResultAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((string transactionId, string chainId) =>
+            {
+                return new TransactionResultDto
+                {
+                    TransactionId = transactionId,
+                    Status = CommonConstant.TransactionStateMined,
+                    Logs = new LogEventDto[]
+                    {
+                        new LogEventDto
+                        {
+                            Address = null,
+                            Name = CommonConstant.VoteEventVoted,
+                            Indexed = new string[]
+                            {
+                            },
+                            NonIndexed = null
+                        },
+                    },
+                    Bloom = null,
+                    BlockNumber = 0,
+                    BlockHash = null,
+                    Transaction = null,
+                    ReturnValue = null,
+                    Error = null
+                };
+            });
+    }
+
+    private static void MockContractAddress(Mock<IContractProvider> mock)
+    {
+        mock.Setup(o => o.ContractAddress(It.IsAny<string>(), It.IsAny<string>())).Returns(
+            (string chainId, string contractName) =>
+            {
+                if (contractName == CommonConstant.CaContractAddressName)
+                {
+                    return Address1;
+                }
+                else if (contractName == CommonConstant.VoteContractAddressName)
+                {
+                    return Address2;
+                }
+
+                return Address1;
+            });
     }
 
     private static void MockSendTransactionAsync(Mock<IContractProvider> mock)
