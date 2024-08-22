@@ -476,7 +476,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         {
             ChainId = input.ChainId, DaoId = input.DAOId, Voter = input.Address,
             VotingItemId = input.ProposalId, SkipCount = input.SkipCount, MaxResultCount = input.MaxResultCount,
-            VoteOption = input.VoteOption
+            VoteOption = input.VoteOption, Source = input.Source
         });
 
         var voteRecords = voteResult.Item2;

@@ -16,6 +16,7 @@ public class QueryVoteHistoryInput : IValidatableObject
     public int MaxResultCount { get; set; } = 100;
     public string VoteOption { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    public string Source { get; set; } = VoteHistorySource.TomorrowDao.ToString();
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

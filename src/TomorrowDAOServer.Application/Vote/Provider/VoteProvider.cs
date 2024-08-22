@@ -390,6 +390,10 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId))
         };
+        if (VoteHistorySource.Telegram.ToString() == input.Source)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.ValidRankingVote).Value(true)));
+        }
         if (!string.IsNullOrEmpty(input.VotingItemId))
         {
             mustQuery.Add(q => q.Term(i => i.Field(f => f.VotingItemId).Value(input.VotingItemId)));
