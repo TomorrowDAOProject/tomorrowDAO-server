@@ -104,7 +104,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             toUpdate.AddRange(rankingApps);
         }
 
-        await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
+        if (!toUpdate.IsNullOrEmpty())
+        {
+            await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
+        }
     }
 
     public async Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId)
