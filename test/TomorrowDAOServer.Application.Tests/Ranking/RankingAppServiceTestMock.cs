@@ -6,6 +6,7 @@ using Moq;
 using NSubstitute;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 
@@ -30,6 +31,28 @@ public partial class RankingAppServiceTest
         var mock = new Mock<ITelegramAppsProvider>();
         mock.Setup(o => o.GetTelegramAppsAsync(It.IsAny<QueryTelegramAppsInput>()))
             .ReturnsAsync(new Tuple<long, List<TelegramAppIndex>>(1L, new List<TelegramAppIndex>{new() {Id = "id" }}));
+        return mock.Object;
+    }
+    
+    private IRankingAppProvider MockRankingAppProvider()
+    {
+        var mock = new Mock<IRankingAppProvider>();
+        mock.Setup(o => o.GetByProposalIdAsync(It.IsAny<string>(), ProposalId2))
+            .ReturnsAsync(new List<RankingAppIndex>
+            {
+                new()
+                {
+                    VoteAmount = 1L
+                }
+            });
+        mock.Setup(o => o.GetByProposalIdAsync(It.IsAny<string>(), ProposalId3))
+            .ReturnsAsync(new List<RankingAppIndex>
+            {
+                new()
+                {
+                    VoteAmount = 1L, ActiveEndTime = DateTime.Now.AddDays(1)
+                }
+            });
         return mock.Object;
     }
 }

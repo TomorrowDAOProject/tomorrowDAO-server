@@ -283,7 +283,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
         var canVoteAmount = 0;
         var rankingApp = rankingAppList[0];
-        if (!string.IsNullOrEmpty(userAddress) || rankingApp.ActiveEndTime > DateTime.UtcNow)
+        if ( rankingApp.ActiveEndTime < DateTime.UtcNow)
+        {
+            return new RankingDetailDto();
+        }
+        
+        if (!string.IsNullOrEmpty(userAddress))
         {
             var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
             if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
