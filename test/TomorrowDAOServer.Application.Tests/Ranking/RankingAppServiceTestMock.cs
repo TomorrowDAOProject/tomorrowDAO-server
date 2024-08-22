@@ -1,22 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using AElf.Types;
-using Google.Protobuf;
 using Microsoft.Extensions.Options;
 using Moq;
-using Newtonsoft.Json;
-using Portkey.Contracts.CA;
-using TomorrowDAO.Contracts.Vote;
-using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Common.Enum;
+using NSubstitute;
+using TomorrowDAOServer.DAO;
+using TomorrowDAOServer.DAO.Dtos;
+using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
-using TomorrowDAOServer.Ranking.Dto;
-using TomorrowDAOServer.Token.Dto;
-using Volo.Abp.Caching;
-using Volo.Abp.DistributedLocking;
-using static TomorrowDAOServer.Common.TestConstant;
+using TomorrowDAOServer.Ranking.Provider;
+using TomorrowDAOServer.Telegram.Dto;
+using TomorrowDAOServer.Telegram.Provider;
+using TomorrowDAOServer.User.Provider;
 
 namespace TomorrowDAOServer.Ranking;
 
@@ -28,84 +24,58 @@ public partial class RankingAppServiceTest
 
         mock.Setup(o => o.CurrentValue).Returns(new RankingOptions
         {
-            DaoIds = new List<string>() { DAOId },
-            DescriptionPattern = string.Empty,
-            DescriptionBegin = string.Empty,
-            LockUserTimeout = 60000,
-            VoteTimeout = 60000,
-            RetryTimes = 30,
-            RetryDelay = 2000
+            DaoIds = new List<string>{DAOId}, DescriptionBegin = "##GameRanking:", DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9\s\-]+(?:\s*,\s*[a-zA-Z0-9\s\-]+)*)?$"
         });
 
         return mock.Object;
     }
-
-    private IAbpDistributedLock MockAbpDistributedLock()
+    
+    private ITelegramAppsProvider MockTelegramAppsProvider()
     {
-        var mockLockProvider = new Mock<IAbpDistributedLock>();
-        mockLockProvider
-            .Setup(x => x.TryAcquireAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
-            .Returns<string, TimeSpan, CancellationToken>((name, timeSpan, cancellationToken) =>
-                Task.FromResult<IAbpDistributedLockHandle>(new LocalAbpDistributedLockHandle(new SemaphoreSlim(0))));
-        return mockLockProvider.Object;
-    }
-
-    private IDistributedCache<string> MockIDistributedCache()
-    {
-        var mock = new Mock<IDistributedCache<string>>();
-
-        mock.Setup(o =>
-                o.GetAsync(It.IsAny<string>(), null, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string key, bool? hideErrors, bool considerUow, CancellationToken token) =>
-            {
-                if (key.IndexOf(RankingVoteStatusEnum.Voted.ToString()) != -1)
-                {
-                    return JsonConvert.SerializeObject(new RankingVoteRecord
-                    {
-                        TransactionId = TransactionHash.ToHex(),
-                        VoteTime = TimeHelper.ToUtcString(DateTime.Now),
-                        Status = RankingVoteStatusEnum.Voted,
-                    });
-                }
-                else if (key.IndexOf(RankingVoteStatusEnum.Voting.ToString()) != -1)
-                {
-                    return JsonConvert.SerializeObject(new RankingVoteRecord
-                    {
-                        TransactionId = TransactionHash.ToHex(),
-                        VoteTime = TimeHelper.ToUtcString(DateTime.Now),
-                        Status = RankingVoteStatusEnum.Voted,
-                    });
-                }
-
-                return null;
-            });
-
+        var mock = new Mock<ITelegramAppsProvider>();
+        mock.Setup(o => o.GetTelegramAppsAsync(It.IsAny<QueryTelegramAppsInput>()))
+            .ReturnsAsync(new Tuple<long, List<TelegramAppIndex>>(1L, new List<TelegramAppIndex>{new() {Id = "id" }}));
         return mock.Object;
     }
-
-    private Transaction GeneratePortkeyTransaction()
-    { 
-        var transaction = new Transaction
-        {
-            From = Address.FromBase58(Address1),
-            To = Address.FromBase58(Address1),
-            RefBlockNumber = 100,
-            MethodName = "ManagerForwardCall",
-            Params = new ManagerForwardCallInput
+    
+    private IUserProvider MockUserProvider()
+    {
+        var mock = new Mock<IUserProvider>();
+        mock.Setup(o => o.GetUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(Address1);
+        return mock.Object;
+    }
+    
+    private IDAOProvider MockDAOProvider()
+    {
+        var mock = new Mock<IDAOProvider>();
+        mock.Setup(o => o.GetAsync(It.IsAny<GetDAOInfoInput>()))
+            .ReturnsAsync(new DAOIndex
             {
-                CaHash = Hash.LoadFromHex(ProposalId1),
-                ContractAddress = Address.FromBase58(Address2),
-                MethodName = "Vote",
-                Args = new VoteInput
+                GovernanceToken = ELF
+            });
+        return mock.Object;
+    }
+    
+    private IRankingAppProvider MockRankingAppProvider()
+    {
+        var mock = new Mock<IRankingAppProvider>();
+        mock.Setup(o => o.GetByProposalIdAsync(It.IsAny<string>(), ProposalId2))
+            .ReturnsAsync(new List<RankingAppIndex>
+            {
+                new()
                 {
-                    VotingItemId = Hash.LoadFromHex(ProposalId1),
-                    VoteOption = 1,
-                    VoteAmount = 1,
-                    Memo = "##GameRanking:{tg-app}"
-                }.ToByteString()
-            }.ToByteString()
-        };
-        transaction.Signature = transaction.ToByteString();
-        return transaction;
+                    VoteAmount = 1L
+                }
+            });
+        mock.Setup(o => o.GetByProposalIdAsync(It.IsAny<string>(), ProposalId3))
+            .ReturnsAsync(new List<RankingAppIndex>
+            {
+                new()
+                {
+                    VoteAmount = 1L, ActiveEndTime = DateTime.Now.AddDays(1)
+                }
+            });
+        return mock.Object;
     }
 }
