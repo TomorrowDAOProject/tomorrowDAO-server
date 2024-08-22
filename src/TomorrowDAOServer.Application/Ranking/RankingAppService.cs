@@ -5,11 +5,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Types;
-using Google.Protobuf;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver.Linq;
 using Newtonsoft.Json;
 using Portkey.Contracts.CA;
 using TomorrowDAO.Contracts.Vote;
@@ -280,7 +278,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         
         var canVoteAmount = 0;
-        if (!string.IsNullOrEmpty(userAddress))
+        var rankingApp = rankingAppList[0];
+        if (!string.IsNullOrEmpty(userAddress) || rankingApp.ActiveEndTime > DateTime.UtcNow)
         {
             var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
             if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
@@ -302,7 +301,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
             }
         }
-        var rankingApp = rankingAppList[0];
+        
         var totalVoteAmount = rankingAppList.Sum(x => x.VoteAmount);
         var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
         if (totalVoteAmount > 0)
