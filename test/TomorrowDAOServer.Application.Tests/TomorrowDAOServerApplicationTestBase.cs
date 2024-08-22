@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using NSubstitute;
-using OpenQA.Selenium.DevTools.V123.Autofill;
 using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.User.Provider;
@@ -61,6 +60,7 @@ public abstract partial class
         services.AddSingleton(ContractProviderMock.MockContractProvider());
         services.AddSingleton(UserProviderMock.Object);
         services.AddSingleton(CurrentUser);
+        services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
