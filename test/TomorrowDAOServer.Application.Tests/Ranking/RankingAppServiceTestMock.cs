@@ -73,7 +73,7 @@ public partial class RankingAppServiceTest
             {
                 new()
                 {
-                    VoteAmount = 1L, ActiveEndTime = DateTime.Now.AddDays(1)
+                    VoteAmount = 1L, ActiveEndTime = DateTime.Now.AddDays(1), ProposalDescription = "##GameRanking:crypto-bot,xrocket,favorite-stickers-bot"
                 }
             });
         return mock.Object;
