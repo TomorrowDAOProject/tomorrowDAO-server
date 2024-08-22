@@ -22,6 +22,7 @@ public partial class RankingAppServiceTest : TomorrowDaoServerApplicationTestBas
         base.AfterAddApplication(services);
         services.AddSingleton(MockRankingOptions());
         services.AddSingleton(MockTelegramAppsProvider());
+        services.AddSingleton(MockRankingAppProvider());
     }
 
     [Fact]
@@ -46,5 +47,13 @@ public partial class RankingAppServiceTest : TomorrowDaoServerApplicationTestBas
     public async Task GetRankingProposalListAsyncTest()
     {
         await _rankingAppService.GetRankingProposalListAsync(new GetRankingListInput{ChainId = ChainIdTDVV});
+    }
+    
+    [Fact]
+    public async Task GetRankingProposalDetailAsyncTest()
+    {
+        await _rankingAppService.GetRankingProposalDetailAsync(ChainIdTDVV, ProposalId1, DAOId);
+        await _rankingAppService.GetRankingProposalDetailAsync(ChainIdTDVV, ProposalId2, DAOId);
+        await _rankingAppService.GetRankingProposalDetailAsync(ChainIdTDVV, ProposalId3, DAOId);
     }
 }
