@@ -29,8 +29,26 @@ public class ContractProviderMock
         MockCallTransactionAsync<CandidateVote>(mock);
         MockGetTreasuryAddressAsync(mock);
         MockSendTransactionAsync(mock);
+        MockContractAddress(mock);
 
         return mock.Object;
+    }
+
+    private static void MockContractAddress(Mock<IContractProvider> mock)
+    {
+        mock.Setup(o => o.ContractAddress(It.IsAny<string>(), It.IsAny<string>())).Returns(
+            (string chainId, string contractName) =>
+            {
+                if (contractName == CommonConstant.CaContractAddressName)
+                {
+                    return Address1;
+                } else if (contractName == CommonConstant.VoteContractAddressName)
+                {
+                    return Address2;
+                }
+
+                return Address1;
+            });
     }
 
     private static void MockSendTransactionAsync(Mock<IContractProvider> mock)

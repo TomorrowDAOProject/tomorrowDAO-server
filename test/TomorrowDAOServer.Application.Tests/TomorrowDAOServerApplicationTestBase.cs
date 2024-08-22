@@ -134,7 +134,7 @@ public abstract partial class
                         IsMainChain = true,
                         ContractAddress = new Dictionary<string, string>()
                         {
-                            { "CaAddress", "CAContractAddress" },
+                            { "CaAddress", Address1},
                             { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" },
                             {"AElf.ContractNames.Token", "AElfContractNamesToken"},
                             {"VoteContractAddress", "VoteContractAddress"}
@@ -152,6 +152,20 @@ public abstract partial class
                             { "TreasuryContractAddress", "TreasuryContractAddress" },
                             {"AElf.ContractNames.Token", "AElfContractNamesToken"},
                             {"VoteContractAddress", "VoteContractAddress"}
+                        }
+                    }
+                },
+                {
+                    ChainIdtDVW, new ChainOptions.ChainInfo
+                    {
+                        BaseUrl = "https://test-tdvv-node.io",
+                        IsMainChain = false,
+                        ContractAddress = new Dictionary<string, string>()
+                        {
+                            { "CaAddress", Address1 },
+                            { "TreasuryContractAddress", TreasuryContractAddress },
+                            {"AElf.ContractNames.Token", Address1},
+                            {"VoteContractAddress", Address2}
                         }
                     }
                 }
