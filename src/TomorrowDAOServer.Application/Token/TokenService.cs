@@ -206,14 +206,23 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
 
     private static decimal AvgPrice(TokenExchangeGrainDto exchange)
     {
-        if (exchange == null || !exchange.ExchangeInfos.Any())
+        try
         {
-            return 0;
-        }
-        var validExchanges = exchange.ExchangeInfos.Values
-            .Where(ex => ex.Exchange > 0)
-            .ToList();
+            if (exchange == null || !exchange.ExchangeInfos.Any())
+            {
+                return 0;
+            }
+            var validExchanges = exchange.ExchangeInfos.Values
+                .Where(ex => ex.Exchange > 0)
+                .ToList();
 
-        return validExchanges.Any() ? validExchanges.Average(ex => ex.Exchange) : 0;
+            return validExchanges.Any() ? validExchanges.Average(ex => ex.Exchange) : 0;
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
+
+        return 0;
     }
 }
