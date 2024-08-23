@@ -5,6 +5,8 @@ using AutoResponseWrapper;
 using GraphQL.Client.Abstractions;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
+using Medallion.Threading;
+using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
@@ -36,6 +38,7 @@ using Volo.Abp.BackgroundJobs;
 using Volo.Abp.BlobStoring.Aliyun;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
+using Volo.Abp.DistributedLocking;
 using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
@@ -50,12 +53,15 @@ namespace TomorrowDAOServer
         typeof(TomorrowDAOServerHttpApiModule),
         typeof(AbpAutofacModule),
         typeof(AbpCachingStackExchangeRedisModule),
+        typeof(AbpDistributedLockingModule),
         typeof(AbpAspNetCoreMvcUiMultiTenancyModule),
         typeof(TomorrowDAOServerApplicationModule),
         typeof(TomorrowDAOServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
         //typeof(AbpEventBusRabbitMqModule),
+        // typeof(AbpCachingModule),
+        
         typeof(AbpBlobStoringAliyunModule)
     )]
     public class TomorrowDAOServerHttpApiHostModule : AbpModule
@@ -73,7 +79,10 @@ namespace TomorrowDAOServer
             Configure<AelfApiInfoOptions>(configuration.GetSection("AelfApiInfoOptions"));
             Configure<DaoOptions>(configuration.GetSection("TestDao"));
             Configure<NetworkDaoOptions>(configuration.GetSection("NetworkDao"));
-
+            Configure<TransferTokenOption>(configuration.GetSection("TransferToken"));
+            Configure<DaoAliasOptions>(configuration.GetSection("DaoAlias"));
+            Configure<RankingOptions>(configuration.GetSection("Ranking"));
+            
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
             ConfigureLocalization();
@@ -85,6 +94,13 @@ namespace TomorrowDAOServer
             ConfigureTokenCleanupService();
             ConfigureOrleans(context, configuration);
             ConfigureGraphQl(context, configuration);
+            ConfigureDistributedLocking(context, configuration);
+            
+            context.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = configuration["Redis:Configuration"];
+            });
+            
             // ConfigFilter(context);
             context.Services.AddAutoResponseWrapper();
         }
@@ -92,10 +108,7 @@ namespace TomorrowDAOServer
         private void ConfigFilter(ServiceConfigurationContext context)
         {
             context.Services.AddScoped<LoggingFilter>();
-            context.Services.Configure<MvcOptions>(options =>
-            {
-                options.Filters.AddService<LoggingFilter>();
-            });
+            context.Services.Configure<MvcOptions>(options => { options.Filters.AddService<LoggingFilter>(); });
         }
 
         private void ConfigureCache(IConfiguration configuration)
@@ -194,12 +207,11 @@ namespace TomorrowDAOServer
             IConfiguration configuration,
             IWebHostEnvironment hostingEnvironment)
         {
+            var dataProtectionBuilder = context.Services.AddDataProtection().SetApplicationName("TomorrowDAOServer");
             if (!hostingEnvironment.IsDevelopment())
             {
                 var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
-                context.Services
-                    .AddDataProtection()
-                    .PersistKeysToStackExchangeRedis(redis, "TomorrowDAOServer-Protection-Keys");
+                dataProtectionBuilder.PersistKeysToStackExchangeRedis(redis, "TomorrowDAOServer-Protection-Keys");
             }
         }
 
@@ -254,6 +266,7 @@ namespace TomorrowDAOServer
                         {
                             timeout = settings;
                         }
+
                         options.ResponseTimeout = TimeSpan.FromSeconds(timeout);
                     })
                     .ConfigureApplicationParts(parts =>
@@ -338,6 +351,18 @@ namespace TomorrowDAOServer
                     options.RequireHttpsMetadata = Convert.ToBoolean(configuration["AuthServer:RequireHttpsMetadata"]);
                     options.Audience = "TomorrowDAOServer";
                 });
+        }
+
+        private void ConfigureDistributedLocking(
+            ServiceConfigurationContext context,
+            IConfiguration configuration)
+        {
+            context.Services.AddSingleton<IDistributedLockProvider>(sp =>
+            {
+                var connection = ConnectionMultiplexer
+                    .Connect(configuration["Redis:Configuration"]);
+                return new RedisDistributedSynchronizationProvider(connection.GetDatabase());
+            });
         }
     }
 }

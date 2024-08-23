@@ -90,6 +90,16 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         return tokenInfo;
     }
 
+    public async Task<TokenInfoDto> GetTokenInfoWithoutUpdateAsync(string chainId, string symbol)
+    {
+        if (symbol.IsNullOrEmpty())
+        {
+            return new TokenInfoDto();
+        }
+
+        return await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
+    }
+
     public async Task<double> GetTvlAsync(string chainId)
     {
         var list = await _graphQlProvider.GetDAOAmountAsync(chainId);
@@ -113,22 +123,23 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         }
         var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(string.Join(CommonConstant.Underline, baseCoin, quoteCoin));
         var exchange = await exchangeGrain.GetAsync();
-        var now = DateTime.UtcNow.ToUtcMilliSeconds();
-        if (exchange.ExpireTime > now)
-        {
-            return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = AvgPrice(exchange) };
-        }
-        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = 0 };
+        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = AvgPrice(exchange) };
     }
 
-    public async Task<Dictionary<string, TokenExchangeDto>> UpdateExchangePriceAsync(string baseCoin, string quoteCoin)
+    public async Task UpdateExchangePriceAsync(string baseCoin, string quoteCoin,  List<ExchangeProviderName> providerNames)
     {
         var pair = string.Join(CommonConstant.Underline, baseCoin, quoteCoin);
         var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(pair);
         var now = DateTime.UtcNow.ToUtcMilliSeconds();
         var exchange = await exchangeGrain.GetAsync();
         var asyncTasks = new Dictionary<string, Task<TokenExchangeDto>>();
-        foreach (var provider in _exchangeProviders.Values)
+        IEnumerable<IExchangeProvider> filteredProviders = _exchangeProviders.Values;
+        if (!providerNames.IsNullOrEmpty())
+        {
+            filteredProviders = filteredProviders.Where(x => providerNames.Contains(x.Name())).ToList();
+        }
+        
+        foreach (var provider in filteredProviders)
         {
             asyncTasks[provider.Name().ToString()] =
                 provider.LatestAsync(MappingSymbol(baseCoin.ToUpper()), MappingSymbol(quoteCoin.ToUpper()));
@@ -148,10 +159,9 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
             }
         }
         
-        _logger.LogInformation("UpdateExchangePriceAsync pair {pair}, price {price}", pair, AvgPrice(exchange));
         await exchangeGrain.SetAsync(exchange);
-
-        return exchange.ExchangeInfos;
+        _logger.LogInformation("UpdateExchangePriceAsync pair {pair}, price {price}, exchange {exchange}", 
+            pair, AvgPrice(exchange), exchange.ExchangeInfos.Keys);
     }
     
     private string MappingSymbol(string sourceSymbol)

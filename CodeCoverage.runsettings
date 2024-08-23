@@ -24,6 +24,7 @@
           <!-- ,**/src/TomorrowDAOServer.Grains/**/*.cs -->
           ,**/src/TomorrowDAOServer.Grains/Grain/Protobuf/Generated/*.cs
           ,**/src/TomorrowDAOServer.Worker/**/*.cs
+          ,**/src/TomorrowDAOServer.Application.Contracts/Contracts/*.cs
           </ExcludeByFile>
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute</ExcludeByAttribute>
           <SingleHit>false</SingleHit>

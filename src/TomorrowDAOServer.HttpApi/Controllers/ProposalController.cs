@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Proposal.Dto;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.AspNetCore.Mvc;
 
 namespace TomorrowDAOServer.Controllers;
@@ -42,8 +43,8 @@ public class ProposalController : AbpController
     }
     
     [HttpGet("vote-history")]
-    [Authorize]
-    public async Task<VoteHistoryDto> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
+    // [Authorize]
+    public async Task<VoteHistoryPagedResultDto<IndexerVoteHistoryDto>> QueryVoteHistoryAsync(QueryVoteHistoryInput input)
     {
         return await _proposalService.QueryVoteHistoryAsync(input);
     }

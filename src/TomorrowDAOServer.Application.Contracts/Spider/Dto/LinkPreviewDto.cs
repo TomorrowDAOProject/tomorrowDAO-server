@@ -1,8 +1,6 @@
-using System.Collections.Generic;
 using TomorrowDAOServer.Common.Enum;
-using Volo.Abp.Application.Dtos;
 
-namespace TomorrowDAOServer.Forum.Dto;
+namespace TomorrowDAOServer.Spider.Dto;
 
 public class LinkPreviewDto
 {

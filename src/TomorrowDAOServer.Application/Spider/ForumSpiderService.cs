@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
@@ -7,21 +6,20 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using PuppeteerSharp;
-using PuppeteerSharp.BrowserData;
 using TomorrowDAOServer.Common.Enum;
-using TomorrowDAOServer.Forum.Dto;
+using TomorrowDAOServer.Spider.Dto;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 
-namespace TomorrowDAOServer.Forum;
+namespace TomorrowDAOServer.Spider;
 
 [RemoteService(IsEnabled = false)]
 [DisableAuditing]
-public class ForumService : TomorrowDAOServerAppService, IForumService
+public class ForumSpiderService : TomorrowDAOServerAppService, IForumSpiderService
 {
-    private readonly ILogger<ForumService> _logger;
+    private readonly ILogger<ForumSpiderService> _logger;
 
-    public ForumService(ILogger<ForumService> logger)
+    public ForumSpiderService(ILogger<ForumSpiderService> logger)
     {
         _logger = logger;
     }
@@ -30,7 +28,7 @@ public class ForumService : TomorrowDAOServerAppService, IForumService
     {
         if (input == null || input.ForumUrl.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         try

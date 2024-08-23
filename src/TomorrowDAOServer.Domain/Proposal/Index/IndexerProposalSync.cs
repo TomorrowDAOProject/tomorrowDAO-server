@@ -26,8 +26,8 @@ public class IndexerProposal
     public string ProposalId { get; set; }
 
     public string ProposalTitle { get; set; }
-    
-    public string ProposalDescription { get; set; }
+
+    public string ProposalDescription { get; set; } = string.Empty;
     
     public string ForumUrl { get; set; }
     
@@ -91,6 +91,7 @@ public class IndexerProposal
     public bool VoteFinished { get; set; }
     
     public bool IsNetworkDAO { get; set; }
+    public ProposalCategory ProposalCategory { get; set; }
 }
 
 public class ExecuteTransactionDto

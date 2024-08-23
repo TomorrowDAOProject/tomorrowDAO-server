@@ -20,8 +20,6 @@ public partial class HighCouncilMemberSyncServiceTest : TomorrowDaoServerApplica
     protected override void AfterAddApplication(IServiceCollection services)
     {
         base.AfterAddApplication(services);
-        services.AddSingleton(GraphQLClientMock.MockElectionCandidateElectedDto());
-        services.AddSingleton(GraphQLClientMock.MockElectionHighCouncilConfigDto());
         services.AddSingleton(MockTransactionService());
         services.AddSingleton(MockHighCouncilMembersGrain());
         services.AddSingleton(MockGraphQLProvider());

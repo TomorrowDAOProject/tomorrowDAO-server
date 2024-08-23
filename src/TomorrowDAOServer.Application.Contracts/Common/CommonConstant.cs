@@ -20,14 +20,29 @@ public static class CommonConstant
     
     public const int AbstractVoteTotal = 10000;
 
+    public const string CaContractAddressName = "CaAddress";
+    public const string VoteContractAddressName = "VoteContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
         
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
+    public const string TokenMethodGetBalance = "GetBalance";
+    public const string TokenMethodTransfer = "Transfer";
+    
+    public const string TransactionStateMined = "MINED";
+    public const string TransactionStatePending = "PENDING";
+    public const string TransactionStateNotExisted = "NOTEXISTED";
+    public const string TransactionStateFailed = "FAILED";
+    public const string TransactionStateNodeValidationFailed = "NODEVALIDATIONFAILED";
 
     public const string RootParentId = "root";
-
+    
+    //LogEvent
+    public const string VoteEventVoted = "Voted";
+    public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
+    public const string DescriptionBegin = "##GameRanking:";
+    public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;
 

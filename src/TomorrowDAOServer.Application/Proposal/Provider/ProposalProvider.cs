@@ -12,6 +12,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Ranking.Dto;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 
@@ -39,6 +40,8 @@ public interface IProposalProvider
     public Task<List<ProposalIndex>> GetNeedChangeProposalListAsync(int skipCount);
 
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
+    public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
+    public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(GetRankingListInput input);
 }
 
 public class ProposalProvider : IProposalProvider, ISingletonDependency
@@ -134,6 +137,10 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
     public async Task<List<ProposalIndex>> GetProposalByIdsAsync(string chainId, List<string> proposalIds)
     {
+        if (proposalIds.IsNullOrEmpty())
+        {
+            return new List<ProposalIndex>();
+        }
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)),
@@ -150,7 +157,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     {
         if (request == null || request.Proposer.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
@@ -186,6 +193,48 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: sortDescriptor,
             skip: request.SkipCount,
             limit: request.MaxResultCount);
+    }
+
+    public async Task<ProposalIndex> GetDefaultProposalAsync(string chainId)
+    {
+        var currentStr = DateTime.UtcNow.ToString("O");
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Terms(i =>
+                i.Field(f => f.ChainId).Terms(chainId)), 
+            q => q.Terms(i =>
+                i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking)),
+            q => q.TermRange(
+                i => i.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).GreaterThanOrEquals(currentStr)),
+            q => q.TermRange(
+                i => i.Field(f => f.ActiveStartTime.ToUtcMilliSeconds()).LessThanOrEquals(currentStr))
+            
+        };
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return await _proposalIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending,
+            sortExp: o => o.DeployTime);
+    }
+
+    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(GetRankingListInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Terms(i =>
+                i.Field(f => f.ChainId).Terms(input.ChainId)), 
+            q => q.Terms(i =>
+                i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking))
+        };
+        if (!string.IsNullOrEmpty(input.DAOId))
+        {
+            mustQuery.Add(q => q.Terms(i =>
+                i.Field(f => f.DAOId).Terms(input.DAOId)));
+        }
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: GetDescendingDeployTimeSortDescriptor(),
+            skip: input.SkipCount,
+            limit: input.MaxResultCount);
     }
 
     public async Task<long> GetProposalCountByDAOIds(string chainId, string DAOId)

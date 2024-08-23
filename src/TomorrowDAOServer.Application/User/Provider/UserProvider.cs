@@ -11,8 +11,8 @@ namespace TomorrowDAOServer.User.Provider;
 public interface IUserProvider
 {
     Task<UserGrainDto> GetUserAsync(Guid userId);
-    Task<string> GetUserAddress(Guid userId, string chainId);
-    Task<string> GetAndValidateUserAddress(Guid userId, string chainId);
+    Task<string> GetUserAddressAsync(Guid userId, string chainId);
+    Task<string> GetAndValidateUserAddressAsync(Guid userId, string chainId);
 }
 
 public class UserProvider : IUserProvider, ISingletonDependency
@@ -32,6 +32,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         {
             return null;
         }
+
         try
         {
             var userGrain = _clusterClient.GetGrain<IUserGrain>(userId);
@@ -50,7 +51,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         }
     }
 
-    public async Task<string> GetUserAddress(Guid userId, string chainId)
+    public async Task<string> GetUserAddressAsync(Guid userId, string chainId)
     {
         if (chainId.IsNullOrWhiteSpace())
         {
@@ -67,9 +68,9 @@ public class UserProvider : IUserProvider, ISingletonDependency
         return addressInfo == null ? string.Empty : addressInfo.Address;
     }
     
-    public async Task<string> GetAndValidateUserAddress(Guid userId, string chainId)
+    public async Task<string> GetAndValidateUserAddressAsync(Guid userId, string chainId)
     {
-        var userAddress = await GetUserAddress(userId, chainId);
+        var userAddress = await GetUserAddressAsync(userId, chainId);
         if (!userAddress.IsNullOrWhiteSpace())
         {
             return userAddress;

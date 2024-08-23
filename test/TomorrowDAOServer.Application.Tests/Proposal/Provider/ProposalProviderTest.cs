@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
+using Volo.Abp;
 using Xunit;
 
 namespace TomorrowDAOServer.Proposal.Provider;
@@ -132,25 +134,20 @@ public sealed class ProposalProviderTest
     }
 
     [Fact]
-    public async void QueryProposalsByProposerAsync_Test()
+    public async Task QueryProposalsByProposerAsync_Test()
     {
-        try
+        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
             await _provider.QueryProposalsByProposerAsync(null);
-        }
-        catch (Exception e)
-        {
-            e.Message.ShouldBe("");
-        }
+        });
+        exception.Message.ShouldBe("Invalid input.");
 
-        try
+        
+        exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
             await _provider.QueryProposalsByProposerAsync(new QueryProposalByProposerRequest());
-        }
-        catch (Exception e)
-        {
-            e.Message.ShouldBe("");
-        }
+        });
+        exception.Message.ShouldBe("Invalid input.");
 
         _proposalIndexRepository.GetSortListAsync(
                 Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),

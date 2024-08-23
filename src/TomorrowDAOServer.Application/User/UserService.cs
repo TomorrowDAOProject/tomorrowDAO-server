@@ -23,15 +23,15 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
     public async Task<string> GetCurrentUserAddressAsync(string chainId)
     {
-        var userId  = CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty;
-        string userAddress = null;
+        var userId = CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty;
         if (userId != Guid.Empty)
         {
-            userAddress = await GetUserAddressAsync(chainId, userId);
+            return await GetUserAddressAsync(chainId, userId);
         }
-        return userAddress;
+
+        return null;
     }
-    
+
     private async Task<string> GetUserAddressAsync(string chainId, Guid userId)
     {
         if (chainId.IsNullOrEmpty() || userId == Guid.Empty)
@@ -41,13 +41,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         var userGrain = _clusterClient.GetGrain<IUserGrain>(userId);
         var grainResultDto = await userGrain.GetUser();
-            
-        AssertHelper.IsTrue(grainResultDto.Success, "Get user fail, chainId  {chainId} userId {userId}", 
+
+        AssertHelper.IsTrue(grainResultDto.Success, "Get user fail, chainId  {chainId} userId {userId}",
             chainId, userId);
-             
+
         var addressInfos = grainResultDto.Data.AddressInfos;
-        
-        return  addressInfos?
+
+        return addressInfos?
             .Where(info => info.ChainId.Equals(chainId))
             .Select(info => info.Address)
             .FirstOrDefault();

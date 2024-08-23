@@ -21,7 +21,6 @@ public partial class ElectionProviderTest : TomorrowDaoServerApplicationTestBase
     protected override void AfterAddApplication(IServiceCollection services)
     {
         base.AfterAddApplication(services);
-        services.AddSingleton(GraphQLClientMock.MockElectionVotingItemDto());
     }
 
     [Fact]

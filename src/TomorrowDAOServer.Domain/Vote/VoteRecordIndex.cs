@@ -23,4 +23,8 @@ public class VoteRecordIndex : AbstractEntity<string>, IIndexBuild
     public bool IsWithdraw { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
+    public string Memo { get; set; }
+    public bool ValidRankingVote { get; set; }
+    public string Alias { get; set; }
+    public string Title { get; set; }
 }

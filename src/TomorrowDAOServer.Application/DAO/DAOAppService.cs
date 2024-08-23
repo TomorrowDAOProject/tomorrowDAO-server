@@ -81,7 +81,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         input.DAOId = daoIndex.Id;
 
         var sw = Stopwatch.StartNew();
-        
+
         var getTreasuryAddressTask = _contractProvider.GetTreasuryAddressAsync(input.ChainId, input.DAOId);
         var getGovernanceSchemeTask = _governanceProvider.GetGovernanceSchemeAsync(input.ChainId, input.DAOId);
 
@@ -113,16 +113,18 @@ public class DAOAppService : ApplicationService, IDAOAppService
         else
         {
             await Task.WhenAll(getTreasuryAddressTask, getGovernanceSchemeTask, getHighCouncilMembersTask);
-            daoInfo.HighCouncilMemberCount = getHighCouncilMembersTask.Result.IsNullOrEmpty() ? 0 : getHighCouncilMembersTask.Result.Count;
+            daoInfo.HighCouncilMemberCount = getHighCouncilMembersTask.Result.IsNullOrEmpty()
+                ? 0
+                : getHighCouncilMembersTask.Result.Count;
         }
-        
+
         daoInfo.TreasuryAccountAddress = getTreasuryAddressTask.Result;
         var governanceSchemeDto = getGovernanceSchemeTask.Result;
         daoInfo.OfGovernanceSchemeThreshold(governanceSchemeDto.Data?.FirstOrDefault());
-        
+
         sw.Stop();
         _logger.LogInformation("GetDAOByIdDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
-        
+
         return daoInfo;
     }
 
@@ -130,7 +132,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     {
         if (input == null || (input.DAOId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
         {
-            throw new UserFriendlyException("Invalid input.");
+            ExceptionHelper.ThrowArgumentException();
         }
 
         try
@@ -244,7 +246,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
                     ? long.Parse(tokenInfo.Holders)
                     : 0L;
             }
-            
+
             if (!dao.IsNetworkDAO)
             {
                 if (proposalCountDic.ContainsKey(dao.DaoId))
@@ -269,7 +271,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public async Task<List<MyDAOListDto>> GetMyDAOListAsync(QueryMyDAOListInput input)
     {
-        var address = await _userProvider.GetAndValidateUserAddress(CurrentUser.GetId(), input.ChainId);
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         var result = new List<MyDAOListDto>();
         if (address.IsNullOrEmpty())
         {

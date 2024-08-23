@@ -5,6 +5,9 @@ using AElf;
 using GraphQL;
 using GraphQL.Client.Abstractions;
 using Moq;
+using NSubstitute;
+using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Election.Dto;
 using TomorrowDAOServer.Treasury.Dto;
 using Volo.Abp;
@@ -15,21 +18,46 @@ namespace TomorrowDAOServer.Common.Mocks;
 
 public class GraphQLClientMock
 {
-    public static IGraphQLClient MockGraphQLClient<TT>(Func<GraphQLRequest, TT> func)
+    public static IGraphQLClient MockGraphQLClient()
     {
         var mock = new Mock<IGraphQLClient>();
+
+        MockElectionCandidateElectedDto(mock);
+        MockElectionHighCouncilConfigDto(mock);
+        MockElectionVotingItemDto(mock);
+        MockGetTreasuryFundListResultAndGetTreasuryRecordListResult(mock);
+        MockPageResultDto_MemberDto(mock);
+        
+        
+        
+
+        return mock.Object;
+    }
+
+    public static void MockGraphQLClient<T>(Mock<IGraphQLClient> mock, T results)
+    {
+        MockGraphQLClient(mock, (GraphQLRequest request) => request);
+    }
+
+    public static void MockGraphQLClient<T, K>(Mock<IGraphQLClient> mock, T resultsT, K resultsK)
+    {
+        T FuncT(GraphQLRequest request) => resultsT;
+        K FuncK(GraphQLRequest request) => resultsK;
+        MockGraphQLClient(mock, FuncT, FuncK);
+    }
+
+    public static void MockGraphQLClient<TT>(Mock<IGraphQLClient> mock, Func<GraphQLRequest, TT> func)
+    {
         mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
             (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
             {
                 Data = func(request)
             });
-        return mock.Object;
     }
 
-    public static IGraphQLClient MockGraphQLClient<TT, TK>(Func<GraphQLRequest, TT> func,
+    public static void MockGraphQLClient<TT, TK>(Mock<IGraphQLClient> mock, Func<GraphQLRequest, TT> func,
         Func<GraphQLRequest, TK>? funcTk)
     {
-        var mock = new Mock<IGraphQLClient>();
         mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
             (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
             {
@@ -40,14 +68,11 @@ public class GraphQLClientMock
             {
                 Data = funcTk(request)
             });
-
-        return mock.Object;
     }
 
-    public static IGraphQLClient MockGraphQLClient<TT, TK, TV>(Func<GraphQLRequest, TT> func,
+    public static void MockGraphQLClient<TT, TK, TV>(Mock<IGraphQLClient> mock, Func<GraphQLRequest, TT> func,
         Func<GraphQLRequest, TK>? funcTk, Func<GraphQLRequest, TV>? funcTv)
     {
-        var mock = new Mock<IGraphQLClient>();
         mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
             (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
             {
@@ -63,13 +88,11 @@ public class GraphQLClientMock
             {
                 Data = funcTv(request)
             });
-        return mock.Object;
     }
 
-    public static IGraphQLClient MockGraphQLClient<TT, TK, TV, TI>(Func<GraphQLRequest, TT> func,
+    public static void MockGraphQLClient<TT, TK, TV, TI>(Mock<IGraphQLClient> mock, Func<GraphQLRequest, TT> func,
         Func<GraphQLRequest, TK>? funcTk, Func<GraphQLRequest, TV>? funcTv, Func<GraphQLRequest, TI>? funcTi)
     {
-        var mock = new Mock<IGraphQLClient>();
         mock.Setup(m => m.SendQueryAsync<TT>(It.IsAny<GraphQLRequest>(), default)).ReturnsAsync(
             (GraphQLRequest request, CancellationToken cancellationToken) => new GraphQLResponse<TT>
             {
@@ -90,25 +113,11 @@ public class GraphQLClientMock
             {
                 Data = funcTi(request)
             });
-        return mock.Object;
     }
 
-    public static IGraphQLClient MockGraphQLClient<T>(T results)
+    public static void MockElectionCandidateElectedDto(Mock<IGraphQLClient> mock)
     {
-        T Func(GraphQLRequest request) => results;
-        return MockGraphQLClient(Func);
-    }
-
-    public static IGraphQLClient MockGraphQLClient<T, K>(T resultsT, K resultsK)
-    {
-        T FuncT(GraphQLRequest request) => resultsT;
-        K FuncK(GraphQLRequest request) => resultsK;
-        return MockGraphQLClient(FuncT, FuncK);
-    }
-
-    public static IGraphQLClient MockElectionCandidateElectedDto()
-    {
-        return MockGraphQLClient(
+        MockGraphQLClient(mock,
             new IndexerCommonResult<ElectionPageResultDto<ElectionCandidateElectedDto>>()
             {
                 Data = new ElectionPageResultDto<ElectionCandidateElectedDto>
@@ -134,9 +143,9 @@ public class GraphQLClientMock
             });
     }
 
-    public static IGraphQLClient MockElectionHighCouncilConfigDto()
+    public static void MockElectionHighCouncilConfigDto(Mock<IGraphQLClient> mock)
     {
-        return MockGraphQLClient(new IndexerCommonResult<ElectionPageResultDto<ElectionHighCouncilConfigDto>>()
+        MockGraphQLClient(mock, new IndexerCommonResult<ElectionPageResultDto<ElectionHighCouncilConfigDto>>()
         {
             Data = new ElectionPageResultDto<ElectionHighCouncilConfigDto>
             {
@@ -158,9 +167,9 @@ public class GraphQLClientMock
         });
     }
 
-    public static IGraphQLClient MockElectionVotingItemDto()
+    public static void MockElectionVotingItemDto(Mock<IGraphQLClient> mock)
     {
-        var func = (GraphQLRequest request) =>
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
         {
             if (request.Variables == null || request.Variables.ToString().IndexOf("ThrowException") != -1)
             {
@@ -200,13 +209,12 @@ public class GraphQLClientMock
                     TotalCount = 10
                 }
             };
-        };
-        return MockGraphQLClient(func);
+        });
     }
 
-    public static IGraphQLClient MockTreasuryProviderGraphQL()
+    public static void MockGetTreasuryFundListResultAndGetTreasuryRecordListResult(Mock<IGraphQLClient> mock)
     {
-        IndexerCommonResult<GetTreasuryFundListResult> FuncTreasuryFundList(GraphQLRequest request)
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
         {
             if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
             {
@@ -234,9 +242,7 @@ public class GraphQLClientMock
                     }
                 }
             };
-        }
-
-        IndexerCommonResult<GetTreasuryRecordListResult> FuncTreasuryRecordList(GraphQLRequest request)
+        }, (GraphQLRequest request) =>
         {
             if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
             {
@@ -270,8 +276,11 @@ public class GraphQLClientMock
                     }
                 }
             };
-        }
-
-        return MockGraphQLClient(FuncTreasuryFundList, FuncTreasuryRecordList);
+        });
+    }
+    
+    private static void MockPageResultDto_MemberDto(Mock<IGraphQLClient> mock)
+    {
+        MockGraphQLClient(mock, new IndexerCommonResult<PageResultDto<MemberDto>>());
     }
 }

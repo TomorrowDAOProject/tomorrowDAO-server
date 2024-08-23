@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -51,6 +52,7 @@ public class ProposalServiceTest
     private readonly ProposalService _service;
     private readonly ICurrentUser _currentUser;
     private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
 
     public ProposalServiceTest()
     {
@@ -67,9 +69,10 @@ public class ProposalServiceTest
         _userProvider = Substitute.For<IUserProvider>();
         _electionProvider = Substitute.For<IElectionProvider>();
         _tokenService = Substitute.For<ITokenService>();
+        _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
         _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, 
             _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
-            _logger, _userProvider, _electionProvider, _tokenService);
+            _logger, _userProvider, _electionProvider, _tokenService, _rankingOptions);
         
         _currentUser = Substitute.For<ICurrentUser>();
         _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
@@ -224,5 +227,38 @@ public class ProposalServiceTest
             ExecuteStartTime = DateTime.Now.AddDays(-1), ExecuteEndTime = DateTime.Now.AddDays(1)
         }, "address");
         canExecute.ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task QueryVoteHistoryAsync_Test()
+    {
+        // _voteProvider.GetPageVoteRecordAsync(Arg.Any<GetPageVoteRecordInput>())
+        //     .Returns(new Tuple<long, List<VoteRecordIndex>>(1,
+        //         new List<VoteRecordIndex> { new() { Id = "daoId", VotingItemId = "proposalId", Amount = 100000000 } }));
+        // _voteProvider.GetVoteItemsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+        //     .Returns(new Dictionary<string, IndexerVote> { ["proposalId"] = new(){Executer = "user"} });
+        // _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+        //     .Returns(new List<ProposalIndex>{new() { ProposalId = "proposalId", VoteSchemeId = "82493f7880cd1d2db09ba90b85e5d5605c40db550572586185e763f75f5ede11"}});
+        // _DAOProvider.GetDaoListByDaoIds(Arg.Any<string>(), Arg.Any<List<string>>())
+        //     .Returns(new List<DAOIndex> { new() { Id = "daoId" } });
+        // _tokenService.GetTokenInfoWithoutUpdateAsync(Arg.Any<string>(), Arg.Any<string>())
+        //     .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8" });
+        // _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(Arg.Any<List<VoteRecordIndex>>())
+        //     .Returns(new List<IndexerVoteHistoryDto> { new() { DAOId = "daoId", ProposalId = "proposalId", VoteNum = 100000000 } });
+        // var result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        // {
+        //     ChainId = "tDVW", DAOId = "daoId"
+        // });
+        // result.ShouldNotBeNull();
+        //
+        // _DAOProvider.GetDaoListByDaoIds(Arg.Any<string>(), Arg.Any<List<string>>())
+        //     .Returns(new List<DAOIndex> { new() { Id = "daoId", GovernanceToken = "ELF"} });
+        // _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
+        //     .Returns(new List<ProposalIndex>{new() { ProposalId = "proposalId", VoteSchemeId = "934d1295190d97e81bc6c2265f74e589750285aacc2c906c7c4c3c32bd996a64"}});
+        // result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        // {
+        //     ChainId = "tDVW", DAOId = "daoId"
+        // });
+        // result.ShouldNotBeNull();
     }
 }

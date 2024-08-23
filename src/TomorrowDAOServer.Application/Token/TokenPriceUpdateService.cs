@@ -8,6 +8,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.ThirdPart.Exchange;
 
 namespace TomorrowDAOServer.Token;
 
@@ -31,9 +32,16 @@ public class TokenPriceUpdateService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var symbols = _networkDaoOptions.CurrentValue.PopularSymbols;
-        var tasks = symbols.Select(symbol => _tokenService.UpdateExchangePriceAsync(symbol.ToUpper(), CommonConstant.USD)).ToList();
-        await Task.WhenAll(tasks);
+        var awakenSymbols = _networkDaoOptions.CurrentValue.AwakenSymbols;
+        var aetherLinkSymbols = _networkDaoOptions.CurrentValue.AetherLinkSymbols;
+        var otherSymbols = _networkDaoOptions.CurrentValue.PopularSymbols;
+        var awakenTasks = awakenSymbols.Select(symbol => _tokenService.UpdateExchangePriceAsync(
+            symbol.ToUpper(), CommonConstant.USD, new List<ExchangeProviderName> { ExchangeProviderName.Awaken })).ToList();
+        var aetherLinkTasks = aetherLinkSymbols.Select(symbol => _tokenService.UpdateExchangePriceAsync(
+            symbol.ToUpper(), CommonConstant.USD, new List<ExchangeProviderName> { ExchangeProviderName.AetherLink })).ToList();
+        var otherTasks = otherSymbols.Select(symbol => _tokenService.UpdateExchangePriceAsync(
+            symbol.ToUpper(), CommonConstant.USD, new List<ExchangeProviderName>())).ToList();
+        await Task.WhenAll(awakenTasks.Concat(aetherLinkTasks).Concat(otherTasks));
         return -1;
     }
 

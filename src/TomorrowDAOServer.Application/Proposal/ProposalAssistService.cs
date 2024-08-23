@@ -1,19 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
-using TomorrowDAOServer.Vote.Dto;
-using TomorrowDAOServer.Vote.Index;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
 
@@ -21,11 +21,12 @@ namespace TomorrowDAOServer.Proposal;
 
 public interface IProposalAssistService
 {
-    public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<IndexerProposal> list);
+    public Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list);
     // public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<ProposalIndex> list);
     public Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list);
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex);
     public Task ReRunProposalList(string chainId, List<string> proposalIds);
+    public Task ChangeRegex(string pattern);
 }
 
 public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssistService
@@ -37,9 +38,12 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IScriptService _scriptService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private Regex _regex;
 
     public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
-        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService)
+        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService, 
+        IOptionsMonitor<RankingOptions> rankingOptions)
     {
         _logger = logger;
         _objectMapper = objectMapper;
@@ -47,25 +51,46 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _proposalProvider = proposalProvider;
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
+        _rankingOptions = rankingOptions;
+        _regex = new Regex(_rankingOptions.CurrentValue.DescriptionPattern, RegexOptions.Compiled);
     }
 
-    public async Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<IndexerProposal> list)
+    public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
     {
+        var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+        var rankingProposalList = new List<IndexerProposal>();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var serverProposalList = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
         var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
         foreach (var proposal in list)
         {
-            if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal) || serverProposal.ProposalStage.CompareTo(proposal.ProposalStage) <= 0)
+            if (rankingDaoIds.Contains(proposal.DAOId))
             {
-                continue;
+                proposal.ProposalCategory = _regex.IsMatch(proposal.ProposalDescription.Trim()) ? ProposalCategory.Ranking : ProposalCategory.Normal;
             }
-
-            proposal.ProposalStatus = serverProposal.ProposalStatus;
-            proposal.ProposalStage = serverProposal.ProposalStage;
+            
+            if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
+            {
+                if (rankingDaoIds.Contains(proposal.DAOId) && ProposalCategory.Ranking == proposal.ProposalCategory)
+                {
+                    rankingProposalList.Add(proposal);
+                    _logger.LogInformation("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
+                        proposal.ProposalId, proposal.ProposalDescription);
+                }
+            }
+            else
+            {
+                if (serverProposal.ProposalStage.CompareTo(proposal.ProposalStage) <= 0)
+                {
+                    continue;
+                }
+                proposal.ProposalStatus = serverProposal.ProposalStatus;
+                proposal.ProposalStage = serverProposal.ProposalStage;
+            }
         }
 
-        return _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+        var proposalList = _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+        return new Tuple<List<ProposalIndex>, List<IndexerProposal>>(proposalList, rankingProposalList);
     }
 
     public async Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list)
@@ -231,6 +256,12 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         {
             await _proposalProvider.BulkAddOrUpdateAsync(resultList);
         }
+    }
+
+    public Task ChangeRegex(string pattern)
+    {
+        _regex = new Regex(pattern, RegexOptions.Compiled);
+        return Task.CompletedTask;
     }
 
     private static void AddProposalLife(ref List<ProposalLifeDto> result, ProposalStage proposalStage, ProposalStatus proposalStatus)

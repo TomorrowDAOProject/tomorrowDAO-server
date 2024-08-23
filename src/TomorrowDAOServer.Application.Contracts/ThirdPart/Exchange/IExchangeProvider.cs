@@ -21,4 +21,6 @@ public enum ExchangeProviderName
     Binance,
     Okx,
     CoinGecko,
+    Awaken,
+    AetherLink
 }
