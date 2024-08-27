@@ -549,11 +549,6 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         };
     }
 
-    public async Task ClearData(string chainId)
-    {
-        await _voteProvider.GetAllAsync(chainId);
-    }
-
     private async Task<bool> CanVote(DAOIndex daoIndex, ProposalBase proposalIndex, string address, bool voted = false)
     {
         if (voted || ProposalStage.Active != proposalIndex.ProposalStage)

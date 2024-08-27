@@ -86,14 +86,4 @@ public class ProposalController : AbpController
         
         return result;
     }
-    
-    // TestUse
-    [HttpGet("clear")]
-    public async Task Clear(string chainId)
-    {
-        var sw = Stopwatch.StartNew();
-        await _proposalService.ClearData(chainId);
-        sw.Stop();
-        _logger.LogInformation("ProposalController Clear duration:{0}", sw.ElapsedMilliseconds);
-    }
 }
