@@ -80,66 +80,6 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
     }
 
     [Fact]
-    public async void GetDAOListAsync_Test()
-    {
-        Login(userId);
-
-        _testDaoOptions.CurrentValue
-            .Returns(new DaoOptions
-            {
-                TopDaoNames = new List<string> { "Top Dao" }
-            });
-        _daoProvider.GetDAOListAsync(Arg.Any<QueryDAOListInput>(), Arg.Any<ISet<string>>())
-            .Returns(new Tuple<long, List<DAOIndex>>(2, new List<DAOIndex>
-            {
-                new() { GovernanceToken = "ELF", IsNetworkDAO = false },
-                new() { GovernanceToken = "USDT", IsNetworkDAO = true }
-            }));
-        _daoProvider.GetDAOListByNameAsync(Arg.Any<string>(), Arg.Any<List<string>>())
-            .Returns(new Tuple<long, List<DAOIndex>>(1, new List<DAOIndex>
-            {
-                new() { GovernanceToken = "ELF", IsNetworkDAO = false },
-            }));
-        _objectMapper.Map<List<DAOIndex>, List<DAOListDto>>(Arg.Any<List<DAOIndex>>())
-            .Returns(new List<DAOListDto>
-            {
-                new() { Symbol = "ELF", IsNetworkDAO = false },
-                new() { Symbol = "USDT", IsNetworkDAO = true }
-            });
-        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
-        {
-            Symbol = "ELF", Decimals = "8", Holders = "2"
-        });
-        _graphQlProvider.GetBPAsync(Arg.Any<string>())
-            .Returns(new List<string> { "BP" });
-        _explorerProvider.GetProposalPagerAsync(Arg.Any<string>(), Arg.Any<ExplorerProposalListRequest>())
-            .Returns(new ExplorerProposalResponse { Total = 1 });
-
-        _contractProvider.GetTreasuryAddressAsync(Arg.Any<string>(), Arg.Any<string>()).Returns("address");
-
-        // begin >= topCount
-        var list = await _service.GetDAOListAsync(new QueryDAOListInput
-        {
-            ChainId = "AELF", SkipCount = 1
-        });
-        list.ShouldNotBeNull();
-
-        // end <= topCount
-        list = await _service.GetDAOListAsync(new QueryDAOListInput
-        {
-            ChainId = "AELF", MaxResultCount = 1
-        });
-        list.ShouldNotBeNull();
-
-        // both
-        list = await _service.GetDAOListAsync(new QueryDAOListInput
-        {
-            ChainId = "AELF"
-        });
-        list.ShouldNotBeNull();
-    }
-
-    [Fact]
     public async Task GetMemberListAsyncTest()
     {
         _daoProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>());

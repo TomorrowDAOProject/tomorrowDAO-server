@@ -29,7 +29,7 @@ public interface IProposalProvider
 
     public Task<List<ProposalIndex>> GetProposalByIdsAsync(string chainId, List<string> proposalIds);
 
-    public Task<long> GetProposalCountByDAOIds(string chainId, string DAOId);
+    public Task<long> GetProposalCountByDAOId(string chainId, string DAOId);
 
     public Task<IDictionary<string, long>> GetProposalCountByDaoIds(string chainId, ISet<string> daoIds);
 
@@ -237,7 +237,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             limit: input.MaxResultCount);
     }
 
-    public async Task<long> GetProposalCountByDAOIds(string chainId, string DAOId)
+    public async Task<long> GetProposalCountByDAOId(string chainId, string DAOId)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
 

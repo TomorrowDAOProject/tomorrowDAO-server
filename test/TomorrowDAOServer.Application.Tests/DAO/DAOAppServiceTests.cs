@@ -9,6 +9,7 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Governance.Dto;
 using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Proposal.Provider;
@@ -49,25 +50,42 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
         });
         result.ShouldNotBeNull();
     }
+    
+    [Fact]
+    public async void GetDAOListAsync_Test()
+    {
+        await _daoAppService.GetDAOListAsync(new QueryDAOListInput
+        {
+            ChainId = ChainIdTDVV, DaoType = DAOType.Verified
+        });
+        await _daoAppService.GetDAOListAsync(new QueryDAOListInput
+        {
+            ChainId = ChainIdTDVV, DaoType = DAOType.Community
+        });
+    }
 
     private IDAOProvider MockDAOProvider()
     {
         var mock = new Mock<IDAOProvider>();
 
+        mock.Setup(p => p.GetDAOListByNameAsync(It.IsAny<string>(), It.IsAny<List<string>>()))
+            .ReturnsAsync(new Tuple<long, List<DAOIndex>>(1, new List<DAOIndex>{new(){Id = DAOId, ChainId = ChainIdAELF, 
+                GovernanceToken = ELF, Metadata = new Metadata { Name = DAOName }}}));
+        
         mock.Setup(p => p.GetSyncDAOListAsync(It.IsAny<GetChainBlockHeightInput>())).ReturnsAsync(
             new List<IndexerDAOInfo>
             {
                 new()
                 {
                     Id = "test1",
-                    ChainId = "AELF",
+                    ChainId = ChainIdAELF,
                     BlockHeight = 100,
                     Creator = "AA1"
                 },
                 new()
                 {
                     Id = "test2",
-                    ChainId = "AELF",
+                    ChainId = ChainIdAELF,
                     BlockHeight = 100,
                     Creator = "AA2"
                 }
@@ -77,12 +95,12 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
             new DAOIndex
             {
                 Id = "test1",
-                ChainId = "AELF",
+                ChainId = ChainIdAELF,
                 BlockHeight = 100,
                 Creator = "AA1"
             });
 
-        mock.Setup(p => p.GetDAOListAsync(It.IsAny<QueryDAOListInput>(), It.IsAny<ISet<string>>())).ReturnsAsync(
+        mock.Setup(p => p.GetDAOListAsync(It.IsAny<QueryPageInput>(), It.IsAny<ISet<string>>())).ReturnsAsync(
             new Tuple<long, List<DAOIndex>>
             (
                 2,
@@ -91,7 +109,7 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
                     new()
                     {
                         Id = "test1",
-                        ChainId = "AELF",
+                        ChainId = ChainIdAELF,
                         BlockHeight = 100,
                         Creator = "AA1",
                         GovernanceToken = "USDT"
@@ -114,7 +132,8 @@ public class DAOAppServiceTests : TomorrowDaoServerApplicationTestBase
     {
         var mock = new Mock<IProposalProvider>();
 
-        mock.Setup(p => p.GetProposalCountByDAOIds(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(1L);
+        mock.Setup(p => p.GetProposalCountByDaoIds(It.IsAny<string>(), It.IsAny<ISet<string>>()))
+            .ReturnsAsync(new Dictionary<string, long>{[ChainIdAELF] = 1});
 
         return mock.Object;
     }

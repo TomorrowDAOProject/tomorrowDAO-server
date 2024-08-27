@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
 using Newtonsoft.Json;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Common.Provider;
@@ -44,7 +43,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly IExplorerProvider _explorerProvider;
-    private readonly IOptionsMonitor<DaoOptions> _testDaoOptions;
+    private readonly IOptionsMonitor<DaoOptions> _daoOptions;
     private readonly IGovernanceProvider _governanceProvider;
     private readonly IContractProvider _contractProvider;
     private readonly IUserProvider _userProvider;
@@ -53,7 +52,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public DAOAppService(IDAOProvider daoProvider, IElectionProvider electionProvider,
         IGovernanceProvider governanceProvider,
         IProposalProvider proposalProvider, IExplorerProvider explorerProvider, IGraphQLProvider graphQlProvider,
-        IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> testDaoOptions, IContractProvider contractProvider,
+        IObjectMapper objectMapper, IOptionsMonitor<DaoOptions> daoOptions, IContractProvider contractProvider,
         IUserProvider userProvider, ILogger<DAOAppService> logger, ITokenService tokenService)
     {
         _daoProvider = daoProvider;
@@ -61,7 +60,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         _proposalProvider = proposalProvider;
         _graphQlProvider = graphQlProvider;
         _objectMapper = objectMapper;
-        _testDaoOptions = testDaoOptions;
+        _daoOptions = daoOptions;
         _contractProvider = contractProvider;
         _userProvider = userProvider;
         _logger = logger;
@@ -164,57 +163,47 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput input)
     {
-        var daoOption = _testDaoOptions.CurrentValue;
-        var begin = input.SkipCount;
-        var end = begin + input.MaxResultCount;
-        var topCount = daoOption.TopDaoNames.Count;
-        var excludeNames = new HashSet<string>(daoOption.FilteredDaoNames.Union(daoOption.TopDaoNames));
-        Tuple<long, List<DAOListDto>> normalSearch;
-        if (begin >= topCount)
+        var daoOption = _daoOptions.CurrentValue;
+        var topDaoNames = daoOption.GetTopDaoNames();  
+        var excludeNames = new HashSet<string>(daoOption.FilteredDaoNames.Union(topDaoNames));
+
+        Tuple<long, List<DAOListDto>> result;
+        long totalCount;
+        if (DAOType.Verified == input.DaoType)
         {
-            input.SkipCount -= topCount;
-            normalSearch = await GetNormalSearchList(input, excludeNames);
-            return new PagedResultDto<DAOListDto>
+            result = await GetNameSearchList(input, topDaoNames.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
+            totalCount = topDaoNames.Count;
+            var verifiedTypeDic = daoOption.GetVerifiedTypeDic();
+            foreach (var dao in result.Item2)
             {
-                TotalCount = topCount + normalSearch.Item1,
-                Items = normalSearch.Item2
-            };
+                dao.VerifiedType = verifiedTypeDic.GetValueOrDefault(dao.Name, VerifiedType.Blue).ToString();
+            }
+        }
+        else
+        {
+            result = await GetNormalSearchList(input, excludeNames);
+            totalCount = result.Item1;
         }
 
-        Tuple<long, List<DAOListDto>> nameSearch;
-        if (end <= topCount)
+        foreach (var dao in result.Item2)
         {
-            nameSearch = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(end - begin).ToList());
-            var normalCount = await _daoProvider.GetDAOListCountAsync(input, excludeNames);
-            return new PagedResultDto<DAOListDto>
-            {
-                TotalCount = topCount + normalCount,
-                Items = nameSearch.Item2
-            };
+            dao.DaoType = input.DaoType.ToString();
         }
-
-        nameSearch = await GetNameSearchList(input, daoOption.TopDaoNames.Skip(begin).Take(topCount - begin).ToList());
-        input.SkipCount = 0;
-        input.MaxResultCount = end - topCount;
-        normalSearch = await GetNormalSearchList(input, excludeNames);
-        var combineList = new List<DAOListDto>();
-        combineList.AddRange(nameSearch.Item2);
-        combineList.AddRange(normalSearch.Item2);
         return new PagedResultDto<DAOListDto>
         {
-            TotalCount = topCount + normalSearch.Item1,
-            Items = combineList
+            TotalCount = totalCount,
+            Items = result.Item2
         };
     }
 
-    private async Task<Tuple<long, List<DAOListDto>>> GetNormalSearchList(QueryDAOListInput input,
+    private async Task<Tuple<long, List<DAOListDto>>> GetNormalSearchList(QueryPageInput input,
         ISet<string> excludeNames)
     {
         return await FillDaoListAsync(input.ChainId,
             await _daoProvider.GetDAOListAsync(input, excludeNames));
     }
 
-    private async Task<Tuple<long, List<DAOListDto>>> GetNameSearchList(QueryDAOListInput input,
+    private async Task<Tuple<long, List<DAOListDto>>> GetNameSearchList(QueryPageInput input,
         List<string> searchNames)
     {
         var result = await FillDaoListAsync(input.ChainId,
@@ -249,9 +238,9 @@ public class DAOAppService : ApplicationService, IDAOAppService
 
             if (!dao.IsNetworkDAO)
             {
-                if (proposalCountDic.ContainsKey(dao.DaoId))
+                if (proposalCountDic.TryGetValue(dao.DaoId, out var value))
                 {
-                    dao.ProposalsNum = proposalCountDic[dao.DaoId];
+                    dao.ProposalsNum = value;
                 }
             }
             else
