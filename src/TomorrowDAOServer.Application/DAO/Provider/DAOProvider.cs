@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Indexing.Elasticsearch;
 using TomorrowDAOServer.Common.GraphQL;
 using GraphQL;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
@@ -24,8 +22,8 @@ public interface IDAOProvider
 
     Task<DAOIndex> GetAsync(GetDAOInfoInput input);
 
-    Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input, ISet<string> excludeNames);
-    Task<long> GetDAOListCountAsync(QueryDAOListInput input, ISet<string> excludeNames);
+    Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryPageInput input, ISet<string> excludeNames);
+    Task<long> GetDAOListCountAsync(QueryPageInput input, ISet<string> excludeNames);
     Task<Tuple<long, List<DAOIndex>>> GetDAOListByNameAsync(string chainId, List<string> names);
     Task<Tuple<long, List<DAOIndex>>> GetMyOwneredDAOListAsync(QueryMyDAOListInput input, string address);
     Task<Tuple<long, List<DAOIndex>>> GetManagedDAOAsync(QueryMyDAOListInput input, List<string> daoIds, bool networkDao);
@@ -130,7 +128,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         return await _daoIndexRepository.GetAsync(Filter);
     }
 
-    public async Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryDAOListInput input, ISet<string> excludeNames)
+    public async Task<Tuple<long, List<DAOIndex>>> GetDAOListAsync(QueryPageInput input, ISet<string> excludeNames)
     {
         var chainId = input.ChainId;
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>
@@ -149,7 +147,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
             sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
     }
 
-    public async Task<long> GetDAOListCountAsync(QueryDAOListInput input, ISet<string> excludeNames)
+    public async Task<long> GetDAOListCountAsync(QueryPageInput input, ISet<string> excludeNames)
     {
         var chainId = input.ChainId;
         var mustQuery = new List<Func<QueryContainerDescriptor<DAOIndex>, QueryContainer>>

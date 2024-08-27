@@ -37,9 +37,6 @@ public interface IVoteProvider
     Task<Tuple<long, List<VoteRecordIndex>>> GetPageVoteRecordAsync(GetPageVoteRecordInput input);
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
     Task<long> GetVotePoints(string chainId, string daoId, string voter);
-    
-    // TestUse
-    Task GetAllAsync(string chainId);
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -446,7 +443,8 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         return new IndexerDAOVoterRecord();
     }
-public async Task<long> GetVotePoints(string chainId, string daoId, string voter)
+
+    public async Task<long> GetVotePoints(string chainId, string daoId, string voter)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
         {
@@ -458,6 +456,7 @@ public async Task<long> GetVotePoints(string chainId, string daoId, string voter
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.CountAsync(Filter)).Count;
     }
+
     public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
@@ -468,23 +467,6 @@ public async Task<long> GetVotePoints(string chainId, string daoId, string voter
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
-    }
-    
-    public async Task GetAllAsync(string chainId)
-    {
-        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
-        {
-            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId))
-        };
-
-        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
-        var voteRecords = (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
-        foreach (var voteRecord in voteRecords)
-        {
-            voteRecord.IsWithdraw = false;
-        }
-
-        await _voteRecordIndexRepository.BulkAddOrUpdateAsync(voteRecords);
     }
 
     private static async Task<List<T>> GetAllIndex<T>(Func<QueryContainerDescriptor<T>, QueryContainer> filter, 

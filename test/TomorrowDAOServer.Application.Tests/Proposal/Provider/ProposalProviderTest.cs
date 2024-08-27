@@ -97,7 +97,7 @@ public sealed class ProposalProviderTest
         _proposalIndexRepository.CountAsync(Arg.Any<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>(),
                 Arg.Any<string>())
             .Returns(new CountResponse());
-        var result = await _provider.GetProposalCountByDAOIds("ChainId", "DaoId");
+        var result = await _provider.GetProposalCountByDAOId("ChainId", "DaoId");
         result.ShouldBe(0);
     }
 

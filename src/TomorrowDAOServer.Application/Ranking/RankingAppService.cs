@@ -9,6 +9,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Portkey.Contracts.CA;
 using TomorrowDAO.Contracts.Vote;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
@@ -270,7 +271,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             });
     }
 
-    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
+    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId, 
         string proposalId, string daoId)
     {
         _logger.LogInformation("GetRankingProposalDetailAsync userAddress: {userAddress}", userAddress);
@@ -279,7 +280,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             return new RankingDetailDto();
         }
-
+        
         var canVoteAmount = 0;
         var rankingApp = rankingAppList[0];
         var proposalDescription = rankingApp.ProposalDescription;
@@ -360,10 +361,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
 
             if (voteInput == null)
-            {
+            { 
                 ExceptionHelper.ThrowArgumentException();
             }
-
+            
             return new Tuple<VoteInput, Transaction>(voteInput, transaction);
         }
         catch (Exception e)
@@ -399,7 +400,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var cache = await _distributedCache.GetAsync(distributeCacheKey);
         return cache.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<RankingVoteRecord>(cache);
     }
-
+    
     public async Task<VoteRecordIndex> GetRankingVoteRecordEsAsync(string chainId, string address, string proposalId)
     {
         try

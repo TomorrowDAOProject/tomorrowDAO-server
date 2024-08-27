@@ -24,7 +24,6 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
     protected override void AfterAddApplication(IServiceCollection services)
     {
         base.AfterAddApplication(services);
-        services.AddSingleton(GraphQLClientMock.MockTreasuryProviderGraphQL());
         services.AddSingleton(ClusterClientMock.MockClusterClient());
         services.AddSingleton(MockDaoProvider());
         services.AddSingleton(MockNetworkDaoTreasuryService());
