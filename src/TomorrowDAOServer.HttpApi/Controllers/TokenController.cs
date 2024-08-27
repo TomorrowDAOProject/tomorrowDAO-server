@@ -21,14 +21,16 @@ public class TokenController
     private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
     private readonly ITransferTokenService _transferTokenService;
+    private readonly IIssueTokenService _issueTokenService;
 
     public TokenController(IUserTokenService userTokenService, IUserService userService, ITokenService tokenService,
-        ITransferTokenService transferTokenService)
+        ITransferTokenService transferTokenService, IIssueTokenService issueTokenService)
     {
         _userTokenService = userTokenService;
         _userService = userService;
         _tokenService = tokenService;
         _transferTokenService = transferTokenService;
+        _issueTokenService = issueTokenService;
     }
 
     [HttpGet]
@@ -71,5 +73,11 @@ public class TokenController
     public async Task<TokenClaimRecord> GetTransferTokenStatusAsync(TransferTokenStatusInput input)
     {
         return await _transferTokenService.GetTransferTokenStatusAsync(input);
+    }
+
+    [HttpPost("issue")]
+    public async Task<IssueTokenResponse> IssueTokensAsync(IssueTokensInput input)
+    {
+        return await _issueTokenService.IssueTokensAsync(input);
     }
 }

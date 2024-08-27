@@ -199,7 +199,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     private async Task<BlockChainTokenInfo> GetBlockChainTokenInfo(string chainId, string symbol)
     {
         var (_, tx) = await _contractProvider.CreateCallTransactionAsync(chainId,
-            SystemContractName.TokenContract, "GetTokenInfo", new GetTokenInfoInput { Symbol = symbol });
+            SystemContractName.TokenContract, CommonConstant.TokenMethodGetTokenInfo, new GetTokenInfoInput { Symbol = symbol });
         var tokenInfo = await _contractProvider.CallTransactionAsync<BlockChainTokenInfo>(chainId, tx);
         return tokenInfo;
     }

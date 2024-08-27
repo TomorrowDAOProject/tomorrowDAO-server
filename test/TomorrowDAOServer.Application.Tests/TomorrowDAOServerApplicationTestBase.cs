@@ -139,7 +139,8 @@ public abstract partial class
                             { "CaAddress", Address1},
                             { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" },
                             {"AElf.ContractNames.Token", "AElfContractNamesToken"},
-                            {"VoteContractAddress", "VoteContractAddress"}
+                            {"VoteContractAddress", "VoteContractAddress"},
+                            {"AElf.Contracts.ProxyAccountContract", "ProxyAccountContract"}
                         }
                     }
                 },
@@ -153,7 +154,8 @@ public abstract partial class
                             { "CaAddress", "CAContractAddress" },
                             { "TreasuryContractAddress", "TreasuryContractAddress" },
                             {"AElf.ContractNames.Token", "AElfContractNamesToken"},
-                            {"VoteContractAddress", "VoteContractAddress"}
+                            {"VoteContractAddress", "VoteContractAddress"},
+                            {"AElf.Contracts.ProxyAccountContract", "ProxyAccountContract"}
                         }
                     }
                 },
@@ -167,7 +169,8 @@ public abstract partial class
                             { "CaAddress", Address1 },
                             { "TreasuryContractAddress", TreasuryContractAddress },
                             {"AElf.ContractNames.Token", Address1},
-                            {"VoteContractAddress", Address2}
+                            {"VoteContractAddress", Address2},
+                            {"AElf.Contracts.ProxyAccountContract", "ProxyAccountContract"}
                         }
                     }
                 }

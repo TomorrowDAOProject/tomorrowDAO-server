@@ -21,12 +21,14 @@ using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Spider.Dto;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Token;
+using TomorrowDAOServer.Token.Dto;
 using TomorrowDAOServer.Token.Index;
 using TomorrowDAOServer.Treasury.Dto;
 using TomorrowDAOServer.User.Dtos;
 using TomorrowDAOServer.Vote;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
+using TokenInfo = AElf.Contracts.MultiToken.TokenInfo;
 
 namespace TomorrowDAOServer;
 
@@ -244,8 +246,13 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<RankingAppIndex, RankingAppDetailDto>();
         CreateMap<ProposalIndex, RankingListDto>()
             .ForMember(des => des.Active, opt
-                => opt.MapFrom(source => DateTime.UtcNow <= source.ActiveEndTime && DateTime.UtcNow >= source.ActiveStartTime))
+                => opt.MapFrom(source =>
+                    DateTime.UtcNow <= source.ActiveEndTime && DateTime.UtcNow >= source.ActiveStartTime))
             ;
-        
+        CreateMap<TokenInfo, IssueTokenResponse>()
+            .ForMember(des => des.Issuer, opt
+                => opt.MapFrom(source => MapAddress(source.Issuer)))
+            .ForMember(des => des.IssueChainId, opt
+                => opt.MapFrom(source => MapChainIdToBase58(source.IssueChainId)));
     }
 }

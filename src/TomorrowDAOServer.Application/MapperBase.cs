@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using AElf;
+using AElf.Types;
 using AutoMapper;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Enums;
@@ -16,13 +18,25 @@ public class MapperBase : Profile
         };
     }
 
-    protected static GovernanceMechanism MapGovernanceMechanism( string governanceToken)
+    protected static GovernanceMechanism MapGovernanceMechanism(string governanceToken)
     {
-        return string.IsNullOrEmpty(governanceToken) ? GovernanceMechanism.Organization : GovernanceMechanism.Referendum;
+        return string.IsNullOrEmpty(governanceToken)
+            ? GovernanceMechanism.Organization
+            : GovernanceMechanism.Referendum;
     }
 
     protected static long MapAmount(string amount, int decimals)
     {
         return (long)(amount.SafeToDouble() * Math.Pow(10, decimals));
+    }
+
+    protected static string MapAddress(Address address)
+    {
+        return address?.ToBase58() ?? string.Empty;
+    }
+    
+    protected static string MapChainIdToBase58(int chainId)
+    {
+        return ChainHelper.ConvertChainIdToBase58(chainId);
     }
 }
