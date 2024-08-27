@@ -32,6 +32,13 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
             try
             {
                 var lastEndHeight = await _graphQlProvider.GetLastEndHeightAsync(chainId, businessType);
+                if (lastEndHeight < 0)
+                {
+                    _logger.LogInformation(
+                        "Skip deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight}",
+                        businessType, chainId, lastEndHeight);
+                    continue;
+                }
                 var newIndexHeight = await _graphQlProvider.GetIndexBlockHeightAsync(chainId);
                 _logger.LogInformation(
                     "Start deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight} newIndexHeight: {newIndexHeight}",
