@@ -23,12 +23,16 @@ public static class CommonConstant
     public const string CaContractAddressName = "CaAddress";
     public const string VoteContractAddressName = "VoteContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
+    public const string ProxyAccountContractAddressName = "AElf.Contracts.ProxyAccountContract";
         
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
     public const string TokenMethodGetBalance = "GetBalance";
     public const string TokenMethodTransfer = "Transfer";
+    public const string TokenMethodGetTokenInfo = "GetTokenInfo";
+    public const string TokenMethodIssue = "Issue";
+    public const string ProxyAccountMethodGetProxyAccountByAddress = "GetProxyAccountByProxyAccountAddress";
     
     public const string TransactionStateMined = "MINED";
     public const string TransactionStatePending = "PENDING";
