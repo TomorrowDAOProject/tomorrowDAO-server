@@ -29,7 +29,7 @@ public class IssueTokenService : TomorrowDAOServerAppService, IIssueTokenService
     private readonly IObjectMapper _objectMapper;
 
     private readonly JsonSerializerSettings _jsonSerializerSettings =
-        JsonSettingsBuilder.New().WithAElfTypesConverters().Build();
+        JsonSettingsBuilder.New().WithCamelCasePropertyNamesResolver().WithAElfTypesConverters().Build();
 
     public IssueTokenService(ILogger<IssueTokenService> logger, IContractProvider contractProvider,
         IObjectMapper objectMapper)
