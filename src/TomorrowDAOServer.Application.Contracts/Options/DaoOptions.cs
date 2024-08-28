@@ -7,7 +7,7 @@ namespace TomorrowDAOServer.Options;
 public class DaoOptions
 {
     public ISet<string> FilteredDaoNames { get; set; } = new HashSet<string>();
-    private Dictionary<VerifiedType, List<string>> VerifiedTopDaoNames { get; set; } = new();
+    public Dictionary<VerifiedType, List<string>> VerifiedTopDaoNames { get; set; } = new();
     
     public List<string> GetTopDaoNames()
     {
