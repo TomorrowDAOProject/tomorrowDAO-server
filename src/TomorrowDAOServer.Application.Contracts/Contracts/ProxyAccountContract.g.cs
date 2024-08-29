@@ -2380,10 +2380,8 @@ namespace AElf.Contracts.ProxyAccountContract {
     private readonly pbc::RepeatedField<global::AElf.Contracts.ProxyAccountContract.ManagementAddress> managementAddresses_ = new pbc::RepeatedField<global::AElf.Contracts.ProxyAccountContract.ManagementAddress>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<global::AElf.Contracts.ProxyAccountContract.ManagementAddress> ManagementAddresses
-    {
+    public pbc::RepeatedField<global::AElf.Contracts.ProxyAccountContract.ManagementAddress> ManagementAddresses {
       get { return managementAddresses_; }
-      init => throw new System.NotImplementedException();
     }
 
     /// <summary>Field number for the "create_chain_id" field.</summary>
