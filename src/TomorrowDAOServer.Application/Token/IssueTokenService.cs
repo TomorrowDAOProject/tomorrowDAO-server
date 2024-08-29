@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using AElf;
@@ -60,6 +61,7 @@ public class IssueTokenService : TomorrowDAOServerAppService, IIssueTokenService
                 _contractProvider.ContractAddress(input.ChainId, CommonConstant.ProxyAccountContractAddressName);
             tokenResponse.TokenContractAddress =
                 _contractProvider.ContractAddress(input.ChainId, SystemContractName.TokenContract);
+            tokenResponse.RealIssuers = new List<string>() { tokenInfo.Issuer?.ToBase58() };
 
             var issueChainId = ChainHelper.ConvertChainIdToBase58(tokenInfo.IssueChainId);
             if (issueChainId != input.ChainId)
@@ -74,6 +76,12 @@ public class IssueTokenService : TomorrowDAOServerAppService, IIssueTokenService
             {
                 tokenResponse.TokenOrigin = TokenOriginEnum.SymbolMarket;
                 tokenResponse.ProxyAccountHash = proxyAccountHash.ToHex();
+                
+                tokenResponse.RealIssuers = new List<string>();
+                foreach (var managementAddress in proxyAccount.ManagementAddresses)
+                {
+                    tokenResponse.RealIssuers.Add(managementAddress?.Address?.ToBase58());
+                }
 
                 if (input.Amount > 0 && !input.ToAddress.IsNullOrWhiteSpace())
                 {

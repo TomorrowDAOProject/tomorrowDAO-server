@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TomorrowDAOServer.Common.Enum;
 
 namespace TomorrowDAOServer.Token.Dto;
@@ -29,4 +30,5 @@ public class IssueTokenResponse
     public string ProxyAccountContractAddress { get; set; }
     public string TokenContractAddress { get; set; }
     public string ProxyArgs { get; set; }
+    public List<string> RealIssuers { get; set; }
 }
