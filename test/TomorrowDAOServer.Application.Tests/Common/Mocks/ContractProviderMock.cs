@@ -9,6 +9,7 @@ using AElf.Contracts.Election;
 using AElf.Contracts.ProxyAccountContract;
 using AElf.Types;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Moq;
 using NSubstitute;
 using TomorrowDAOServer.Common.AElfSdk;
@@ -189,13 +190,20 @@ public class ContractProviderMock
                     IssueChainId = ChainHelper.ConvertBase58ToChainId(ChainIdAELF),
                     Issued = 10
                 });
-            } else if (typeof(T) == typeof(ProxyAccount))
+            }
+            else if (typeof(T) == typeof(ProxyAccount))
             {
-                return await Task.FromResult<T>((T)(object)new ProxyAccount
+                var proxyAccount = new ProxyAccount
                 {
                     CreateChainId = ChainHelper.ConvertBase58ToChainId(ChainIdAELF),
                     ProxyAccountHash = TransactionHash
-                });
+                };
+                proxyAccount.ManagementAddresses.Add(new ManagementAddress
+                    {
+                        Address = Address.FromBase58(Address1)
+                    }
+                );
+                return await Task.FromResult<T>((T)(object)proxyAccount);
             }
 
             throw new Exception("Not support type.");
