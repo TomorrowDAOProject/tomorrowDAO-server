@@ -54,7 +54,7 @@ public class DAOSyncDataService : ScheduleSyncDataService
                 ChainId = chainId,
                 SkipCount = skipCount,
                 MaxResultCount = MaxResultCount,
-                StartBlockHeight = lastEndHeight,
+                StartBlockHeight = 0,
                 EndBlockHeight = newIndexHeight
             };
             queryList = await _daoProvider.GetSyncDAOListAsync(input);
