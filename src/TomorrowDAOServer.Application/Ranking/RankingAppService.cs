@@ -58,6 +58,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     private const string DistributedLockPrefix = "RankingVote";
     private const string DistributedCachePrefix = "RankingVotingRecord";
+    private const string DistributedCachePointsVotePrefix = "Points:Vote";
+    private const string DistributedCachePointsLikePrefix = "Points:Like";
+    private const string DistributedCachePointsAllPrefix = "Points:All";
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -387,6 +390,21 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private string GenerateDistributedLockKey(string chainId, string address, string proposalId)
     {
         return $"{DistributedLockPrefix}:{chainId}:{address}:{proposalId}";
+    }
+    
+    private string GenerateAppPointsVoteCacheKey(string proposalId, string alias)
+    {
+        return $"{DistributedCachePointsVotePrefix}:{proposalId}:{alias}";
+    }
+    
+    private string GenerateAppPointsLikeCacheKey(string proposalId, string alias)
+    {
+        return $"{DistributedCachePointsLikePrefix}:{proposalId}:{alias}";
+    }
+    
+    private string GenerateUserPointsAllCacheKey(string address)
+    {
+        return $"{DistributedCachePointsAllPrefix}:{address}";
     }
 
     public async Task<RankingVoteRecord> GetRankingVoteRecordAsync(string chainId, string address, string proposalId)
