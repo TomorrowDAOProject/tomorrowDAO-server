@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
@@ -48,7 +50,9 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             throw new UserFriendlyException("Invalid input.");
         }
 
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), input.ChainId);
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
             throw new UserFriendlyException("Access denied.");
@@ -68,6 +72,52 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             _logger.LogError(e, "exec LoadTelegramAppsAsync error, {0}", JsonConvert.SerializeObject(input));
             throw;
         }
+    }
+
+    public async Task<IDictionary<string, TelegramAppDetailDto>> LoadTelegramAppsDetailAsync(
+        LoadTelegramAppsDetailInput input)
+    {
+        if (input == null || input.Url.IsNullOrWhiteSpace() || input.ChainId.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("Invalid input.");
+        }
+
+        if (input.Apps.IsNullOrEmpty())
+        {
+            return new Dictionary<string, TelegramAppDetailDto>();
+        }
+
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
+        {
+            throw new UserFriendlyException("Access denied.");
+        }
+
+        var res = new Dictionary<string, TelegramAppDetailDto>();
+        foreach (var keyValuePair in input.Apps)
+        {
+            try
+            {
+                var detailDto = await AnalyzeDetailPageAsync(input.Url, input.Header, keyValuePair.Key, keyValuePair.Value);
+                res[keyValuePair.Key] = detailDto;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "LoadTelegramAppsDetailAsync error. AppName={0}", keyValuePair);
+                throw;
+            }
+        }
+
+        return res;
+    }
+
+    private async Task<TelegramAppDetailDto> AnalyzeDetailPageAsync(string inputUrl, Dictionary<string, string> header,
+        string key, string value)
+    {
+        return await _httpProvider.InvokeAsync<TelegramAppDetailDto>(method: HttpMethod.Get, url: $"{inputUrl}{value}",
+            header: header);
     }
 
     private async Task<List<TelegramAppDto>> AnalyzePageBodyByHtmlAgilityPackAsync(string url)
