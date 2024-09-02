@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using TomorrowDAOServer.Extension;
 using Serilog;
 using Serilog.Events;
+using TomorrowDAOServer.Hubs;
 
 namespace TomorrowDAOServer
 {
@@ -35,7 +36,9 @@ namespace TomorrowDAOServer
                     .UseSerilog();
 
                 await builder.AddApplicationAsync<TomorrowDAOServerHttpApiHostModule>();
+                builder.Services.AddSignalR();
                 var app = builder.Build();
+                app.MapHub<PointsHub>("api/app/ranking/points");
                 await app.InitializeApplicationAsync();
                 await app.RunAsync();
                 return 0;
