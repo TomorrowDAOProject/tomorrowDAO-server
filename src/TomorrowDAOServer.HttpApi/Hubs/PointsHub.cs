@@ -42,7 +42,8 @@ public class PointsHub : AbpHub
         _logger.LogInformation("RequestPointsProduceBegin, chainId {chainId}", chainId);
         await Groups.AddToGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
         var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
-        await Clients.Caller.SendAsync(CommonConstant.ReceivePointsProduce, currentPoints);
+        await Clients.Caller.SendAsync(CommonConstant.RequestPointsProduce, 
+            new PointsProduceDto { PointsList = currentPoints });
         _logger.LogInformation("RequestPointsProduceEnd, chainId {chainId}", chainId);
         await PushRequestBpProduceAsync(chainId);
     }
@@ -70,7 +71,9 @@ public class PointsHub : AbpHub
                 {
                     _logger.LogInformation("PushRequestBpProduceAsyncNeedToPush, chainId {chainId}", chainId);
                     await _hubContext.Clients.Groups(HubHelper.GetPointsGroupName(chainId))
-                        .SendAsync(CommonConstant.ReceivePointsProduce, currentPoints);
+                        .SendAsync(
+                            CommonConstant.ReceivePointsProduce, 
+                            new PointsProduceDto { PointsList = currentPoints });
                 }
                 _pointsCache = currentPoints;
                 _logger.LogInformation("PushRequestBpProduceAsyncEnd, chainId {chainId}", chainId);
