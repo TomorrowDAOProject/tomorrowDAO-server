@@ -8,7 +8,7 @@ namespace TomorrowDAOServer.Ranking;
 
 public interface IRankingAppService
 {
-    Task GenerateRankingApp(List<IndexerProposal> proposalList);
+    Task GenerateRankingApp(string chainId, List<IndexerProposal> proposalList);
     Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId);
     Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input);
     Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId, string daoId);
@@ -16,4 +16,5 @@ public interface IRankingAppService
     Task<RankingVoteResponse> VoteAsync(RankingVoteInput input);
     Task<RankingVoteRecord> GetVoteStatusAsync(GetVoteStatusInput input);
     Task MoveHistoryDataAsync();
+    Task<long> LikeAsync(RankingAppLikeInput input);
 }

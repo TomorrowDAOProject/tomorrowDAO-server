@@ -30,7 +30,7 @@ public partial class RankingAppServiceTest : TomorrowDaoServerApplicationTestBas
     [Fact]
     public async Task GenerateRankingAppTest()
     {
-        await _rankingAppService.GenerateRankingApp(new List<IndexerProposal>
+        await _rankingAppService.GenerateRankingApp(ChainIdAELF, new List<IndexerProposal>
         {
             new()
             {

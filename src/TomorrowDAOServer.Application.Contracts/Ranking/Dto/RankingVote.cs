@@ -28,4 +28,5 @@ public class RankingVoteRecord
     public string TransactionId { get; set; }
     public string VoteTime { get; set; }
     public RankingVoteStatusEnum Status { get; set; }
+    public long TotalPoints { get; set; }
 }

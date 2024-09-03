@@ -4,10 +4,11 @@ public class RedisHelper
 {
     private const string DistributedLockPrefix = "RankingVote";
     private const string DistributedCachePrefix = "RankingVotingRecord";
+    private const string DistributedCacheDefaultProposalPrefix = "DefaultProposal";
     private const string DistributedCachePointsVotePrefix = "Points:Vote";
     private const string DistributedCachePointsLikePrefix = "Points:Like";
     private const string DistributedCachePointsAllPrefix = "Points:All";
-    private const string DistributedCacheDefaultProposalPrefix = "Default:Proposal";
+    
     
     public static string GenerateDistributeCacheKey(string chainId, string address, string proposalId)
     {
@@ -34,8 +35,8 @@ public class RedisHelper
         return $"{DistributedCachePointsAllPrefix}:{address}";
     }
     
-    public static string GenerateDefaultProposalCacheKey()
+    public static string GenerateDefaultProposalCacheKey(string chainId)
     {
-        return $"{DistributedCacheDefaultProposalPrefix}";
+        return $"{DistributedCacheDefaultProposalPrefix}:{chainId}";
     }
 }

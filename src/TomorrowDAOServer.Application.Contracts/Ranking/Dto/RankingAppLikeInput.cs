@@ -4,6 +4,7 @@ namespace TomorrowDAOServer.Ranking.Dto;
 
 public class RankingAppLikeInput
 {
+    public string ChainId { get; set; }
     public string ProposalId { get; set; }
     public List<RankingAppLikeDetailDto> LikeList { get; set; }
 }

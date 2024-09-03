@@ -60,4 +60,11 @@ public class RankingController
     {
         await _rankingAppService.MoveHistoryDataAsync();
     }
+
+    [HttpPost("like")]
+    [Authorize]
+    public async Task<long> LikeAsync(RankingAppLikeInput input)
+    {
+        return await _rankingAppService.LikeAsync(input);
+    }
 }

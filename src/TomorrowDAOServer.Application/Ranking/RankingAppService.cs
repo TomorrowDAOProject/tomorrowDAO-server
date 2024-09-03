@@ -87,7 +87,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
 
-    public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
+    public async Task GenerateRankingApp(string chainId, List<IndexerProposal> proposalList)
     {
         var toUpdate = new List<RankingAppIndex>();
         var descriptionBegin = _rankingOptions.CurrentValue.DescriptionBegin;
@@ -112,6 +112,15 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         if (!toUpdate.IsNullOrEmpty())
         {
             await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
+
+            var defaultRankingProposal = await GetDefaultRankingProposalAsync(chainId);
+            if (defaultRankingProposal != null && !defaultRankingProposal.RankingList.IsNullOrEmpty())
+            {
+                var rankingApp = defaultRankingProposal.RankingList.FirstOrDefault();
+                var proposalId = rankingApp!.ProposalId;
+                var endTime = defaultRankingProposal.EndTime;
+                await SaveDefaultRankingProposalIdAsync(chainId, proposalId, endTime);
+            }
         }
     }
 
@@ -257,6 +266,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             };
         }
 
+        if (voteRecord.Status == RankingVoteStatusEnum.Voted)
+        {
+            var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(input.Address);
+            voteRecord.TotalPoints = points;
+        }
+
         return voteRecord;
     }
 
@@ -264,9 +279,61 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     {
         // move app points
         var historyAppVotes = await _rankingAppProvider.GetByNeedMoveProposalAsync();
-        
+
         // move user points
         throw new NotImplementedException();
+    }
+
+    public async Task<long> LikeAsync(RankingAppLikeInput input)
+    {
+        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.ProposalId.IsNullOrWhiteSpace() ||
+            input.LikeList.IsNullOrEmpty())
+        {
+            ExceptionHelper.ThrowArgumentException();
+        }
+
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        if (address.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("User Address Not Found.");
+        }
+
+        try
+        {
+            var defaultProposalId = await GetDefaultRankingProposalIdAsync(input.ChainId);
+            if (input.ProposalId != defaultProposalId)
+            {
+                throw new UserFriendlyException("Cannot be liked");
+            }
+            
+            await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
+
+            return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Ranking like, error. {0}", JsonConvert.SerializeObject(input));
+            ExceptionHelper.ThrowSystemException("liking", e);
+            return 0;
+        }
+    }
+
+    private async Task SaveDefaultRankingProposalIdAsync(string chainId, string proposalId, DateTime expire)
+    {
+        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
+        await _distributedCache.SetAsync(distributeCacheKey, proposalId,
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpiration = expire
+            });
+    }
+
+    private async Task<string> GetDefaultRankingProposalIdAsync(string chainId)
+    {
+        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
+        return await _distributedCache.GetAsync(distributeCacheKey) ?? string.Empty;
     }
 
     private async Task SaveVotingRecordAsync(string chainId, string address,
