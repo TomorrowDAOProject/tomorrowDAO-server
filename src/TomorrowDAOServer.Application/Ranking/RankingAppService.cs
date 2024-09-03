@@ -300,6 +300,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return await GetAllAppPointsAsync(chainId, defaultProposal.ProposalId);
     }
 
+    public async Task<long> GetUserAllPointsAsync(string address)
+    {
+        var cacheKey = GenerateUserPointsAllCacheKey(address);
+        var cache = await _distributedCache.GetAsync(cacheKey);
+        return cache.IsNullOrWhiteSpace() ? 0 : Convert.ToInt64(cache);
+    }
+
     private async Task SaveVotingRecordAsync(string chainId, string address,
         string proposalId, RankingVoteStatusEnum status, string transactionId, TimeSpan? expire = null)
     {
@@ -327,15 +334,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         
         var canVoteAmount = 0;
+        var userTotalPoints = 0L;
         var rankingApp = rankingAppList[0];
         var proposalDescription = rankingApp.ProposalDescription;
-        if ( rankingApp.ActiveEndTime < DateTime.UtcNow)
-        {
-            return new RankingDetailDto();
-        }
-        
         if (!string.IsNullOrEmpty(userAddress))
         {
+            userTotalPoints = await GetUserAllPointsAsync(userAddress);
             var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
             if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
             {
@@ -373,6 +377,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             EndTime = rankingApp.ActiveEndTime,
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
+            UserTotalPoints = userTotalPoints,
             RankingList = rankingList.OrderByDescending(r => r.VoteAmount)
                 .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList()
         };

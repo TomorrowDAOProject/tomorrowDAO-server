@@ -17,4 +17,5 @@ public interface IRankingAppService
     Task<RankingVoteRecord> GetVoteStatusAsync(GetVoteStatusInput input);
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
+    Task<long> GetUserAllPointsAsync(string address);
 }
