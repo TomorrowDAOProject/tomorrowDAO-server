@@ -136,15 +136,17 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     {
         var likeList = likeInput.LikeList;
         var proposalId = likeInput.ProposalId;
-        foreach (var like in likeList)
-        {
-            var appLikeKey = RedisHelper.GenerateAppPointsLikeCacheKey(proposalId, like.Alias);
-            var appLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(like.LikeAmount);
-            await IncrementAsync(appLikeKey, appLikePoints);
-        }
+        var incrementTasks = (from like in likeList let 
+            appLikeKey = RedisHelper.GenerateAppPointsLikeCacheKey(proposalId, like.Alias) 
+            let appLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(like.LikeAmount) 
+            select IncrementAsync(appLikeKey, appLikePoints))
+            .ToList();
+
         var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var userLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(likeList.Sum(x => x.LikeAmount));
-        await IncrementAsync(userKey, userLikePoints);
+        incrementTasks.Add(IncrementAsync(userKey, userLikePoints));
+
+        await Task.WhenAll(incrementTasks);
     }
 
     public async Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount)
@@ -152,7 +154,6 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var appVoteKey = RedisHelper.GenerateAppPointsVoteCacheKey(proposalId, alias);
         var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var votePoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
-        await IncrementAsync(appVoteKey, votePoints);
-        await IncrementAsync(userKey, votePoints);
+        await Task.WhenAll(IncrementAsync(appVoteKey, votePoints), IncrementAsync(userKey, votePoints));
     }
 }
