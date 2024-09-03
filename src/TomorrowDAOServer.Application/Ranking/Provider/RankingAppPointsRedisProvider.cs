@@ -21,11 +21,8 @@ public interface IRankingAppPointsRedisProvider
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
-    Task IncrementPointsAsync(RankingAppLikeInput likeInfo, string address, long points);
-    Task<long> AddOrUpdateAppAndUserPointsAsync(string chainId, string proposalId, string address, string alias, long points);
-    Task IncrementAppPointsAsync(string proposalId, string alias, long points);
-    Task IncrementUserPointsAsync(string proposalId, string address, string alias, long points);
-    
+    Task IncrementLikePointsAsync(RankingAppLikeInput likeInfo, string address);
+    Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -125,22 +122,12 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         return cache.IsNullOrWhiteSpace() ? 0 : Convert.ToInt64(cache);
     }
 
-    public Task IncrementPointsAsync(RankingAppLikeInput likeInfo, string address, long points)
+    public Task IncrementLikePointsAsync(RankingAppLikeInput likeInfo, string address)
     {
         throw new NotImplementedException();
     }
 
-    public Task<long> AddOrUpdateAppAndUserPointsAsync(string chainId, string proposalId, string address, string alias, long points)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task IncrementAppPointsAsync(string proposalId, string alias, long points)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task IncrementUserPointsAsync(string proposalId, string address, string alias, long points)
+    public Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount)
     {
         throw new NotImplementedException();
     }
