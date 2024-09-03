@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace TomorrowDAOServer.Ranking.Dto;
 
-public class RankingAppLikeDto
+public class RankingAppLikeInput
 {
     public string ProposalId { get; set; }
     public List<RankingAppLikeDetailDto> LikeList { get; set; }

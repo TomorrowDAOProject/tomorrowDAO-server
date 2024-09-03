@@ -307,7 +307,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return cache.IsNullOrWhiteSpace() ? 0 : Convert.ToInt64(cache);
     }
 
-    public Task IncrementPoints(RankingAppLikeDto likeInfo, string address, long points)
+    public Task IncrementPoints(RankingAppLikeInput likeInfo, string address, long points)
     {
         throw new NotImplementedException();
     }
