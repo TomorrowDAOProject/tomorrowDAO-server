@@ -7,8 +7,8 @@ namespace TomorrowDAOServer.Ranking.Provider
 {
     public interface IRankingAppPointsCalcProvider
     {
-        public long CalculatePointsFromVotes(int voteCount);
-        public long CalculatePointsFromLikes(int likeCount);
+        public long CalculatePointsFromVotes(long voteCount);
+        public long CalculatePointsFromLikes(long likeCount);
         public long CalculateVotesFromPoints(long votePoints);
     }
 
@@ -24,12 +24,12 @@ namespace TomorrowDAOServer.Ranking.Provider
             _rankingOptions = rankingOptions;
         }
 
-        public long CalculatePointsFromVotes(int voteCount)
+        public long CalculatePointsFromVotes(long voteCount)
         {
             return _rankingOptions.CurrentValue.PointsPerVote * voteCount;
         }
 
-        public long CalculatePointsFromLikes(int likeCount)
+        public long CalculatePointsFromLikes(long likeCount)
         {
             return _rankingOptions.CurrentValue.PointsPerLike * likeCount;
         }

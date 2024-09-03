@@ -22,7 +22,7 @@ public interface IRankingAppPointsRedisProvider
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
-    Task IncrementLikePointsAsync(RankingAppLikeInput likeInfo, string address);
+    Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
     Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
 }
 
@@ -32,14 +32,16 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     private readonly IRankingAppProvider _rankingAppProvider;
     private readonly IProposalProvider _proposalProvider;
     private readonly IDatabase _database;
+    private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
 
     public RankingAppPointsRedisProvider(ILogger<RankingAppPointsRedisProvider> logger, 
         IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider,
-        IConnectionMultiplexer connectionMultiplexer)
+        IConnectionMultiplexer connectionMultiplexer, IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
     {
         _logger = logger;
         _rankingAppProvider = rankingAppProvider;
         _proposalProvider = proposalProvider;
+        _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _database = connectionMultiplexer.GetDatabase();
     }
 
@@ -130,13 +132,27 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         return cache.IsNullOrWhiteSpace() ? 0 : Convert.ToInt64(cache);
     }
 
-    public Task IncrementLikePointsAsync(RankingAppLikeInput likeInfo, string address)
+    public async Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address)
     {
-        throw new NotImplementedException();
+        var likeList = likeInput.LikeList;
+        var proposalId = likeInput.ProposalId;
+        foreach (var like in likeList)
+        {
+            var appLikeKey = RedisHelper.GenerateAppPointsLikeCacheKey(proposalId, like.Alias);
+            var appLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(like.LikeAmount);
+            await IncrementAsync(appLikeKey, appLikePoints);
+        }
+        var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
+        var userLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(likeList.Sum(x => x.LikeAmount));
+        await IncrementAsync(userKey, userLikePoints);
     }
 
-    public Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount)
+    public async Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount)
     {
-        throw new NotImplementedException();
+        var appVoteKey = RedisHelper.GenerateAppPointsVoteCacheKey(proposalId, alias);
+        var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
+        var votePoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
+        await IncrementAsync(appVoteKey, votePoints);
+        await IncrementAsync(userKey, votePoints);
     }
 }

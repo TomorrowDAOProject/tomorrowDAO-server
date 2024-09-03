@@ -302,7 +302,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 group => group.Sum(record => record.Amount));
         foreach (var (key, voteAmount) in userVotesDic)
         {
-            var incrementPoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes((int)voteAmount);
+            var incrementPoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
             await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
         }
 
