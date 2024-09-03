@@ -1,14 +1,14 @@
+using System;
 using AElf.Indexing.Elasticsearch;
 using Nest;
 using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Entities;
 
-public class RankingAppUserPointsIndex : AbstractEntity<string>, IIndexBuild
+public class RankingAppUserPointsIndex : AbstractEntity<Guid>, IIndexBuild
 {
-    [Keyword] public override string Id { get; set; }
+    [Keyword] public override Guid Id { get; set; }
     [Keyword] public string ChainId { get; set; }
-    [PropertyName("DAOId")]
     [Keyword] public string DAOId { get; set; }
     [Keyword] public string ProposalId { get; set; }
     [Keyword] public string AppId { get; set; }

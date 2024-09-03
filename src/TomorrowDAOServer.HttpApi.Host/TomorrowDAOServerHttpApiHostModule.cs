@@ -59,9 +59,8 @@ namespace TomorrowDAOServer
         typeof(TomorrowDAOServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
-        //typeof(AbpEventBusRabbitMqModule),
+        typeof(AbpEventBusRabbitMqModule),
         // typeof(AbpCachingModule),
-        
         typeof(AbpBlobStoringAliyunModule)
     )]
     public class TomorrowDAOServerHttpApiHostModule : AbpModule

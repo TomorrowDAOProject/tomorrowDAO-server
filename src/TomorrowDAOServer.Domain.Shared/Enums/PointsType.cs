@@ -2,6 +2,7 @@ namespace TomorrowDAOServer.Enums;
 
 public enum PointsType
 {
-    VotePoints = 0,
-    LikePoints = 1
+    All = 0,
+    VotePoints = 1,
+    LikePoints = 2
 }
