@@ -83,7 +83,9 @@ public class PointsHub : AbpHub
 
     private async Task<List<RankingAppPointsBaseDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
-        return RankingAppPointsDto.ConvertToBaseList(await _rankingAppService.GetDefaultAllAppPointsAsync(chainId));
+        return RankingAppPointsDto
+            .ConvertToBaseList(await _rankingAppService.GetDefaultAllAppPointsAsync(chainId))
+            .OrderByDescending(x => x.Points).ToList();
     }
 
     private bool IsEqual(IReadOnlyCollection<RankingAppPointsBaseDto> currentPoints)
