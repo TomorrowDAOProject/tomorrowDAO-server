@@ -24,4 +24,5 @@ public class IndexerVoteHistoryDto
     public long Points { get; set; }
     public string VoteFor { get; set; } = string.Empty;
     public string Memo { get; set; } = string.Empty;
+    public bool TotalRecorded { get; set; }
 }

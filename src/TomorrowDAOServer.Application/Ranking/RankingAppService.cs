@@ -19,7 +19,6 @@ using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
-using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.MQ;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
@@ -60,15 +59,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IVoteProvider _voteProvider;
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IMessagePublisherService _messagePublisherService;
+    private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
         IOptionsMonitor<RankingOptions> rankingOptions, IAbpDistributedLock distributedLock,
         ILogger<RankingAppService> logger, IContractProvider contractProvider,
         IDistributedCache<string> distributedCache, ITransferTokenProvider transferTokenProvider,
-        IDAOProvider daoProvider,
-        IVoteProvider voteProvider, IRankingAppPointsRedisProvider rankingAppPointsRedisProvider,
-        IMessagePublisherService messagePublisherService)
+        IDAOProvider daoProvider, IVoteProvider voteProvider, 
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider,
+        IMessagePublisherService messagePublisherService, 
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -83,6 +84,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _transferTokenProvider = transferTokenProvider;
         _daoProvider = daoProvider;
         _messagePublisherService = messagePublisherService;
+        _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -278,10 +280,47 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task MoveHistoryDataAsync()
     {
         // move app points
-        var historyAppVotes = await _rankingAppProvider.GetByNeedMoveProposalAsync();
-
+        var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
+        var appVotesDic = historyAppVotes
+            .ToDictionary(x => RedisHelper.GenerateAppPointsVoteCacheKey(x.ProposalId, x.Alias), x => x);
+        foreach (var (key, rankingAppIndex) in appVotesDic)
+        {
+            var voteAmount = (int)rankingAppIndex.VoteAmount;
+            var incrementPoints =  _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
+            await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
+            await _messagePublisherService.SendVoteMessageAsync(rankingAppIndex.ChainId, 
+                rankingAppIndex.ProposalId, string.Empty, rankingAppIndex.Alias, voteAmount);
+        }
+        
         // move user points
-        throw new NotImplementedException();
+        var historyUserVotes = await _voteProvider.GetNeedMoveVoteRecordListAsync();
+        var userVotesDic = historyUserVotes
+            .GroupBy(record => record.Voter)                
+            .ToDictionary(
+                group => RedisHelper.GenerateUserPointsAllCacheKey(group.Key), 
+                group => group.Sum(record => record.Amount));
+        foreach (var (key, voteAmount) in userVotesDic)
+        {
+            var incrementPoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes((int)voteAmount);
+            await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
+        }
+
+        var userProposalAppVotesDic = historyUserVotes
+            .GroupBy(x => new { x.ChainId, x.Voter, x.VotingItemId, x.Alias })
+            .ToDictionary(
+                g => {
+                    var key = g.Key; 
+                    return new { key.ChainId, key.Voter, key.VotingItemId, key.Alias };
+                },
+                g => g.Sum(record => record.Amount)
+            );
+        foreach (var (key, voteAmount) in userProposalAppVotesDic)
+        {
+            await _messagePublisherService.SendVoteMessageAsync(key.ChainId, key.VotingItemId, 
+                key.Voter, key.Alias, voteAmount);
+        }
+        
+        
     }
 
     public async Task<long> LikeAsync(RankingAppLikeInput input)

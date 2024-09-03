@@ -27,4 +27,5 @@ public class VoteRecordIndex : AbstractEntity<string>, IIndexBuild
     public bool ValidRankingVote { get; set; }
     public string Alias { get; set; }
     public string Title { get; set; }
+    public bool TotalRecorded { get; set; }
 }

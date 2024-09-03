@@ -97,14 +97,11 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<ProposalIndex, MyProposalDto>();
         CreateMap<IndexerVote, ProposalDto>();
         CreateMap<IndexerVote, ProposalDetailDto>();
-        CreateMap<VoteRecordIndex, VoteRecordDto>();
         CreateMap<IndexerVoteRecord, VoteRecordIndex>()
             .ForMember(des => des.IsWithdraw, opt
                 => opt.MapFrom(source => false))
-            ;
-        CreateMap<IndexerVoteRecord, VoteRecordDto>()
-            .ForMember(des => des.Option, opt
-                => opt.MapFrom(source => source.Option.ToString()))
+            .ForMember(des => des.TotalRecorded, opt
+                => opt.MapFrom(source => true))
             ;
 
         CreateMap<DAOIndex, DAOInfoDto>()
