@@ -40,7 +40,7 @@ namespace TomorrowDAOServer.EntityEventHandler;
     typeof(AbpAspNetCoreSerilogModule),
     typeof(TomorrowDAOServerEntityEventHandlerCoreModule),
     typeof(AbpAspNetCoreSerilogModule),
-    //typeof(AbpEventBusRabbitMqModule),
+    typeof(AbpEventBusRabbitMqModule),
     typeof(TomorrowDAOServerWorkerModule),
     typeof(AbpBackgroundJobsHangfireModule)
     // typeof(AbpBackgroundJobsRabbitMqModule)

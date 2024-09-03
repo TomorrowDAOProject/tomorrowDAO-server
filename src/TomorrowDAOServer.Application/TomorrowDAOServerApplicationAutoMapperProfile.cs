@@ -18,6 +18,7 @@ using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Ranking.Dto;
+using TomorrowDAOServer.Ranking.Eto;
 using TomorrowDAOServer.Spider.Dto;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Token;
@@ -249,6 +250,13 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source =>
                     DateTime.UtcNow <= source.ActiveEndTime && DateTime.UtcNow >= source.ActiveStartTime))
             ;
+        CreateMap<VoteAndLikeMessageEto, RankingAppUserPointsIndex>()
+            .ForMember(des => des.DAOId, opt
+                => opt.MapFrom(source => source.DaoId));
+        CreateMap<VoteAndLikeMessageEto, RankingAppPointsIndex>()
+            .ForMember(des => des.DAOId, opt
+                => opt.MapFrom(source => source.DaoId));
+            
         CreateMap<TokenInfo, IssueTokenResponse>()
             .ForMember(des => des.Issuer, opt
                 => opt.MapFrom(source => MapAddress(source.Issuer)))
