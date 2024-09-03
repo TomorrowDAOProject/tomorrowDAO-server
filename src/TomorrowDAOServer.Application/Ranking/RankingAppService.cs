@@ -18,6 +18,7 @@ using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
@@ -254,6 +255,49 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             };
         }
         return voteRecord;
+    }
+
+    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId)
+    {
+        var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
+        if (rankingAppList.IsNullOrEmpty())
+        {
+            return new List<RankingAppPointsDto>();
+        }
+        
+        var cacheKeys = rankingAppList.SelectMany(index => new[]
+        {
+            GenerateAppPointsVoteCacheKey(index.ProposalId, index.Alias), 
+            GenerateAppPointsLikeCacheKey(index.ProposalId, index.Alias)
+        }).ToList();
+        var pointsDic = await _distributedCache.GetManyAsync(cacheKeys);
+        
+        return pointsDic
+            .Select(pair =>
+            {
+                var keyParts = pair.Key.Split(CommonConstant.Colon);
+                return new RankingAppPointsDto
+                {
+                    ProposalId = keyParts[2],
+                    Alias = keyParts[3],
+                    Points = Convert.ToInt64(pair.Value),
+                    PointsType = Enum.TryParse<PointsType>(keyParts[1], out var parsedPointsType) ? 
+                        parsedPointsType : 
+                        PointsType.Vote
+                };
+            })
+            .ToList();
+    }
+
+    public async Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId)
+    {
+        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
+        if (defaultProposal == null)
+        {
+            return new List<RankingAppPointsDto>();
+        }
+
+        return await GetAllAppPointsAsync(chainId, defaultProposal.ProposalId);
     }
 
     private async Task SaveVotingRecordAsync(string chainId, string address,
