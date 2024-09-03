@@ -15,6 +15,7 @@ namespace TomorrowDAOServer.Ranking.Provider;
 
 public interface IRankingAppPointsRedisProvider
 {
+    public Task SetAsync(string key, string value, TimeSpan? expire = null);
     Task<Dictionary<string, string>> MultiGetAsync(List<string> keys);
     Task<string> GetAsync(string key);
     Task IncrementAsync(string key, long amount);
@@ -30,15 +31,25 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     private readonly ILogger<RankingAppPointsRedisProvider> _logger;
     private readonly IRankingAppProvider _rankingAppProvider;
     private readonly IProposalProvider _proposalProvider;
-    private readonly ConnectionMultiplexer _redis;
+    private readonly IDatabase _database;
 
     public RankingAppPointsRedisProvider(ILogger<RankingAppPointsRedisProvider> logger, 
-        IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider, ConnectionMultiplexer redis)
+        IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider,
+        IConnectionMultiplexer connectionMultiplexer)
     {
         _logger = logger;
         _rankingAppProvider = rankingAppProvider;
         _proposalProvider = proposalProvider;
-        _redis = redis;
+        _database = connectionMultiplexer.GetDatabase();
+    }
+
+    public async Task SetAsync(string key, string value, TimeSpan? expire = null)
+    {
+        await _database.StringSetAsync(key, value);
+        if (expire != null)
+        {
+            _database.KeyExpire(key, expire);
+        }
     }
 
     public async Task<Dictionary<string, string>> MultiGetAsync(List<string> keys)
@@ -47,9 +58,8 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         {
             return new Dictionary<string, string>();
         }
-        var database = _redis.GetDatabase();
         var redisKeys = keys.Select(x => (RedisKey)x).ToArray();
-        var values = await database.StringGetAsync(redisKeys);
+        var values = await _database.StringGetAsync(redisKeys);
 
         var result = keys
             .Zip(values, (k, v) => new KeyValuePair<string, string>(k, v.IsNull ? string.Empty : v.ToString()))
@@ -63,14 +73,12 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         {
             return string.Empty;
         }
-        var database = _redis.GetDatabase();
-        return await database.StringGetAsync(key);
+        return await _database.StringGetAsync(key);
     }
 
     public async Task IncrementAsync(string key, long amount)
     {
-        var database = _redis.GetDatabase();
-        await database.StringIncrementAsync(key, amount);
+        await _database.StringIncrementAsync(key, amount);
     }
 
     public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId)
