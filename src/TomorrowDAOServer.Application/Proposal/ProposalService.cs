@@ -24,6 +24,7 @@ using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Ranking;
+using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
@@ -53,14 +54,14 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private readonly IElectionProvider _electionProvider;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private const int ProposalOnceWithdrawMax = 500;
-    private readonly IRankingAppService _rankingAppService;
+    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
 
     public ProposalService(IObjectMapper objectMapper, IProposalProvider proposalProvider, IVoteProvider voteProvider,
         IGraphQLProvider graphQlProvider, IScriptService scriptService, IProposalAssistService proposalAssistService,
         IDAOProvider DAOProvider, IOptionsMonitor<ProposalTagOptions> proposalTagOptionsMonitor,
         ILogger<ProposalProvider> logger, IUserProvider userProvider, IElectionProvider electionProvider, ITokenService tokenService, 
-        IOptionsMonitor<RankingOptions> rankingOptions, IRankingAppService rankingAppService)
+        IOptionsMonitor<RankingOptions> rankingOptions, IRankingAppPointsRedisProvider rankingAppPointsRedisProvider)
     {
         _objectMapper = objectMapper;
         _proposalProvider = proposalProvider;
@@ -71,7 +72,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         _electionProvider = electionProvider;
         _tokenService = tokenService;
         _rankingOptions = rankingOptions;
-        _rankingAppService = rankingAppService;
+        _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _DAOProvider = DAOProvider;
         _proposalAssistService = proposalAssistService;
         _graphQlProvider = graphQlProvider;
@@ -473,7 +474,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var totalPoints = 0L;
         if (isRankingDao)
         {
-            totalPoints = await _rankingAppService.GetUserAllPointsAsync(input.Address);
+            totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(input.Address);
         }
         var voteResult = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
         {

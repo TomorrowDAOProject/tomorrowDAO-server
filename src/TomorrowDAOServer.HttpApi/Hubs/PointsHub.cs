@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Options;
-using TomorrowDAOServer.Ranking;
 using TomorrowDAOServer.Ranking.Dto;
+using TomorrowDAOServer.Ranking.Provider;
 using Volo.Abp.AspNetCore.SignalR;
 
 namespace TomorrowDAOServer.Hubs;
@@ -19,23 +19,28 @@ public class PointsHub : AbpHub
     private readonly ILogger<PointsHub> _logger;
     private static readonly ConcurrentDictionary<string, bool> IsPushRunning = new();
     private readonly IHubContext<PointsHub> _hubContext;
-    private readonly IRankingAppService _rankingAppService;
+    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IOptionsMonitor<HubCommonOptions> _hubCommonOptions;
     private List<RankingAppPointsBaseDto> _pointsCache = new();
 
     public PointsHub(ILogger<PointsHub> logger, IHubContext<PointsHub> hubContext,
-        IRankingAppService rankingAppService, IOptionsMonitor<HubCommonOptions> hubCommonOptions)
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IOptionsMonitor<HubCommonOptions> hubCommonOptions)
     {
         _logger = logger;
         _hubContext = hubContext;
-        _rankingAppService = rankingAppService;
+        _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _hubCommonOptions = hubCommonOptions;
+    }
+    
+    public async Task UnsubscribePointsProduce(string chainId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
     }
 
     public async Task RequestPointsProduce(string chainId)
     {
         _logger.LogInformation("RequestPointsProduceBegin, chainId {chainId}", chainId);
-        await Groups.AddToGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName());
+        await Groups.AddToGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
         var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
         await Clients.Caller.SendAsync(CommonConstant.ReceivePointsProduce, currentPoints);
         _logger.LogInformation("RequestPointsProduceEnd, chainId {chainId}", chainId);
@@ -44,7 +49,7 @@ public class PointsHub : AbpHub
 
     private async Task PushRequestBpProduceAsync(string chainId)
     {
-        var key = HubHelper.GetPointsGroupName();
+        var key = HubHelper.GetPointsGroupName(chainId);
         if (!IsPushRunning.TryAdd(key, true))
         {
             return;
@@ -64,7 +69,7 @@ public class PointsHub : AbpHub
                 else
                 {
                     _logger.LogInformation("PushRequestBpProduceAsyncNeedToPush, chainId {chainId}", chainId);
-                    await _hubContext.Clients.Groups(HubHelper.GetPointsGroupName())
+                    await _hubContext.Clients.Groups(HubHelper.GetPointsGroupName(chainId))
                         .SendAsync(CommonConstant.ReceivePointsProduce, currentPoints);
                 }
                 _pointsCache = currentPoints;
@@ -84,7 +89,7 @@ public class PointsHub : AbpHub
     private async Task<List<RankingAppPointsBaseDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
         return RankingAppPointsDto
-            .ConvertToBaseList(await _rankingAppService.GetDefaultAllAppPointsAsync(chainId))
+            .ConvertToBaseList(await _rankingAppPointsRedisProvider.GetDefaultAllAppPointsAsync(chainId))
             .OrderByDescending(x => x.Points).ToList();
     }
 

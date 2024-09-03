@@ -2,8 +2,8 @@ namespace TomorrowDAOServer.Common;
 
 public class HubHelper
 {
-    public static string GetPointsGroupName()
+    public static string GetPointsGroupName(string chainId)
     {
-        return "Group_Points";
+        return $"{chainId}_Group_Points";
     }
 }

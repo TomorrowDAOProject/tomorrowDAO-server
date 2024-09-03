@@ -15,6 +15,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
@@ -56,19 +57,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly ITransferTokenProvider _transferTokenProvider;
     private readonly IDAOProvider _daoProvider;
     private readonly IVoteProvider _voteProvider;
-
-    private const string DistributedLockPrefix = "RankingVote";
-    private const string DistributedCachePrefix = "RankingVotingRecord";
-    private const string DistributedCachePointsVotePrefix = "Points:Vote";
-    private const string DistributedCachePointsLikePrefix = "Points:Like";
-    private const string DistributedCachePointsAllPrefix = "Points:All";
+    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
         IOptionsMonitor<RankingOptions> rankingOptions, IAbpDistributedLock distributedLock,
         ILogger<RankingAppService> logger, IContractProvider contractProvider,
         IDistributedCache<string> distributedCache, ITransferTokenProvider transferTokenProvider, IDAOProvider daoProvider, 
-        IVoteProvider voteProvider)
+        IVoteProvider voteProvider, IRankingAppPointsRedisProvider rankingAppPointsRedisProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -83,6 +79,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _transferTokenProvider = transferTokenProvider;
         _daoProvider = daoProvider;
         _voteProvider = voteProvider;
+        _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
 
     public async Task GenerateRankingApp(List<IndexerProposal> proposalList)
@@ -184,7 +181,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             _logger.LogInformation("Ranking vote, lock. {0}", address);
             var distributedLockKey =
-                GenerateDistributedLockKey(input.ChainId, address, voteInput.VotingItemId?.ToHex());
+                RedisHelper.GenerateDistributedLockKey(input.ChainId, address, voteInput.VotingItemId?.ToHex());
             lockHandle = await _distributedLock.TryAcquireAsync(distributedLockKey,
                 _rankingOptions.CurrentValue.GetLockUserTimeoutTimeSpan());
             {
@@ -257,57 +254,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return voteRecord;
     }
 
-    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId)
-    {
-        var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
-        if (rankingAppList.IsNullOrEmpty())
-        {
-            return new List<RankingAppPointsDto>();
-        }
-        
-        var cacheKeys = rankingAppList.SelectMany(index => new[]
-        {
-            GenerateAppPointsVoteCacheKey(index.ProposalId, index.Alias), 
-            GenerateAppPointsLikeCacheKey(index.ProposalId, index.Alias)
-        }).ToList();
-        var pointsDic = await _distributedCache.GetManyAsync(cacheKeys);
-        
-        return pointsDic
-            .Select(pair =>
-            {
-                var keyParts = pair.Key.Split(CommonConstant.Colon);
-                return new RankingAppPointsDto
-                {
-                    ProposalId = keyParts[2],
-                    Alias = keyParts[3],
-                    Points = Convert.ToInt64(pair.Value),
-                    PointsType = Enum.TryParse<PointsType>(keyParts[1], out var parsedPointsType) ? 
-                        parsedPointsType : 
-                        PointsType.Vote
-                };
-            })
-            .ToList();
-    }
-
-    public async Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId)
-    {
-        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
-        if (defaultProposal == null)
-        {
-            return new List<RankingAppPointsDto>();
-        }
-
-        return await GetAllAppPointsAsync(chainId, defaultProposal.ProposalId);
-    }
-
-    public async Task<long> GetUserAllPointsAsync(string address)
-    {
-        var cacheKey = GenerateUserPointsAllCacheKey(address);
-        var cache = await _distributedCache.GetAsync(cacheKey);
-        return cache.IsNullOrWhiteSpace() ? 0 : Convert.ToInt64(cache);
-    }
-
-    public Task IncrementPoints(RankingAppLikeInput likeInfo, string address, long points)
+    public Task HistoryDataAsync()
     {
         throw new NotImplementedException();
     }
@@ -315,7 +262,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private async Task SaveVotingRecordAsync(string chainId, string address,
         string proposalId, RankingVoteStatusEnum status, string transactionId, TimeSpan? expire = null)
     {
-        var distributeCacheKey = GenerateDistributeCacheKey(chainId, address, proposalId);
+        var distributeCacheKey = RedisHelper.GenerateDistributeCacheKey(chainId, address, proposalId);
         await _distributedCache.SetAsync(distributeCacheKey, JsonConvert.SerializeObject(new RankingVoteRecord
             {
                 TransactionId = transactionId,
@@ -344,7 +291,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var proposalDescription = rankingApp.ProposalDescription;
         if (!string.IsNullOrEmpty(userAddress))
         {
-            var userAllPointsTask = GetUserAllPointsAsync(userAddress);
+            var userAllPointsTask = _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
             var rankingVoteRecordTask = GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
             await Task.WhenAll(userAllPointsTask, rankingVoteRecordTask);
             userTotalPoints = userAllPointsTask.Result;
@@ -370,7 +317,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         
         var totalVoteAmount = rankingAppList.Sum(x => x.VoteAmount);
         var allAppPointsDic = RankingAppPointsDto
-            .ConvertToBaseList(await GetAllAppPointsAsync(chainId, proposalId))
+            .ConvertToBaseList(await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId))
             .ToDictionary(x => x.Alias, x => x.Points);
         var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
         foreach (var rankingAppDetailDto in rankingList)
@@ -443,34 +390,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         };
     }
 
-    private string GenerateDistributeCacheKey(string chainId, string address, string proposalId)
-    {
-        return $"{DistributedCachePrefix}:{chainId}:{address}:{proposalId}";
-    }
-
-    private string GenerateDistributedLockKey(string chainId, string address, string proposalId)
-    {
-        return $"{DistributedLockPrefix}:{chainId}:{address}:{proposalId}";
-    }
-    
-    private string GenerateAppPointsVoteCacheKey(string proposalId, string alias)
-    {
-        return $"{DistributedCachePointsVotePrefix}:{proposalId}:{alias}";
-    }
-    
-    private string GenerateAppPointsLikeCacheKey(string proposalId, string alias)
-    {
-        return $"{DistributedCachePointsLikePrefix}:{proposalId}:{alias}";
-    }
-    
-    private string GenerateUserPointsAllCacheKey(string address)
-    {
-        return $"{DistributedCachePointsAllPrefix}:{address}";
-    }
-
     public async Task<RankingVoteRecord> GetRankingVoteRecordAsync(string chainId, string address, string proposalId)
     {
-        var distributeCacheKey = GenerateDistributeCacheKey(chainId, address, proposalId);
+        var distributeCacheKey = RedisHelper.GenerateDistributeCacheKey(chainId, address, proposalId);
         var cache = await _distributedCache.GetAsync(distributeCacheKey);
         return cache.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<RankingVoteRecord>(cache);
     }

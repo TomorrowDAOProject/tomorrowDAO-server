@@ -53,4 +53,11 @@ public class RankingController
     {
         return await _rankingAppService.GetVoteStatusAsync(input);
     }
+    
+    [HttpGet("history-data")]
+    [Authorize]
+    public async Task HistoryDataAsync()
+    {
+        await _rankingAppService.HistoryDataAsync();
+    }
 }
