@@ -45,7 +45,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
                 Alias = appAmount.Key,
                 Title = null,
                 Amount = appAmount.Value,
-                PointsType = PointsType.VotePoints
+                PointsType = PointsType.Like
             });
         }
     }
@@ -64,7 +64,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
             Alias = appAlias,
             Title = null,
             Amount = amount,
-            PointsType = PointsType.VotePoints
+            PointsType = PointsType.Vote
         });
     }
 }

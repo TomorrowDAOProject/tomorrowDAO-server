@@ -21,4 +21,5 @@ public class RankingAppDetailDto
     public DateTime DeployTime { get; set; }
     public long VoteAmount { get; set; }
     public double VotePercent { get; set; }
+    public long PointsAmount { get; set; }
 }

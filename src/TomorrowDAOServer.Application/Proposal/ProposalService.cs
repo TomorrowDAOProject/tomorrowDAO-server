@@ -23,6 +23,7 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election.Provider;
+using TomorrowDAOServer.Ranking;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
@@ -52,13 +53,14 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private readonly IElectionProvider _electionProvider;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private const int ProposalOnceWithdrawMax = 500;
+    private readonly IRankingAppService _rankingAppService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
 
     public ProposalService(IObjectMapper objectMapper, IProposalProvider proposalProvider, IVoteProvider voteProvider,
         IGraphQLProvider graphQlProvider, IScriptService scriptService, IProposalAssistService proposalAssistService,
         IDAOProvider DAOProvider, IOptionsMonitor<ProposalTagOptions> proposalTagOptionsMonitor,
         ILogger<ProposalProvider> logger, IUserProvider userProvider, IElectionProvider electionProvider, ITokenService tokenService, 
-        IOptionsMonitor<RankingOptions> rankingOptions)
+        IOptionsMonitor<RankingOptions> rankingOptions, IRankingAppService rankingAppService)
     {
         _objectMapper = objectMapper;
         _proposalProvider = proposalProvider;
@@ -69,6 +71,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         _electionProvider = electionProvider;
         _tokenService = tokenService;
         _rankingOptions = rankingOptions;
+        _rankingAppService = rankingAppService;
         _DAOProvider = DAOProvider;
         _proposalAssistService = proposalAssistService;
         _graphQlProvider = graphQlProvider;
@@ -469,8 +472,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var isRankingDao = _rankingOptions.CurrentValue.DaoIds.Contains(input.DAOId);
         var totalPoints = 0L;
         if (isRankingDao)
-        { 
-            totalPoints = await _voteProvider.GetVotePoints(input.ChainId, input.DAOId, input.Address) * 10000;
+        {
+            totalPoints = await _rankingAppService.GetUserAllPointsAsync(input.Address);
         }
         var voteResult = await _voteProvider.GetPageVoteRecordAsync(new GetPageVoteRecordInput
         {
