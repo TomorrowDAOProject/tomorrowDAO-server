@@ -83,15 +83,7 @@ public class PointsHub : AbpHub
 
     private async Task<List<RankingAppPointsBaseDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
-        return (await _rankingAppService.GetDefaultAllAppPointsAsync(chainId))
-            .GroupBy(x => new { x.Alias, x.ProposalId })
-            .Select(g => new RankingAppPointsBaseDto
-            {
-                Alias = g.Key.Alias,
-                ProposalId = g.Key.ProposalId,
-                Points = g.Sum(x => x.Points)
-            })
-            .ToList();
+        return RankingAppPointsDto.ConvertToBaseList(await _rankingAppService.GetDefaultAllAppPointsAsync(chainId));
     }
 
     private bool IsEqual(IReadOnlyCollection<RankingAppPointsBaseDto> currentPoints)

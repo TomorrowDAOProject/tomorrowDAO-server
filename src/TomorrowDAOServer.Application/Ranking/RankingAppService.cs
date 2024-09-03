@@ -339,8 +339,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var proposalDescription = rankingApp.ProposalDescription;
         if (!string.IsNullOrEmpty(userAddress))
         {
-            userTotalPoints = await GetUserAllPointsAsync(userAddress);
-            var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
+            var userAllPointsTask = GetUserAllPointsAsync(userAddress);
+            var rankingVoteRecordTask = GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
+            await Task.WhenAll(userAllPointsTask, rankingVoteRecordTask);
+            userTotalPoints = userAllPointsTask.Result;
+            var voteRecordRedis = rankingVoteRecordTask.Result;
             if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
             {
                 canVoteAmount = 0;
@@ -361,10 +364,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         
         var totalVoteAmount = rankingAppList.Sum(x => x.VoteAmount);
+        var allAppPointsDic = RankingAppPointsDto
+            .ConvertToBaseList(await GetAllAppPointsAsync(chainId, proposalId))
+            .ToDictionary(x => x.Alias, x => x.Points);
         var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
-        if (totalVoteAmount > 0)
+        foreach (var rankingAppDetailDto in rankingList)
         {
-            foreach (var rankingAppDetailDto in rankingList)
+            rankingAppDetailDto.PointsAmount = allAppPointsDic.GetValueOrDefault(rankingAppDetailDto.Alias, 0);
+            if (totalVoteAmount > 0)
             {
                 rankingAppDetailDto.VotePercent = (double)rankingAppDetailDto.VoteAmount / totalVoteAmount;
             }
@@ -378,7 +385,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
             UserTotalPoints = userTotalPoints,
-            RankingList = rankingList.OrderByDescending(r => r.VoteAmount)
+            RankingList = rankingList.OrderByDescending(r => r.PointsAmount)
                 .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList()
         };
     }
