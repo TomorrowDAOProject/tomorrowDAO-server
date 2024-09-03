@@ -21,6 +21,7 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Ranking;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
@@ -53,6 +54,7 @@ public class ProposalServiceTest
     private readonly ICurrentUser _currentUser;
     private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private readonly IRankingAppService _rankingAppService;
 
     public ProposalServiceTest()
     {
@@ -70,9 +72,10 @@ public class ProposalServiceTest
         _electionProvider = Substitute.For<IElectionProvider>();
         _tokenService = Substitute.For<ITokenService>();
         _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
+        _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
         _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, 
             _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
-            _logger, _userProvider, _electionProvider, _tokenService, _rankingOptions);
+            _logger, _userProvider, _electionProvider, _tokenService, _rankingOptions, _rankingAppService);
         
         _currentUser = Substitute.For<ICurrentUser>();
         _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
