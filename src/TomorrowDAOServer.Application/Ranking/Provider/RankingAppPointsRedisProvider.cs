@@ -17,6 +17,7 @@ public interface IRankingAppPointsRedisProvider
 {
     Task<Dictionary<string, string>> MultiGetAsync(List<string> keys);
     Task<string> GetAsync(string key);
+    Task IncrementAsync(string key, long amount);
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
@@ -67,6 +68,12 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         }
         var database = _redis.GetDatabase();
         return await database.StringGetAsync(key);
+    }
+
+    public async Task IncrementAsync(string key, long amount)
+    {
+        var database = _redis.GetDatabase();
+        await database.StringIncrementAsync(key, amount);
     }
 
     public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId)
