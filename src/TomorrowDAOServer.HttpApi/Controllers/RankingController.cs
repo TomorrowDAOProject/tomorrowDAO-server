@@ -58,6 +58,6 @@ public class RankingController
     [Authorize]
     public async Task HistoryDataAsync()
     {
-        await _rankingAppService.HistoryDataAsync();
+        await _rankingAppService.MoveHistoryDataAsync();
     }
 }

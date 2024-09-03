@@ -260,8 +260,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return voteRecord;
     }
 
-    public Task HistoryDataAsync()
+    public async Task MoveHistoryDataAsync()
     {
+        // move app points
+        var historyAppVotes = await _rankingAppProvider.GetByNeedMoveProposalAsync();
+        
+        // move user points
         throw new NotImplementedException();
     }
 
