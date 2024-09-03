@@ -15,7 +15,6 @@ public interface IRankingAppProvider
     Task BulkAddOrUpdateAsync(List<RankingAppIndex> list);
     Task<List<RankingAppIndex>> GetByProposalIdAsync(string chainId, string proposalId);
     Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias);
-    Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1);
 }
 
 public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
@@ -65,24 +64,5 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _rankingAppIndexRepository.GetAsync(Filter);
-    }
-
-    public async Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1)
-    {
-        await _semaphore.WaitAsync();
-        try
-        {
-            var rankingAppIndex = await GetByProposalIdAndAliasAsync(chainId, proposalId, alias);
-            if (rankingAppIndex != null && !rankingAppIndex.Id.IsNullOrWhiteSpace())
-            {
-                rankingAppIndex.VoteAmount += amount;
-            }
-
-            await BulkAddOrUpdateAsync(new List<RankingAppIndex>() { rankingAppIndex });
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
     }
 }

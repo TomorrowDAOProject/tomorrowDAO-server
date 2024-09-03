@@ -19,6 +19,10 @@ public interface IRankingAppPointsRedisProvider
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
     Task IncrementPoints(RankingAppLikeInput likeInfo, string address, long points);
+    Task<long> AddOrUpdateAppAndUserPointsAsync(string chainId, string proposalId, string address, string alias, long points);
+    Task IncrementAppPointsAsync(string proposalId, string alias, long points);
+    Task IncrementUserPointsAsync(string proposalId, string address, string alias, long points);
+    
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -89,6 +93,21 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     }
 
     public Task IncrementPoints(RankingAppLikeInput likeInfo, string address, long points)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<long> AddOrUpdateAppAndUserPointsAsync(string chainId, string proposalId, string address, string alias, long points)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task IncrementAppPointsAsync(string proposalId, string alias, long points)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task IncrementUserPointsAsync(string proposalId, string address, string alias, long points)
     {
         throw new NotImplementedException();
     }
