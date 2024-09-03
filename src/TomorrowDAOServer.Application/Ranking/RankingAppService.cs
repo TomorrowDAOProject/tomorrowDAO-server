@@ -307,6 +307,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return cache.IsNullOrWhiteSpace() ? 0 : Convert.ToInt64(cache);
     }
 
+    public Task IncrementPoints(RankingAppLikeDto likeInfo, string address, long points)
+    {
+        throw new NotImplementedException();
+    }
+
     private async Task SaveVotingRecordAsync(string chainId, string address,
         string proposalId, RankingVoteStatusEnum status, string transactionId, TimeSpan? expire = null)
     {

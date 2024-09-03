@@ -18,4 +18,5 @@ public interface IRankingAppService
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
+    Task IncrementPoints(RankingAppLikeDto likeInfo, string address, long points);
 }
