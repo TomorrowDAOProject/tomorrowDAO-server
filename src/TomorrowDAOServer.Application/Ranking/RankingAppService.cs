@@ -19,6 +19,7 @@ using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.MQ;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
@@ -433,18 +434,20 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
         }
 
-        var totalVoteAmount = rankingAppList.Sum(x => x.VoteAmount);
-        var allAppPointsDic = RankingAppPointsDto
-            .ConvertToBaseList(await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId))
+        var appPointsList = await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId);
+        var appVoteAmountDic = appPointsList
+            .Where(x => x.PointsType == PointsType.Vote)
+            .ToDictionary(x => x.Alias, x => _rankingAppPointsCalcProvider.CalculateVotesFromPoints(x.Points));
+        var totalVoteAmount = appVoteAmountDic.Values.Sum();
+        var votePercentFactor = totalVoteAmount > 0 ? 1.0 / totalVoteAmount : 0.0;
+        var appPointsDic = RankingAppPointsDto
+            .ConvertToBaseList(appPointsList)
             .ToDictionary(x => x.Alias, x => x.Points);
         var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
-        foreach (var rankingAppDetailDto in rankingList)
+        foreach (var app in rankingList)
         {
-            rankingAppDetailDto.PointsAmount = allAppPointsDic.GetValueOrDefault(rankingAppDetailDto.Alias, 0);
-            if (totalVoteAmount > 0)
-            {
-                rankingAppDetailDto.VotePercent = (double)rankingAppDetailDto.VoteAmount / totalVoteAmount;
-            }
+            app.PointsAmount = appPointsDic.GetValueOrDefault(app.Alias, 0);
+            app.VotePercent = appVoteAmountDic.GetValueOrDefault(app.Alias, 0) * votePercentFactor;
         }
 
         var aliasList = GetAliasList(proposalDescription);
