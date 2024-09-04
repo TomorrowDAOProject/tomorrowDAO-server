@@ -1,5 +1,6 @@
 using System;
 using AElf.Indexing.Elasticsearch.Options;
+using Confluent.Kafka;
 using TomorrowDAOServer.EntityEventHandler.Core;
 using TomorrowDAOServer.EntityEventHandler.Core.Background.Options;
 using TomorrowDAOServer.Grains;
@@ -37,6 +38,8 @@ using MongoDB.Driver;
 using StackExchange.Redis;
 using TomorrowDAOServer.Options;
 using Volo.Abp.Caching;
+using Volo.Abp.EventBus.Kafka;
+using Volo.Abp.Kafka;
 
 namespace TomorrowDAOServer.EntityEventHandler;
 
@@ -45,7 +48,8 @@ namespace TomorrowDAOServer.EntityEventHandler;
     typeof(AbpAspNetCoreSerilogModule),
     typeof(TomorrowDAOServerEntityEventHandlerCoreModule),
     typeof(AbpAspNetCoreSerilogModule),
-    typeof(AbpEventBusRabbitMqModule),
+    //typeof(AbpEventBusRabbitMqModule),
+    typeof(AbpEventBusKafkaModule),
     typeof(TomorrowDAOServerWorkerModule),
     typeof(AbpBackgroundJobsHangfireModule)
     // typeof(AbpBackgroundJobsRabbitMqModule)
@@ -101,6 +105,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         {
             options.Configuration = configuration["Redis:Configuration"];
         });
+        ConfigureKafka(context, configuration);
     }
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
@@ -224,5 +229,29 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
             var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
             dataProtectionBuilder.PersistKeysToStackExchangeRedis(redis, "TomorrowDAOServer-Protection-Keys");
         }
+    }
+    
+    private void ConfigureKafka(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        Configure<AbpKafkaOptions>(options =>
+        {
+            options.Connections.Default.BootstrapServers = configuration.GetValue<string>("Kafka:Connections:Default:BootstrapServers");
+            //options.Connections.Default.SaslUsername = "user";
+            //options.Connections.Default.SaslPassword = "pwd";
+            options.ConfigureConsumer = config =>
+            {
+                config.SocketTimeoutMs = configuration.GetValue<int>("Kafka:Consumer:SocketTimeoutMs");
+                config.Acks = Acks.All;
+                config.GroupId = configuration.GetValue<string>("Kafka:EventBus:GroupId");
+                config.EnableAutoCommit = true;
+                config.AutoCommitIntervalMs = configuration.GetValue<int>("Kafka:Consumer:AutoCommitIntervalMs");
+            };
+            options.ConfigureTopic = topic =>
+            {
+                topic.Name = configuration.GetValue<string>("Kafka:EventBus:TopicName");
+                topic.ReplicationFactor = -1;
+                topic.NumPartitions = -1;
+            };
+        });
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using AutoResponseWrapper;
+using Confluent.Kafka;
 using GraphQL.Client.Abstractions;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
@@ -38,7 +39,9 @@ using Volo.Abp.BlobStoring.Aliyun;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.DistributedLocking;
+using Volo.Abp.EventBus.Kafka;
 using Volo.Abp.EventBus.RabbitMq;
+using Volo.Abp.Kafka;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict.Tokens;
@@ -58,7 +61,8 @@ namespace TomorrowDAOServer
         typeof(TomorrowDAOServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
-        typeof(AbpEventBusRabbitMqModule),
+        //typeof(AbpEventBusRabbitMqModule),
+        typeof(AbpEventBusKafkaModule),
         // typeof(AbpCachingModule),
         typeof(AbpBlobStoringAliyunModule)
     )]
@@ -94,6 +98,7 @@ namespace TomorrowDAOServer
             ConfigureOrleans(context, configuration);
             ConfigureGraphQl(context, configuration);
             ConfigureDistributedLocking(context, configuration);
+            ConfigureKafka(context, configuration);
             
             context.Services.AddStackExchangeRedisCache(options =>
             {
@@ -102,6 +107,29 @@ namespace TomorrowDAOServer
             
             // ConfigFilter(context);
             context.Services.AddAutoResponseWrapper();
+        }
+
+        private void ConfigureKafka(ServiceConfigurationContext context, IConfiguration configuration)
+        {
+            Configure<AbpKafkaOptions>(options =>
+            {
+                options.Connections.Default.BootstrapServers = configuration.GetValue<string>("Kafka:Connections:Default:BootstrapServers");
+                //options.Connections.Default.SaslUsername = "user";
+                //options.Connections.Default.SaslPassword = "pwd";
+                options.ConfigureProducer = config =>
+                {
+                    config.MessageTimeoutMs = configuration.GetValue<int>("Kafka:Producer:MessageTimeoutMs");
+                    config.MessageSendMaxRetries = configuration.GetValue<int>("Kafka:Producer:MessageSendMaxRetries");
+                    config.SocketTimeoutMs = configuration.GetValue<int>("Kafka:Producer:SocketTimeoutMs");
+                    config.Acks = Acks.All;
+                };
+                options.ConfigureTopic = topic =>
+                {
+                    topic.Name = configuration.GetValue<string>("Kafka:EventBus:TopicName");
+                    topic.ReplicationFactor = -1;
+                    topic.NumPartitions = -1;
+                };
+            });
         }
 
         private void ConfigFilter(ServiceConfigurationContext context)

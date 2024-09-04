@@ -394,13 +394,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             ExceptionHelper.ThrowArgumentException();
         }
 
-        var address =
-            await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        if (address.IsNullOrWhiteSpace())
-        {
-            throw new UserFriendlyException("User Address Not Found.");
-        }
+        var address = "T66MamG2sZL9LSYAvQ45SWvfFtQEEXhGxsJuPexby4MNsXXWT";
+        // var address =
+        //     await _userProvider.GetAndValidateUserAddressAsync(
+        //         CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        // if (address.IsNullOrWhiteSpace())
+        // {
+        //     throw new UserFriendlyException("User Address Not Found.");
+        // }
 
         try
         {
@@ -412,7 +413,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             
             await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
             
-            //await _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
+            var _ = _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
 
             return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
         }
@@ -630,7 +631,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     await _rankingAppPointsRedisProvider.IncrementVotePointsAsync(chainId, votingItemId,
                         address, alias, amount);
                     _logger.LogInformation("Ranking vote, update app vote success.{0}", address);
-                    //await _messagePublisherService.SendVoteMessageAsync(chainId, votingItemId, address, alias, amount);
+                    await _messagePublisherService.SendVoteMessageAsync(chainId, votingItemId, address, alias, amount);
                     _logger.LogInformation("Ranking vote, send vote message success.{0}", address);
                 }
                 else
