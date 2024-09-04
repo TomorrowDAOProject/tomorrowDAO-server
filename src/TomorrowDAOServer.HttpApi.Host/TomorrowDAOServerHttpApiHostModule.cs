@@ -86,7 +86,7 @@ namespace TomorrowDAOServer
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
             ConfigureLocalization();
-            ConfigureCache(configuration);
+            ConfigureCache(context, configuration);
             ConfigureVirtualFileSystem(context);
             ConfigureRedis(context, configuration, hostingEnvironment);
             ConfigureCors(context, configuration);
@@ -111,8 +111,11 @@ namespace TomorrowDAOServer
             context.Services.Configure<MvcOptions>(options => { options.Filters.AddService<LoggingFilter>(); });
         }
 
-        private void ConfigureCache(IConfiguration configuration)
+        private void ConfigureCache(ServiceConfigurationContext context, IConfiguration configuration)
         {
+            var multiplexer = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+            
             Configure<AbpDistributedCacheOptions>(options => { options.KeyPrefix = "TomorrowDAOServer:"; });
         }
 

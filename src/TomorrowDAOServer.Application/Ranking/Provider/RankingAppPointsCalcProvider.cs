@@ -14,8 +14,8 @@ namespace TomorrowDAOServer.Ranking.Provider
 
     public class RankingAppPointsCalcProvider : IRankingAppPointsCalcProvider, ISingletonDependency
     {
-        private ILogger<RankingAppPointsCalcProvider> _logger;
-        private IOptionsMonitor<RankingOptions> _rankingOptions;
+        private readonly ILogger<RankingAppPointsCalcProvider> _logger;
+        private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
 
         public RankingAppPointsCalcProvider(ILogger<RankingAppPointsCalcProvider> logger,
             IOptionsMonitor<RankingOptions> rankingOptions)
