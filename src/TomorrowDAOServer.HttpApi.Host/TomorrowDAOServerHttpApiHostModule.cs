@@ -81,6 +81,7 @@ namespace TomorrowDAOServer
             Configure<TransferTokenOption>(configuration.GetSection("TransferToken"));
             Configure<DaoAliasOptions>(configuration.GetSection("DaoAlias"));
             Configure<RankingOptions>(configuration.GetSection("Ranking"));
+            Configure<HubCommonOptions>(configuration.GetSection("HubCommonOptions"));
             
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

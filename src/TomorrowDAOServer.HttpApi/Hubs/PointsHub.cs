@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
@@ -32,13 +33,14 @@ public class PointsHub : AbpHub
         _hubCommonOptions = hubCommonOptions;
     }
     
-    public async Task UnsubscribePointsProduce(string chainId)
+    public async Task UnsubscribePointsProduce(CommonRequest input)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(input.ChainId));
     }
 
-    public async Task RequestPointsProduce(string chainId)
+    public async Task RequestPointsProduce(CommonRequest input)
     {
+        var chainId = input.ChainId;
         _logger.LogInformation("RequestPointsProduceBegin, chainId {chainId}", chainId);
         await Groups.AddToGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
         var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
