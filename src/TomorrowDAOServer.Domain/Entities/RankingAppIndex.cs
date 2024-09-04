@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
 using Nest;
 
@@ -24,4 +25,7 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public bool EditorChoice { get; set; }
     public DateTime DeployTime { get; set; }
     public long VoteAmount { get; set; }
+    public string Url { get; set; }
+    public string LongDescription { get; set; }
+    public List<string> Screenshots { get; set; }
 }

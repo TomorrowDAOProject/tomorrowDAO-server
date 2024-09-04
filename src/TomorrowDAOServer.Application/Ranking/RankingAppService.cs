@@ -293,6 +293,28 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         // move app points
         var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
+        
+        //update RankingAppIndex url、LongDescription、Screenshots
+        {
+            var aliasesList = historyAppVotes.Select(rankingAppIndex => rankingAppIndex.Alias).ToList();
+            var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+            {
+                Aliases = aliasesList
+            });
+            if (!telegramApps.Item2.IsNullOrEmpty())
+            {
+                var telegramAppMap = telegramApps.Item2.ToDictionary(item => item.Alias);
+                foreach (var rankingAppIndex in historyAppVotes.Where(rankingAppIndex => telegramAppMap.ContainsKey(rankingAppIndex.Alias)))
+                {
+                    rankingAppIndex.Url = telegramAppMap[rankingAppIndex.Alias].Url;
+                    rankingAppIndex.LongDescription = telegramAppMap[rankingAppIndex.Alias].LongDescription;
+                    rankingAppIndex.Screenshots = telegramAppMap[rankingAppIndex.Alias].Screenshots;
+                }
+
+                await _rankingAppProvider.BulkAddOrUpdateAsync(historyAppVotes);
+            }
+        }
+
         var appVotesDic = historyAppVotes
             .ToDictionary(x => RedisHelper.GenerateAppPointsVoteCacheKey(x.ProposalId, x.Alias), x => x);
         foreach (var (key, rankingAppIndex) in appVotesDic)
