@@ -37,6 +37,7 @@ public interface IVoteProvider
     Task<Tuple<long, List<VoteRecordIndex>>> GetPageVoteRecordAsync(GetPageVoteRecordInput input);
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
     Task<long> GetVotePoints(string chainId, string daoId, string voter);
+    Task<List<VoteRecordIndex>> GetNeedMoveVoteRecordListAsync();
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -455,6 +456,17 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.CountAsync(Filter)).Count;
+    }
+
+    public async Task<List<VoteRecordIndex>> GetNeedMoveVoteRecordListAsync()
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.ValidRankingVote).Value(true)),
+            q => q.Term(i => i.Field(f => f.TotalRecorded).Value(false))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await GetAllIndex(Filter, _voteRecordIndexRepository);
     }
 
     public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)

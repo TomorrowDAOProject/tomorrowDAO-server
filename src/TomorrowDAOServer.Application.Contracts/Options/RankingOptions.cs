@@ -13,10 +13,11 @@ public class RankingOptions
     public long LockUserTimeout { get; set; } = 60000;
     //millisecond
     public long VoteTimeout { get; set; } = 60000;
-
     public int RetryTimes { get; set; } = 30;
-
     public int RetryDelay { get; set; } = 2000;
+    public long PointsPerVote { get; set; } = 10000;
+    public long PointsPerLike { get; set; } = 1;
+    
     
     public TimeSpan GetLockUserTimeoutTimeSpan()
     {

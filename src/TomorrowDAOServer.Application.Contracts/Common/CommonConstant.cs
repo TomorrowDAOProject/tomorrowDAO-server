@@ -9,6 +9,7 @@ public static class CommonConstant
     public const string Comma = ",";
     public const string Underline = "_";
     public const string Middleline = "-";
+    public const string Colon = ":";
 
     public const string EmptyString = "";
     public const string ELF = "ELF";
@@ -63,4 +64,8 @@ public static class CommonConstant
             { "b39d3b9a1cea1ff57735520fdaa414bf9c1fc05f5d00cf41326809051882f2ac", VoteMechanism.TOKEN_BALLOT }
         }}
     };
+    
+    // Hub
+    public const string ReceivePointsProduce = "ReceivePointsProduce";
+    public const string RequestPointsProduce = "RequestPointsProduce";
 }

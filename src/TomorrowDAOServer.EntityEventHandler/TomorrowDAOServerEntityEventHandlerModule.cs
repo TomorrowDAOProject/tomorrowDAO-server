@@ -28,10 +28,15 @@ using Hangfire.Mongo;
 using Hangfire.Mongo.CosmosDB;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Volo.Abp.BackgroundJobs.Hangfire;
 using TomorrowDAOServer.Common.Enum;
 using MongoDB.Driver;
+using StackExchange.Redis;
 using TomorrowDAOServer.Options;
+using Volo.Abp.Caching;
 
 namespace TomorrowDAOServer.EntityEventHandler;
 
@@ -40,7 +45,7 @@ namespace TomorrowDAOServer.EntityEventHandler;
     typeof(AbpAspNetCoreSerilogModule),
     typeof(TomorrowDAOServerEntityEventHandlerCoreModule),
     typeof(AbpAspNetCoreSerilogModule),
-    //typeof(AbpEventBusRabbitMqModule),
+    typeof(AbpEventBusRabbitMqModule),
     typeof(TomorrowDAOServerWorkerModule),
     typeof(AbpBackgroundJobsHangfireModule)
     // typeof(AbpBackgroundJobsRabbitMqModule)
@@ -51,6 +56,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
     {
         ConfigureTokenCleanupService();
         var configuration = context.Services.GetConfiguration();
+        var hostingEnvironment = context.Services.GetHostingEnvironment();
         Configure<WorkerOptions>(configuration);
         Configure<WorkerLastHeightOptions>(configuration);
         Configure<WorkerReRunProposalOptions>(configuration.GetSection("WorkerReRunProposalOptions"));
@@ -89,6 +95,12 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         ConfigureEsIndexCreation();
         ConfigureGraphQl(context, configuration);
         // ConfigureBackgroundJob(configuration);
+        ConfigureCache(context, configuration);
+        ConfigureRedis(context, configuration, hostingEnvironment);
+        context.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration["Redis:Configuration"];
+        });
     }
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
@@ -191,5 +203,26 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
             opt.HeartbeatInterval = TimeSpan.FromMilliseconds(3000);
             opt.Queues = new[] { "default", "notDefault" };
         });
+    }
+    
+    private void ConfigureCache(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        var multiplexer = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+        context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+        
+        Configure<AbpDistributedCacheOptions>(options => { options.KeyPrefix = "TomorrowDAOServer:"; });
+    }
+    
+    private void ConfigureRedis(
+        ServiceConfigurationContext context,
+        IConfiguration configuration,
+        IWebHostEnvironment hostingEnvironment)
+    {
+        var dataProtectionBuilder = context.Services.AddDataProtection().SetApplicationName("TomorrowDAOServer");
+        if (!hostingEnvironment.IsDevelopment())
+        {
+            var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            dataProtectionBuilder.PersistKeysToStackExchangeRedis(redis, "TomorrowDAOServer-Protection-Keys");
+        }
     }
 }

@@ -58,9 +58,8 @@ namespace TomorrowDAOServer
         typeof(TomorrowDAOServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
-        //typeof(AbpEventBusRabbitMqModule),
+        typeof(AbpEventBusRabbitMqModule),
         // typeof(AbpCachingModule),
-        
         typeof(AbpBlobStoringAliyunModule)
     )]
     public class TomorrowDAOServerHttpApiHostModule : AbpModule
@@ -81,11 +80,12 @@ namespace TomorrowDAOServer
             Configure<TransferTokenOption>(configuration.GetSection("TransferToken"));
             Configure<DaoAliasOptions>(configuration.GetSection("DaoAlias"));
             Configure<RankingOptions>(configuration.GetSection("Ranking"));
+            Configure<HubCommonOptions>(configuration.GetSection("HubCommonOptions"));
             
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
             ConfigureLocalization();
-            ConfigureCache(configuration);
+            ConfigureCache(context, configuration);
             ConfigureVirtualFileSystem(context);
             ConfigureRedis(context, configuration, hostingEnvironment);
             ConfigureCors(context, configuration);
@@ -110,8 +110,11 @@ namespace TomorrowDAOServer
             context.Services.Configure<MvcOptions>(options => { options.Filters.AddService<LoggingFilter>(); });
         }
 
-        private void ConfigureCache(IConfiguration configuration)
+        private void ConfigureCache(ServiceConfigurationContext context, IConfiguration configuration)
         {
+            var multiplexer = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+            
             Configure<AbpDistributedCacheOptions>(options => { options.KeyPrefix = "TomorrowDAOServer:"; });
         }
 
