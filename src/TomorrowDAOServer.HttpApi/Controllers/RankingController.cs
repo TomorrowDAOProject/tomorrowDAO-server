@@ -22,7 +22,7 @@ public class RankingController
     }
     
     [HttpGet("default-proposal")]
-    [Authorize]
+    // [Authorize]
     public async Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId)
     {
         return await _rankingAppService.GetDefaultRankingProposalAsync(chainId);
