@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Security;
@@ -120,7 +119,6 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     public async Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
         var (proposalId, aliasList) = await GetDefaultRankingProposalInfoAsync(chainId);
-        _logger.LogInformation("GetDefaultAllAppPointsAsync proposalId {proposalId} aliasList {aliasList}", proposalId, aliasList);
         if (proposalId.IsNullOrEmpty() || aliasList.IsNullOrEmpty())
         {
             return new List<RankingAppPointsDto>();
