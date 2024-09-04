@@ -116,12 +116,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
 
-            var defaultRankingProposal = await GetDefaultRankingProposalAsync(chainId);
-            if (defaultRankingProposal != null && !defaultRankingProposal.RankingList.IsNullOrEmpty())
+            //var defaultRankingProposal = await GetDefaultRankingProposalAsync(chainId);
+            var defaultRankingProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
+            if (defaultRankingProposal != null && !defaultRankingProposal.Id.IsNullOrWhiteSpace())
             {
-                var rankingApp = defaultRankingProposal.RankingList.FirstOrDefault();
-                var proposalId = rankingApp!.ProposalId;
-                var endTime = defaultRankingProposal.EndTime;
+                var proposalId = defaultRankingProposal.ProposalId;
+                var endTime = defaultRankingProposal.ActiveEndTime;
                 await SaveDefaultRankingProposalIdAsync(chainId, proposalId, endTime);
             }
         }
@@ -350,6 +350,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
             
             await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
+            
+            await _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
 
             return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
         }
