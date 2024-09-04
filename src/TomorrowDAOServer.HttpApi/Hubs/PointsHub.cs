@@ -95,11 +95,6 @@ public class PointsHub : AbpHub
 
     private async Task<List<RankingAppPointsBaseDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
-        if (_hubCommonOptions.CurrentValue.Mock)
-        {
-            return MockAllAppPoints();
-        }
-
         return RankingAppPointsDto
             .ConvertToBaseList(await _rankingAppPointsRedisProvider.GetDefaultAllAppPointsAsync(chainId))
             .OrderByDescending(x => x.Points).ToList();
@@ -111,18 +106,17 @@ public class PointsHub : AbpHub
                && !currentPoints.Except(_pointsCache, new AllFieldsEqualComparer<RankingAppPointsBaseDto>()).Any();
     }
 
-    // todo remove
-    private List<RankingAppPointsBaseDto> MockAllAppPoints()
-    {
-        var random = new Random();
-        var proposalId = _hubCommonOptions.CurrentValue.MockProposalId;
-        var aliasListString = _hubCommonOptions.CurrentValue.AliasListString;
-        var aliasList = aliasListString.Split(",").ToList();
-
-        return aliasList
-            .Select(alias => new RankingAppPointsDto
-            {
-                ProposalId = proposalId, Alias = alias, Points = random.Next(1, 100000)
-            }).Cast<RankingAppPointsBaseDto>().ToList();
-    }
+    // private List<RankingAppPointsBaseDto> MockAllAppPoints()
+    // {
+    //     var random = new Random();
+    //     var proposalId = _hubCommonOptions.CurrentValue.MockProposalId;
+    //     var aliasListString = _hubCommonOptions.CurrentValue.AliasListString;
+    //     var aliasList = aliasListString.Split(",").ToList();
+    //
+    //     return aliasList
+    //         .Select(alias => new RankingAppPointsDto
+    //         {
+    //             ProposalId = proposalId, Alias = alias, Points = random.Next(1, 100000)
+    //         }).Cast<RankingAppPointsBaseDto>().ToList();
+    // }
 }
