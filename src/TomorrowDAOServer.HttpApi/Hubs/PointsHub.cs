@@ -103,6 +103,7 @@ public class PointsHub : AbpHub
 
     private bool IsEqual(IReadOnlyCollection<RankingAppPointsBaseDto> currentPoints)
     {
+        _logger.LogInformation("IsEqual currentPoints {currentPoints}, _pointsCache {_pointsCache}", currentPoints, _pointsCache);
         return currentPoints.Count == _pointsCache.Count
                && !currentPoints.Except(_pointsCache, new AllFieldsEqualComparer<RankingAppPointsBaseDto>()).Any();
     }
