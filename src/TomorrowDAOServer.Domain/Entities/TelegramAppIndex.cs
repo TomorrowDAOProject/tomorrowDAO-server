@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
 using Nest;
 
@@ -14,4 +15,7 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public string Icon { get; set; }
     public string Description { get; set; }
     public bool EditorChoice { get; set; }
+    public string Url { get; set; }
+    public string LongDescription { get; set; }
+    public List<string> Screenshots { get; set; }
 }
