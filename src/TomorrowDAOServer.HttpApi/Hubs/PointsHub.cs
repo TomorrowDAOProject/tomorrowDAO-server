@@ -35,6 +35,7 @@ public class PointsHub : AbpHub
     
     public async Task UnsubscribePointsProduce(CommonRequest input)
     {
+        _logger.LogInformation("UnsubscribePointsProduce, chainId {chainId}", input.ChainId);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(input.ChainId));
     }
 
@@ -94,6 +95,11 @@ public class PointsHub : AbpHub
 
     private async Task<List<RankingAppPointsBaseDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
+        if (_hubCommonOptions.CurrentValue.Mock)
+        {
+            return MockAllAppPoints();
+        }
+
         return RankingAppPointsDto
             .ConvertToBaseList(await _rankingAppPointsRedisProvider.GetDefaultAllAppPointsAsync(chainId))
             .OrderByDescending(x => x.Points).ToList();
@@ -103,5 +109,20 @@ public class PointsHub : AbpHub
     {
         return currentPoints.Count == _pointsCache.Count
                && !currentPoints.Except(_pointsCache, new AllFieldsEqualComparer<RankingAppPointsBaseDto>()).Any();
+    }
+
+    // todo remove
+    private List<RankingAppPointsBaseDto> MockAllAppPoints()
+    {
+        var random = new Random();
+        var proposalId = _hubCommonOptions.CurrentValue.MockProposalId;
+        var aliasListString = _hubCommonOptions.CurrentValue.AliasListString;
+        var aliasList = aliasListString.Split(",").ToList();
+
+        return aliasList
+            .Select(alias => new RankingAppPointsDto
+            {
+                ProposalId = proposalId, Alias = alias, Points = random.Next(1, 100000)
+            }).Cast<RankingAppPointsBaseDto>().ToList();
     }
 }
