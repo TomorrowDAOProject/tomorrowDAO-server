@@ -119,7 +119,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
 
             //var defaultRankingProposal = await GetDefaultRankingProposalAsync(chainId);
-            var defaultRankingProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
+            // var defaultRankingProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
+            var defaultRankingProposal = proposalList.MaxBy(p => p.DeployTime);
             if (defaultRankingProposal != null && !defaultRankingProposal.Id.IsNullOrWhiteSpace())
             {
                 var proposalId = defaultRankingProposal.ProposalId;
