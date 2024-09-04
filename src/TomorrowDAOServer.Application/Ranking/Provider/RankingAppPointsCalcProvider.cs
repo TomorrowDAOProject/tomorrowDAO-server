@@ -36,7 +36,7 @@ namespace TomorrowDAOServer.Ranking.Provider
 
         public long CalculateVotesFromPoints(long votePoints)
         {
-            return votePoints / _rankingOptions.CurrentValue.PointsPerLike;
+            return votePoints / _rankingOptions.CurrentValue.PointsPerVote;
         }
     }
 }
