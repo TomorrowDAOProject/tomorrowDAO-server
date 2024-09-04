@@ -6,6 +6,7 @@ using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Ranking;
 using TomorrowDAOServer.Ranking.Dto;
 using Volo.Abp;
+using Volo.Abp.AspNetCore.Mvc;
 
 namespace TomorrowDAOServer.Controllers;
 
@@ -13,7 +14,7 @@ namespace TomorrowDAOServer.Controllers;
 [Area("app")]
 [ControllerName("Ranking")]
 [Route("api/app/ranking")]
-public class RankingController
+public class RankingController : AbpController
 {
     private readonly IRankingAppService _rankingAppService;
 
@@ -63,7 +64,7 @@ public class RankingController
     }
 
     [HttpPost("like")]
-    [Authorize]
+    //[Authorize]
     public async Task<long> LikeAsync(RankingAppLikeInput input)
     {
         return await _rankingAppService.LikeAsync(input);
