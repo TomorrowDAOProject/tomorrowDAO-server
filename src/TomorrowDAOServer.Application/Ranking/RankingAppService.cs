@@ -122,7 +122,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 var rankingApp = defaultRankingProposal.RankingList.FirstOrDefault();
                 var proposalId = rankingApp!.ProposalId;
                 var endTime = defaultRankingProposal.EndTime;
-                await SaveDefaultRankingProposalIdAsync(chainId, proposalId, endTime);
+                await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, proposalId, endTime);
             }
         }
     }
@@ -343,7 +343,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
         try
         {
-            var defaultProposalId = await GetDefaultRankingProposalIdAsync(input.ChainId);
+            var defaultProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(input.ChainId);
             if (input.ProposalId != defaultProposalId)
             {
                 throw new UserFriendlyException("Cannot be liked");
@@ -359,22 +359,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             ExceptionHelper.ThrowSystemException("liking", e);
             return 0;
         }
-    }
-
-    private async Task SaveDefaultRankingProposalIdAsync(string chainId, string proposalId, DateTime expire)
-    {
-        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
-        await _distributedCache.SetAsync(distributeCacheKey, proposalId,
-            new DistributedCacheEntryOptions
-            {
-                AbsoluteExpiration = expire
-            });
-    }
-
-    private async Task<string> GetDefaultRankingProposalIdAsync(string chainId)
-    {
-        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
-        return await _distributedCache.GetAsync(distributeCacheKey) ?? string.Empty;
     }
 
     private async Task SaveVotingRecordAsync(string chainId, string address,

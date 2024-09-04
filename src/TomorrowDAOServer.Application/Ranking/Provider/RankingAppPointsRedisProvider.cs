@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using TomorrowDAOServer.Common;
@@ -9,6 +10,7 @@ using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Dto;
+using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Ranking.Provider;
@@ -24,6 +26,8 @@ public interface IRankingAppPointsRedisProvider
     Task<long> GetUserAllPointsAsync(string address);
     Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
     Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
+    Task SaveDefaultRankingProposalIdAsync(string chainId, string proposalId, DateTime expire);
+    Task<string> GetDefaultRankingProposalIdAsync(string chainId);
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -33,15 +37,18 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     private readonly IProposalProvider _proposalProvider;
     private readonly IDatabase _database;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
+    private readonly IDistributedCache<string> _distributedCache;
 
     public RankingAppPointsRedisProvider(ILogger<RankingAppPointsRedisProvider> logger, 
         IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider,
-        IConnectionMultiplexer connectionMultiplexer, IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
+        IConnectionMultiplexer connectionMultiplexer, IRankingAppPointsCalcProvider rankingAppPointsCalcProvider,
+        IDistributedCache<string> distributedCache)
     {
         _logger = logger;
         _rankingAppProvider = rankingAppProvider;
         _proposalProvider = proposalProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
+        _distributedCache = distributedCache;
         _database = connectionMultiplexer.GetDatabase();
     }
 
@@ -116,13 +123,13 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
 
     public async Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
-        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
-        if (defaultProposal == null)
+        var proposalId = await GetDefaultRankingProposalIdAsync(chainId);
+        if (proposalId.IsNullOrEmpty())
         {
             return new List<RankingAppPointsDto>();
         }
 
-        return await GetAllAppPointsAsync(chainId, defaultProposal.ProposalId);
+        return await GetAllAppPointsAsync(chainId, proposalId);
     }
 
     public async Task<long> GetUserAllPointsAsync(string address)
@@ -155,5 +162,21 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var votePoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
         await Task.WhenAll(IncrementAsync(appVoteKey, votePoints), IncrementAsync(userKey, votePoints));
+    }
+    
+    public async Task SaveDefaultRankingProposalIdAsync(string chainId, string proposalId, DateTime expire)
+    {
+        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
+        await _distributedCache.SetAsync(distributeCacheKey, proposalId,
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpiration = expire
+            });
+    }
+
+    public async Task<string> GetDefaultRankingProposalIdAsync(string chainId)
+    {
+        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
+        return await _distributedCache.GetAsync(distributeCacheKey) ?? string.Empty;
     }
 }

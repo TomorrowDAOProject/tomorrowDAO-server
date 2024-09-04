@@ -35,6 +35,7 @@ public class PointsHub : AbpHub
     
     public async Task UnsubscribePointsProduce(CommonRequest input)
     {
+        _logger.LogInformation("UnsubscribePointsProduce, chainId {chainId}", input.ChainId);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(input.ChainId));
     }
 
