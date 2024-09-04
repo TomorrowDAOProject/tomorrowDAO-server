@@ -45,11 +45,7 @@ public class PointsHub : AbpHub
         var chainId = input.ChainId;
         _logger.LogInformation("RequestPointsProduceBegin, chainId {chainId}", chainId);
         await Groups.AddToGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
-        var allPoints = await _rankingAppPointsRedisProvider.GetDefaultAllAppPointsAsync(chainId);
-        _logger.LogInformation("RequestPointsProducePoints allPoints {allPoints}", allPoints);
-        var currentPoints = RankingAppPointsDto
-            .ConvertToBaseList(allPoints)
-            .OrderByDescending(x => x.Points).ToList();
+        var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
         await Clients.Caller.SendAsync(CommonConstant.RequestPointsProduce, 
             new PointsProduceDto { PointsList = currentPoints });
         _logger.LogInformation("RequestPointsProduceEnd, chainId {chainId}", chainId);
