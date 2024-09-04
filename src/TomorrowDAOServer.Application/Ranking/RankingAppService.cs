@@ -61,6 +61,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IMessagePublisherService _messagePublisherService;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
+    private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -70,7 +71,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IDAOProvider daoProvider, IVoteProvider voteProvider, 
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider,
         IMessagePublisherService messagePublisherService, 
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, 
+        IOptionsMonitor<TelegramOptions> telegramOptions)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -86,6 +88,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _daoProvider = daoProvider;
         _messagePublisherService = messagePublisherService;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
+        _telegramOptions = telegramOptions;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -280,8 +283,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return voteRecord;
     }
 
-    public async Task MoveHistoryDataAsync()
+    public async Task MoveHistoryDataAsync(string chainId)
     {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
+        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
+        {
+            throw new UserFriendlyException("Access denied.");
+        }
         // move app points
         var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
         var appVotesDic = historyAppVotes
