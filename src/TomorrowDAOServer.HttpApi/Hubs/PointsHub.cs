@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Options;
@@ -44,7 +45,11 @@ public class PointsHub : AbpHub
         var chainId = input.ChainId;
         _logger.LogInformation("RequestPointsProduceBegin, chainId {chainId}", chainId);
         await Groups.AddToGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
-        var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
+        var allPoints = await _rankingAppPointsRedisProvider.GetDefaultAllAppPointsAsync(chainId);
+        _logger.LogInformation("RequestPointsProducePoints allPoints {allPoints}", allPoints);
+        var currentPoints = RankingAppPointsDto
+            .ConvertToBaseList(allPoints)
+            .OrderByDescending(x => x.Points).ToList();
         await Clients.Caller.SendAsync(CommonConstant.RequestPointsProduce, 
             new PointsProduceDto { PointsList = currentPoints });
         _logger.LogInformation("RequestPointsProduceEnd, chainId {chainId}", chainId);
