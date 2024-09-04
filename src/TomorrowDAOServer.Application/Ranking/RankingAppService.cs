@@ -354,7 +354,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var defaultProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(input.ChainId);
             if (input.ProposalId != defaultProposalId)
             {
-                throw new UserFriendlyException("Cannot be liked");
+                throw new UserFriendlyException($"Cannot be liked.{defaultProposalId}");
             }
             
             await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
