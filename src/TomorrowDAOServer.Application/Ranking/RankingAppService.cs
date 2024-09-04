@@ -488,7 +488,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             .Where(x => x.PointsType == PointsType.Vote)
             .ToDictionary(x => x.Alias, x => _rankingAppPointsCalcProvider.CalculateVotesFromPoints(x.Points));
         var totalVoteAmount = appVoteAmountDic.Values.Sum();
-        var votePercentFactor = totalVoteAmount > 0 ? 1.0 / totalVoteAmount : 0.0;
+        var totalPoints = appPointsList.Sum(x => x.Points);
+        var votePercentFactor = DoubleHelper.GetFactor(totalVoteAmount);
+        var pointsPercentFactor = DoubleHelper.GetFactor(totalPoints);
         var appPointsDic = RankingAppPointsDto
             .ConvertToBaseList(appPointsList)
             .ToDictionary(x => x.Alias, x => x.Points);
@@ -498,6 +500,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             app.PointsAmount = appPointsDic.GetValueOrDefault(app.Alias, 0);
             app.VoteAmount = appVoteAmountDic.GetValueOrDefault(app.Alias, 0);
             app.VotePercent = appVoteAmountDic.GetValueOrDefault(app.Alias, 0) * votePercentFactor;
+            app.PointsPercent = app.PointsAmount * pointsPercentFactor;
         }
         
         return new RankingDetailDto
