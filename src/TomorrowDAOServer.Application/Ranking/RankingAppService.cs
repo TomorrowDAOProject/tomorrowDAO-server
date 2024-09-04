@@ -342,14 +342,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             ExceptionHelper.ThrowArgumentException();
         }
 
-        var address = "T66MamG2sZL9LSYAvQ45SWvfFtQEEXhGxsJuPexby4MNsXXWT";
-        // var address =
-        //     await _userProvider.GetAndValidateUserAddressAsync(
-        //         CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        // if (address.IsNullOrWhiteSpace())
-        // {
-        //     throw new UserFriendlyException("User Address Not Found.");
-        // }
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        if (address.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("User Address Not Found.");
+        }
 
         try
         {
@@ -371,6 +370,15 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             ExceptionHelper.ThrowSystemException("liking", e);
             return 0;
         }
+    }
+
+    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList)
+    {
+        if (proposalId.IsNullOrEmpty())
+        {
+            return await _rankingAppPointsRedisProvider.GetDefaultAllAppPointsAsync(chainId);
+        }
+        return await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId, aliasList);
     }
 
     private async Task SaveVotingRecordAsync(string chainId, string address,

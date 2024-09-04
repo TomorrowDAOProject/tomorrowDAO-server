@@ -33,22 +33,30 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
     private readonly INESTRepository<RankingAppPointsIndex, Guid> _appPointsIndexRepository;
     private readonly INESTRepository<RankingAppUserPointsIndex, Guid> _userPointsIndexRepository;
     private readonly IObjectMapper _objectMapper;
+    private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
 
     private readonly SemaphoreSlim _appPointsSemaphore = new SemaphoreSlim(1, 1);
     private readonly SemaphoreSlim _userPointsSemaphore = new SemaphoreSlim(1, 1);
 
     public RankingAppPointsProvider(ILogger<RankingAppPointsProvider> logger,
         INESTRepository<RankingAppPointsIndex, Guid> appPointsIndexRepository,
-        INESTRepository<RankingAppUserPointsIndex, Guid> userPointsIndexRepository, IObjectMapper objectMapper)
+        INESTRepository<RankingAppUserPointsIndex, Guid> userPointsIndexRepository, IObjectMapper objectMapper,
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
     {
         _logger = logger;
         _appPointsIndexRepository = appPointsIndexRepository;
         _userPointsIndexRepository = userPointsIndexRepository;
         _objectMapper = objectMapper;
+        _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
     }
 
     public async Task AddOrUpdateAppPointsIndexAsync(VoteAndLikeMessageEto message)
     {
+        if (message.PointsType == PointsType.All)
+        {
+            return;
+        }
+
         await _appPointsSemaphore.WaitAsync();
         try
         {
@@ -64,6 +72,11 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
                 appPointsIndex.Amount += message.Amount;
             }
 
+            appPointsIndex.Points += message.PointsType == PointsType.Vote
+                ? _rankingAppPointsCalcProvider.CalculatePointsFromVotes(message.Amount)
+                : _rankingAppPointsCalcProvider.CalculatePointsFromLikes(message.Amount);
+            appPointsIndex.UpdateTime = DateTime.Now;
+
             await AddOrUpdateAppPointsIndexAsync(appPointsIndex);
         }
         finally
@@ -74,6 +87,11 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
 
     public async Task AddOrUpdateUserPointsIndexAsync(VoteAndLikeMessageEto message)
     {
+        if (message.PointsType == PointsType.All)
+        {
+            return;
+        }
+
         await _userPointsSemaphore.WaitAsync();
         try
         {
@@ -88,6 +106,11 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
             {
                 userPointsIndex.Amount += message.Amount;
             }
+            
+            userPointsIndex.Points += message.PointsType == PointsType.Vote
+                ? _rankingAppPointsCalcProvider.CalculatePointsFromVotes(message.Amount)
+                : _rankingAppPointsCalcProvider.CalculatePointsFromLikes(message.Amount);
+            userPointsIndex.UpdateTime = DateTime.Now;
 
             await AddOrUpdateUserPointsIndexAsync(userPointsIndex);
         }

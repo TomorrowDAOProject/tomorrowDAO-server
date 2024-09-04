@@ -45,6 +45,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
                 AppId = null,
                 Alias = likeDetail.Alias,
                 Title = null,
+                Address = address,
                 Amount = likeDetail.LikeAmount,
                 PointsType = PointsType.Like
             });
@@ -64,6 +65,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
             AppId = null,
             Alias = appAlias,
             Title = null,
+            Address = address,
             Amount = amount,
             PointsType = PointsType.Vote
         });

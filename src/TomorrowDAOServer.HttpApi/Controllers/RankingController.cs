@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,9 +63,15 @@ public class RankingController
     }
 
     [HttpPost("like")]
-    //[Authorize]
+    [Authorize]
     public async Task<long> LikeAsync(RankingAppLikeInput input)
     {
         return await _rankingAppService.LikeAsync(input);
+    }
+    
+    [HttpGet("all-app-points")]
+    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(GetAllAppPointsInput input)
+    {
+        return await _rankingAppService.GetAllAppPointsAsync(input.ChainId, input.ProposalId, input.AliasList);
     }
 }
