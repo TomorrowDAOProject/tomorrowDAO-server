@@ -372,15 +372,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
     }
 
-    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList)
-    {
-        if (proposalId.IsNullOrEmpty())
-        {
-            return await _rankingAppPointsRedisProvider.GetDefaultAllAppPointsAsync(chainId);
-        }
-        return await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId, aliasList);
-    }
-
     private async Task SaveVotingRecordAsync(string chainId, string address,
         string proposalId, RankingVoteStatusEnum status, string transactionId, TimeSpan? expire = null)
     {

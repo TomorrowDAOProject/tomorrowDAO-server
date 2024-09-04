@@ -68,10 +68,4 @@ public class RankingController
     {
         return await _rankingAppService.LikeAsync(input);
     }
-    
-    [HttpGet("all-app-points")]
-    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(GetAllAppPointsInput input)
-    {
-        return await _rankingAppService.GetAllAppPointsAsync(input.ChainId, input.ProposalId, input.AliasList);
-    }
 }
