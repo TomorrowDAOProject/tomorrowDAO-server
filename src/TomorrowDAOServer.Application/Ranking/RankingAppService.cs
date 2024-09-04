@@ -152,17 +152,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId, string daoId)
     {
-        var userAddress = "ks8ro2q42cHoiyHkXfzuu772DnpCghrPjy7kntRXrwqost8JL";
-        // var userAddress = string.Empty;
-        // try
-        // {
-        //     userAddress = await _userProvider.GetUserAddressAsync(
-        //         CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        // }
-        // catch (Exception)
-        // {
-        //     // ignored
-        // }
+        // var userAddress = "ks8ro2q42cHoiyHkXfzuu772DnpCghrPjy7kntRXrwqost8JL";
+        var userAddress = string.Empty;
+        try
+        {
+            userAddress = await _userProvider.GetUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
 
         return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId, daoId);
     }
