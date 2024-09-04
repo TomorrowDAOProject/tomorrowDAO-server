@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Eto;
 using Volo.Abp;
 using Volo.Abp.Auditing;
@@ -24,17 +25,17 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
     }
 
     public async Task SendLikeMessageAsync(string chainId, string proposalId, string address,
-        IDictionary<string, long> appAmounts)
+        List<RankingAppLikeDetailDto> likeList)
     {
         _logger.LogInformation("SendLikeMessageAsync, chainId={0}, proposalId={1}, address={2}, like={3}", chainId,
-            proposalId, address, JsonConvert.SerializeObject(appAmounts));
+            proposalId, address, JsonConvert.SerializeObject(likeList));
 
-        if (appAmounts.IsNullOrEmpty())
+        if (likeList.IsNullOrEmpty())
         {
             return;
         }
 
-        foreach (var appAmount in appAmounts)
+        foreach (var likeDetail in likeList)
         {
             await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
             {
@@ -42,9 +43,9 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
                 DaoId = null,
                 ProposalId = proposalId,
                 AppId = null,
-                Alias = appAmount.Key,
+                Alias = likeDetail.Alias,
                 Title = null,
-                Amount = appAmount.Value,
+                Amount = likeDetail.LikeAmount,
                 PointsType = PointsType.Like
             });
         }

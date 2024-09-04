@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Security;
@@ -21,12 +22,13 @@ public interface IRankingAppPointsRedisProvider
     Task<Dictionary<string, string>> MultiGetAsync(List<string> keys);
     Task<string> GetAsync(string key);
     Task IncrementAsync(string key, long amount);
-    Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId);
+    Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
     Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
     Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
-    Task SaveDefaultRankingProposalIdAsync(string chainId, string proposalId, DateTime expire);
+    Task SaveDefaultRankingProposalIdAsync(string chainId, string value, DateTime expire);
+    Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId);
     Task<string> GetDefaultRankingProposalIdAsync(string chainId);
 }
 
@@ -90,18 +92,12 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         await _database.StringIncrementAsync(key, amount);
     }
 
-    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId)
+    public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList)
     {
-        var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
-        if (rankingAppList.IsNullOrEmpty())
+        var cacheKeys = aliasList.SelectMany(alias => new[]
         {
-            return new List<RankingAppPointsDto>();
-        }
-        
-        var cacheKeys = rankingAppList.SelectMany(index => new[]
-        {
-            RedisHelper.GenerateAppPointsVoteCacheKey(index.ProposalId, index.Alias), 
-            RedisHelper.GenerateAppPointsLikeCacheKey(index.ProposalId, index.Alias)
+            RedisHelper.GenerateAppPointsVoteCacheKey(proposalId, alias), 
+            RedisHelper.GenerateAppPointsLikeCacheKey(proposalId, alias)
         }).ToList();
         var pointsDic = await MultiGetAsync(cacheKeys);
         return pointsDic
@@ -115,7 +111,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
                     Points = Convert.ToInt64(pair.Value),
                     PointsType = Enum.TryParse<PointsType>(keyParts[1], out var parsedPointsType) ? 
                         parsedPointsType : 
-                        PointsType.Vote
+                        PointsType.All
                 };
             })
             .ToList();
@@ -123,13 +119,13 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
 
     public async Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId)
     {
-        var proposalId = await GetDefaultRankingProposalIdAsync(chainId);
-        if (proposalId.IsNullOrEmpty())
+        var (proposalId, aliasList) = await GetDefaultRankingProposalInfoAsync(chainId);
+        if (proposalId.IsNullOrEmpty() || aliasList.IsNullOrEmpty())
         {
             return new List<RankingAppPointsDto>();
         }
 
-        return await GetAllAppPointsAsync(chainId, proposalId);
+        return await GetAllAppPointsAsync(chainId, proposalId, aliasList);
     }
 
     public async Task<long> GetUserAllPointsAsync(string address)
@@ -164,19 +160,40 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         await Task.WhenAll(IncrementAsync(appVoteKey, votePoints), IncrementAsync(userKey, votePoints));
     }
     
-    public async Task SaveDefaultRankingProposalIdAsync(string chainId, string proposalId, DateTime expire)
+    public async Task SaveDefaultRankingProposalIdAsync(string chainId, string value, DateTime expire)
     {
         var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
-        await _distributedCache.SetAsync(distributeCacheKey, proposalId,
+        await _distributedCache.SetAsync(distributeCacheKey, value,
             new DistributedCacheEntryOptions
             {
                 AbsoluteExpiration = expire
             });
     }
 
-    public async Task<string> GetDefaultRankingProposalIdAsync(string chainId)
+    public async Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId)
     {
         var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
-        return await _distributedCache.GetAsync(distributeCacheKey) ?? string.Empty;
+        var value = await _distributedCache.GetAsync(distributeCacheKey);
+        if (value.IsNullOrEmpty())
+        {
+            return new Tuple<string, List<string>>(string.Empty, new List<string>());
+        }
+
+        var valueParts = value.Split(CommonConstant.Colon);
+        if (valueParts.Length <= 0)
+        {
+            return new Tuple<string, List<string>>(string.Empty, new List<string>());
+        }
+
+        var proposalId = valueParts[0];
+        var aliasList = valueParts.Skip(1).ToList();
+        return new Tuple<string, List<string>>(proposalId, aliasList);
+
+    }
+
+    public async Task<string> GetDefaultRankingProposalIdAsync(string chainId)
+    {
+        var (proposalId, _) = await GetDefaultRankingProposalInfoAsync(chainId);
+        return proposalId;
     }
 }

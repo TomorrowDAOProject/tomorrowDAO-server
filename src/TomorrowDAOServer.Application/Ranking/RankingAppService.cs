@@ -93,7 +93,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task GenerateRankingApp(string chainId, List<IndexerProposal> proposalList)
     {
         var toUpdate = new List<RankingAppIndex>();
-        var descriptionBegin = _rankingOptions.CurrentValue.DescriptionBegin;
         foreach (var proposal in proposalList)
         {
             var aliases = GetAliasList(proposal.ProposalDescription);
@@ -116,13 +115,15 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
 
-            var defaultRankingProposal = await GetDefaultRankingProposalAsync(chainId);
-            if (defaultRankingProposal != null && !defaultRankingProposal.RankingList.IsNullOrEmpty())
+            //var defaultRankingProposal = await GetDefaultRankingProposalAsync(chainId);
+            var defaultRankingProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
+            if (defaultRankingProposal != null && !defaultRankingProposal.Id.IsNullOrWhiteSpace())
             {
-                var rankingApp = defaultRankingProposal.RankingList.FirstOrDefault();
-                var proposalId = rankingApp!.ProposalId;
-                var endTime = defaultRankingProposal.EndTime;
-                await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, proposalId, endTime);
+                var proposalId = defaultRankingProposal.ProposalId;
+                var aliasString = GetAliasString(defaultRankingProposal.ProposalDescription);
+                var value = proposalId + CommonConstant.Comma + aliasString;
+                var endTime = defaultRankingProposal.ActiveEndTime;
+                await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, value, endTime);
             }
         }
     }
@@ -350,6 +351,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
             
             await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
+            
+            await _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
 
             return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
         }
@@ -419,7 +422,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
         }
 
-        var appPointsList = await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId);
+        var aliasList = GetAliasList(proposalDescription);
+        var appPointsList = await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId, aliasList);
         var appVoteAmountDic = appPointsList
             .Where(x => x.PointsType == PointsType.Vote)
             .ToDictionary(x => x.Alias, x => _rankingAppPointsCalcProvider.CalculateVotesFromPoints(x.Points));
@@ -434,8 +438,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             app.PointsAmount = appPointsDic.GetValueOrDefault(app.Alias, 0);
             app.VotePercent = appVoteAmountDic.GetValueOrDefault(app.Alias, 0) * votePercentFactor;
         }
-
-        var aliasList = GetAliasList(proposalDescription);
+        
         return new RankingDetailDto
         {
             StartTime = rankingApp.ActiveStartTime,
@@ -584,5 +587,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     {
         return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString)
             .Trim().Split(CommonConstant.Comma).Select(alias => alias.Trim()).Distinct().ToList();
+    }
+    
+    private string GetAliasString(string description)
+    {
+        return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString).Trim();
     }
 }
