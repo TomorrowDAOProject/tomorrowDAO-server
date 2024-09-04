@@ -108,7 +108,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
                 {
                     ProposalId = keyParts[2],
                     Alias = keyParts[3],
-                    Points = Convert.ToInt64(pair.Value),
+                    Points = long.TryParse(pair.Value, out var points) ? points : 0,
                     PointsType = Enum.TryParse<PointsType>(keyParts[1], out var parsedPointsType) ? 
                         parsedPointsType : 
                         PointsType.All
@@ -132,7 +132,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     {
         var cacheKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var cache = await GetAsync(cacheKey);
-        return cache.IsNullOrWhiteSpace() ? 0 : Convert.ToInt64(cache);
+        return long.TryParse(cache, out var points) ? points : 0;
     }
 
     public async Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address)
