@@ -383,7 +383,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             
             await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
             
-            await _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
+            //await _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
 
             return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
         }
@@ -598,7 +598,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     await _rankingAppPointsRedisProvider.IncrementVotePointsAsync(chainId, votingItemId,
                         address, alias, amount);
                     _logger.LogInformation("Ranking vote, update app vote success.{0}", address);
-                    await _messagePublisherService.SendVoteMessageAsync(chainId, votingItemId, address, alias, amount);
+                    //await _messagePublisherService.SendVoteMessageAsync(chainId, votingItemId, address, alias, amount);
                     _logger.LogInformation("Ranking vote, send vote message success.{0}", address);
                 }
                 else
