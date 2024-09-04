@@ -452,6 +452,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         foreach (var app in rankingList)
         {
             app.PointsAmount = appPointsDic.GetValueOrDefault(app.Alias, 0);
+            app.VoteAmount = appVoteAmountDic.GetValueOrDefault(app.Alias, 0);
             app.VotePercent = appVoteAmountDic.GetValueOrDefault(app.Alias, 0) * votePercentFactor;
         }
         
