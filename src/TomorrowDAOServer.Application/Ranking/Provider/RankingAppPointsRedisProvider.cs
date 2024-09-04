@@ -180,7 +180,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
             return new Tuple<string, List<string>>(string.Empty, new List<string>());
         }
 
-        var valueParts = value.Split(CommonConstant.Colon);
+        var valueParts = value.Split(CommonConstant.Comma);
         if (valueParts.Length <= 0)
         {
             return new Tuple<string, List<string>>(string.Empty, new List<string>());
