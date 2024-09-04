@@ -54,11 +54,11 @@ public class RankingController
         return await _rankingAppService.GetVoteStatusAsync(input);
     }
     
-    [HttpGet("history-data")]
+    [HttpGet("move-history-data")]
     [Authorize]
-    public async Task HistoryDataAsync()
+    public async Task HistoryDataAsync(string chainId)
     {
-        await _rankingAppService.MoveHistoryDataAsync();
+        await _rankingAppService.MoveHistoryDataAsync(chainId);
     }
 
     [HttpPost("like")]
