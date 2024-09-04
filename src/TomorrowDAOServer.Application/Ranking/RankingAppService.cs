@@ -283,50 +283,81 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return voteRecord;
     }
 
-    public async Task MoveHistoryDataAsync(string chainId)
+    public async Task MoveHistoryDataAsync(string chainId, string type)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
             throw new UserFriendlyException("Access denied.");
         }
-        // move app points
+
         var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
-        
-        //update RankingAppIndex url、LongDescription、Screenshots
+        var historyUserVotes = await _voteProvider.GetNeedMoveVoteRecordListAsync();
+        switch (type)
         {
-            var aliasesList = historyAppVotes.Select(rankingAppIndex => rankingAppIndex.Alias).ToList();
-            var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
-            {
-                Aliases = aliasesList
-            });
-            if (!telegramApps.Item2.IsNullOrEmpty())
-            {
-                var telegramAppMap = telegramApps.Item2.ToDictionary(item => item.Alias);
-                foreach (var rankingAppIndex in historyAppVotes.Where(rankingAppIndex => telegramAppMap.ContainsKey(rankingAppIndex.Alias)))
-                {
-                    rankingAppIndex.Url = telegramAppMap[rankingAppIndex.Alias].Url;
-                    rankingAppIndex.LongDescription = telegramAppMap[rankingAppIndex.Alias].LongDescription;
-                    rankingAppIndex.Screenshots = telegramAppMap[rankingAppIndex.Alias].Screenshots;
-                }
-
-                await _rankingAppProvider.BulkAddOrUpdateAsync(historyAppVotes);
-            }
+            case "1":
+                await MoveAppPointsToRedis(historyAppVotes);
+                break;
+            case "2":
+                await MoveAppPointsToEs(historyAppVotes);
+                break;
+            case "3":
+                await UpdateRankingAppInfo(historyAppVotes);
+                break;
+            case "4":
+                await MoveUserPointsToRedis(historyUserVotes);
+                break;
+            case "5":
+                await MoveUserPointsToEs(historyUserVotes);
+                break;
         }
+    }
 
-        var appVotesDic = historyAppVotes
+    private async Task MoveAppPointsToRedis(List<RankingAppIndex> list)
+    {
+        var appVotesDic = list
             .ToDictionary(x => RedisHelper.GenerateAppPointsVoteCacheKey(x.ProposalId, x.Alias), x => x);
         foreach (var (key, rankingAppIndex) in appVotesDic)
         {
             var voteAmount = (int)rankingAppIndex.VoteAmount;
             var incrementPoints =  _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
             await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
-            await _messagePublisherService.SendVoteMessageAsync(rankingAppIndex.ChainId, 
-                rankingAppIndex.ProposalId, string.Empty, rankingAppIndex.Alias, voteAmount);
         }
-        
-        // move user points
-        var historyUserVotes = await _voteProvider.GetNeedMoveVoteRecordListAsync();
+    }
+
+    private async Task MoveAppPointsToEs(List<RankingAppIndex> historyAppVotes)
+    {
+        foreach (var rankingAppIndex in historyAppVotes)
+        {
+            await _messagePublisherService.SendVoteMessageAsync(rankingAppIndex.ChainId, 
+                rankingAppIndex.ProposalId, string.Empty, rankingAppIndex.Alias, rankingAppIndex.VoteAmount);
+        }
+    }
+    
+    private async Task UpdateRankingAppInfo(List<RankingAppIndex> historyAppVotes)
+    {
+        //update RankingAppIndex url、LongDescription、Screenshots
+        var aliasesList = historyAppVotes.Select(rankingAppIndex => rankingAppIndex.Alias).ToList();
+        var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = aliasesList
+        });
+        if (!telegramApps.Item2.IsNullOrEmpty())
+        {
+            var telegramAppMap = telegramApps.Item2.ToDictionary(item => item.Alias);
+            foreach (var rankingAppIndex in historyAppVotes.Where(rankingAppIndex => telegramAppMap.ContainsKey(rankingAppIndex.Alias)))
+            {
+                rankingAppIndex.Url = telegramAppMap[rankingAppIndex.Alias].Url;
+                rankingAppIndex.LongDescription = telegramAppMap[rankingAppIndex.Alias].LongDescription;
+                rankingAppIndex.Screenshots = telegramAppMap[rankingAppIndex.Alias].Screenshots;
+            }
+
+            await _rankingAppProvider.BulkAddOrUpdateAsync(historyAppVotes);
+        }
+    }
+    
+    private async Task MoveUserPointsToRedis(List<VoteRecordIndex> historyUserVotes)
+    {
         var userVotesDic = historyUserVotes
             .GroupBy(record => record.Voter)                
             .ToDictionary(
@@ -337,14 +368,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var incrementPoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
             await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
         }
+    }
 
+    private async Task MoveUserPointsToEs(List<VoteRecordIndex> historyUserVotes)
+    {
         var userProposalAppVotesDic = historyUserVotes
             .GroupBy(x => new { x.ChainId, x.Voter, x.VotingItemId, x.Alias })
             .ToDictionary(
-                g => {
-                    var key = g.Key; 
-                    return new { key.ChainId, key.Voter, key.VotingItemId, key.Alias };
-                },
+                g => { var key = g.Key; return new { key.ChainId, key.Voter, key.VotingItemId, key.Alias }; },
                 g => g.Sum(record => record.Amount)
             );
         foreach (var (key, voteAmount) in userProposalAppVotesDic)
@@ -352,8 +383,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             await _messagePublisherService.SendVoteMessageAsync(key.ChainId, key.VotingItemId, 
                 key.Voter, key.Alias, voteAmount);
         }
-        
-        
     }
 
     public async Task<long> LikeAsync(RankingAppLikeInput input)
