@@ -55,6 +55,7 @@ public class PointsHub : AbpHub
         var key = HubHelper.GetPointsGroupName(chainId);
         if (!IsPushRunning.TryAdd(key, true))
         {
+            _logger.LogInformation("PushRequestBpProduceAsyncIsRunning, chainId {chainId}", chainId);
             return;
         }
 
