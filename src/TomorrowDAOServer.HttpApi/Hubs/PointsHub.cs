@@ -65,7 +65,7 @@ public class PointsHub : AbpHub
             while (true)
             {
                 await Task.Delay(_hubCommonOptions.CurrentValue.GetDelay(key));
-                _logger.LogInformation("PushRequestBpProduceAsyncBegin, chainId {chainId}", chainId);
+                // _logger.LogInformation("PushRequestBpProduceAsyncBegin, chainId {chainId}", chainId);
                 var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
                 if (IsEqual(currentPoints))
                 {
@@ -73,14 +73,14 @@ public class PointsHub : AbpHub
                 }
                 else
                 {
-                    _logger.LogInformation("PushRequestBpProduceAsyncNeedToPush, chainId {chainId}", chainId);
+                    // _logger.LogInformation("PushRequestBpProduceAsyncNeedToPush, chainId {chainId}", chainId);
                     await _hubContext.Clients.Groups(HubHelper.GetPointsGroupName(chainId))
                         .SendAsync(
                             CommonConstant.ReceivePointsProduce, 
                             new PointsProduceDto { PointsList = currentPoints });
                 }
                 _pointsCache = currentPoints;
-                _logger.LogInformation("PushRequestBpProduceAsyncEnd, chainId {chainId}", chainId);
+                // _logger.LogInformation("PushRequestBpProduceAsyncEnd, chainId {chainId}", chainId);
             }
         }
         catch (Exception e)
