@@ -133,6 +133,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     {
         var cacheKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var cache = await GetAsync(cacheKey);
+        _logger.LogInformation("GetUserAllPointsAsync cacheKey {cacheKey} cache {cache}", cacheKey, cache);
         return long.TryParse(cache, out var points) ? points : 0;
     }
 
