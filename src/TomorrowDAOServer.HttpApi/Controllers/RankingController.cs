@@ -64,7 +64,7 @@ public class RankingController : AbpController
     }
 
     [HttpPost("like")]
-    //[Authorize]
+    [Authorize]
     public async Task<long> LikeAsync(RankingAppLikeInput input)
     {
         return await _rankingAppService.LikeAsync(input);

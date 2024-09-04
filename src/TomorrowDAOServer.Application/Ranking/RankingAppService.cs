@@ -393,14 +393,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             ExceptionHelper.ThrowArgumentException();
         }
 
-        var address = "T66MamG2sZL9LSYAvQ45SWvfFtQEEXhGxsJuPexby4MNsXXWT";
-        // var address =
-        //     await _userProvider.GetAndValidateUserAddressAsync(
-        //         CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        // if (address.IsNullOrWhiteSpace())
-        // {
-        //     throw new UserFriendlyException("User Address Not Found.");
-        // }
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        if (address.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("User Address Not Found.");
+        }
 
         try
         {
