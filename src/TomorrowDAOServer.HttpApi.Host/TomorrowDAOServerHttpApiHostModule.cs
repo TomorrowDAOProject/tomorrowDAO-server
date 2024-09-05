@@ -121,6 +121,14 @@ namespace TomorrowDAOServer
                     config.SocketTimeoutMs = configuration.GetValue<int>("Kafka:Producer:SocketTimeoutMs");
                     config.Acks = Acks.All;
                 };
+                options.ConfigureConsumer = config =>
+                {
+                    config.SocketTimeoutMs = configuration.GetValue<int>("Kafka:Consumer:SocketTimeoutMs");
+                    config.Acks = Acks.All;
+                    config.GroupId = configuration.GetValue<string>("Kafka:EventBus:GroupId");
+                    config.EnableAutoCommit = true;
+                    config.AutoCommitIntervalMs = configuration.GetValue<int>("Kafka:Consumer:AutoCommitIntervalMs");
+                };
                 options.ConfigureTopic = topic =>
                 {
                     topic.Name = configuration.GetValue<string>("Kafka:EventBus:TopicName");

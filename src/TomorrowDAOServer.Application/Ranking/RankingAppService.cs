@@ -313,7 +313,22 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             case "5":
                 await MoveUserPointsToEs(historyUserVotes);
                 break;
+            case "6":
+                await AddDefaultProposal(chainId);
+                break;
         }
+    }
+
+    private async Task AddDefaultProposal(string chainId)
+    {
+        _logger.LogInformation("AddDefaultProposalBegin chainId {count}", chainId);
+        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
+        var proposalId = defaultProposal.ProposalId;
+        var aliasString = GetAliasString(defaultProposal.ProposalDescription);
+        var value = proposalId + CommonConstant.Comma + aliasString;
+        var endTime = defaultProposal.ActiveEndTime;
+        await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, value, endTime);
+        _logger.LogInformation("AddDefaultProposalEnd chainId {count}", chainId);
     }
 
     private async Task MoveAppPointsToRedis(List<RankingAppIndex> historyAppVotes)

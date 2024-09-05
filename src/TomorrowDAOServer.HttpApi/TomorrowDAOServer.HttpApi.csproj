@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TomorrowDAOServer.Application.Contracts\TomorrowDAOServer.Application.Contracts.csproj" />
     <ProjectReference Include="..\TomorrowDAOServer.Application\TomorrowDAOServer.Application.csproj" />
+    <ProjectReference Include="..\TomorrowDAOServer.EntityEventHandler.Core\TomorrowDAOServer.EntityEventHandler.Core.csproj" />
   </ItemGroup>
 
   
