@@ -291,6 +291,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             throw new UserFriendlyException("Access denied.");
         }
 
+        _logger.LogInformation("MoveHistoryDataAsync address {address} chainId {chainId} type {type}", address, chainId, type);
         var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
         var historyUserVotes = await _voteProvider.GetNeedMoveVoteRecordListAsync();
         switch (type)
