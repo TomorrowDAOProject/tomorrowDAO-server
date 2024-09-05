@@ -129,11 +129,6 @@ namespace TomorrowDAOServer
                     topic.NumPartitions = 1;
                 };
             });
-
-            Configure<AbpKafkaEventBusOptions>(option =>
-            {
-                option.GroupId = null;
-            });
         }
 
         private void ConfigFilter(ServiceConfigurationContext context)
