@@ -49,15 +49,15 @@ public class PointsHub : AbpHub
         await Clients.Caller.SendAsync(CommonConstant.RequestPointsProduce, 
             new PointsProduceDto { PointsList = currentPoints });
         _logger.LogInformation("RequestPointsProduceEnd, chainId {chainId}", chainId);
-        await PushRequestBpProduceAsync(chainId);
+        await PushRequestPointsProduceAsync(chainId);
     }
 
-    private async Task PushRequestBpProduceAsync(string chainId)
+    private async Task PushRequestPointsProduceAsync(string chainId)
     {
         var key = HubHelper.GetPointsGroupName(chainId);
         if (!IsPushRunning.TryAdd(key, true))
         {
-            _logger.LogInformation("PushRequestBpProduceAsyncIsRunning, chainId {chainId}", chainId);
+            _logger.LogInformation("PushRequestPointsProduceAsyncIsRunning, chainId {chainId}", chainId);
             return;
         }
 
@@ -70,7 +70,7 @@ public class PointsHub : AbpHub
                 var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
                 if (IsEqual(currentPoints))
                 {
-                    _logger.LogInformation("PushRequestBpProduceAsyncNoNeedToPush, chainId {chainId}", chainId);
+                    _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPush, chainId {chainId}", chainId);
                 }
                 else
                 {
@@ -86,7 +86,7 @@ public class PointsHub : AbpHub
         }
         catch (Exception e)
         {
-            _logger.LogError("PushRequestBpProduceAsyncException: {e}", e);
+            _logger.LogError("PushRequestPointsProduceAsyncException: {e}", e);
         }
         finally
         {
