@@ -75,7 +75,17 @@ public class PointsHub : AbpHub
                 }
                 else
                 {
-                    _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPush, chainId {chainId}", chainId);
+                    var currentSum = currentPoints.Sum(x => x.Points);
+                    var cacheSum = _pointsCache.Sum(x => x.Points);
+                    if (currentSum != cacheSum)
+                    {
+                        _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPushWrong, chainId {chainId} currentSum {currentSum} cacheSum {cacheSum}",
+                            chainId, currentSum, cacheSum);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPush, chainId {chainId}", chainId);
+                    }
                 }
                 _pointsCache = currentPoints;
             }
