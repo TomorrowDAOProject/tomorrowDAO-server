@@ -37,7 +37,7 @@ public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingleto
                     new GraphQLRequest
                     {
                         Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$proposalIds:[String]!,$orgType:NetworkDaoProposalType!){
+                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$proposalIds:[String]!,$orgType:NetworkDaoOrgType!){
             data:getNetworkDaoProposals(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,proposalIds:$proposalIds,orgType:$orgType})
             {            
                 items {
