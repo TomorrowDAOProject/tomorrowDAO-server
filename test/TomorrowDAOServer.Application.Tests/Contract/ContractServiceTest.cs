@@ -35,6 +35,7 @@ public class ContractServiceTest
     [Fact]
     public void GetFunctionList_Test()
     {
+        //
         ContractProvider.GetContractInfo(Arg.Any<string>(), Arg.Any<string>())
             .Returns(new List<ContractInfo>());
 
