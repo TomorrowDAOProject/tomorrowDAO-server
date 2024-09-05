@@ -75,7 +75,8 @@ public class PointsHub : AbpHub
                 }
                 else
                 {
-                    _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPush, chainId {chainId}", chainId);
+                    _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPush, currentPoints {currentPoints} _pointsCache {_pointsCache}", 
+                        JsonConvert.SerializeObject(currentPoints), JsonConvert.SerializeObject(_pointsCache));
                 }
                 _pointsCache = currentPoints;
             }
