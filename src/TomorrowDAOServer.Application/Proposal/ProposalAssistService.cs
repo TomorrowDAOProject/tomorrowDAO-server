@@ -52,7 +52,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
         _rankingOptions = rankingOptions;
-        _regex = new Regex(_rankingOptions.CurrentValue.DescriptionPattern, RegexOptions.Compiled);
+        _regex = new Regex(CommonConstant.DescriptionPattern, RegexOptions.Compiled);
     }
 
     public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
