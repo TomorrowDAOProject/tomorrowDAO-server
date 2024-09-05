@@ -180,7 +180,7 @@ public abstract partial class
         return mock.Object;
     }
 
-    //Login  example
+    //Login example
     protected void Login(Guid userId, string userAddress = null)
     {
         CurrentUser.Id.Returns(userId);
