@@ -313,9 +313,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
     }
 
-    private async Task MoveAppPointsToRedis(List<RankingAppIndex> list)
+    private async Task MoveAppPointsToRedis(List<RankingAppIndex> historyAppVotes)
     {
-        var appVotesDic = list
+        _logger.LogInformation("MoveAppPointsToRedisBegin count {count}", historyAppVotes.Count);
+        var appVotesDic = historyAppVotes
             .ToDictionary(x => RedisHelper.GenerateAppPointsVoteCacheKey(x.ProposalId, x.Alias), x => x);
         foreach (var (key, rankingAppIndex) in appVotesDic)
         {
@@ -323,15 +324,18 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var incrementPoints =  _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
             await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
         }
+        _logger.LogInformation("MoveAppPointsToRedisEnd");
     }
 
     private async Task MoveAppPointsToEs(List<RankingAppIndex> historyAppVotes)
     {
+        _logger.LogInformation("MoveAppPointsToEsBegin count {count}", historyAppVotes.Count);
         foreach (var rankingAppIndex in historyAppVotes)
         {
             await _messagePublisherService.SendVoteMessageAsync(rankingAppIndex.ChainId, 
                 rankingAppIndex.ProposalId, string.Empty, rankingAppIndex.Alias, rankingAppIndex.VoteAmount);
         }
+        _logger.LogInformation("MoveAppPointsToEsEnd");
     }
     
     private async Task UpdateRankingAppInfo(List<RankingAppIndex> historyAppVotes)
@@ -358,6 +362,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     
     private async Task MoveUserPointsToRedis(List<VoteRecordIndex> historyUserVotes)
     {
+        _logger.LogInformation("MoveUserPointsToRedisBegin count {count}", historyUserVotes.Count);
         var userVotesDic = historyUserVotes
             .GroupBy(record => record.Voter)                
             .ToDictionary(
@@ -368,10 +373,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var incrementPoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
             await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
         }
+        _logger.LogInformation("MoveUserPointsToRedisEnd");
     }
 
     private async Task MoveUserPointsToEs(List<VoteRecordIndex> historyUserVotes)
     {
+        _logger.LogInformation("MoveUserPointsToEsBegin count {count}", historyUserVotes.Count);
         var userProposalAppVotesDic = historyUserVotes
             .GroupBy(x => new { x.ChainId, x.Voter, x.VotingItemId, x.Alias })
             .ToDictionary(
@@ -383,6 +390,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             await _messagePublisherService.SendVoteMessageAsync(key.ChainId, key.VotingItemId, 
                 key.Voter, key.Alias, voteAmount);
         }
+        _logger.LogInformation("MoveUserPointsToEsEnd");
     }
 
     public async Task<long> LikeAsync(RankingAppLikeInput input)
