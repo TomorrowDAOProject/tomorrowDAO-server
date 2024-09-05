@@ -121,7 +121,6 @@ namespace TomorrowDAOServer
                     config.SocketTimeoutMs = configuration.GetValue<int>("Kafka:Producer:SocketTimeoutMs");
                     config.Acks = Acks.All;
                 };
-                options.ConfigureConsumer = null;
                 options.ConfigureTopic = topic =>
                 {
                     topic.Name = configuration.GetValue<string>("Kafka:EventBus:TopicName");
