@@ -157,7 +157,7 @@ public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonD
         var proposal = proposals.MaxBy(k => k.CreateAt);
         var currentTermMiningReward = await currentTermMiningRewardTask;
         var voteCount = proposals
-            .Select(p => p.Approvals.SafeToInt() + p.Rejections + p.Abstentions.SafeToInt()).Sum();
+            .Select(p => p.Approvals + p.Rejections + p.Abstentions).Sum();
         var candidateList = (await candidateListTask).Values;
         return new HomePageResponse
         {
