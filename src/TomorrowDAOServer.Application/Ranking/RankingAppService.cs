@@ -284,7 +284,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return voteRecord;
     }
 
-    public async Task MoveHistoryDataAsync(string chainId, string type, List<string> proposalIds)
+    public async Task MoveHistoryDataAsync(string chainId, string type)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
@@ -294,8 +294,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
         _logger.LogInformation("MoveHistoryDataAsync address {address} chainId {chainId} type {type}", address, chainId, type);
         var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
-        var historyUserVotes = (await _voteProvider.GetByVotingItemIdsAsync(chainId, proposalIds))
-            .Where(x => x.ValidRankingVote && !x.TotalRecorded).ToList();
+        var historyUserVotes = (await _voteProvider.GetNeedMoveVoteRecordListAsync())
+            .Where(x => x.TotalRecorded == false).ToList();
         switch (type)
         {
             case "1":
