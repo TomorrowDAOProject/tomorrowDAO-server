@@ -463,7 +463,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.ValidRankingVote).Value(true)),
-            q => q.Term(i => i.Field(f => f.TotalRecorded).Value(false))
+            // q => q.Term(i => i.Field(f => f.TotalRecorded).Value(false))
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await GetAllIndex(Filter, _voteRecordIndexRepository);
