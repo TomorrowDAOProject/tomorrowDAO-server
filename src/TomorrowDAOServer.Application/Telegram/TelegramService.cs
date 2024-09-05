@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Telegram.Dto;
@@ -26,22 +28,23 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly IUserProvider _userProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
+    private readonly IDaoAliasProvider _daoAliasProvider;
 
     public TelegramService(ILogger<TelegramService> logger, IObjectMapper objectMapper,
         ITelegramAppsProvider telegramAppsProvider, IUserProvider userProvider,
-        IOptionsMonitor<TelegramOptions> telegramOptions)
+        IOptionsMonitor<TelegramOptions> telegramOptions, IDaoAliasProvider daoAliasProvider)
     {
         _logger = logger;
         _objectMapper = objectMapper;
         _telegramAppsProvider = telegramAppsProvider;
         _userProvider = userProvider;
         _telegramOptions = telegramOptions;
+        _daoAliasProvider = daoAliasProvider;
     }
-
 
     public async Task SaveTelegramAppAsync(TelegramAppDto telegramAppDto, string chainId)
     {
-        if (telegramAppDto == null || chainId.IsNullOrWhiteSpace())
+        if (telegramAppDto == null || telegramAppDto.Title.IsNullOrWhiteSpace() || chainId.IsNullOrWhiteSpace())
         {
             return;
         }
@@ -57,6 +60,16 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         try
         {
             var telegramAppIndex = _objectMapper.Map<TelegramAppDto, TelegramAppIndex>(telegramAppDto);
+            if (telegramAppIndex.Alias.IsNullOrWhiteSpace())
+            {
+                telegramAppIndex.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(telegramAppDto.Title);
+            }
+
+            if (telegramAppIndex.Id.IsNullOrWhiteSpace())
+            {
+                telegramAppIndex.Id = HashHelper.ComputeFrom(telegramAppDto.Title).ToHex();
+            }
+            
             await _telegramAppsProvider.SaveTelegramAppAsync(telegramAppIndex);
         }
         catch (Exception e)
