@@ -162,7 +162,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
 
             if (voteSchemeDic.TryGetValue(proposal.VoteSchemeId, out var voteMechanism))
             {
-                proposal.VoteMechanismName = voteMechanism.ToString();
+                proposal.VoteMechanismName = voteMechanism.VoteMechanism.ToString();
                 CalculateRealVoteCountAsync(proposal, voteMechanism.VoteMechanism, tokenInfo.Symbol, tokenInfo.Decimals);
             }
 
@@ -313,7 +313,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         CalculateHcRealVoterCountAsync(proposalDetailDto, councilMemberCount);
         if (voteSchemeDic.TryGetValue(proposalDetailDto.VoteSchemeId, out var indexerVoteScheme))
         {
-            proposalDetailDto.VoteMechanismName = indexerVoteScheme.ToString();
+            proposalDetailDto.VoteMechanismName = indexerVoteScheme.VoteMechanism.ToString();
             CalculateRealVoteCountAsync(proposalDetailDto, indexerVoteScheme.VoteMechanism, symbol, symbolDecimal);
         }
 
