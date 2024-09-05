@@ -38,6 +38,7 @@ using MongoDB.Driver;
 using StackExchange.Redis;
 using TomorrowDAOServer.Options;
 using Volo.Abp.Caching;
+using Volo.Abp.EventBus;
 using Volo.Abp.EventBus.Kafka;
 using Volo.Abp.Kafka;
 
@@ -250,7 +251,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
             {
                 topic.Name = configuration.GetValue<string>("Kafka:EventBus:TopicName");
                 topic.ReplicationFactor = -1;
-                topic.NumPartitions = -1;
+                topic.NumPartitions = 1;
             };
         });
     }

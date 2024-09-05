@@ -35,13 +35,11 @@ using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
-using Volo.Abp.BackgroundJobs;
 using Volo.Abp.BlobStoring.Aliyun;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.DistributedLocking;
 using Volo.Abp.EventBus.Kafka;
-using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Kafka;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
@@ -62,7 +60,6 @@ namespace TomorrowDAOServer
         typeof(TomorrowDAOServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
-        //typeof(AbpEventBusRabbitMqModule),
         typeof(AbpEventBusKafkaModule),
         // typeof(AbpCachingModule),
         typeof(AbpBlobStoringAliyunModule)
@@ -124,12 +121,18 @@ namespace TomorrowDAOServer
                     config.SocketTimeoutMs = configuration.GetValue<int>("Kafka:Producer:SocketTimeoutMs");
                     config.Acks = Acks.All;
                 };
+                options.ConfigureConsumer = null;
                 options.ConfigureTopic = topic =>
                 {
                     topic.Name = configuration.GetValue<string>("Kafka:EventBus:TopicName");
                     topic.ReplicationFactor = -1;
-                    topic.NumPartitions = -1;
+                    topic.NumPartitions = 1;
                 };
+            });
+
+            Configure<AbpKafkaEventBusOptions>(option =>
+            {
+                option.GroupId = null;
             });
         }
 
