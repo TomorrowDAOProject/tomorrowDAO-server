@@ -82,10 +82,6 @@ public class PointsHub : AbpHub
                         _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPushWrong, chainId {chainId} currentSum {currentSum} cacheSum {cacheSum}",
                             chainId, currentSum, cacheSum);
                     }
-                    else
-                    {
-                        _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPush, chainId {chainId}", chainId);
-                    }
                 }
                 _pointsCache = currentPoints;
             }
