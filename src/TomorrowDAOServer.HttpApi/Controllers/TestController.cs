@@ -39,4 +39,5 @@ public class TestController
     {
         return await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
     }
+    
 }
