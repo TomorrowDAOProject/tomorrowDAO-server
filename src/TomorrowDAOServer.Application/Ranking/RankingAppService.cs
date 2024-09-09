@@ -300,9 +300,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             case "1":
                 await MoveAppPointsToRedis(historyAppVotes);
                 break;
-            case "2":
-                await MoveAppPointsToEs(historyAppVotes);
-                break;
             case "3":
                 await UpdateRankingAppInfo(historyAppVotes);
                 break;
@@ -342,17 +339,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             await _rankingAppPointsRedisProvider.IncrementAsync(key, incrementPoints);
         }
         _logger.LogInformation("MoveAppPointsToRedisEnd");
-    }
-
-    private async Task MoveAppPointsToEs(List<RankingAppIndex> historyAppVotes)
-    {
-        _logger.LogInformation("MoveAppPointsToEsBegin count {count}", historyAppVotes.Count);
-        foreach (var rankingAppIndex in historyAppVotes)
-        {
-            await _messagePublisherService.SendVoteMessageAsync(rankingAppIndex.ChainId, 
-                rankingAppIndex.ProposalId, string.Empty, rankingAppIndex.Alias, rankingAppIndex.VoteAmount);
-        }
-        _logger.LogInformation("MoveAppPointsToEsEnd");
     }
     
     private async Task UpdateRankingAppInfo(List<RankingAppIndex> historyAppVotes)
