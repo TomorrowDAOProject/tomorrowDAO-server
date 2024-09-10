@@ -135,12 +135,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId)
     {
         var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
-        if (defaultProposal == null)
-        {
-            return new RankingDetailDto();
-        }
-
-        return await GetRankingProposalDetailAsync(chainId, defaultProposal.ProposalId, defaultProposal.DAOId);
+        var proposalId = defaultProposal?.ProposalId ?? string.Empty;
+        return await GetRankingProposalDetailAsync(chainId, proposalId, defaultProposal.DAOId);
     }
 
     public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
@@ -453,11 +449,16 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
         string proposalId, string daoId)
     {
-        _logger.LogInformation("GetRankingProposalDetailAsync userAddress: {userAddress}", userAddress);
+        var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
+        if (proposalId.IsNullOrEmpty())
+        {
+            return new RankingDetailDto { UserTotalPoints = userAllPoints };
+        }
+        
         var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
         if (rankingAppList.IsNullOrEmpty())
         {
-            return new RankingDetailDto();
+            return new RankingDetailDto { UserTotalPoints = userAllPoints };
         }
 
         var canVoteAmount = 0;
@@ -466,11 +467,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var proposalDescription = rankingApp.ProposalDescription;
         if (!string.IsNullOrEmpty(userAddress))
         {
-            var userAllPointsTask = _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
-            var rankingVoteRecordTask = GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
-            await Task.WhenAll(userAllPointsTask, rankingVoteRecordTask);
-            userTotalPoints = userAllPointsTask.Result;
-            var voteRecordRedis = rankingVoteRecordTask.Result;
+            var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
             if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
             {
                 canVoteAmount = 0;
