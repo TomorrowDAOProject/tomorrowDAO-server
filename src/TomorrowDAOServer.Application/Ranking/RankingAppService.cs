@@ -637,6 +637,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 var match = Regex.Match(memo ?? string.Empty, CommonConstant.MemoPattern);
                 if (match.Success)
                 {
+                    var invite = await _referralInviteProvider.GetByNotVoteInviteeAsync(chainId, address);
+                    if (invite != null)
+                    {
+                        var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
+                        var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<Voted>(voteEventLog);
+                        invite.FirstVoteTime = voteEvent.VoteTimestamp?.ToDateTime();
+                        await _referralInviteProvider.AddOrUpdateAsync(invite);
+                        await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(invite.Inviter, invite.Invitee, 1);
+                        await _messagePublisherService.SendReferralFirstVoteMessageAsync(chainId, invite.Inviter, invite.Invitee);
+                    }
+                    
                     var alias = match.Groups[1].Value;
                     await _rankingAppPointsRedisProvider.IncrementVotePointsAsync(chainId, votingItemId,
                         address, alias, amount);
