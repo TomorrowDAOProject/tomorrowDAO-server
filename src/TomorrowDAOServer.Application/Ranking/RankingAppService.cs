@@ -644,8 +644,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     .Select(l => l.Name).Contains(CommonConstant.VoteEventVoted))
             {
                 var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
-                _logger.LogInformation("Ranking vote, transaction success.{0} voteEventLog {1}", 
-                    transactionId, JsonConvert.SerializeObject(voteEventLog, Formatting.Indented));
+                _logger.LogInformation("Ranking vote, transaction success.{0} nonIndexed {1} indexed {2}", 
+                    transactionId, voteEventLog.NonIndexed, voteEventLog.Indexed);
                 await SaveVotingRecordAsync(chainId, address, votingItemId, RankingVoteStatusEnum.Voted,
                     transactionId);
 
