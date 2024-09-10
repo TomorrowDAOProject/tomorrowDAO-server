@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
+using AElf.Client.Dto;
 using AElf.Types;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Portkey.Contracts.CA;
 using TomorrowDAO.Contracts.Vote;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
@@ -643,7 +643,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             if (transactionResult.Status == CommonConstant.TransactionStateMined && transactionResult.Logs
                     .Select(l => l.Name).Contains(CommonConstant.VoteEventVoted))
             {
-                _logger.LogInformation("Ranking vote, transaction success.{0}", transactionId);
+                var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
+                _logger.LogInformation("Ranking vote, transaction success.{0} voteEventLog {1}", 
+                    transactionId, JsonConvert.SerializeObject(voteEventLog, Formatting.Indented));
                 await SaveVotingRecordAsync(chainId, address, votingItemId, RankingVoteStatusEnum.Voted,
                     transactionId);
 
