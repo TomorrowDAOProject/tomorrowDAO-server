@@ -1,7 +1,9 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Referral;
+using TomorrowDAOServer.Referral.Dto;
 using Volo.Abp;
 
 namespace TomorrowDAOServer.Controllers;
@@ -19,10 +21,24 @@ public class ReferralController
         _referralService = referralService;
     }
     
-    [HttpGet("get-link")]
+    [HttpPost("get-link")]
     [Authorize]
-    public async Task<string> GetLinkAsync(string token, string chainId)
+    public async Task<GetLinkDto> GetLinkAsync(GetLinkInput input)
     {
-        return await _referralService.GetLinkAsync(token, chainId);
+        return await _referralService.GetLinkAsync(input.Token, input.ChainId);
+    }
+    
+    [HttpGet("invite-detail")]
+    [Authorize]
+    public async Task<InviteDetailDto> InviteDetailAsync(string chainId)
+    {
+        return await _referralService.InviteDetailAsync(chainId);
+    }
+    
+    [HttpGet("invite-leader-board")]
+    [Authorize]
+    public async Task<PageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
+    {
+        return await _referralService.InviteLeaderBoardAsync(input);
     }
 }

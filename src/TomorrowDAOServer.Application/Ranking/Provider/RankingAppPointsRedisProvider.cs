@@ -26,6 +26,7 @@ public interface IRankingAppPointsRedisProvider
     Task<long> GetUserAllPointsAsync(string address);
     Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
     Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
+    Task IncrementReferralVotePointsAsync(string inviter, string invitee, long voteCount);
     Task SaveDefaultRankingProposalIdAsync(string chainId, string value, DateTime expire);
     Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId);
     Task<string> GetDefaultRankingProposalIdAsync(string chainId);
@@ -158,15 +159,19 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var votePoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
         await Task.WhenAll(IncrementAsync(appVoteKey, votePoints), IncrementAsync(userKey, votePoints));
     }
-    
+
+    public async Task IncrementReferralVotePointsAsync(string inviter, string invitee, long voteCount)
+    {
+        var inviterUserKey = RedisHelper.GenerateUserPointsAllCacheKey(inviter);
+        var inviteeUserKey = RedisHelper.GenerateUserPointsAllCacheKey(invitee);
+        var referralVotePoints = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(voteCount);
+        await Task.WhenAll(IncrementAsync(inviterUserKey, referralVotePoints), IncrementAsync(inviteeUserKey, referralVotePoints));
+    }
+
     public async Task SaveDefaultRankingProposalIdAsync(string chainId, string value, DateTime expire)
     {
         var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
-        await _distributedCache.SetAsync(distributeCacheKey, value,
-            new DistributedCacheEntryOptions
-            {
-                AbsoluteExpiration = expire
-            });
+        await _distributedCache.SetAsync(distributeCacheKey, value);
     }
 
     public async Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId)

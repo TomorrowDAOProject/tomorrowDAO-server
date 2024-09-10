@@ -204,10 +204,10 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                 i.Field(f => f.ChainId).Terms(chainId)), 
             q => q.Terms(i =>
                 i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking)),
-            q => q.TermRange(
-                i => i.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).GreaterThanOrEquals(currentStr)),
-            q => q.TermRange(
-                i => i.Field(f => f.ActiveStartTime.ToUtcMilliSeconds()).LessThanOrEquals(currentStr))
+            // q => q.TermRange(
+            //     i => i.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).GreaterThanOrEquals(currentStr)),
+            // q => q.TermRange(
+            //     i => i.Field(f => f.ActiveStartTime.ToUtcMilliSeconds()).LessThanOrEquals(currentStr))
             
         };
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
@@ -259,8 +259,8 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         var query = new SearchDescriptor<ProposalIndex>().Size(0)
             .Query(q => q.Term(t => t.Field(f => f.ChainId).Value(chainId)))
             .Query(q => q.Terms(t => t.Field(f => f.DAOId).Terms(daoIds)))
-            .Aggregations(a => a.Terms("dao_ids", t => t.Field(f => f.DAOId).Size(Int32.MaxValue).Aggregations(aa =>
-                aa.ValueCount("proposal_count", vc => vc
+            .Aggregations(a => a.Terms("dao_ids", t => t.Field(f => f.DAOId).Size(Int32.MaxValue)
+                .Aggregations(aa => aa.ValueCount("proposal_count", vc => vc
                     .Field(f => f.Id)))));
 
         var response = await _proposalIndexRepository.SearchAsync(query, 0, Int32.MaxValue);

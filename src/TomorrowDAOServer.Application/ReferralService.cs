@@ -1,13 +1,14 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
-using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.HttpClient;
-using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral;
 using TomorrowDAOServer.Referral.Dto;
+using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
@@ -23,45 +24,75 @@ public class ReferralService : ApplicationService, IReferralService
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IReferralLinkProvider _referralLinkProvider;
     private readonly IUserProvider _userProvider;
-    private readonly IHttpProvider _httpProvider;
-    private readonly IOptionsMonitor<ShortLinkOptions> _shortLinkOptions;
+    private readonly IPortkeyProvider _portkeyProvider;
+    private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
 
     public ReferralService(IReferralInviteProvider referralInviteProvider, IReferralLinkProvider referralLinkProvider,
-        IUserProvider userProvider, IHttpProvider httpProvider, IOptionsMonitor<ShortLinkOptions> shortLinkOptions)
+        IUserProvider userProvider, IPortkeyProvider portkeyProvider, IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
     {
         _referralInviteProvider = referralInviteProvider;
         _referralLinkProvider = referralLinkProvider;
         _userProvider = userProvider;
-        _httpProvider = httpProvider;
-        _shortLinkOptions = shortLinkOptions;
+        _portkeyProvider = portkeyProvider;
+        _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
     }
 
-    public async Task<string> GetLinkAsync(string token, string chainId)
+    public async Task<GetLinkDto> GetLinkAsync(string token, string chainId)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
         var referralLink = await _referralLinkProvider.GetByInviterAsync(chainId, address);
         if (referralLink != null)
         {
-            return referralLink.ReferralLink;
+            return new GetLinkDto { ReferralLink = referralLink.ReferralLink, ReferralCode = referralLink.ReferralCode };
         }
 
-        AssertHelper.IsTrue(_shortLinkOptions.CurrentValue.BaseUrl.TryGetValue(chainId, out var domain));
-        var projectCode = _shortLinkOptions.CurrentValue.ProjectCode;
-        var resp = await _httpProvider.InvokeAsync<ShortLinkResponse>(domain, ReferralApi.ShortLink,
-            param: new Dictionary<string, string> { ["projectCode"] = projectCode },
-            header: new Dictionary<string, string> { ["Authorization"] = token },
-            withInfoLog: false, withDebugLog: false);
-        if (resp == null || resp.Link.IsNullOrEmpty())
-        {
-            return string.Empty;
-        }
-        
-        await _referralLinkProvider.GenerateLinkAsync(chainId, address, resp.Link);
-        return resp.Link;
+        var (link, code) = await _portkeyProvider.GetShortLingAsync(chainId, token);
+        await _referralLinkProvider.GenerateLinkAsync(chainId, address, link, code);
+        return new GetLinkDto { ReferralLink = link, ReferralCode = code};
     }
-}
 
-public static class ReferralApi
-{
-    public static readonly ApiInfo ShortLink = new(HttpMethod.Get, "/api/app/growth/shortLink");
+    public async Task<InviteDetailDto> InviteDetailAsync(string chainId)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
+        var accountCreation = await _referralInviteProvider.GetInvitedCountByInviterAsync(chainId, address, false);
+        var votigramVote = await _referralInviteProvider.GetInvitedCountByInviterAsync(chainId, address, true);
+        var estimatedReward = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramVote);
+        return new InviteDetailDto
+        {
+            EstimatedReward = estimatedReward,
+            AccountCreation = accountCreation,
+            VotigramVote = votigramVote
+        };
+    }
+
+    public async Task<PageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
+    {
+        var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input);
+        long rank = 1;           
+        long lastInviteCount = -1;  
+        long currentRank = 1;
+
+        var inviterList = inviterBuckets.Select((bucket, _) =>
+        {
+            var inviteCount = (long)(bucket.ValueCount("invite_count").Value ?? 0);
+            if (inviteCount != lastInviteCount)
+            {
+                currentRank = rank;
+                lastInviteCount = inviteCount;
+            }
+            var referralInvite = new InviteLeaderBoardDto
+            {
+                Inviter = bucket.Key,
+                InviteCount = inviteCount,
+                Rank = currentRank  
+            };
+            rank++;  
+            return referralInvite;
+        }).ToList();
+        return new PageResultDto<InviteLeaderBoardDto>
+        {
+            TotalCount = inviterList.Count,
+            Data = inviterList.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()
+        };
+    }
 }

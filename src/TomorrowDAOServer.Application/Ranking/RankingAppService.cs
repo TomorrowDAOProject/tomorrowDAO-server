@@ -26,6 +26,7 @@ using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
+using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Token.Provider;
@@ -62,6 +63,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IMessagePublisherService _messagePublisherService;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
+    private readonly IReferralInviteProvider _referralInviteProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -72,7 +74,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider,
         IMessagePublisherService messagePublisherService, 
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, 
-        IOptionsMonitor<TelegramOptions> telegramOptions)
+        IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -89,6 +91,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _messagePublisherService = messagePublisherService;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _telegramOptions = telegramOptions;
+        _referralInviteProvider = referralInviteProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -135,8 +138,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId)
     {
         var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
-        var proposalId = defaultProposal?.ProposalId ?? string.Empty;
-        return await GetRankingProposalDetailAsync(chainId, proposalId, defaultProposal.DAOId);
+        return await GetRankingProposalDetailAsync(chainId, defaultProposal.ProposalId, defaultProposal.DAOId);
     }
 
     public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
@@ -185,6 +187,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _logger.LogInformation("Ranking vote, parse rawTransaction. {0}", address);
         var (voteInput, transaction) = ParseRawTransaction(input.ChainId, input.RawTransaction);
         var votingItemId = voteInput.VotingItemId.ToHex();
+        var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, votingItemId);
+        if (!IsVoteDuring(proposalIndex))
+        {
+            throw new UserFriendlyException("Can not vote now.");
+        }
 
         _logger.LogInformation("Ranking vote, query voting record.{0}", address);
         var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, votingItemId);
@@ -660,5 +667,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private string GetAliasString(string description)
     {
         return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString).Trim();
+    }
+
+    private bool IsVoteDuring(ProposalIndex index)
+    {
+        if (index == null)
+        {
+            return false;
+        }
+        return DateTime.UtcNow > index.ActiveStartTime && DateTime.UtcNow < index.ActiveEndTime;
     }
 }

@@ -7,12 +7,13 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
 using Volo.Abp.DependencyInjection;
 
-namespace TomorrowDAOServer.Referral;
+namespace TomorrowDAOServer.Referral.Provider;
 
 public interface IReferralLinkProvider
 {
     Task<ReferralLinkIndex> GetByInviterAsync(string chainId, string address);
-    Task GenerateLinkAsync(string chainId, string address, string link);
+    Task GenerateLinkAsync(string chainId, string address, string link, string code);
+    Task<List<ReferralLinkIndex>> GetByReferralCodesAsync(string chainId, List<string> codes);
 }
 
 public class ReferralLinkProvider : IReferralLinkProvider, ISingletonDependency
@@ -35,14 +36,30 @@ public class ReferralLinkProvider : IReferralLinkProvider, ISingletonDependency
         return await _referralLinkRepository.GetAsync(Filter);
     }
 
-    public async Task GenerateLinkAsync(string chainId, string address, string link)
+    public async Task GenerateLinkAsync(string chainId, string address, string link, string code)
     {
+        if (code.IsNullOrEmpty())
+        { 
+            return;   
+        }
         await _referralLinkRepository.AddOrUpdateAsync(new ReferralLinkIndex
         {
             Id = GuidHelper.GenerateId(chainId, address),
             ChainId = chainId,
             Inviter = address,
-            ReferralLink = link
+            ReferralLink = link,
+            ReferralCode = code
         });
+    }
+
+    public async Task<List<ReferralLinkIndex>> GetByReferralCodesAsync(string chainId, List<string> codes)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralLinkIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Terms(i => i.Field(t => t.ReferralCode).Terms(codes))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<ReferralLinkIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _referralLinkRepository.GetListAsync(Filter)).Item2;
     }
 }

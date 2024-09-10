@@ -17,6 +17,7 @@ public class RankingOptions
     public int RetryDelay { get; set; } = 2000;
     public long PointsPerVote { get; set; } = 10000;
     public long PointsPerLike { get; set; } = 1;
+    public long PointsFirstReferralVote { get; set; } = 50000;
     
     
     public TimeSpan GetLockUserTimeoutTimeSpan()
