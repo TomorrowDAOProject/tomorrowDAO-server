@@ -67,8 +67,9 @@ public class ReferralService : ApplicationService, IReferralService
         };
     }
 
-    public async Task<PageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
+    public async Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
+        var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), input.ChainId);
         var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input);
         long rank = 1;           
         long lastInviteCount = -1;  
@@ -100,10 +101,12 @@ public class ReferralService : ApplicationService, IReferralService
             rank++;  
             return referralInvite;
         }).ToList();
-        return new PageResultDto<InviteLeaderBoardDto>
+        var me = inviterList.Find(x => x.InviterCaHash == addressCaHash);
+        return new InviteBoardPageResultDto<InviteLeaderBoardDto>
         {
             TotalCount = inviterList.Count,
-            Data = inviterList.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()
+            Data = inviterList.Skip(input.SkipCount).Take(input.MaxResultCount).ToList(),
+            Me = me
         };
     }
 

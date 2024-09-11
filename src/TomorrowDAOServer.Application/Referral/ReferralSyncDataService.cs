@@ -10,6 +10,7 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Indexer;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.User;
@@ -24,18 +25,20 @@ public class ReferralSyncDataService : ScheduleSyncDataService
     private readonly IChainAppService _chainAppService;
     private readonly IPortkeyProvider _portkeyProvider;
     private readonly IReferralInviteProvider _referralInviteProvider;
+    private readonly IReferralLinkProvider _referralLinkProvider;
     private const int MaxResultCount = 1000;
     
     public ReferralSyncDataService(ILogger<ReferralSyncDataService> logger,
         IObjectMapper objectMapper, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, IPortkeyProvider portkeyProvider,
-        IReferralInviteProvider referralInviteProvider) : base(logger, graphQlProvider)
+        IReferralInviteProvider referralInviteProvider, IReferralLinkProvider referralLinkProvider) : base(logger, graphQlProvider)
     {
         _logger = logger;
         _objectMapper = objectMapper;
         _chainAppService = chainAppService;
         _portkeyProvider = portkeyProvider;
         _referralInviteProvider = referralInviteProvider;
+        _referralLinkProvider = referralLinkProvider;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndTime, long newIndexHeight)
@@ -46,14 +49,14 @@ public class ReferralSyncDataService : ScheduleSyncDataService
         do
         {
             queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, lastEndTime, endTime, skipCount, MaxResultCount);
-            _logger.LogInformation("SyncReferralData queryList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
-                skipCount, lastEndTime, endTime, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())
             {
                 break;
             }
             skipCount += queryList.Count;
             var inviteList = queryList.Where(x => !x.ReferralCode.IsNullOrEmpty()).ToList();
+            _logger.LogInformation("SyncReferralData inviteList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
+                skipCount, lastEndTime, endTime, inviteList?.Count);
             if (inviteList.IsNullOrEmpty())
             {
                 continue;
@@ -68,13 +71,37 @@ public class ReferralSyncDataService : ScheduleSyncDataService
                 continue;
             }
             
-            var referralCodes = inviteList.Select(x => x.ReferralCode).ToList();
-            // todo get InviterCaHash from referralCodes
+            var referralCodes = toUpdate.Select(x => x.ReferralCode).ToList();
+            var currentLinks = await _referralLinkProvider.GetByReferralCodesAsync(chainId, referralCodes);
+            var notExistsReferralCodes = referralCodes
+                .Where(code => currentLinks.All(link => link.ReferralCode != code))
+                .ToList();
+            if (!notExistsReferralCodes.IsNullOrEmpty())
+            {
+                var codeInfos = await _portkeyProvider.GetReferralCodeCaHashAsync(referralCodes);
+                var newLinks = _objectMapper.Map<List<ReferralCodeInfo>, List<ReferralLinkIndex>>(codeInfos);
+                foreach (var link in newLinks)
+                {
+                    link.Id = GuidHelper.GenerateId(chainId, link.InviterCaHash);
+                    link.ChainId = chainId;
+                }
+
+                await _referralLinkProvider.BulkAddOrUpdate(newLinks);
+                currentLinks.AddRange(newLinks);
+            }
+            var currentLinksDict = currentLinks
+                .GroupBy(link => link.ReferralCode)
+                .ToDictionary(
+                    group => group.Key,            
+                    group => group.First().InviterCaHash 
+                );
+            
             var referralInviteList = _objectMapper.Map<List<IndexerReferral>, List<ReferralInviteIndex>>(toUpdate);
             foreach (var index in referralInviteList)
             {
                 index.ChainId = chainId;
                 index.Id = GetReferralInviteId(index);
+                index.InviteeCaHash = currentLinksDict.GetValueOrDefault(index.ReferralCode, string.Empty);
             }
             await _referralInviteProvider.BulkAddOrUpdateAsync(referralInviteList);
 

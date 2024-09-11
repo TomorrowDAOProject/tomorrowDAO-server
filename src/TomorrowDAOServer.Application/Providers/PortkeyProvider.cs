@@ -19,7 +19,7 @@ public interface IPortkeyProvider
 {
     Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token);
     Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount);
-    
+    Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes);
 }
 
 public static class ReferralApi
@@ -31,12 +31,15 @@ public static class ReferralApi
 public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 {
     private readonly IHttpProvider _httpProvider;
-    private readonly IOptionsMonitor<GraphQLOptions> _graphQLOptions;
+    private readonly IOptionsMonitor<GraphQLOptions> _graphQlOptions;
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
 
-    public PortkeyProvider(IHttpProvider httpProvider, IOptionsMonitor<GraphQLOptions> graphQlOptions)
+    public PortkeyProvider(IHttpProvider httpProvider, IOptionsMonitor<GraphQLOptions> graphQlOptions,
+        IOptionsMonitor<RankingOptions> rankingOptions)
     {
         _httpProvider = httpProvider;
-        _graphQLOptions = graphQlOptions;
+        _graphQlOptions = graphQlOptions;
+        _rankingOptions = rankingOptions;
     }
 
     public async Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token)
@@ -50,7 +53,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 
     public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
     {
-        var url = _graphQLOptions.CurrentValue.PortkeyConfiguration;
+        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
         using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
         var request = new GraphQLRequest
         {
@@ -91,5 +94,20 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 
         var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerReferralInfo>(request);
         return graphQlResponse.Data.ReferralInfoPage.Data;
+    }
+
+    public async Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes)
+    {
+        var domain = _rankingOptions.CurrentValue.ReferralDomain;
+        //todo wait ReferralCodes change
+        var resp = await _httpProvider.InvokeAsync<ReferralCodeResponse>(domain,
+            ReferralApi.ReferralCode,
+            param: MapHelper.ToDictionary(new ReferralCodeRequest
+            {
+                SkipCount = 0, MaxResultCount = referralCodes.Count,
+                ReferralCode = "14457", ProjectCode = CommonConstant.ProjectCode
+            }),
+            withInfoLog: false, withDebugLog: false);
+        return resp.Data;
     }
 }

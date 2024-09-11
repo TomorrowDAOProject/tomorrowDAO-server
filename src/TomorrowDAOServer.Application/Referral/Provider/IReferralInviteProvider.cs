@@ -61,11 +61,19 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
     public async Task BulkAddOrUpdateAsync(List<ReferralInviteIndex> list)
     {
+        if (list == null || list.IsNullOrEmpty())
+        {
+            return;
+        }
         await _referralInviteRepository.BulkAddOrUpdateAsync(list);
     }
 
     public async Task AddOrUpdateAsync(ReferralInviteIndex index)
     {
+        if (index == null)
+        {
+            return;
+        }
         await _referralInviteRepository.AddOrUpdateAsync(index);
     }
 

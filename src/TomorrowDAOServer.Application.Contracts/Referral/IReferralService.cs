@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Referral.Dto;
@@ -10,6 +8,6 @@ public interface IReferralService
 {
     // Task<GetLinkDto> GetLinkAsync(string token, string chainId);
     Task<InviteDetailDto> InviteDetailAsync(string chainId);
-    Task<PageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
+    Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
     ReferralActiveConfigDto ConfigAsync();
 }

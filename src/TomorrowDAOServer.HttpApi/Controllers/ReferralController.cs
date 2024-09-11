@@ -38,7 +38,7 @@ public class ReferralController
     
     [HttpGet("invite-leader-board")]
     [Authorize]
-    public async Task<PageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
+    public async Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
         return await _referralService.InviteLeaderBoardAsync(input);
     }

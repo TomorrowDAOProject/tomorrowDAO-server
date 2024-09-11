@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Org.BouncyCastle.Utilities;
 using TomorrowDAOServer.Referral.Dto;
 
 namespace TomorrowDAOServer.Options;
@@ -21,6 +20,7 @@ public class RankingOptions
     public long PointsPerLike { get; set; } = 1;
     public long PointsFirstReferralVote { get; set; } = 50000;
     public List<string> AllReferralActiveTime { get; set; } = new();
+    public string ReferralDomain { get; set; }
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {
