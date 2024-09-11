@@ -497,12 +497,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 {
                     var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
                         { ChainId = chainId, DAOId = daoId });
-                    var balance =
-                        await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
-                    if (balance.Balance > 0)
-                    {
-                        canVoteAmount = 1;
-                    }
+                    //todo test
+                    canVoteAmount = 1;
+                    // var balance =
+                    //     await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
+                    // if (balance.Balance > 0)
+                    // {
+                    //     canVoteAmount = 1;
+                    // }
                 }
             }
         }
