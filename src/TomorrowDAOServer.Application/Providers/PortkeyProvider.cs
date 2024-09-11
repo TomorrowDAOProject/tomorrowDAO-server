@@ -18,7 +18,7 @@ namespace TomorrowDAOServer.Providers;
 public interface IPortkeyProvider
 {
     Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token);
-    Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime);
+    Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount);
 }
 
 public static class ReferralApi
@@ -50,7 +50,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
     }
 
     // todo wait port key change
-    public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime)
+    public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
     {
         var url = _graphQLOptions.CurrentValue.PortkeyConfiguration;
         var projectCode = _shortLinkOptions.CurrentValue.ProjectCode;

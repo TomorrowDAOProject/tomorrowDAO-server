@@ -30,6 +30,7 @@ using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Token.Provider;
+using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
 using TomorrowDAOServer.Vote.Provider;
@@ -52,6 +53,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IObjectMapper _objectMapper;
     private readonly IProposalProvider _proposalProvider;
     private readonly IUserProvider _userProvider;
+    private readonly IUserAppService _userAppService;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private readonly IAbpDistributedLock _distributedLock;
     private readonly IDistributedCache<string> _distributedCache;
@@ -74,7 +76,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider,
         IMessagePublisherService messagePublisherService, 
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, 
-        IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider)
+        IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider, 
+        IUserAppService userAppService)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -92,6 +95,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _telegramOptions = telegramOptions;
         _referralInviteProvider = referralInviteProvider;
+        _userAppService = userAppService;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -176,9 +180,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         _logger.LogInformation("Ranking vote, start...");
-        var address =
-            await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        var (address, addressCaHash) =
+            await _userProvider.GetAndValidateUserAddressAndCaHashAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input!.ChainId);
         if (address.IsNullOrWhiteSpace())
         {
             throw new UserFriendlyException("User Address Not Found.");
@@ -238,7 +242,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     sendTransactionOutput.TransactionId, _rankingOptions.CurrentValue.GetVoteTimoutTimeSpan());
 
                 var _ = UpdateVotingStatusAsync(input.ChainId, address, votingItemId,
-                    sendTransactionOutput.TransactionId, voteInput.Memo, voteInput.VoteAmount);
+                    sendTransactionOutput.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash);
 
                 return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, sendTransactionOutput.TransactionId);
             }
@@ -609,7 +613,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     }
 
     private async Task UpdateVotingStatusAsync(string chainId, string address, string votingItemId,
-        string transactionId, string memo, long amount)
+        string transactionId, string memo, long amount, string addressCaHash)
     {
         try
         {
@@ -637,7 +641,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 var match = Regex.Match(memo ?? string.Empty, CommonConstant.MemoPattern);
                 if (match.Success)
                 {
-                    var invite = await _referralInviteProvider.GetByNotVoteInviteeAsync(chainId, address);
+                    var invite = await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, addressCaHash);
                     if (invite != null)
                     {
                         var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);

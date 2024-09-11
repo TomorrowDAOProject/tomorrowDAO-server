@@ -69,4 +69,7 @@ public static class CommonConstant
     // Hub
     public const string ReceivePointsProduce = "ReceivePointsProduce";
     public const string RequestPointsProduce = "RequestPointsProduce";
+    
+    // Referral
+    public const string CreateAccountMethodName = "CreateCAHolder";
 }

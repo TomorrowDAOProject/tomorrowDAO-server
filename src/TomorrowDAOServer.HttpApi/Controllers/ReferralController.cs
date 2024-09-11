@@ -21,12 +21,12 @@ public class ReferralController
         _referralService = referralService;
     }
     
-    [HttpPost("get-link")]
-    [Authorize]
-    public async Task<GetLinkDto> GetLinkAsync(GetLinkInput input)
-    {
-        return await _referralService.GetLinkAsync(input.Token, input.ChainId);
-    }
+    // [HttpPost("get-link")]
+    // [Authorize]
+    // public async Task<GetLinkDto> GetLinkAsync(GetLinkInput input)
+    // {
+    //     return await _referralService.GetLinkAsync(input.Token, input.ChainId);
+    // }
     
     [HttpGet("invite-detail")]
     [Authorize]

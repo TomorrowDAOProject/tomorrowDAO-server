@@ -11,12 +11,11 @@ namespace TomorrowDAOServer.Referral.Provider;
 
 public interface IReferralInviteProvider
 {
-    Task<ReferralInviteIndex> GetByNotVoteInviteeAsync(string chainId, string invitee);
+    Task<ReferralInviteIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash);
     Task<List<ReferralInviteIndex>> GetByIdsAsync(List<string> ids);
     Task BulkAddOrUpdateAsync(List<ReferralInviteIndex> list);
-    Task<List<ReferralInviteIndex>> GetByNotVoteInvitees(string chainId, List<string> invitees);
     Task AddOrUpdateAsync(ReferralInviteIndex index);
-    Task<long> GetInvitedCountByInviterAsync(string chainId, string inviter, bool isVoted);
+    Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted);
     Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
 }
 
@@ -29,12 +28,12 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         _referralInviteRepository = referralInviteRepository;
     }
 
-    public async Task<ReferralInviteIndex> GetByNotVoteInviteeAsync(string chainId, string invitee)
+    public async Task<ReferralInviteIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q => q.Term(i => i.Field(t => t.Invitee).Value(invitee))
+            q => q.Term(i => i.Field(t => t.InviteeCaHash).Value(inviteeCaHash))
         };
         var mustNotQuery = new List<Func<QueryContainerDescriptor<ReferralInviteIndex>, QueryContainer>>
         {
@@ -65,41 +64,20 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         await _referralInviteRepository.BulkAddOrUpdateAsync(list);
     }
 
-    public async Task<List<ReferralInviteIndex>> GetByNotVoteInvitees(string chainId, List<string> invitees)
-    {
-        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteIndex>, QueryContainer>>
-        {
-            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),  
-            q => q.Terms(i => i.Field(t => t.Invitee).Terms(invitees))
-        };
-
-        var mustNotQuery = new List<Func<QueryContainerDescriptor<ReferralInviteIndex>, QueryContainer>>
-        {
-            q => q.Exists(e => e.Field(f => f.FirstVoteTime))
-        };
-
-        QueryContainer Filter(QueryContainerDescriptor<ReferralInviteIndex> f) => f.Bool(b => b
-                .Must(mustQuery).MustNot(mustNotQuery));
-
-        return (await _referralInviteRepository.GetListAsync(Filter)).Item2;
-    }
-
-
     public async Task AddOrUpdateAsync(ReferralInviteIndex index)
     {
         await _referralInviteRepository.AddOrUpdateAsync(index);
     }
 
-    public async Task<long> GetInvitedCountByInviterAsync(string chainId, string inviter, bool isVoted)
+    public async Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q => q.Term(i => i.Field(t => t.Inviter).Value(inviter))
+            q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash))
         };
         if (isVoted)
         {
-            // FirstVoteTime not null
             mustQuery.Add(q => q.Exists(e => e.Field(f => f.FirstVoteTime)));
         }
         QueryContainer Filter(QueryContainerDescriptor<ReferralInviteIndex> f) => f.Bool(b => b.Must(mustQuery));
@@ -116,7 +94,7 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
                 .LessThanOrEquals(input.EndTime)))  
             .Aggregations(a => a
                 .Terms("inviter_agg", t => t
-                    .Field(f => f.Inviter)
+                    .Field(f => f.InviterCaHash)
                     .Size(int.MaxValue)  
                     .Order(o => o
                         .Descending("invite_count"))  

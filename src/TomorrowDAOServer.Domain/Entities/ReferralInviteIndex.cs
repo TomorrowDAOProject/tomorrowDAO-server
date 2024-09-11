@@ -10,8 +10,8 @@ public class ReferralInviteIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string ChainId { get; set; }
     [Keyword] public string Inviter { get; set; }
     [Keyword] public string Invitee { get; set; }
+    [Keyword] public string InviterCaHash { get; set; }
     [Keyword] public string InviteeCaHash { get; set; }
-    [Keyword] public string ReferralLink { get; set; }
     [Keyword] public string ReferralCode { get; set; }
     [Keyword] public string ProjectCode { get; set; }
     [Keyword] public string MethodName { get; set; }

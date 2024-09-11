@@ -6,7 +6,7 @@ namespace TomorrowDAOServer.Referral;
 
 public interface IReferralService
 {
-    Task<GetLinkDto> GetLinkAsync(string token, string chainId);
+    // Task<GetLinkDto> GetLinkAsync(string token, string chainId);
     Task<InviteDetailDto> InviteDetailAsync(string chainId);
     Task<PageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
 }

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver.Linq;
 using Nest;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.User.Dtos;
@@ -68,5 +67,21 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
         var (_, list) = await _userIndexRepository.GetListAsync(Filter);
         return list;
+    }
+
+    public async Task<UserIndex> GetUserByCaHashAsync(string caHash)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.CaHash).Value(caHash))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _userIndexRepository.GetAsync(Filter);
+    }
+
+    public async Task<string> GetUserAddressByCaHashAsync(string chainId, string caHash)
+    {
+        var user = await GetUserByCaHashAsync(caHash);
+        return user?.AddressInfos?.FirstOrDefault(x => x.ChainId == chainId)?.Address ?? string.Empty;
     }
 }
