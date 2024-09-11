@@ -262,12 +262,12 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.IssueChainId, opt
                 => opt.MapFrom(source => MapChainIdToBase58(source.IssueChainId)));
 
-        CreateMap<IndexerReferral, ReferralInviteIndex>()
+        CreateMap<IndexerReferral, ReferralInviteRelationIndex>()
             .ForMember(des => des.InviteeCaHash, opt
                 => opt.MapFrom(source => source.CaHash))
             ;
 
-        CreateMap<ReferralCodeInfo, ReferralLinkIndex>()
+        CreateMap<ReferralCodeInfo, ReferralLinkCodeIndex>()
             .ForMember(des => des.InviterCaHash, opt
                 => opt.MapFrom(source => source.CaHash))
             .ForMember(des => des.ReferralCode, opt

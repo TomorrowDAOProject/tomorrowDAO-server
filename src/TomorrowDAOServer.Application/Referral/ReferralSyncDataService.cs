@@ -80,7 +80,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
             if (!notExistsReferralCodes.IsNullOrEmpty())
             {
                 var codeInfos = await _portkeyProvider.GetReferralCodeCaHashAsync(referralCodes);
-                var newLinks = _objectMapper.Map<List<ReferralCodeInfo>, List<ReferralLinkIndex>>(codeInfos);
+                var newLinks = _objectMapper.Map<List<ReferralCodeInfo>, List<ReferralLinkCodeIndex>>(codeInfos);
                 foreach (var link in newLinks)
                 {
                     link.Id = GuidHelper.GenerateId(chainId, link.InviterCaHash);
@@ -97,7 +97,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
                     group => group.First().InviterCaHash 
                 );
             
-            var referralInviteList = _objectMapper.Map<List<IndexerReferral>, List<ReferralInviteIndex>>(toUpdate);
+            var referralInviteList = _objectMapper.Map<List<IndexerReferral>, List<ReferralInviteRelationIndex>>(toUpdate);
             foreach (var index in referralInviteList)
             {
                 index.ChainId = chainId;
@@ -127,7 +127,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
         return GuidHelper.GenerateId(x.CaHash, x.ReferralCode, x.ProjectCode, x.MethodName);
     }
     
-    private string GetReferralInviteId(ReferralInviteIndex x)
+    private string GetReferralInviteId(ReferralInviteRelationIndex x)
     {
         return GuidHelper.GenerateId(x.InviteeCaHash, x.ReferralCode, x.ProjectCode, x.MethodName);
     }

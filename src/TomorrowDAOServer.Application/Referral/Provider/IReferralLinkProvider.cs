@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Nest;
-using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
 using Volo.Abp.DependencyInjection;
 
@@ -11,32 +10,32 @@ namespace TomorrowDAOServer.Referral.Provider;
 
 public interface IReferralLinkProvider
 {
-    Task<ReferralLinkIndex> GetByInviterAsync(string chainId, string caHash);
-    Task BulkAddOrUpdate(List<ReferralLinkIndex> list);
-    Task<List<ReferralLinkIndex>> GetByReferralCodesAsync(string chainId, List<string> codes);
+    Task<ReferralLinkCodeIndex> GetByInviterAsync(string chainId, string caHash);
+    Task BulkAddOrUpdate(List<ReferralLinkCodeIndex> list);
+    Task<List<ReferralLinkCodeIndex>> GetByReferralCodesAsync(string chainId, List<string> codes);
 }
 
 public class ReferralLinkProvider : IReferralLinkProvider, ISingletonDependency
 {
-    private readonly INESTRepository<ReferralLinkIndex, string> _referralLinkRepository;
+    private readonly INESTRepository<ReferralLinkCodeIndex, string> _referralLinkRepository;
 
-    public ReferralLinkProvider(INESTRepository<ReferralLinkIndex, string> referralLinkRepository)
+    public ReferralLinkProvider(INESTRepository<ReferralLinkCodeIndex, string> referralLinkRepository)
     {
         _referralLinkRepository = referralLinkRepository;
     }
 
-    public async Task<ReferralLinkIndex> GetByInviterAsync(string chainId, string caHash)
+    public async Task<ReferralLinkCodeIndex> GetByInviterAsync(string chainId, string caHash)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralLinkIndex>, QueryContainer>>
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralLinkCodeIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
             q => q.Term(i => i.Field(t => t.InviterCaHash).Value(caHash))
         };
-        QueryContainer Filter(QueryContainerDescriptor<ReferralLinkIndex> f) => f.Bool(b => b.Must(mustQuery));
+        QueryContainer Filter(QueryContainerDescriptor<ReferralLinkCodeIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _referralLinkRepository.GetAsync(Filter);
     }
 
-    public async Task BulkAddOrUpdate(List<ReferralLinkIndex> list)
+    public async Task BulkAddOrUpdate(List<ReferralLinkCodeIndex> list)
     {
         if (list == null || list.IsNullOrEmpty())
         {
@@ -45,14 +44,14 @@ public class ReferralLinkProvider : IReferralLinkProvider, ISingletonDependency
         await _referralLinkRepository.BulkAddOrUpdateAsync(list);
     }
 
-    public async Task<List<ReferralLinkIndex>> GetByReferralCodesAsync(string chainId, List<string> codes)
+    public async Task<List<ReferralLinkCodeIndex>> GetByReferralCodesAsync(string chainId, List<string> codes)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralLinkIndex>, QueryContainer>>
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralLinkCodeIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
             q => q.Terms(i => i.Field(t => t.ReferralCode).Terms(codes))
         };
-        QueryContainer Filter(QueryContainerDescriptor<ReferralLinkIndex> f) => f.Bool(b => b.Must(mustQuery));
+        QueryContainer Filter(QueryContainerDescriptor<ReferralLinkCodeIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _referralLinkRepository.GetListAsync(Filter)).Item2;
     }
 }
