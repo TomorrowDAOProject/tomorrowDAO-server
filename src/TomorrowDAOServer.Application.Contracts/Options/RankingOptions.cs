@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Org.BouncyCastle.Utilities;
+using TomorrowDAOServer.Referral.Dto;
 
 namespace TomorrowDAOServer.Options;
 
@@ -19,27 +20,41 @@ public class RankingOptions
     public long PointsPerVote { get; set; } = 10000;
     public long PointsPerLike { get; set; } = 1;
     public long PointsFirstReferralVote { get; set; } = 50000;
-    public List<Tuple<long, long>> AllReferralActiveTime { get; set; } = new();
-    
+    public List<string> AllReferralActiveTime { get; set; } = new();
+
+    public ReferralActiveConfigDto ParseReferralActiveTimes()
+    {
+        var configDto = new ReferralActiveConfigDto();
+
+        foreach (var timeParts in AllReferralActiveTime
+                     .Select(timeString => timeString.Split(','))
+                     .Where(timeParts => timeParts.Length == 2))
+        {
+            configDto.Config.Add(new ReferralActiveDto
+            {
+                StartTime = long.Parse(timeParts[0]),
+                EndTime = long.Parse(timeParts[1])
+            });
+        }
+
+        configDto.Config = configDto.Config
+            .OrderByDescending(c => c.StartTime)
+            .ToList();
+
+        return configDto;
+    }
+
     public bool IsReferralActive()
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        if (AllReferralActiveTime == null || AllReferralActiveTime.Count == 0)
+        var config = ParseReferralActiveTimes();
+        var latest = config.Config.FirstOrDefault();
+        if (latest != null)
         {
-            return false;
+            return currentTime >= latest.StartTime && currentTime <= latest.EndTime;
         }
 
-        var latestInterval = AllReferralActiveTime.MaxBy(t => t.Item1);
-        if (latestInterval == null)
-        {
-            return false;
-        }
-
-        var startTime = latestInterval.Item1; 
-        var endTime = latestInterval.Item2;  
-
-        return currentTime >= startTime && currentTime <= endTime;
+        return false;
     }
     
     public TimeSpan GetLockUserTimeoutTimeSpan()

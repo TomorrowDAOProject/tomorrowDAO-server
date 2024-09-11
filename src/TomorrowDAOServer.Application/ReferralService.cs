@@ -107,8 +107,8 @@ public class ReferralService : ApplicationService, IReferralService
         };
     }
 
-    public List<Tuple<long, long>> ConfigAsync()
+    public ReferralActiveConfigDto ConfigAsync()
     {
-        return _rankingOptions.CurrentValue.AllReferralActiveTime;
+        return _rankingOptions.CurrentValue.ParseReferralActiveTimes();
     }
 }

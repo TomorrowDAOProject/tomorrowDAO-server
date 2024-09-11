@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -45,7 +44,7 @@ public class ReferralController
     }
     
     [HttpGet("config")]
-    public List<Tuple<long, long>> ConfigAsync()
+    public ReferralActiveConfigDto ConfigAsync()
     {
         return _referralService.ConfigAsync();
     }
