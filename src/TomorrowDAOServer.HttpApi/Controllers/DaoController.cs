@@ -95,7 +95,6 @@ public class DaoController
     {
         var sw = Stopwatch.StartNew();
         var result = await _daoAppService.GetMyDAOListAsync(input);
-        
         sw.Stop();
         _logger.LogInformation("DaoController MyDAOList duration:{0}", sw.ElapsedMilliseconds);
         return result;
