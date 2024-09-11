@@ -19,11 +19,13 @@ public interface IPortkeyProvider
 {
     Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token);
     Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount);
+    
 }
 
 public static class ReferralApi
 {
     public static readonly ApiInfo ShortLink = new(HttpMethod.Get, "/api/app/growth/shortLink");
+    public static readonly ApiInfo ReferralCode = new(HttpMethod.Get, "/api/app/growth/growthInfos");
 }
 
 public class PortkeyProvider : IPortkeyProvider, ISingletonDependency

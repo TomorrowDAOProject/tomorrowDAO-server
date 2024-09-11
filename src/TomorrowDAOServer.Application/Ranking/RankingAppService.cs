@@ -641,17 +641,21 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 var match = Regex.Match(memo ?? string.Empty, CommonConstant.MemoPattern);
                 if (match.Success)
                 {
-                    if (_rankingOptions.CurrentValue.IsReferralActive())
+                    
+                    var referral = await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, addressCaHash);
+                    if (referral != null)
                     {
-                        var invite = await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, addressCaHash);
-                        if (invite != null)
+                        var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
+                        var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<Voted>(voteEventLog);
+                        referral.FirstVoteTime = voteEvent.VoteTimestamp?.ToDateTime();
+                        await _referralInviteProvider.AddOrUpdateAsync(referral);
+                        if (_rankingOptions.CurrentValue.IsReferralActive())
                         {
-                            var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
-                            var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<Voted>(voteEventLog);
-                            invite.FirstVoteTime = voteEvent.VoteTimestamp?.ToDateTime();
-                            await _referralInviteProvider.AddOrUpdateAsync(invite);
-                            await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(invite.Inviter, invite.Invitee, 1);
-                            await _messagePublisherService.SendReferralFirstVoteMessageAsync(chainId, invite.Inviter, invite.Invitee);
+                            var invitee = address;
+                            // todo problem
+                            var inviter = await _userAppService.GetUserAddressByCaHashAsync(chainId, referral.InviterCaHash);
+                            await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(inviter, invitee, 1);
+                            await _messagePublisherService.SendReferralFirstVoteMessageAsync(chainId, inviter, invitee);
                         }
                     }
                     
