@@ -37,9 +37,7 @@ public class ProposalController : AbpController
     public async Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input)
     {
         var sw = Stopwatch.StartNew();
-        
         var result = await _proposalService.QueryProposalDetailAsync(input);
-        
         sw.Stop();
         _logger.LogInformation("ProposalController QueryProposalDetailAsync duration:{0}", sw.ElapsedMilliseconds);
         
