@@ -72,4 +72,5 @@ public static class CommonConstant
     
     // Referral
     public const string CreateAccountMethodName = "CreateCAHolder";
+    public const string ProjectCode = "13027";
 }

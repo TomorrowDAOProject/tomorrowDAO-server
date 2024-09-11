@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,5 +42,11 @@ public class ReferralController
     public async Task<PageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
         return await _referralService.InviteLeaderBoardAsync(input);
+    }
+    
+    [HttpGet("config")]
+    public List<Tuple<long, long>> ConfigAsync()
+    {
+        return _referralService.ConfigAsync();
     }
 }

@@ -29,23 +29,18 @@ public static class ReferralApi
 public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 {
     private readonly IHttpProvider _httpProvider;
-    private readonly IOptionsMonitor<ShortLinkOptions> _shortLinkOptions;
     private readonly IOptionsMonitor<GraphQLOptions> _graphQLOptions;
 
-    public PortkeyProvider(IHttpProvider httpProvider, IOptionsMonitor<ShortLinkOptions> shortLinkOptions, 
-        IOptionsMonitor<GraphQLOptions> graphQlOptions)
+    public PortkeyProvider(IHttpProvider httpProvider, IOptionsMonitor<GraphQLOptions> graphQlOptions)
     {
         _httpProvider = httpProvider;
-        _shortLinkOptions = shortLinkOptions;
         _graphQLOptions = graphQlOptions;
     }
 
     public async Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token)
     {
-        AssertHelper.IsTrue(_shortLinkOptions.CurrentValue.BaseUrl.TryGetValue(chainId, out var domain));
-        var projectCode = _shortLinkOptions.CurrentValue.ProjectCode;
-        var resp = await _httpProvider.InvokeAsync<ShortLinkResponse>(domain, ReferralApi.ShortLink,
-            param: new Dictionary<string, string> { ["projectCode"] = projectCode },
+        var resp = await _httpProvider.InvokeAsync<ShortLinkResponse>("", ReferralApi.ShortLink,
+            param: new Dictionary<string, string> { ["projectCode"] = CommonConstant.ProjectCode },
             header: new Dictionary<string, string> { ["Authorization"] = token },
             withInfoLog: false, withDebugLog: false);
         return new Tuple<string, string>(resp?.ShortLinkCode ?? string.Empty, resp?.InviteCode ?? string.Empty);
@@ -54,7 +49,6 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
     public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
     {
         var url = _graphQLOptions.CurrentValue.PortkeyConfiguration;
-        var projectCode = _shortLinkOptions.CurrentValue.ProjectCode;
         using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
         var request = new GraphQLRequest
         {
@@ -85,7 +79,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
                 caHashes = new List<string>(), 
                 methodName = CommonConstant.CreateAccountMethodName, 
                 referralCodes = new List<string>(), 
-                projectCode = projectCode, 
+                projectCode = CommonConstant.ProjectCode, 
                 startTime = startTime, 
                 endTime = endTime,
                 skipCount = skipCount, 

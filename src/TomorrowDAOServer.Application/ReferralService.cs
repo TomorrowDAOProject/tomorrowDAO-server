@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral;
 using TomorrowDAOServer.Referral.Dto;
@@ -24,14 +26,17 @@ public class ReferralService : ApplicationService, IReferralService
     private readonly IUserProvider _userProvider;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly IUserAppService _userAppService;
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
 
     public ReferralService(IReferralInviteProvider referralInviteProvider, IUserProvider userProvider, 
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, IUserAppService userAppService)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, IUserAppService userAppService, 
+        IOptionsMonitor<RankingOptions> rankingOptions)
     {
         _referralInviteProvider = referralInviteProvider;
         _userProvider = userProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _userAppService = userAppService;
+        _rankingOptions = rankingOptions;
     }
 
     // public async Task<GetLinkDto> GetLinkAsync(string token, string chainId)
@@ -100,5 +105,10 @@ public class ReferralService : ApplicationService, IReferralService
             TotalCount = inviterList.Count,
             Data = inviterList.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()
         };
+    }
+
+    public List<Tuple<long, long>> ConfigAsync()
+    {
+        return _rankingOptions.CurrentValue.AllReferralActiveTime;
     }
 }

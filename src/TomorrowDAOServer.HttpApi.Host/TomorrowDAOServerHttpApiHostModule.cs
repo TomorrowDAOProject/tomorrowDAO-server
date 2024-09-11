@@ -83,7 +83,6 @@ namespace TomorrowDAOServer
             Configure<DaoAliasOptions>(configuration.GetSection("DaoAlias"));
             Configure<RankingOptions>(configuration.GetSection("Ranking"));
             Configure<HubCommonOptions>(configuration.GetSection("HubCommonOptions"));
-            Configure<ShortLinkOptions>(configuration.GetSection("ShortLinkOptions"));
             
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

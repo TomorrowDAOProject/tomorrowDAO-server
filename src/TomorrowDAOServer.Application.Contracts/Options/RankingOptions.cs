@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Org.BouncyCastle.Utilities;
 
 namespace TomorrowDAOServer.Options;
@@ -18,7 +19,28 @@ public class RankingOptions
     public long PointsPerVote { get; set; } = 10000;
     public long PointsPerLike { get; set; } = 1;
     public long PointsFirstReferralVote { get; set; } = 50000;
+    public List<Tuple<long, long>> AllReferralActiveTime { get; set; } = new();
     
+    public bool IsReferralActive()
+    {
+        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        if (AllReferralActiveTime == null || AllReferralActiveTime.Count == 0)
+        {
+            return false;
+        }
+
+        var latestInterval = AllReferralActiveTime.MaxBy(t => t.Item1);
+        if (latestInterval == null)
+        {
+            return false;
+        }
+
+        var startTime = latestInterval.Item1; 
+        var endTime = latestInterval.Item2;  
+
+        return currentTime >= startTime && currentTime <= endTime;
+    }
     
     public TimeSpan GetLockUserTimeoutTimeSpan()
     {
