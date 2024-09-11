@@ -10,7 +10,7 @@ public class ReferralCodeResponse
 public class ReferralCodeInfo
 {
     public string CaHash { get; set; }
-    public string ReferralCode { get; set; }
+    public string InviteCode { get; set; }
 }
 
 public class ReferralCodeRequest

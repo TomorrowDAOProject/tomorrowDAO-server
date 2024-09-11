@@ -51,6 +51,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
             queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, lastEndTime, endTime, skipCount, MaxResultCount);
             if (queryList == null || queryList.IsNullOrEmpty())
             {
+                lastEndTime = endTime;
                 break;
             }
             skipCount += queryList.Count;
@@ -63,7 +64,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
             }
             var ids = inviteList.Select(GetReferralInviteId).ToList();
             var exists = await _referralInviteProvider.GetByIdsAsync(ids);
-            var toUpdate = queryList
+            var toUpdate = inviteList
                 .Where(x => exists.All(y => GetReferralInviteId(x) != y.Id))
                 .ToList();
             if (toUpdate.IsNullOrEmpty())
@@ -71,7 +72,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
                 continue;
             }
             
-            var referralCodes = toUpdate.Select(x => x.ReferralCode).ToList();
+            var referralCodes = inviteList.Select(x => x.ReferralCode).Distinct().ToList();
             var currentLinks = await _referralLinkProvider.GetByReferralCodesAsync(chainId, referralCodes);
             var notExistsReferralCodes = referralCodes
                 .Where(code => currentLinks.All(link => link.ReferralCode != code))
@@ -101,7 +102,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
             {
                 index.ChainId = chainId;
                 index.Id = GetReferralInviteId(index);
-                index.InviteeCaHash = currentLinksDict.GetValueOrDefault(index.ReferralCode, string.Empty);
+                index.InviterCaHash = currentLinksDict.GetValueOrDefault(index.ReferralCode, string.Empty);
             }
             await _referralInviteProvider.BulkAddOrUpdateAsync(referralInviteList);
 

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.HttpClient;
@@ -33,13 +34,15 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
     private readonly IHttpProvider _httpProvider;
     private readonly IOptionsMonitor<GraphQLOptions> _graphQlOptions;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private readonly ILogger<IPortkeyProvider> _logger;
 
     public PortkeyProvider(IHttpProvider httpProvider, IOptionsMonitor<GraphQLOptions> graphQlOptions,
-        IOptionsMonitor<RankingOptions> rankingOptions)
+        IOptionsMonitor<RankingOptions> rankingOptions, ILogger<IPortkeyProvider> logger)
     {
         _httpProvider = httpProvider;
         _graphQlOptions = graphQlOptions;
         _rankingOptions = rankingOptions;
+        _logger = logger;
     }
 
     public async Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token)
@@ -98,15 +101,19 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 
     public async Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes)
     {
-        var domain = _rankingOptions.CurrentValue.ReferralDomain;
-        var resp = await _httpProvider.InvokeAsync<ReferralCodeResponse>(domain,
-            ReferralApi.ReferralCode,
-            param: MapHelper.ToDictionary(new ReferralCodeRequest
-            {
-                SkipCount = 0, MaxResultCount = referralCodes.Count,
-                ReferralCodes = referralCodes, ProjectCode = CommonConstant.ProjectCode
-            }),
-            withInfoLog: false, withDebugLog: false);
-        return resp.Data;
+        try
+        {
+            var domain = _rankingOptions.CurrentValue.ReferralDomain;
+            var referralCodesString = string.Join("&referralCodes=", referralCodes);
+            var url = $"{domain}{ReferralApi.ReferralCode.Path}?projectCode=13027&referralCodes={referralCodesString}&skipCount=0&maxResultCount={referralCodes.Count}";
+            var resp = await _httpProvider.InvokeAsync<ReferralCodeResponse>(ReferralApi.ReferralCode.Method, url);
+            return resp.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetReferralCodeCaHashAsyncException count {0}", referralCodes.Count);
+        }
+
+        return new List<ReferralCodeInfo>();
     }
 }
