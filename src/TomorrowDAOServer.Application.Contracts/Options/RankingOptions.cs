@@ -24,7 +24,10 @@ public class RankingOptions
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {
-        var configDto = new ReferralActiveConfigDto();
+        var configDto = new ReferralActiveConfigDto
+        {
+            Config = new List<ReferralActiveDto>()
+        };
 
         foreach (var timeParts in AllReferralActiveTime
                      .Select(timeString => timeString.Split(','))
