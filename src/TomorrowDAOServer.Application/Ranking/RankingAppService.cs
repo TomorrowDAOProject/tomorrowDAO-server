@@ -16,7 +16,6 @@ using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Security;
-using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -66,6 +65,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
     private readonly IReferralInviteProvider _referralInviteProvider;
+    private List<RankingAppIndex> _defaultRankingAppListCache = new();
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -130,19 +130,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var defaultRankingProposal = proposalList.MaxBy(p => p.DeployTime);
             if (defaultRankingProposal != null && !defaultRankingProposal.Id.IsNullOrWhiteSpace())
             {
-                var proposalId = defaultRankingProposal.ProposalId;
-                var aliasString = GetAliasString(defaultRankingProposal.ProposalDescription);
-                var value = proposalId + CommonConstant.Comma + aliasString;
-                var endTime = defaultRankingProposal.ActiveEndTime;
-                await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, value, endTime);
+                await GenerateRedisDefaultProposal(defaultRankingProposal.ProposalId, defaultRankingProposal.ProposalDescription, chainId);
             }
         }
     }
 
     public async Task<RankingDetailDto> GetDefaultRankingProposalAsync(string chainId)
     {
-        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
-        return await GetRankingProposalDetailAsync(chainId, defaultProposal.ProposalId, defaultProposal.DAOId);
+        var userAddress = await _userProvider
+            .GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var proposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
+        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId);
     }
 
     public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
@@ -153,22 +151,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             TotalCount = result.Item1,
             Data = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(result.Item2)
         };
-    }
-
-    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId, string daoId)
-    {
-        var userAddress = string.Empty;
-        try
-        {
-            userAddress = await _userProvider.GetUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
-
-        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId, daoId);
     }
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
@@ -325,11 +307,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     {
         _logger.LogInformation("AddDefaultProposalBegin chainId {count}", chainId);
         var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
-        var proposalId = defaultProposal.ProposalId;
-        var aliasString = GetAliasString(defaultProposal.ProposalDescription);
-        var value = proposalId + CommonConstant.Comma + aliasString;
-        var endTime = defaultProposal.ActiveEndTime;
-        await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, value, endTime);
+        await GenerateRedisDefaultProposal(defaultProposal.ProposalId, defaultProposal.ProposalDescription, chainId);
         _logger.LogInformation("AddDefaultProposalEnd chainId {count}", chainId);
     }
 
@@ -456,50 +434,52 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             });
     }
 
-    private async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
-        string proposalId, string daoId)
+    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
+        string proposalId)
     {
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         if (proposalId.IsNullOrEmpty())
         {
             return new RankingDetailDto { UserTotalPoints = userAllPoints };
         }
-        
-        var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
-        if (rankingAppList.IsNullOrEmpty())
+
+        if (_defaultRankingAppListCache.IsNullOrEmpty() || _defaultRankingAppListCache.First().ProposalId != proposalId)
+        {
+            _defaultRankingAppListCache = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
+        }
+
+        if (_defaultRankingAppListCache.IsNullOrEmpty())
         {
             return new RankingDetailDto { UserTotalPoints = userAllPoints };
         }
 
-        var canVoteAmount = 0;
         var userTotalPoints = 0L;
-        var rankingApp = rankingAppList[0];
+        var rankingApp = _defaultRankingAppListCache[0];
         var proposalDescription = rankingApp.ProposalDescription;
-        if (!string.IsNullOrEmpty(userAddress))
-        {
-            var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
-            if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
-            {
-                canVoteAmount = 0;
-            }
-            else
-            {
-                var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
-                if (voteRecordEs == null)
-                {
-                    canVoteAmount = 1;
-                    // var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
-                    //     { ChainId = chainId, DAOId = daoId });
-                    // var balance =
-                    //     await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
-                    // if (balance.Balance > 0)
-                    // {
-                    //     canVoteAmount = 1;
-                    // }
-                }
-            }
-        }
+        var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
+        var canVoteAmount = voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting } ? 0 : 1;
 
+
+        // if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
+        // {
+        //     canVoteAmount = 0;
+        // }
+        // else
+        // {
+        //     canVoteAmount = 1;
+        //     var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
+        //     if (voteRecordEs == null)
+        //     {
+        //         var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
+        //             { ChainId = chainId, DAOId = daoId });
+        //         var balance =
+        //             await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
+        //         if (balance.Balance > 0)
+        //         {
+        //             canVoteAmount = 1;
+        //         }
+        //     }
+        // }
         var aliasList = GetAliasList(proposalDescription);
         var appPointsList = await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId, aliasList);
         var appVoteAmountDic = appPointsList
@@ -512,7 +492,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var appPointsDic = RankingAppPointsDto
             .ConvertToBaseList(appPointsList)
             .ToDictionary(x => x.Alias, x => x.Points);
-        var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
+        var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(_defaultRankingAppListCache);
         foreach (var app in rankingList)
         {
             app.PointsAmount = appPointsDic.GetValueOrDefault(app.Alias, 0);
@@ -698,5 +678,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             return false;
         }
         return DateTime.UtcNow > index.ActiveStartTime && DateTime.UtcNow < index.ActiveEndTime;
+    }
+
+    private async Task GenerateRedisDefaultProposal(string proposalId, string proposalDesc, string chainId)
+    {
+        var aliasString = GetAliasString(proposalDesc);
+        var value = proposalId + CommonConstant.Comma + aliasString;
+        // var endTime = proposal.ActiveEndTime;
+        await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, value, null);
     }
 }
