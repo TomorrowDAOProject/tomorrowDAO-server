@@ -28,6 +28,7 @@ using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
+using TomorrowDAOServer.Vote.Index;
 using Volo.Abp.Users;
 using ProposalType = TomorrowDAOServer.Enums.ProposalType;
 
@@ -55,7 +56,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private const int ProposalOnceWithdrawMax = 500;
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
-    private Dictionary<string, VoteMechanism> _voteMechanisms = new();
+    Dictionary<string, IndexerVoteSchemeInfo> _voteMechanisms = new ();
 
     public ProposalService(IObjectMapper objectMapper, IProposalProvider proposalProvider, IVoteProvider voteProvider,
         IGraphQLProvider graphQlProvider, IScriptService scriptService, IProposalAssistService proposalAssistService,
@@ -489,8 +490,17 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var voteInfoTask = _voteProvider.GetVoteItemsAsync(input.ChainId, votingItemIds);
         var proposalInfosTask = _proposalProvider.GetProposalByIdsAsync(input.ChainId, votingItemIds);
         var daoInfosTask = _DAOProvider.GetDaoListByDaoIds(input.ChainId, daoIds);
-        var voteSchemeTask = _voteProvider.GetVoteSchemeDicAsync(new GetVoteSchemeInput { ChainId = input.ChainId });
-        await Task.WhenAll(voteInfoTask, proposalInfosTask, daoInfosTask, voteSchemeTask);
+        if (_voteMechanisms.IsNullOrEmpty())
+        {
+            var voteSchemeTask = _voteProvider.GetVoteSchemeDicAsync(new GetVoteSchemeInput { ChainId = input.ChainId });
+            await Task.WhenAll(voteInfoTask, proposalInfosTask, daoInfosTask, voteSchemeTask);
+            _voteMechanisms = voteSchemeTask.Result;
+        }
+        else
+        {
+            await Task.WhenAll(voteInfoTask, proposalInfosTask, daoInfosTask);
+        }
+        
         var voteInfos = voteInfoTask.Result;
         var proposalInfos = proposalInfosTask.Result.ToDictionary(x => x.ProposalId, x => x);
         var daoInfos = daoInfosTask.Result.ToDictionary(x => x.Id, x => x);
@@ -498,13 +508,12 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         var tokenInfosTasks = symbols.Select(symbol => _tokenService.GetTokenInfoWithoutUpdateAsync(input.ChainId, symbol)).ToList();
         var tokenInfos = (await Task.WhenAll(tokenInfosTasks)).Where(x => x != null && !string.IsNullOrEmpty(x.Symbol))
             .ToDictionary(x => x.Symbol, x => x);
-        var voteSchemeDic = voteSchemeTask.Result;
         var historyList = _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(voteRecords);
         foreach (var history in historyList)
         {
             voteInfos.TryGetValue(history.ProposalId, out var voteInfo);
             proposalInfos.TryGetValue(history.ProposalId, out var proposalIndex);
-            voteSchemeDic.TryGetValue(proposalIndex!.VoteSchemeId, out var voteMechanism);
+            _voteMechanisms.TryGetValue(proposalIndex!.VoteSchemeId, out var voteMechanism);
             daoInfos.TryGetValue(history.DAOId, out var daoIndex);
             tokenInfos.TryGetValue(daoIndex!.GovernanceToken ?? string.Empty, out var tokenInfo);
 
