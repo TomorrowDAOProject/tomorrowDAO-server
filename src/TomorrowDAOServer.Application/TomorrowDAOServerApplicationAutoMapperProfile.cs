@@ -271,6 +271,8 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<ReferralCodeInfo, ReferralLinkIndex>()
             .ForMember(des => des.InviterCaHash, opt
                 => opt.MapFrom(source => source.CaHash))
+            .ForMember(des => des.ReferralCode, opt
+                => opt.MapFrom(source => source.InviteCode))
             ;
     }
 }

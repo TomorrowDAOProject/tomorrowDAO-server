@@ -27,7 +27,7 @@ namespace TomorrowDAOServer.Ranking.Provider
 
         public long CalculatePointsFromReferralVotes(long voteCount)
         {
-            return _rankingOptions.CurrentValue.PointsFirstReferralVote;
+            return _rankingOptions.CurrentValue.PointsFirstReferralVote * voteCount;
         }
 
         public long CalculatePointsFromVotes(long voteCount)

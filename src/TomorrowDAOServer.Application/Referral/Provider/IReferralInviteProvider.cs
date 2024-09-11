@@ -94,12 +94,15 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
     public async Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
+        DateTime starTime = DateTimeOffset.FromUnixTimeMilliseconds(input.StartTime).DateTime;
+        DateTime endTime = DateTimeOffset.FromUnixTimeMilliseconds(input.EndTime).DateTime;
+
         var query = new SearchDescriptor<ReferralInviteIndex>()
             .Query(q => q.Exists(e => e.Field(f => f.FirstVoteTime)))  
             .Query(q => q.DateRange(r => r
                 .Field(f => f.FirstVoteTime)
-                .GreaterThanOrEquals(input.StartTime)
-                .LessThanOrEquals(input.EndTime)))  
+                .GreaterThanOrEquals(starTime)
+                .LessThanOrEquals(endTime)))  
             .Aggregations(a => a
                 .Terms("inviter_agg", t => t
                     .Field(f => f.InviterCaHash)
