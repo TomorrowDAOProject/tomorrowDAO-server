@@ -99,13 +99,12 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
     public async Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes)
     {
         var domain = _rankingOptions.CurrentValue.ReferralDomain;
-        //todo wait ReferralCodes change
         var resp = await _httpProvider.InvokeAsync<ReferralCodeResponse>(domain,
             ReferralApi.ReferralCode,
             param: MapHelper.ToDictionary(new ReferralCodeRequest
             {
                 SkipCount = 0, MaxResultCount = referralCodes.Count,
-                ReferralCode = "14457", ProjectCode = CommonConstant.ProjectCode
+                ReferralCodes = referralCodes, ProjectCode = CommonConstant.ProjectCode
             }),
             withInfoLog: false, withDebugLog: false);
         return resp.Data;
