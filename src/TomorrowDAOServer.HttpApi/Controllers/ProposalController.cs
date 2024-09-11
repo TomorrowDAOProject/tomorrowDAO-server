@@ -40,7 +40,6 @@ public class ProposalController : AbpController
         var result = await _proposalService.QueryProposalDetailAsync(input);
         sw.Stop();
         _logger.LogInformation("ProposalController QueryProposalDetailAsync duration:{0}", sw.ElapsedMilliseconds);
-        
         return result;
     }
     
