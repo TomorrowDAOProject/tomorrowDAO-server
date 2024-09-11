@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -52,24 +53,31 @@ public class ReferralSyncDataService : ScheduleSyncDataService
                 break;
             }
             skipCount += queryList.Count;
-            var ids = queryList.Select(GetReferralInviteId).ToList();
+            var inviteList = queryList.Where(x => !x.ReferralCode.IsNullOrEmpty()).ToList();
+            if (inviteList.IsNullOrEmpty())
+            {
+                continue;
+            }
+            var ids = inviteList.Select(GetReferralInviteId).ToList();
             var exists = await _referralInviteProvider.GetByIdsAsync(ids);
             var toUpdate = queryList
                 .Where(x => exists.All(y => GetReferralInviteId(x) != y.Id))
                 .ToList();
-            if (!toUpdate.IsNullOrEmpty())
+            if (toUpdate.IsNullOrEmpty())
             {
-                var referralCodes = queryList.Where(x => !x.ReferralCode.IsNullOrEmpty()).Select(x => x.ReferralCode).ToList();
-                // todo get InviterCaHash from referralCodes
-                var referralInviteList = _objectMapper.Map<List<IndexerReferral>, List<ReferralInviteIndex>>(toUpdate);
-                foreach (var index in referralInviteList)
-                {
-                    index.ChainId = chainId;
-                    index.Id = GetReferralInviteId(index);
-                }
-                await _referralInviteProvider.BulkAddOrUpdateAsync(referralInviteList);
+                continue;
             }
-           
+            
+            var referralCodes = inviteList.Select(x => x.ReferralCode).ToList();
+            // todo get InviterCaHash from referralCodes
+            var referralInviteList = _objectMapper.Map<List<IndexerReferral>, List<ReferralInviteIndex>>(toUpdate);
+            foreach (var index in referralInviteList)
+            {
+                index.ChainId = chainId;
+                index.Id = GetReferralInviteId(index);
+            }
+            await _referralInviteProvider.BulkAddOrUpdateAsync(referralInviteList);
+
         } while (!queryList.IsNullOrEmpty());
 
         return lastEndTime;

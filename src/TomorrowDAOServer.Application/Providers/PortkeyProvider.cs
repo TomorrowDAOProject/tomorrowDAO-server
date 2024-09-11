@@ -46,10 +46,9 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
             param: new Dictionary<string, string> { ["projectCode"] = projectCode },
             header: new Dictionary<string, string> { ["Authorization"] = token },
             withInfoLog: false, withDebugLog: false);
-        return new Tuple<string, string>(resp?.ReferralLink ?? string.Empty, resp?.ReferralCode ?? string.Empty);
+        return new Tuple<string, string>(resp?.ShortLinkCode ?? string.Empty, resp?.InviteCode ?? string.Empty);
     }
 
-    // todo wait port key change
     public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
     {
         var url = _graphQLOptions.CurrentValue.PortkeyConfiguration;
@@ -58,15 +57,22 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         var request = new GraphQLRequest
         {
             Query = @"
-			    query($referralInfo:[String],$methodNames:[String],$referralCodes:Int!,$projectCode:String,startTime: Long!,endTime:Long!) {
-                    referralInfo(dto: {referralInfo:$referralInfo,methodNames:$methodNames,referralCodes:$referralCodes,projectCode:$projectCode,startTime:$startTime,endTime:$endTime})
+			    query($caHashes:[String],$methodNames:[String],$referralCodes:[String],$projectCode:String,startTime: Long!,endTime:Long!,$skipCount:Int!,$maxResultCount:Int!) {
+                    referralInfoPage(dto: {methodNames:$methodNames,referralCodes:$referralCodes,projectCode:$projectCode,startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount})
                     {
                          caHash,referralCode,projectCode,methodName,timestamp
                     }
                 }",
             Variables = new
             {
-                
+                caHashes = new List<string>(),
+                methodNames = methodName,
+                referralCodes = new List<string>(),
+                projectCode = projectCode,
+                startTime = startTime,
+                endTime = endTime,
+                skipCount = skipCount,
+                maxResultCount = maxResultCount,
             }
         };
     

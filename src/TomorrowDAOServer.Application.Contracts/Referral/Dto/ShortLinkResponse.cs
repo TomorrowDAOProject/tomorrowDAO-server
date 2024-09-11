@@ -1,8 +1,9 @@
 namespace TomorrowDAOServer.Referral.Dto;
 
-// todo real data structure
 public class ShortLinkResponse
 {
-    public string ReferralLink { get; set; }
-    public string ReferralCode { get; set; }
+    public string CaHash { get; set; }
+    public string ProjectCode { get; set; }
+    public string InviteCode { get; set; }
+    public string ShortLinkCode { get; set; }
 }
