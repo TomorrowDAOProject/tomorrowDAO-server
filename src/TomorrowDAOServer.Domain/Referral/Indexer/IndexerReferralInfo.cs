@@ -1,11 +1,15 @@
 using System.Collections.Generic;
-using TomorrowDAOServer.Common;
 
 namespace TomorrowDAOServer.Referral.Indexer;
 
-public class IndexerReferralInfo : IndexerCommonResult<IndexerReferralInfo>
+public class IndexerReferralInfo 
 {
-    public List<IndexerReferral> DataList { get; set; }
+    public ReferralInfoPage ReferralInfoPage { get; set; }
+}
+
+public class ReferralInfoPage
+{
+    public List<IndexerReferral> Data { get; set; }
 }
 
 public class IndexerReferral

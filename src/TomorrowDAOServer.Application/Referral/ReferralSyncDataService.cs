@@ -41,7 +41,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndTime, long newIndexHeight)
     {
         List<IndexerReferral> queryList;
-        var endTime = DateTime.UtcNow.ToUtcMilliSeconds();
+        var endTime = DateTime.UtcNow.ToUtcSeconds();
         var skipCount = 0;
         do
         {

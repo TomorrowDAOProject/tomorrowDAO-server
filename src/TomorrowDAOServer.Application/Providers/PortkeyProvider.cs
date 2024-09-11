@@ -32,10 +32,12 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
     private readonly IOptionsMonitor<ShortLinkOptions> _shortLinkOptions;
     private readonly IOptionsMonitor<GraphQLOptions> _graphQLOptions;
 
-    public PortkeyProvider(IHttpProvider httpProvider, IOptionsMonitor<ShortLinkOptions> shortLinkOptions)
+    public PortkeyProvider(IHttpProvider httpProvider, IOptionsMonitor<ShortLinkOptions> shortLinkOptions, 
+        IOptionsMonitor<GraphQLOptions> graphQlOptions)
     {
         _httpProvider = httpProvider;
         _shortLinkOptions = shortLinkOptions;
+        _graphQLOptions = graphQlOptions;
     }
 
     public async Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token)
@@ -57,26 +59,41 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         var request = new GraphQLRequest
         {
             Query = @"
-			    query($caHashes:[String],$methodNames:[String],$referralCodes:[String],$projectCode:String,startTime: Long!,endTime:Long!,$skipCount:Int!,$maxResultCount:Int!) {
-                    referralInfoPage(dto: {methodNames:$methodNames,referralCodes:$referralCodes,projectCode:$projectCode,startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount})
-                    {
-                         caHash,referralCode,projectCode,methodName,timestamp
-                    }
-                }",
+        query($caHashes: [String], $methodName: String, $referralCodes: [String], $projectCode: String, $startTime: Long!, $endTime: Long!, $skipCount: Int!, $maxResultCount: Int!) {
+            referralInfoPage(dto: {
+                caHashes: $caHashes,
+                referralCodes: $referralCodes,
+                projectCode: $projectCode,
+                methodName: $methodName,
+                startTime: $startTime,
+                endTime: $endTime,
+                skipCount: $skipCount,
+                maxResultCount: $maxResultCount
+            }) {
+                totalRecordCount
+                data {
+                    caHash
+                    referralCode
+                    projectCode
+                    methodName
+                    timestamp
+                }
+            }
+        }",
             Variables = new
             {
-                caHashes = new List<string>(),
-                methodNames = methodName,
-                referralCodes = new List<string>(),
-                projectCode = projectCode,
-                startTime = startTime,
+                caHashes = new List<string>(), 
+                methodName = CommonConstant.CreateAccountMethodName, 
+                referralCodes = new List<string>(), 
+                projectCode = projectCode, 
+                startTime = startTime, 
                 endTime = endTime,
-                skipCount = skipCount,
-                maxResultCount = maxResultCount,
+                skipCount = skipCount, 
+                maxResultCount = maxResultCount
             }
         };
-    
+
         var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerReferralInfo>(request);
-        return graphQlResponse.Data.DataList;
+        return graphQlResponse.Data.ReferralInfoPage.Data;
     }
 }
