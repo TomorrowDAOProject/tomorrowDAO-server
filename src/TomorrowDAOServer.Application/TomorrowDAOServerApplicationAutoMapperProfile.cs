@@ -19,6 +19,9 @@ using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Eto;
+using TomorrowDAOServer.Referral.Dto;
+using TomorrowDAOServer.Referral.Indexer;
+using TomorrowDAOServer.Ranking.Eto;
 using TomorrowDAOServer.Spider.Dto;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Token;
@@ -259,5 +262,15 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => MapAddress(source.Issuer)))
             .ForMember(des => des.IssueChainId, opt
                 => opt.MapFrom(source => MapChainIdToBase58(source.IssueChainId)));
+
+        CreateMap<IndexerReferral, ReferralInviteIndex>()
+            .ForMember(des => des.InviteeCaHash, opt
+                => opt.MapFrom(source => source.CaHash))
+            ;
+
+        CreateMap<ReferralCodeInfo, ReferralLinkIndex>()
+            .ForMember(des => des.InviterCaHash, opt
+                => opt.MapFrom(source => source.CaHash))
+            ;
     }
 }

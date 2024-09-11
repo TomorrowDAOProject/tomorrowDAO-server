@@ -106,10 +106,23 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
             {
                 userPointsIndex.Amount += message.Amount;
             }
+
+            long deltaPoints;
+            switch (PointsType.Vote)
+            {
+                case PointsType.Vote:
+                    deltaPoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(message.Amount);
+                    break;
+                case PointsType.Like:
+                    deltaPoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(message.Amount);
+                    break;
+                case PointsType.InviteVote:
+                case PointsType.BeInviteVote:
+                    deltaPoints = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(message.Amount);
+                    break;
+            }
             
-            userPointsIndex.Points += message.PointsType == PointsType.Vote
-                ? _rankingAppPointsCalcProvider.CalculatePointsFromVotes(message.Amount)
-                : _rankingAppPointsCalcProvider.CalculatePointsFromLikes(message.Amount);
+            userPointsIndex.Points += deltaPoints;
             userPointsIndex.UpdateTime = DateTime.Now;
 
             await AddOrUpdateUserPointsIndexAsync(userPointsIndex);
@@ -160,8 +173,11 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppUserPointsIndex>, QueryContainer>>();
 
         mustQuery.Add(q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)));
-        mustQuery.Add(q => q.Term(i => i.Field(f => f.ProposalId).Value(proposalId)));
         mustQuery.Add(q => q.Term(i => i.Field(f => f.Address).Value(address)));
+        if (!proposalId.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.ProposalId).Value(proposalId)));
+        }
 
         if (!alias.IsNullOrWhiteSpace())
         {

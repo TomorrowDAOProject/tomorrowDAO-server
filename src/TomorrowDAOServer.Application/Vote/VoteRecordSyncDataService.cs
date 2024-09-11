@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nest;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
-using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Ranking.Provider;
+using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Vote.Index;
@@ -32,13 +32,16 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private readonly IProposalProvider _proposalProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
+    private readonly IReferralInviteProvider _referralInviteProvider;
+    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private const int MaxResultCount = 500;
     
     public VoteRecordSyncDataService(ILogger<VoteRecordSyncDataService> logger,
         IObjectMapper objectMapper, IGraphQLProvider graphQlProvider,
         IVoteProvider voteProvider, INESTRepository<VoteRecordIndex, string> voteRecordIndexRepository, 
         IChainAppService chainAppService, IOptionsMonitor<RankingOptions> rankingOptions, IProposalProvider proposalProvider, 
-        ITelegramAppsProvider telegramAppsProvider)
+        ITelegramAppsProvider telegramAppsProvider, IReferralInviteProvider referralInviteProvider, 
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider)
         : base(logger, graphQlProvider)
     {
         _logger = logger;
@@ -49,6 +52,8 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
         _rankingOptions = rankingOptions;
         _proposalProvider = proposalProvider;
         _telegramAppsProvider = telegramAppsProvider;
+        _referralInviteProvider = referralInviteProvider;
+        _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
@@ -80,6 +85,21 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
             {
                 var voteRecordList = _objectMapper.Map<List<IndexerVoteRecord>, List<VoteRecordIndex>>(toUpdate);
                 await UpdateValidRankingVote(chainId, voteRecordList);
+                // var voteDic = voteRecordList
+                //     .Where(x => x.ValidRankingVote)
+                //     .GroupBy(v => v.Voter) 
+                //     .ToDictionary(
+                //         g => g.Key,
+                //         g => g.OrderBy(v => v.VoteTime).First() 
+                //     );
+                // var voterList = voteRecordList.Where(x => x.ValidRankingVote).Select(x => x.Voter).ToList();
+                // var inviteList = await _referralInviteProvider.GetByNotVoteInvitees(chainId, voterList);
+                // foreach (var invite in inviteList)
+                // {
+                //     invite.FirstVoteTime = voteDic.GetValueOrDefault(invite.Invitee)?.VoteTime;
+                //     await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(invite.Inviter, invite.Invitee, 1);
+                // }
+                // await _referralInviteProvider.BulkAddOrUpdateAsync(inviteList);
                 await _voteRecordIndexRepository.BulkAddOrUpdateAsync(voteRecordList);
             }
             skipCount += queryList.Count;

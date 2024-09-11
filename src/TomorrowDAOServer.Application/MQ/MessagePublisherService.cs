@@ -89,4 +89,45 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
                 chainId, proposalId, address, appAlias, amount);
         }
     }
+    
+    public async Task SendReferralFirstVoteMessageAsync(string chainId, string inviter, string invitee)
+    {
+        _logger.LogInformation("SendReferralFirstVoteMessageAsync, chainId={0}, inviter={1}, invitee={2}", 
+            chainId, inviter, invitee);
+
+        try
+        {
+            await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
+            {
+                ChainId = chainId,
+                DaoId = string.Empty,
+                ProposalId = string.Empty,
+                AppId = string.Empty,
+                Alias = string.Empty,
+                Title = string.Empty,
+                Address = inviter,
+                Amount = 1,
+                PointsType = PointsType.InviteVote
+            });
+            
+            await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
+            {
+                ChainId = chainId,
+                DaoId = string.Empty,
+                ProposalId = string.Empty,
+                AppId = string.Empty,
+                Alias = string.Empty,
+                Title = string.Empty,
+                Address = invitee,
+                Amount = 1,
+                PointsType = PointsType.BeInviteVote
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e,
+                "SendReferralFirstVoteMessageAsyncException, chainId={0}, inviter={1}, invitee={2}",
+                chainId, inviter, invitee);
+        }
+    }
 }

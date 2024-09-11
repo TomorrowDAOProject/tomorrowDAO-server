@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Eto;
 using TomorrowDAOServer.Ranking.Provider;
@@ -29,7 +30,28 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
     public async Task HandleEventAsync(VoteAndLikeMessageEto eventData)
     {
         _logger.LogInformation("[RankingAppPoints] process messages: {0}", JsonConvert.SerializeObject(eventData));
-        if (eventData == null || eventData.ProposalId.IsNullOrWhiteSpace() || eventData.Alias.IsNullOrWhiteSpace())
+        if (eventData == null)
+        {
+            return;
+        }
+
+        var pointsType = eventData.PointsType;
+        switch (pointsType)
+        {
+            case PointsType.InviteVote:
+            case PointsType.BeInviteVote:
+                await HandleReferralVoteAsync(eventData);
+                break;
+            case PointsType.Like:
+            case PointsType.Vote:
+                await HandleDefaultAsync(eventData);
+                break;
+        }
+    }
+
+    private async Task HandleDefaultAsync(VoteAndLikeMessageEto eventData)
+    {
+        if (eventData.ProposalId.IsNullOrWhiteSpace() || eventData.Alias.IsNullOrWhiteSpace())
         {
             return;
         }
@@ -62,5 +84,12 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
                 eventData.ProposalId, eventData.Alias);
             throw;
         }
+    }
+
+    private async Task HandleReferralVoteAsync(VoteAndLikeMessageEto eventData)
+    {
+        _logger.LogInformation("[RankingAppPoints] updateUserReferralPoints. address={0},pointsType={1}",
+            eventData.Address, eventData.PointsType.ToString());
+        await _appPointsProvider.AddOrUpdateUserPointsIndexAsync(eventData);
     }
 }
