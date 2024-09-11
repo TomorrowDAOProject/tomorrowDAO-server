@@ -148,7 +148,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
     {
         var result = await _proposalProvider.GetRankingProposalListAsync(input);
-        // todo vote related logic
         return new PageResultDto<RankingListDto>
         {
             TotalCount = result.Item1,
