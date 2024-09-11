@@ -16,7 +16,7 @@ public class ReferralCodeInfo
 public class ReferralCodeRequest
 {
     public string ProjectCode { get; set; }
-    public string ReferralCode { get; set; }
+    public List<string> ReferralCodes { get; set; }
     public int SkipCount { get; set; }
     public int MaxResultCount { get; set; }
 }
