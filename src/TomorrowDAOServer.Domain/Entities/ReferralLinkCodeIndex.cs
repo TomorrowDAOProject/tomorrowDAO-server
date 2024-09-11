@@ -3,7 +3,7 @@ using Nest;
 
 namespace TomorrowDAOServer.Entities;
 
-public class ReferralLinkIndex : AbstractEntity<string>, IIndexBuild
+public class ReferralLinkCodeIndex : AbstractEntity<string>, IIndexBuild
 {
     [Keyword] public override string Id { get; set; }
     [Keyword] public string ChainId { get; set; }
