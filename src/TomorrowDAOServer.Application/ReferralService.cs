@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
@@ -27,16 +29,18 @@ public class ReferralService : ApplicationService, IReferralService
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly IUserAppService _userAppService;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private readonly ILogger<IReferralService> _logger;
 
     public ReferralService(IReferralInviteProvider referralInviteProvider, IUserProvider userProvider, 
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, IUserAppService userAppService, 
-        IOptionsMonitor<RankingOptions> rankingOptions)
+        IOptionsMonitor<RankingOptions> rankingOptions, ILogger<IReferralService> logger)
     {
         _referralInviteProvider = referralInviteProvider;
         _userProvider = userProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _userAppService = userAppService;
         _rankingOptions = rankingOptions;
+        _logger = logger;
     }
 
     // public async Task<GetLinkDto> GetLinkAsync(string token, string chainId)
@@ -78,6 +82,7 @@ public class ReferralService : ApplicationService, IReferralService
         long currentRank = 1;
 
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).ToList();
+        _logger.LogInformation("InviteLeaderBoardAsync caHashList {0}", JsonConvert.SerializeObject(caHashList));
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var userDic = userList
             .Where(x => x.AddressInfos.Any(ai => ai.ChainId == input.ChainId)) 

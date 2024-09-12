@@ -104,20 +104,27 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         DateTime endTime = DateTimeOffset.FromUnixTimeMilliseconds(input.EndTime).DateTime;
 
         var query = new SearchDescriptor<ReferralInviteRelationIndex>()
-            .Query(q => q.Exists(e => e.Field(f => f.FirstVoteTime)))  
-            .Query(q => q.DateRange(r => r
+            .Query(q => q.Exists(e => e.Field(f => f.FirstVoteTime)));  
+
+        if (input.StartTime != 0 && input.EndTime != 0)
+        {
+            query = query.Query(q => q.DateRange(r => r
                 .Field(f => f.FirstVoteTime)
                 .GreaterThanOrEquals(starTime)
-                .LessThanOrEquals(endTime)))  
-            .Aggregations(a => a
-                .Terms("inviter_agg", t => t
-                    .Field(f => f.InviterCaHash)
-                    .Size(int.MaxValue)  
-                    .Order(o => o
-                        .Descending("invite_count"))  
-                    .Aggregations(aa => aa.ValueCount("invite_count", vc => vc
-                        .Field(f => f.Id)))));
+                .LessThanOrEquals(endTime)));
+        }
+
+        query = query.Aggregations(a => a
+            .Terms("inviter_agg", t => t
+                .Field(f => f.InviterCaHash)
+                .Size(int.MaxValue)
+                .Order(o => o
+                    .Descending("invite_count"))
+                .Aggregations(aa => aa.ValueCount("invite_count", vc => vc
+                    .Field(f => f.Id)))));
+
         var response = await _referralInviteRepository.SearchAsync(query, 0, int.MaxValue);
         return response.Aggregations.Terms("inviter_agg").Buckets;
+
     }
 }
