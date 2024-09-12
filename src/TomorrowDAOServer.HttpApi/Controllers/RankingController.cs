@@ -70,7 +70,7 @@ public class RankingController : AbpController
         return await _rankingAppService.LikeAsync(input);
     }
     
-    [HttpPost("test")]
+    [HttpGet("test")]
     public string TestAsync()
     {
         return "success";
