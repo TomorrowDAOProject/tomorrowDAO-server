@@ -15,4 +15,5 @@ public class ReferralInviteRelationIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string MethodName { get; set; }
     public long Timestamp { get; set; }
     public DateTime? FirstVoteTime { get; set; }
+    public bool IsReferralActivity { get; set; }
 }
