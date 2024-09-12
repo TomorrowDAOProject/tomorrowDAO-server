@@ -97,7 +97,7 @@ public class ReferralService : ApplicationService, IReferralService
             {
                 InviterCaHash = bucket.Key,
                 Inviter = userDic.GetValueOrDefault(bucket.Key, string.Empty),
-                InviteCount = inviteCount,
+                InviteAndVoteCount = inviteCount,
                 Rank = currentRank  
             };
             rank++;  
