@@ -48,4 +48,10 @@ public class ReferralController
     {
         return _referralService.ConfigAsync();
     }
+    
+    [HttpGet("invite-detail-test")]
+    public async Task<InviteDetailDto> InviteDetailAsync(string chainId, string caHash)
+    {
+        return await _referralService.InviteDetailAsyncTest(chainId, caHash);
+    }
 }

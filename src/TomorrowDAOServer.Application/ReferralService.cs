@@ -114,4 +114,18 @@ public class ReferralService : ApplicationService, IReferralService
     {
         return _rankingOptions.CurrentValue.ParseReferralActiveTimes();
     }
+
+    public async Task<InviteDetailDto> InviteDetailAsyncTest(string chainId, string caHash)
+    {
+        // var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
+        var accountCreation = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(chainId, caHash, false);
+        var votigramVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(chainId, caHash, true);
+        var estimatedReward = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramVote);
+        return new InviteDetailDto
+        {
+            EstimatedReward = estimatedReward,
+            AccountCreation = accountCreation,
+            VotigramVote = votigramVote
+        };
+    }
 }
