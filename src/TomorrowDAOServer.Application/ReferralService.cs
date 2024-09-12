@@ -81,15 +81,17 @@ public class ReferralService : ApplicationService, IReferralService
         long lastInviteCount = -1;  
         long currentRank = 1;
 
-        var caHashList = inviterBuckets.Select(bucket => bucket.Key).ToList();
+        var caHashList = inviterBuckets.Select(bucket => bucket.Key).Distinct().ToList();
         _logger.LogInformation("InviteLeaderBoardAsync caHashList {0}", JsonConvert.SerializeObject(caHashList));
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var userDic = userList
-            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == input.ChainId)) 
+            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == input.ChainId))
+            .GroupBy(ui => ui.CaHash)
             .ToDictionary(
-                ui => ui.CaHash, 
-                ui => ui.AddressInfos.First(ai => ai.ChainId == input.ChainId).Address 
+                group => group.Key,
+                group => group.First().AddressInfos.First(ai => ai.ChainId == input.ChainId)?.Address ?? string.Empty
             );
+
         var inviterList = inviterBuckets.Select((bucket, _) =>
         {
             var inviteCount = (long)(bucket.ValueCount("invite_count").Value ?? 0);
