@@ -23,7 +23,6 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election.Provider;
-using TomorrowDAOServer.Ranking;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
@@ -38,11 +37,7 @@ namespace TomorrowDAOServer.Proposal;
 [DisableAuditing]
 public class ProposalService : TomorrowDAOServerAppService, IProposalService
 {
-    private const string VoteTopSorting = "Amount DESC";
-    private const string DecimalString = "8";
-    private const string Symbol = "ELF";
     private readonly IObjectMapper _objectMapper;
-    private readonly IOptionsMonitor<ProposalTagOptions> _proposalTagOptionsMonitor;
     private readonly IProposalProvider _proposalProvider;
     private readonly IVoteProvider _voteProvider;
     private readonly IDAOProvider _DAOProvider;
@@ -50,7 +45,6 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     private readonly ILogger<ProposalProvider> _logger;
     private readonly ITokenService _tokenService;
     private readonly IGraphQLProvider _graphQlProvider;
-    private readonly IScriptService _scriptService;
     private readonly IUserProvider _userProvider;
     private readonly IElectionProvider _electionProvider;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
@@ -59,15 +53,13 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     Dictionary<string, IndexerVoteSchemeInfo> _voteMechanisms = new ();
 
     public ProposalService(IObjectMapper objectMapper, IProposalProvider proposalProvider, IVoteProvider voteProvider,
-        IGraphQLProvider graphQlProvider, IScriptService scriptService, IProposalAssistService proposalAssistService,
-        IDAOProvider DAOProvider, IOptionsMonitor<ProposalTagOptions> proposalTagOptionsMonitor,
-        ILogger<ProposalProvider> logger, IUserProvider userProvider, IElectionProvider electionProvider, ITokenService tokenService, 
-        IOptionsMonitor<RankingOptions> rankingOptions, IRankingAppPointsRedisProvider rankingAppPointsRedisProvider)
+        IGraphQLProvider graphQlProvider, IProposalAssistService proposalAssistService,
+        IDAOProvider DAOProvider, ILogger<ProposalProvider> logger, IUserProvider userProvider, IElectionProvider electionProvider, 
+        ITokenService tokenService, IOptionsMonitor<RankingOptions> rankingOptions, IRankingAppPointsRedisProvider rankingAppPointsRedisProvider)
     {
         _objectMapper = objectMapper;
         _proposalProvider = proposalProvider;
         _voteProvider = voteProvider;
-        _proposalTagOptionsMonitor = proposalTagOptionsMonitor;
         _logger = logger;
         _userProvider = userProvider;
         _electionProvider = electionProvider;
@@ -77,7 +69,6 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         _DAOProvider = DAOProvider;
         _proposalAssistService = proposalAssistService;
         _graphQlProvider = graphQlProvider;
-        _scriptService = scriptService;
     }
 
     public async Task<ProposalPagedResultDto<ProposalDto>> QueryProposalListAsync(QueryProposalListInput input)

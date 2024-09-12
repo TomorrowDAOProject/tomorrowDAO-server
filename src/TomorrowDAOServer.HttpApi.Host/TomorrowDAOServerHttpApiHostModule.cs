@@ -74,7 +74,6 @@ namespace TomorrowDAOServer
             Configure<TokenInfoOptions>(configuration.GetSection("TokenInfoOptions"));
             Configure<ContractInfoOptions>(configuration.GetSection("ContractInfoOptions"));
             Configure<AssetsInfoOptions>(configuration.GetSection("AssetsInfoOptions"));
-            Configure<ProposalTagOptions>(configuration.GetSection("ProposalTagOptions"));
             Configure<ExplorerOptions>(configuration.GetSection("Explorer"));
             Configure<AelfApiInfoOptions>(configuration.GetSection("AelfApiInfoOptions"));
             Configure<DaoOptions>(configuration.GetSection("TestDao"));
