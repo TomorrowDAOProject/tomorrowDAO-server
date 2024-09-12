@@ -454,27 +454,30 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         var rankingApp = _defaultRankingAppListCache[0];
-        var proposalDescription = rankingApp.ProposalDescription;
-        var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
         var canVoteAmount = 0;
-        if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
+        var proposalDescription = rankingApp.ProposalDescription;
+        if (DateTime.UtcNow < rankingApp.ActiveEndTime)
         {
-            canVoteAmount = 0;
-        }
-        else
-        {
-            var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
-            if (voteRecordEs == null)
+            var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
+            if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
             {
-                canVoteAmount = 1;
-                //         var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
-                //             { ChainId = chainId, DAOId = daoId });
-                //         var balance =
-                //             await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
-                //         if (balance.Balance > 0)
-                //         {
-                //             canVoteAmount = 1;
-                //         }
+                canVoteAmount = 0;
+            }
+            else
+            {
+                var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
+                if (voteRecordEs == null)
+                {
+                    canVoteAmount = 1;
+                    //         var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
+                    //             { ChainId = chainId, DAOId = daoId });
+                    //         var balance =
+                    //             await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
+                    //         if (balance.Balance > 0)
+                    //         {
+                    //             canVoteAmount = 1;
+                    //         }
+                }
             }
         }
         var aliasList = GetAliasList(proposalDescription);
