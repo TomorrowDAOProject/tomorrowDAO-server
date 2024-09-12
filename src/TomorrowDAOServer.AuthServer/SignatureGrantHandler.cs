@@ -246,8 +246,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             LoginGuardianIdentifierHash = Hash.Empty
         };
 
-        var output =
-            await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
+        var output = await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
                 chainOptions);
 
         return output?.ManagerInfos?.Any(t => t.Address.ToBase58() == manager);
