@@ -15,7 +15,7 @@ public interface IReferralInviteProvider
     Task<List<ReferralInviteRelationIndex>> GetByIdsAsync(List<string> ids);
     Task BulkAddOrUpdateAsync(List<ReferralInviteRelationIndex> list);
     Task AddOrUpdateAsync(ReferralInviteRelationIndex relationIndex);
-    Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted);
+    Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
     Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
 }
 
@@ -77,7 +77,7 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         await _referralInviteRepository.AddOrUpdateAsync(relationIndex);
     }
 
-    public async Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted)
+    public async Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
         {
@@ -87,6 +87,12 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         if (isVoted)
         {
             mustQuery.Add(q => q.Exists(e => e.Field(f => f.FirstVoteTime)));
+        }
+
+        if (isActivityVote)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.IsReferralActivity).Value(true)));
+
         }
         QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _referralInviteRepository.CountAsync(Filter)).Count;
