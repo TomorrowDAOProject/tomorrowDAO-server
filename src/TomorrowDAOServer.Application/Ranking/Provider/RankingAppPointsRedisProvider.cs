@@ -171,7 +171,10 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     public async Task SaveDefaultRankingProposalIdAsync(string chainId, string value, DateTime? expire)
     {
         var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
-        await _distributedCache.SetAsync(distributeCacheKey, value);
+        await _distributedCache.SetAsync(distributeCacheKey, value, new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(87600),
+        });
     }
 
     public async Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId)
