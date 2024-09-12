@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Nest;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.User.Dtos;
@@ -60,6 +61,10 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
 
     public async Task<List<UserIndex>> GetUserByCaHashListAsync(List<string> caHashes)
     {
+        if (caHashes.IsNullOrEmpty())
+        {
+            return new List<UserIndex>();
+        }
         var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>
         {
             q => q.Terms(i => i.Field(t => t.CaHash).Terms(caHashes))
