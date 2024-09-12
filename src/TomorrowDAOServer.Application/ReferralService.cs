@@ -78,10 +78,10 @@ public class ReferralService : ApplicationService, IReferralService
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var userDic = userList
-            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == "a")) 
+            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == input.ChainId)) 
             .ToDictionary(
                 ui => ui.CaHash, 
-                ui => ui.AddressInfos.First(ai => ai.ChainId == "a").Address 
+                ui => ui.AddressInfos.First(ai => ai.ChainId == input.ChainId).Address 
             );
         var inviterList = inviterBuckets.Select((bucket, _) =>
         {
