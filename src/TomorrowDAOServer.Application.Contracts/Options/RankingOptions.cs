@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Referral.Dto;
 
 namespace TomorrowDAOServer.Options;
@@ -30,7 +31,7 @@ public class RankingOptions
         };
 
         foreach (var timeParts in AllReferralActiveTime
-                     .Select(timeString => timeString.Split(','))
+                     .Select(timeString => timeString.Split(CommonConstant.Comma))
                      .Where(timeParts => timeParts.Length == 2))
         {
             configDto.Config.Add(new ReferralActiveDto
