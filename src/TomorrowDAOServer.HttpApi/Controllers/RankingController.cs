@@ -69,4 +69,10 @@ public class RankingController : AbpController
     {
         return await _rankingAppService.LikeAsync(input);
     }
+    
+    [HttpPost("test")]
+    public string TestAsync()
+    {
+        return "success";
+    }
 }
