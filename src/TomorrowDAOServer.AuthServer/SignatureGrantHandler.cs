@@ -301,7 +301,6 @@ public class SignatureGrantHandler : ITokenExtensionGrant
     private string GetErrorMessage(List<string> errors)
     {
         var message = string.Empty;
-
         errors?.ForEach(t => message += $"{t}, ");
 
         return message.Contains(',') ? message.TrimEnd().TrimEnd(',') : message;
