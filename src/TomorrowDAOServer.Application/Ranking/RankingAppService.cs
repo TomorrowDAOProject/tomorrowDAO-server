@@ -453,7 +453,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             return new RankingDetailDto { UserTotalPoints = userAllPoints };
         }
 
-        var userTotalPoints = 0L;
         var rankingApp = _defaultRankingAppListCache[0];
         var proposalDescription = rankingApp.ProposalDescription;
         var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
@@ -505,7 +504,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             EndTime = rankingApp.ActiveEndTime,
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
-            UserTotalPoints = userTotalPoints,
+            UserTotalPoints = userAllPoints,
             RankingList = rankingList.OrderByDescending(r => r.PointsAmount)
                 .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList()
         };
