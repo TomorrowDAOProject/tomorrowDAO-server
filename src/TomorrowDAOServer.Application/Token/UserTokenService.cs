@@ -42,7 +42,6 @@ public class UserTokenService : TomorrowDAOServerAppService, IUserTokenService
                 {
                     userTokenDto.ImageUrl = _tokenProvider.BuildTokenImageUrl(userTokenDto.Symbol);
                 }
-
                 return userTokenDto;
             })
             .ToList();
