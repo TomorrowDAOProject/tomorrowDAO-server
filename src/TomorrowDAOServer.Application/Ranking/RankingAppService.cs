@@ -471,17 +471,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             return new RankingDetailDto { UserTotalPoints = userAllPoints };
         }
 
-        if (_defaultRankingAppListCache.IsNullOrEmpty() || _defaultRankingAppListCache.First().ProposalId != proposalId)
-        {
-            _defaultRankingAppListCache = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
-        }
-
-        if (_defaultRankingAppListCache.IsNullOrEmpty())
+        var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
+        if (rankingAppList.IsNullOrEmpty())
         {
             return new RankingDetailDto { UserTotalPoints = userAllPoints };
         }
 
-        var rankingApp = _defaultRankingAppListCache[0];
+        var rankingApp = rankingAppList[0];
         var canVoteAmount = 0;
         var proposalDescription = rankingApp.ProposalDescription;
         if (DateTime.UtcNow < rankingApp.ActiveEndTime)
@@ -520,7 +516,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var appPointsDic = RankingAppPointsDto
             .ConvertToBaseList(appPointsList)
             .ToDictionary(x => x.Alias, x => x.Points);
-        var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(_defaultRankingAppListCache);
+        var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
         foreach (var app in rankingList)
         {
             app.PointsAmount = appPointsDic.GetValueOrDefault(app.Alias, 0);
