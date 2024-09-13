@@ -127,7 +127,19 @@ public class ReferralService : ApplicationService, IReferralService
 
     public async Task<ReferralBindingStatusDto> ReferralBindingStatusAsync(string chainId)
     {
-        var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
+        var user = await _userProvider.GetUserAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty);
+        if (user == null)
+        {
+            throw new UserFriendlyException("No user found");
+        }
+
+        var createTime = user.CreateTime;
+        if (DateTime.UtcNow.ToUtcMilliSeconds() - createTime > 2 * 60 * 1000)
+        {
+            return new ReferralBindingStatusDto { NeedBinding = false, BindingSuccess = false };
+        }
+
+        var addressCaHash = user.CaHash;
         var relation = await _referralInviteProvider.GetByInviteeCaHashAsync(chainId, addressCaHash);
         if (relation == null)
         {
