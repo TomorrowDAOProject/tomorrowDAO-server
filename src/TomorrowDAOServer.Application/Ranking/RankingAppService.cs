@@ -300,6 +300,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             case "6":
                 await AddDefaultProposal(chainId);
                 break;
+            case "7":
+                await MoveUserIndexToReferral(chainId);
+                break;
         }
     }
 
