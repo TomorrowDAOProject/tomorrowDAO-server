@@ -58,11 +58,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
             var inviteList = queryList.Where(x => !x.ReferralCode.IsNullOrEmpty()).ToList();
             _logger.LogInformation("SyncReferralData inviteList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
                 skipCount, lastEndTime, endTime, inviteList?.Count);
-            if (inviteList.IsNullOrEmpty())
-            {
-                continue;
-            }
-            var ids = inviteList.Select(GetReferralInviteId).ToList();
+            var ids = queryList.Select(GetReferralInviteId).ToList();
             var exists = await _referralInviteProvider.GetByIdsAsync(ids);
             var toUpdate = inviteList
                 .Where(x => exists.All(y => GetReferralInviteId(x) != y.Id))
@@ -124,7 +120,9 @@ public class ReferralSyncDataService : ScheduleSyncDataService
 
     private string GetReferralInviteId(IndexerReferral x)
     {
-        return GuidHelper.GenerateId(x.CaHash, x.ReferralCode, x.ProjectCode, x.MethodName);
+        return GuidHelper.GenerateId(x.CaHash, 
+            string.IsNullOrEmpty(x.ReferralCode) ? CommonConstant.OrganicTraffic : x.ReferralCode, 
+            x.ProjectCode, x.MethodName);
     }
     
     private string GetReferralInviteId(ReferralInviteRelationIndex x)

@@ -303,6 +303,31 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
     }
 
+    private async Task MoveUserIndexToReferral(string chainId)
+    {
+        _logger.LogInformation("MoveUserIndexToReferralBegin chainId {count}", chainId);
+        var userList = await _userAppService.GetUser();
+        var toAdd = userList
+            .Where(x => !string.IsNullOrEmpty(x.CaHash))
+            .Select(userIndex => new ReferralInviteRelationIndex
+            {
+                Id = GuidHelper.GenerateId(userIndex.CaHash, CommonConstant.OrganicTrafficBeforeProjectCode, CommonConstant.ProjectCode, CommonConstant.CreateAccountMethodName),
+                ChainId = chainId,
+                InviterCaHash = string.Empty,
+                InviteeCaHash = userIndex.CaHash,
+                ReferralCode = CommonConstant.OrganicTrafficBeforeProjectCode,
+                ProjectCode = CommonConstant.ProjectCode,
+                MethodName = CommonConstant.CreateAccountMethodName,
+                Timestamp = userIndex.CreateTime,
+                FirstVoteTime = null,
+                IsReferralActivity = false
+            })
+            .ToList();
+
+        await _referralInviteProvider.BulkAddOrUpdateAsync(toAdd);
+        _logger.LogInformation("MoveUserIndexToReferralEnd chainId {count}", chainId);
+    }
+
     private async Task AddDefaultProposal(string chainId)
     {
         _logger.LogInformation("AddDefaultProposalBegin chainId {count}", chainId);

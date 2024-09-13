@@ -13,6 +13,7 @@ public interface IReferralInviteProvider
 {
     Task<List<ReferralInviteRelationIndex>> GetByNotVoteAsync(string chainId, int skipCount);
     Task<ReferralInviteRelationIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash);
+    Task<ReferralInviteRelationIndex> GetByInviteeCaHashAsync(string chainId, string inviteeCaHash);
     Task<List<ReferralInviteRelationIndex>> GetByIdsAsync(List<string> ids);
     Task BulkAddOrUpdateAsync(List<ReferralInviteRelationIndex> list);
     Task AddOrUpdateAsync(ReferralInviteRelationIndex relationIndex);
@@ -61,6 +62,18 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
         QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b
             .Must(mustQuery).MustNot(mustNotQuery));
+        return await _referralInviteRepository.GetAsync(Filter);
+    }
+
+    public async Task<ReferralInviteRelationIndex> GetByInviteeCaHashAsync(string chainId, string inviteeCaHash)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(t => t.InviteeCaHash).Value(inviteeCaHash))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b
+            .Must(mustQuery));
         return await _referralInviteRepository.GetAsync(Filter);
     }
 

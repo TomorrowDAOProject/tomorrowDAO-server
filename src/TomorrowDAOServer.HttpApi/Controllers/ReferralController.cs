@@ -48,4 +48,11 @@ public class ReferralController
     {
         return _referralService.ConfigAsync();
     }
+    
+    [HttpGet("referral-binding-status")]
+    [Authorize]
+    public async Task<ReferralBindingStatusDto> ReferralBindingStatusAsync(string chainId)
+    {
+        return await _referralService.ReferralBindingStatusAsync(chainId);
+    }
 }

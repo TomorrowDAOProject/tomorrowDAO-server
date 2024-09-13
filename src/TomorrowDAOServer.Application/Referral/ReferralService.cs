@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
@@ -122,5 +123,18 @@ public class ReferralService : ApplicationService, IReferralService
     public ReferralActiveConfigDto ConfigAsync()
     {
         return _rankingOptions.CurrentValue.ParseReferralActiveTimes();
+    }
+
+    public async Task<ReferralBindingStatusDto> ReferralBindingStatusAsync(string chainId)
+    {
+        var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
+        var relation = await _referralInviteProvider.GetByInviteeCaHashAsync(chainId, addressCaHash);
+        if (relation == null)
+        {
+            return new ReferralBindingStatusDto { NeedBinding = true, BindingSuccess = false };
+        }
+        return relation.ReferralCode is CommonConstant.OrganicTraffic or CommonConstant.OrganicTrafficBeforeProjectCode 
+            ? new ReferralBindingStatusDto { NeedBinding = false, BindingSuccess = false } 
+            : new ReferralBindingStatusDto { NeedBinding = false, BindingSuccess = true };
     }
 }
