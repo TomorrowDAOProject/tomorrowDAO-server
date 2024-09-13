@@ -1,4 +1,6 @@
-namespace TomorrowDAOServer.Auth.Dtos;
+using System.Collections.Generic;
+
+namespace TomorrowDAOServer.Common;
 
 public class HolderInfoIndexerDto
 {
