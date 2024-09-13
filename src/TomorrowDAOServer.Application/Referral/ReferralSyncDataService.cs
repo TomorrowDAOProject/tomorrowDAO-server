@@ -46,7 +46,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
         var skipCount = 0;
         do
         {
-            queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, 0, endTime, skipCount, MaxResultCount);
+            queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, lastEndTime, endTime, skipCount, MaxResultCount);
             _logger.LogInformation("SyncReferralData queryList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
                 skipCount, lastEndTime, endTime, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())

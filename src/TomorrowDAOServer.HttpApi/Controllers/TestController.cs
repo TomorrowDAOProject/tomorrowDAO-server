@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
 using Volo.Abp;
 using Volo.Abp.Caching;
@@ -14,12 +16,14 @@ public class TestController
 {
     private IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IDistributedCache<string> _distributedCache;
+    private readonly IOptionsMonitor<EmojiOptions> _emojiOptions;
 
     public TestController(IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, 
-        IDistributedCache<string> distributedCache)
+        IDistributedCache<string> distributedCache, IOptionsMonitor<EmojiOptions> emojiOptions)
     {
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _distributedCache = distributedCache;
+        _emojiOptions = emojiOptions;
     }
     
     [HttpGet("redis-value")]
@@ -38,6 +42,12 @@ public class TestController
     public async Task<string> GetDefaultRankingProposalIdAsync(string chainId)
     {
         return await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
+    }
+    
+    [HttpGet("emoji")]
+    public string Emoji()
+    {
+        return _emojiOptions.CurrentValue.Smile;
     }
     
 }
