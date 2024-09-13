@@ -147,6 +147,6 @@ public class ReferralService : ApplicationService, IReferralService
         }
         return relation.ReferralCode is CommonConstant.OrganicTraffic or CommonConstant.OrganicTrafficBeforeProjectCode 
             ? new ReferralBindingStatusDto { NeedBinding = false, BindingSuccess = false } 
-            : new ReferralBindingStatusDto { NeedBinding = false, BindingSuccess = true };
+            : new ReferralBindingStatusDto { NeedBinding = true, BindingSuccess = true };
     }
 }
