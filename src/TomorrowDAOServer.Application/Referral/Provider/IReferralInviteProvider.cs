@@ -11,6 +11,7 @@ namespace TomorrowDAOServer.Referral.Provider;
 
 public interface IReferralInviteProvider
 {
+    Task<List<ReferralInviteRelationIndex>> GetByNotVoteAsync(string chainId, int skipCount);
     Task<ReferralInviteRelationIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash);
     Task<List<ReferralInviteRelationIndex>> GetByIdsAsync(List<string> ids);
     Task BulkAddOrUpdateAsync(List<ReferralInviteRelationIndex> list);
@@ -26,6 +27,24 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
     public ReferralInviteProvider(INESTRepository<ReferralInviteRelationIndex, string> referralInviteRepository)
     {
         _referralInviteRepository = referralInviteRepository;
+    }
+
+    public async Task<List<ReferralInviteRelationIndex>> GetByNotVoteAsync(string chainId, int skipCount)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+        };
+        var mustNotQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
+        {
+            q => q.Exists(e => e.Field(f => f.FirstVoteTime))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b
+            .Must(mustQuery).MustNot(mustNotQuery));
+
+        var tuple = await _referralInviteRepository.GetListAsync(Filter, skip: skipCount, sortType: SortOrder.Ascending,
+            sortExp: o => o.Timestamp, limit: 500);
+        return tuple.Item2;
     }
 
     public async Task<ReferralInviteRelationIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash)

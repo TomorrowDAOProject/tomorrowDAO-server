@@ -12,5 +12,6 @@ public enum WorkerBusinessType
     VoteWithdrawSync,
     TokenPriceUpdate,
     ProposalNumUpdate,
-    ReferralSync
+    ReferralSync,
+    // ReferralCheck
 }
