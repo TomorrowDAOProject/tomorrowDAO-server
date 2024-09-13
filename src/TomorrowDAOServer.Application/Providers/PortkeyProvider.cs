@@ -21,6 +21,7 @@ public interface IPortkeyProvider
     Task<Tuple<string, string>> GetShortLinkAsync(string chainId, string token);
     Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount);
     Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes);
+    Task<List<CaHolderTransactionDetail>> GetCaHolderTransactionAsync(string chainId, string caAddress);
 }
 
 public static class ReferralApi
@@ -115,5 +116,64 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         }
 
         return new List<ReferralCodeInfo>();
+    }
+
+    public async Task<List<CaHolderTransactionDetail>> GetCaHolderTransactionAsync(string chainId, string caAddress)
+    {
+        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+        using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+        var request = new GraphQLRequest
+        {
+            Query = @"
+        query($chainId: String!, $symbol: String!, $caAddressInfos: [CaAddressInfoInput]!, $methodNames: String!, $transactionId: String!, $startBlockHeight: Long!, $endBlockHeight: Long!, $startTime: Long!, $endTime: Long!, $skipCount: Int!, $maxResultCount: Int!) {
+            caHolderTransaction(dto: {
+                chainId: $chainId,
+                symbol: $symbol,
+                caAddressInfos: $caAddressInfos,
+                methodNames: $methodNames,
+                transactionId: $transactionId,
+                startBlockHeight: $startBlockHeight,
+                endBlockHeight: $endBlockHeight,
+                startTime: $startTime,
+                endTime: $endTime,
+                skipCount: $skipCount,
+                maxResultCount: $maxResultCount
+            }) {
+                data {
+                    timestamp
+                }
+                totalRecordCount
+            }
+        }",
+            Variables = new
+            {
+                chainId = "",
+                symbol = "",
+                caAddressInfos = new List<object>
+                {
+                    new
+                    {
+                        chainId = CommonConstant.MainChainId,
+                        caAddress = caAddress
+                    },
+                    new
+                    {
+                        chainId = chainId,
+                        caAddress = caAddress
+                    }
+                },
+                methodNames = CommonConstant.CreateAccountMethodName,
+                transactionId = "",
+                startBlockHeight = 0L,
+                endBlockHeight = 0L,
+                startTime = 0L,
+                endTime = 0L,
+                skipCount = 0,
+                maxResultCount = 1
+            }
+        };
+
+        var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerCaHolderTransaction>(request);
+        return graphQlResponse.Data.CaHolderTransaction.Data;
     }
 }
