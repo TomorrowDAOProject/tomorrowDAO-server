@@ -46,6 +46,10 @@ public class ReferralLinkProvider : IReferralLinkProvider, ISingletonDependency
 
     public async Task<List<ReferralLinkCodeIndex>> GetByReferralCodesAsync(string chainId, List<string> codes)
     {
+        if (codes.IsNullOrEmpty())
+        {
+            return new List<ReferralLinkCodeIndex>();
+        }
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralLinkCodeIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
