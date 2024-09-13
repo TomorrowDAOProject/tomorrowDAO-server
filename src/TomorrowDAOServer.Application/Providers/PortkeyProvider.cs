@@ -57,47 +57,57 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 
     public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
     {
-        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
-        using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
-        var request = new GraphQLRequest
+        try
         {
-            Query = @"
-        query($caHashes: [String], $methodName: String, $referralCodes: [String], $projectCode: String, $startTime: Long!, $endTime: Long!, $skipCount: Int!, $maxResultCount: Int!) {
-            referralInfoPage(dto: {
-                caHashes: $caHashes,
-                referralCodes: $referralCodes,
-                projectCode: $projectCode,
-                methodName: $methodName,
-                startTime: $startTime,
-                endTime: $endTime,
-                skipCount: $skipCount,
-                maxResultCount: $maxResultCount
-            }) {
-                totalRecordCount
-                data {
-                    caHash
-                    referralCode
-                    projectCode
-                    methodName
-                    timestamp
-                }
-            }
-        }",
-            Variables = new
+            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+            using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+            var request = new GraphQLRequest
             {
-                caHashes = new List<string>(), 
-                methodName = CommonConstant.CreateAccountMethodName, 
-                referralCodes = new List<string>(), 
-                projectCode = CommonConstant.ProjectCode, 
-                startTime = startTime, 
-                endTime = endTime,
-                skipCount = skipCount, 
-                maxResultCount = maxResultCount
-            }
-        };
+                Query = @"
+                    query($caHashes: [String], $methodName: String, $referralCodes: [String], $projectCode: String, $startTime: Long!, $endTime: Long!, $skipCount: Int!, $maxResultCount: Int!) {
+                        referralInfoPage(dto: {
+                            caHashes: $caHashes,
+                            referralCodes: $referralCodes,
+                            projectCode: $projectCode,
+                            methodName: $methodName,
+                            startTime: $startTime,
+                            endTime: $endTime,
+                            skipCount: $skipCount,
+                            maxResultCount: $maxResultCount
+                        }) {
+                            totalRecordCount
+                            data {
+                                caHash
+                                referralCode
+                                projectCode
+                                methodName
+                                timestamp
+                            }
+                        }
+                    }",
+                Variables = new
+                {
+                    caHashes = new List<string>(), 
+                    methodName = CommonConstant.CreateAccountMethodName, 
+                    referralCodes = new List<string>(), 
+                    projectCode = CommonConstant.ProjectCode, 
+                    startTime = startTime, 
+                    endTime = endTime,
+                    skipCount = skipCount, 
+                    maxResultCount = maxResultCount
+                }
+            };
 
-        var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerReferralInfo>(request);
-        return graphQlResponse.Data.ReferralInfoPage.Data;
+            var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerReferralInfo>(request);
+            return graphQlResponse.Data.ReferralInfoPage.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetSyncReferralListAsyncException startTime {0} endTime {1} skipCount {2} maxResultCount {3}",
+                startTime, endTime, skipCount, maxResultCount);
+        }
+
+        return new List<IndexerReferral>();
     }
 
     public async Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes)
@@ -120,60 +130,70 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 
     public async Task<List<CaHolderTransactionDetail>> GetCaHolderTransactionAsync(string chainId, string caAddress)
     {
-        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
-        using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
-        var request = new GraphQLRequest
+        try
         {
-            Query = @"
-        query($chainId: String!, $symbol: String!, $caAddressInfos: [CaAddressInfoInput]!, $methodNames: String!, $transactionId: String!, $startBlockHeight: Long!, $endBlockHeight: Long!, $startTime: Long!, $endTime: Long!, $skipCount: Int!, $maxResultCount: Int!) {
-            caHolderTransaction(dto: {
-                chainId: $chainId,
-                symbol: $symbol,
-                caAddressInfos: $caAddressInfos,
-                methodNames: $methodNames,
-                transactionId: $transactionId,
-                startBlockHeight: $startBlockHeight,
-                endBlockHeight: $endBlockHeight,
-                startTime: $startTime,
-                endTime: $endTime,
-                skipCount: $skipCount,
-                maxResultCount: $maxResultCount
-            }) {
-                data {
-                    timestamp
-                }
-                totalRecordCount
-            }
-        }",
-            Variables = new
+            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+            using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+            var request = new GraphQLRequest
             {
-                chainId = "",
-                symbol = "",
-                caAddressInfos = new List<object>
+                Query = @"
+                    query($chainId: String, $symbol: String, $caAddressInfos: [CAAddressInfo!], $methodNames: [String!], $transactionId: String, $startBlockHeight: Long!, $endBlockHeight: Long!, $startTime: Long, $endTime: Long, $skipCount: Int!, $maxResultCount: Int!) {
+                        caHolderTransaction(dto: {
+                            chainId: $chainId,
+                            symbol: $symbol,
+                            caAddressInfos: $caAddressInfos,
+                            methodNames: $methodNames,
+                            transactionId: $transactionId,
+                            startBlockHeight: $startBlockHeight,
+                            endBlockHeight: $endBlockHeight,
+                            startTime: $startTime,
+                            endTime: $endTime,
+                            skipCount: $skipCount,
+                            maxResultCount: $maxResultCount
+                        }) {
+                            data {
+                                timestamp
+                            }
+                            totalRecordCount
+                        }
+                    }",
+                Variables = new
                 {
-                    new
+                    chainId = "",
+                    symbol = "",
+                    caAddressInfos = new List<dynamic>
                     {
-                        chainId = CommonConstant.MainChainId,
-                        caAddress = caAddress
+                        new
+                        {
+                            chainId = CommonConstant.MainChainId,
+                            caAddress = caAddress
+                        },
+                        new
+                        {
+                            chainId = chainId,
+                            caAddress = caAddress
+                        }
                     },
-                    new
-                    {
-                        chainId = chainId,
-                        caAddress = caAddress
-                    }
-                },
-                methodNames = CommonConstant.CreateAccountMethodName,
-                transactionId = "",
-                startBlockHeight = 0L,
-                endBlockHeight = 0L,
-                startTime = 0L,
-                endTime = 0L,
-                skipCount = 0,
-                maxResultCount = 1
-            }
-        };
+                    methodNames = CommonConstant.CreateAccountMethodName,
+                    transactionId = "",
+                    startBlockHeight = 0L,
+                    endBlockHeight = 0L,
+                    startTime = 0L,
+                    endTime = 0L,
+                    skipCount = 0,
+                    maxResultCount = 1
+                }
+            };
 
-        var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerCaHolderTransaction>(request);
-        return graphQlResponse.Data.CaHolderTransaction.Data;
+
+            var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerCaHolderTransaction>(request);
+            return graphQlResponse.Data.CaHolderTransaction.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetCaHolderTransactionAsyncException chainId {0}, caAddress {1}", chainId, caAddress);
+        }
+
+        return new List<CaHolderTransactionDetail>();
     }
 }
