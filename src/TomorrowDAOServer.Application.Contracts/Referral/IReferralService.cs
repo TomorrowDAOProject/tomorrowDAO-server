@@ -11,4 +11,5 @@ public interface IReferralService
     Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
     ReferralActiveConfigDto ConfigAsync();
     Task<InviteDetailDto> InviteDetailAsyncTest(string chainId, string caHash);
+    Task<ReferralBindingStatusDto> ReferralBindingStatusAsync(string chainId);
 }

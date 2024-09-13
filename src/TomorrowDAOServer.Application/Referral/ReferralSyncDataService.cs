@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -13,7 +12,6 @@ using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Indexer;
 using TomorrowDAOServer.Referral.Provider;
-using TomorrowDAOServer.User;
 using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.Referral;
@@ -55,16 +53,12 @@ public class ReferralSyncDataService : ScheduleSyncDataService
                 break;
             }
             skipCount += queryList.Count;
-            var inviteList = queryList.Where(x => !x.ReferralCode.IsNullOrEmpty()).ToList();
-            _logger.LogInformation("SyncReferralData inviteList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
-                skipCount, lastEndTime, endTime, inviteList?.Count);
-            if (inviteList.IsNullOrEmpty())
-            {
-                continue;
-            }
-            var ids = inviteList.Select(GetReferralInviteId).ToList();
+            var inviteList = queryList.Where(x => !string.IsNullOrEmpty(x.ReferralCode)).ToList();
+            _logger.LogInformation("SyncReferralData inviteList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} inviteCount: {count} count: {count}",
+                skipCount, lastEndTime, endTime, inviteList?.Count, queryList?.Count);
+            var ids = queryList.Select(GetReferralInviteId).ToList();
             var exists = await _referralInviteProvider.GetByIdsAsync(ids);
-            var toUpdate = inviteList
+            var toUpdate = queryList
                 .Where(x => exists.All(y => GetReferralInviteId(x) != y.Id))
                 .ToList();
             if (toUpdate.IsNullOrEmpty())
@@ -124,11 +118,15 @@ public class ReferralSyncDataService : ScheduleSyncDataService
 
     private string GetReferralInviteId(IndexerReferral x)
     {
-        return GuidHelper.GenerateId(x.CaHash, x.ReferralCode, x.ProjectCode, x.MethodName);
+        return GuidHelper.GenerateId(x.CaHash, 
+            string.IsNullOrEmpty(x.ReferralCode) ? CommonConstant.OrganicTraffic : x.ReferralCode, 
+            x.ProjectCode, x.MethodName);
     }
     
     private string GetReferralInviteId(ReferralInviteRelationIndex x)
     {
-        return GuidHelper.GenerateId(x.InviteeCaHash, x.ReferralCode, x.ProjectCode, x.MethodName);
+        return GuidHelper.GenerateId(x.InviteeCaHash, 
+            string.IsNullOrEmpty(x.ReferralCode) ? CommonConstant.OrganicTraffic : x.ReferralCode, 
+            x.ProjectCode, x.MethodName);
     }
 }

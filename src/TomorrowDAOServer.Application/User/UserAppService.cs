@@ -89,4 +89,11 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         var user = await GetUserByCaHashAsync(caHash);
         return user?.AddressInfos?.FirstOrDefault(x => x.ChainId == chainId)?.Address ?? string.Empty;
     }
+
+    public async Task<List<UserIndex>> GetUser()
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>();
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _userIndexRepository.GetListAsync(Filter)).Item2;
+    }
 }

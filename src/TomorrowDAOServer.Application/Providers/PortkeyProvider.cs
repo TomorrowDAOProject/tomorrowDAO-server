@@ -18,7 +18,7 @@ namespace TomorrowDAOServer.Providers;
 
 public interface IPortkeyProvider
 {
-    Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token);
+    Task<Tuple<string, string>> GetShortLinkAsync(string chainId, string token);
     Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount);
     Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes);
 }
@@ -45,7 +45,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         _logger = logger;
     }
 
-    public async Task<Tuple<string, string>> GetShortLingAsync(string chainId, string token)
+    public async Task<Tuple<string, string>> GetShortLinkAsync(string chainId, string token)
     {
         var resp = await _httpProvider.InvokeAsync<ShortLinkResponse>("", ReferralApi.ShortLink,
             param: new Dictionary<string, string> { ["projectCode"] = CommonConstant.ProjectCode },
