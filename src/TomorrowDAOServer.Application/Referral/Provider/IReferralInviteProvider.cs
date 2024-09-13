@@ -137,8 +137,11 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
         var query = new SearchDescriptor<ReferralInviteRelationIndex>()
             .Query(q => q.Bool(b => b
-                .Must(m => m.Exists(e => e.Field(f => f.FirstVoteTime)),  
-                    m => m.Term(t => t.Field(f => f.IsReferralActivity).Value(true)) 
+                .Must(
+                    m => m.Exists(e => e.Field(f => f.FirstVoteTime))  
+                )
+                .Filter(
+                    f => f.Term(t => t.Field(f => f.IsReferralActivity).Value(true))  
                 )));
 
         if (input.StartTime != 0 && input.EndTime != 0)
