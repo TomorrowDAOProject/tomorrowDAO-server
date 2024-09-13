@@ -47,6 +47,8 @@ public class ReferralSyncDataService : ScheduleSyncDataService
         do
         {
             queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, lastEndTime, endTime, skipCount, MaxResultCount);
+            _logger.LogInformation("SyncReferralData queryList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
+                skipCount, lastEndTime, endTime, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())
             {
                 lastEndTime = endTime;
@@ -54,8 +56,8 @@ public class ReferralSyncDataService : ScheduleSyncDataService
             }
             skipCount += queryList.Count;
             var inviteList = queryList.Where(x => !string.IsNullOrEmpty(x.ReferralCode)).ToList();
-            _logger.LogInformation("SyncReferralData inviteList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} inviteCount: {count} count: {count}",
-                skipCount, lastEndTime, endTime, inviteList?.Count, queryList?.Count);
+            _logger.LogInformation("SyncReferralData inviteList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} inviteCount: {count}",
+                skipCount, lastEndTime, endTime, inviteList?.Count);
             var ids = queryList.Select(GetReferralInviteId).ToList();
             var exists = await _referralInviteProvider.GetByIdsAsync(ids);
             var toUpdate = queryList
