@@ -87,7 +87,8 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
 
     public async Task AddOrUpdateUserPointsIndexAsync(VoteAndLikeMessageEto message)
     {
-        if (message.PointsType == PointsType.All)
+        var pointsType = message.PointsType;
+        if (pointsType == PointsType.All)
         {
             return;
         }
@@ -96,7 +97,7 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         try
         {
             var userPointsIndex = await GetRankingUserPointsIndexByAliasAsync(message.ChainId, message.ProposalId,
-                message.Address, message.Alias, message.PointsType);
+                message.Address, message.Alias, pointsType);
             if (userPointsIndex == null || userPointsIndex.Id == Guid.Empty)
             {
                 userPointsIndex = _objectMapper.Map<VoteAndLikeMessageEto, RankingAppUserPointsIndex>(message);
@@ -107,8 +108,9 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
                 userPointsIndex.Amount += message.Amount;
             }
 
-            long deltaPoints;
-            switch (PointsType.Vote)
+            long deltaPoints = 0;
+            
+            switch (pointsType)
             {
                 case PointsType.Vote:
                     deltaPoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(message.Amount);
