@@ -136,7 +136,10 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         DateTime endTime = DateTimeOffset.FromUnixTimeMilliseconds(input.EndTime).DateTime;
 
         var query = new SearchDescriptor<ReferralInviteRelationIndex>()
-            .Query(q => q.Exists(e => e.Field(f => f.FirstVoteTime)));  
+            .Query(q => q.Bool(b => b
+                .Must(m => m.Exists(e => e.Field(f => f.FirstVoteTime)),  
+                    m => m.Term(t => t.Field(f => f.IsReferralActivity).Value(true)) 
+                )));
 
         if (input.StartTime != 0 && input.EndTime != 0)
         {
@@ -157,6 +160,5 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
         var response = await _referralInviteRepository.SearchAsync(query, 0, int.MaxValue);
         return response.Aggregations.Terms("inviter_agg").Buckets;
-
     }
 }
