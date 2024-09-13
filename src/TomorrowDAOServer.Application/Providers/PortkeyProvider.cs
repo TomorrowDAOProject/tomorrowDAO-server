@@ -22,6 +22,7 @@ public interface IPortkeyProvider
     Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount);
     Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes);
     Task<List<CaHolderTransactionDetail>> GetCaHolderTransactionAsync(string chainId, string caAddress);
+    Task<HolderInfoIndexerDto> GetHolderInfosAsync(string caHash);
 }
 
 public static class ReferralApi
@@ -195,5 +196,35 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         }
 
         return new List<CaHolderTransactionDetail>();
+    }
+
+    public async Task<HolderInfoIndexerDto> GetHolderInfosAsync(string caHash)
+    {
+        try
+        {
+            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+            using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+            var request = new GraphQLRequest
+            {
+                Query = @"
+			    query($caHash:String,$skipCount:Int!,$maxResultCount:Int!) {
+                    caHolderInfo(dto: {caHash:$caHash,skipCount:$skipCount,maxResultCount:$maxResultCount}){
+                            id,chainId,caHash,caAddress,originChainId,managerInfos{address,extraData}}
+                }",
+                Variables = new
+                {
+                    caHash, skipCount = 0, maxResultCount = 10
+                }
+            };
+
+            var graphQlResponse = await graphQlClient.SendQueryAsync<HolderInfoIndexerDto>(request);
+            return graphQlResponse.Data;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+
+        return new HolderInfoIndexerDto();
     }
 }

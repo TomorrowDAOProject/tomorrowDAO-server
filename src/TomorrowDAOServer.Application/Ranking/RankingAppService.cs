@@ -22,6 +22,7 @@ using TomorrowDAOServer.MQ;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
@@ -64,6 +65,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
     private readonly IReferralInviteProvider _referralInviteProvider;
+    private readonly IPortkeyProvider _portkeyProvider;
     private List<RankingAppIndex> _defaultRankingAppListCache = new();
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
@@ -76,7 +78,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IMessagePublisherService messagePublisherService, 
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, 
         IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider, 
-        IUserAppService userAppService)
+        IUserAppService userAppService, IPortkeyProvider portkeyProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -95,6 +97,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _telegramOptions = telegramOptions;
         _referralInviteProvider = referralInviteProvider;
         _userAppService = userAppService;
+        _portkeyProvider = portkeyProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -658,12 +661,16 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                         if (_rankingOptions.CurrentValue.IsReferralActive())
                         {
                             referral.IsReferralActivity = true;
-                            // todo problem
-                            var inviter = await _userAppService.GetUserAddressByCaHashAsync(chainId, referral.InviterCaHash);
+                            var inviter = await GetAddressFromCaHash(chainId, referral.InviterCaHash);
                             _logger.LogInformation("Ranking vote, referralRelationFirstVoteInActive.{0} {1}", address, inviter);
                             await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(inviter, address, 1);
                             await _messagePublisherService.SendReferralFirstVoteMessageAsync(chainId, inviter, address);
                         }
+                        else
+                        {
+                            _logger.LogInformation("Ranking vote, referralRelationFirstVoteNotInActive.{0}", address);
+                        }
+
                         await _referralInviteProvider.AddOrUpdateAsync(referral);
                     }
                     
@@ -714,5 +721,19 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var value = proposalId + CommonConstant.Comma + aliasString;
         // var endTime = proposal.ActiveEndTime;
         await _rankingAppPointsRedisProvider.SaveDefaultRankingProposalIdAsync(chainId, value, null);
+    }
+
+    private async Task<string> GetAddressFromCaHash(string chainId, string caHash)
+    {
+        
+        var address = await _userAppService.GetUserAddressByCaHashAsync(chainId, caHash);
+        if (!string.IsNullOrEmpty(address))
+        {
+            return address;
+        }
+
+        var caHolderInfos = await _portkeyProvider.GetHolderInfosAsync(caHash);
+        return caHolderInfos?.CaHolderInfo?.FirstOrDefault(x => x.ChainId == chainId)?.CaHash ?? string.Empty;
+
     }
 }
