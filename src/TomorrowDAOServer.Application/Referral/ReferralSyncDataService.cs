@@ -56,8 +56,6 @@ public class ReferralSyncDataService : ScheduleSyncDataService
             }
             skipCount += queryList.Count;
             var inviteList = queryList.Where(x => !string.IsNullOrEmpty(x.ReferralCode)).ToList();
-            _logger.LogInformation("SyncReferralData inviteList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} inviteCount: {count}",
-                skipCount, lastEndTime, endTime, inviteList?.Count);
             var ids = queryList.Select(GetReferralInviteId).ToList();
             var exists = await _referralInviteProvider.GetByIdsAsync(ids);
             var toUpdate = queryList
