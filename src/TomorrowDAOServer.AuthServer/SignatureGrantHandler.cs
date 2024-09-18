@@ -89,7 +89,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             var newSignText = """
                               Welcome to TMRWDAO! Click to sign in to the TMRWDAO platform! This request will not trigger any blockchain transaction or cost any gas fees.
 
-                              signature:
+                              signature: 
                               """+string.Join("-", address, timestampVal);
             _logger.LogInformation("newSignText:{newSignText}",newSignText);
             if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
