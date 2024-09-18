@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text;
 using AElf;
 using AElf.Client;
 using AElf.Client.Dto;
@@ -74,17 +75,39 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     $"The time should be {timeRangeConfig.TimeRange} minutes before and after the current time.");
             }
 
-            var plantText = string.Join("-", address, timestampVal);
-            if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(plantText).ToByteArray(), out var managerPublicKey))
+            // var plantText = string.Join("-", address, timestampVal);
+            // if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(plantText).ToByteArray(), out var managerPublicKey))
+            // {
+            //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed.");
+            // }
+            //
+            // if (managerPublicKey.ToHex() != publicKeyVal)
+            // {
+            //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
+            // }
+            
+            var newSignText = """
+                              Welcome to TMRWDAO! Click to sign in to the TMRWDAO platform! This request will not trigger any blockchain transaction or cost any gas fees.
+
+                              signature:
+                              """+string.Join("-", address, timestampVal);
+            if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
+                    out var managerPublicKey))
             {
-                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed.");
+                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed new.");
             }
 
-            if (managerPublicKey.ToHex() != publicKeyVal)
+            if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
+                    out var managerPublicKeyOld))
+            {
+                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed old.");
+            }
+
+            if (!(managerPublicKey.ToHex() == publicKeyVal || managerPublicKeyOld.ToHex() == publicKeyVal))
             {
                 return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
             }
-
+            
             _logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<SignatureGrantHandler>>();
             _distributedLock = context.HttpContext.RequestServices.GetRequiredService<IAbpDistributedLock>();
             _clusterClient = context.HttpContext.RequestServices.GetRequiredService<IClusterClient>();
