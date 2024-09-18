@@ -109,25 +109,27 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         return (await _userIndexRepository.GetListAsync(Filter)).Item2;
     }
 
-    public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, long source)
+    public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         var userSourceList = _userOptions.CurrentValue.UserSourceList;
-        if (!userSourceList.Contains(source))
+        if (!userSourceList.Contains(source, StringComparer.OrdinalIgnoreCase))
         {
             return new UserSourceReportResultDto
             {
                 Success = false, Reason = "Invalid source."
             };
         }
+        var matchedSource = userSourceList.FirstOrDefault(s => 
+            string.Equals(s, source, StringComparison.OrdinalIgnoreCase));
         var now = TimeHelper.GetTimeStampInMilliseconds();
-        await _userSourceProvider.AddOrUpdateAsync(new UserSourceIndex
+        await _userSourceProvider.AddOrUpdateAsync(new UserVisitSourceIndex
         {
             Id = GuidHelper.GenerateId(address, TimeHelper.GetTimeStampInMilliseconds().ToString()),
             Address = address,
             UserVisitType = UserVisitType.Votigram,
-            Source = source,
+            Source = matchedSource!,
             VisitTime = now
         });
         return new UserSourceReportResultDto

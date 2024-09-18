@@ -86,6 +86,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
             // }
             
+            _logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<SignatureGrantHandler>>();
             var newSignText = """
                               Welcome to TMRWDAO! Click to sign in to the TMRWDAO platform! This request will not trigger any blockchain transaction or cost any gas fees.
 
@@ -108,8 +109,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             {
                 return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
             }
-            
-            _logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<SignatureGrantHandler>>();
+
             _distributedLock = context.HttpContext.RequestServices.GetRequiredService<IAbpDistributedLock>();
             _clusterClient = context.HttpContext.RequestServices.GetRequiredService<IClusterClient>();
             _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();

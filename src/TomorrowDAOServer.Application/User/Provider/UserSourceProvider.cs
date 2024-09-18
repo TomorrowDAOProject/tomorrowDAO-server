@@ -7,19 +7,19 @@ namespace TomorrowDAOServer.User.Provider;
 
 public interface IUserSourceProvider
 {
-    Task AddOrUpdateAsync(UserSourceIndex index);
+    Task AddOrUpdateAsync(UserVisitSourceIndex index);
 }
 
 public class UserSourceProvider : IUserSourceProvider, ISingletonDependency
 {
-    private readonly INESTRepository<UserSourceIndex, string> _userSourceRepository;
+    private readonly INESTRepository<UserVisitSourceIndex, string> _userSourceRepository;
 
-    public UserSourceProvider(INESTRepository<UserSourceIndex, string> userSourceRepository)
+    public UserSourceProvider(INESTRepository<UserVisitSourceIndex, string> userSourceRepository)
     {
         _userSourceRepository = userSourceRepository;
     }
 
-    public async Task AddOrUpdateAsync(UserSourceIndex index)
+    public async Task AddOrUpdateAsync(UserVisitSourceIndex index)
     {
         if (index == null)
         {

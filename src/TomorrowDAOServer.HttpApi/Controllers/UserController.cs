@@ -22,7 +22,7 @@ public class UserController
 
     [HttpGet("user-source-report")]
     [Authorize]
-    public async Task<UserSourceReportResultDto> UserSourceAsync(string chainId, long source)
+    public async Task<UserSourceReportResultDto> UserSourceAsync(string chainId, string source)
     {
         return await _userAppService.UserSourceReportAsync(chainId, source);
     }
