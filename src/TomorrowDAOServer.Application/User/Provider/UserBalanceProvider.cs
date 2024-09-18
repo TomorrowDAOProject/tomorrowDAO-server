@@ -97,6 +97,10 @@ public class UserBalanceProvider : IUserBalanceProvider, ISingletonDependency
 
     public async Task<List<UserBalanceIndex>> GetAllUserBalanceAsync(string chainId, string symbol, List<string> addressList)
     {
+        if (addressList.IsNullOrEmpty())
+        {
+            return new List<UserBalanceIndex>();
+        }
         var mustQuery = new List<Func<QueryContainerDescriptor<UserBalanceIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
