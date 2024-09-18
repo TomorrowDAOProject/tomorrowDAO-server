@@ -5,5 +5,5 @@ namespace TomorrowDAOServer.Token;
 
 public interface IUserTokenService
 {
-    Task<List<UserTokenDto>> GetUserTokensAsync(string chainId, string address);
+    Task<List<UserTokenDto>> GetUserTokensAsync(string chainId);
 }

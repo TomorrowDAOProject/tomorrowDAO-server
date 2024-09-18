@@ -6,4 +6,9 @@ public class HubHelper
     {
         return $"{chainId}_Group_Points";
     }
+    
+    public static string GetUserBalanceGroupName(string chainId)
+    {
+        return $"{chainId}_Group_UserBalance";
+    }
 }

@@ -39,6 +39,7 @@ namespace TomorrowDAOServer
                 builder.Services.AddSignalR();
                 var app = builder.Build();
                 app.MapHub<PointsHub>("api/app/ranking/points");
+                app.MapHub<UserBalanceHub>("api/app/user/balance");
                 await app.InitializeApplicationAsync();
                 await app.RunAsync();
                 return 0;

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Indexer;
@@ -24,12 +26,14 @@ public class ReferralSyncDataService : ScheduleSyncDataService
     private readonly IPortkeyProvider _portkeyProvider;
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IReferralLinkProvider _referralLinkProvider;
+    private readonly IOptionsMonitor<SyncDataOptions> _syncDataOptions;
     private const int MaxResultCount = 1000;
     
     public ReferralSyncDataService(ILogger<ReferralSyncDataService> logger,
         IObjectMapper objectMapper, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, IPortkeyProvider portkeyProvider,
-        IReferralInviteProvider referralInviteProvider, IReferralLinkProvider referralLinkProvider) : base(logger, graphQlProvider)
+        IReferralInviteProvider referralInviteProvider, IReferralLinkProvider referralLinkProvider, 
+        IOptionsMonitor<SyncDataOptions> syncDataOptions) : base(logger, graphQlProvider)
     {
         _logger = logger;
         _objectMapper = objectMapper;
@@ -37,23 +41,29 @@ public class ReferralSyncDataService : ScheduleSyncDataService
         _portkeyProvider = portkeyProvider;
         _referralInviteProvider = referralInviteProvider;
         _referralLinkProvider = referralLinkProvider;
+        _syncDataOptions = syncDataOptions;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndTime, long newIndexHeight)
     {
         List<IndexerReferral> queryList;
-        var endTime = DateTime.UtcNow.ToUtcSeconds();
+        var rerunHeight = _syncDataOptions.CurrentValue.RerunHeight;
+        if (rerunHeight == 0)
+        {
+            lastEndTime = 0;
+        }
+        var returnTime = -1L;
         var skipCount = 0;
         do
         {
-            queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, lastEndTime, endTime, skipCount, MaxResultCount);
+            queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, lastEndTime, 0, skipCount, MaxResultCount);
             _logger.LogInformation("SyncReferralData queryList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
-                skipCount, lastEndTime, endTime, queryList?.Count);
+                skipCount, lastEndTime, 0, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())
             {
-                lastEndTime = endTime;
                 break;
             }
+            returnTime = Math.Max(lastEndTime, queryList.Select(x => x.Timestamp).Max());
             skipCount += queryList.Count;
             var inviteList = queryList.Where(x => !string.IsNullOrEmpty(x.ReferralCode)).ToList();
             var ids = queryList.Select(GetReferralInviteId).ToList();
@@ -102,7 +112,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
 
         } while (!queryList.IsNullOrEmpty());
 
-        return lastEndTime;
+        return returnTime;
     }
 
     public override async Task<List<string>> GetChainIdsAsync()

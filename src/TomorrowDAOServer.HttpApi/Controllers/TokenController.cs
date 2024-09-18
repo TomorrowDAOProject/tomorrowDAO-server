@@ -18,16 +18,14 @@ namespace TomorrowDAOServer.Controllers;
 public class TokenController
 {
     private readonly IUserTokenService _userTokenService;
-    private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
     private readonly ITransferTokenService _transferTokenService;
     private readonly IIssueTokenService _issueTokenService;
 
-    public TokenController(IUserTokenService userTokenService, IUserService userService, ITokenService tokenService,
+    public TokenController(IUserTokenService userTokenService, ITokenService tokenService,
         ITransferTokenService transferTokenService, IIssueTokenService issueTokenService)
     {
         _userTokenService = userTokenService;
-        _userService = userService;
         _tokenService = tokenService;
         _transferTokenService = transferTokenService;
         _issueTokenService = issueTokenService;
@@ -44,8 +42,7 @@ public class TokenController
     [Authorize]
     public async Task<List<UserTokenDto>> GetTokenAsync(GetUserTokenInput input)
     {
-        var userAddress = await _userService.GetCurrentUserAddressAsync(input.ChainId);
-        return await _userTokenService.GetUserTokensAsync(input.ChainId, userAddress);
+        return await _userTokenService.GetUserTokensAsync(input.ChainId);
     }
 
     [HttpGet]

@@ -4,13 +4,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using Nest;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.User.Dtos;
+using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Users;
 
 namespace TomorrowDAOServer.User;
 
@@ -21,13 +26,20 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
     private readonly INESTRepository<UserIndex, Guid> _userIndexRepository;
     private readonly ILogger<UserAppService> _logger;
     private readonly IObjectMapper _objectMapper;
+    private readonly IUserProvider _userProvider;
+    private readonly IUserSourceProvider _userSourceProvider;
+    private readonly IOptionsMonitor<UserOptions> _userOptions;
 
     public UserAppService(INESTRepository<UserIndex, Guid> userIndexRepository, ILogger<UserAppService> logger,
-        IObjectMapper objectMapper)
+        IObjectMapper objectMapper, IUserProvider userProvider, IUserSourceProvider userSourceProvider, 
+        IOptionsMonitor<UserOptions> userOptions)
     {
         _userIndexRepository = userIndexRepository;
         _logger = logger;
         _objectMapper = objectMapper;
+        _userProvider = userProvider;
+        _userSourceProvider = userSourceProvider;
+        _userOptions = userOptions;
     }
 
     public async Task CreateUserAsync(UserDto user)
@@ -95,5 +107,32 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>();
         QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _userIndexRepository.GetListAsync(Filter)).Item2;
+    }
+
+    public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, long source)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var userSourceList = _userOptions.CurrentValue.UserSourceList;
+        if (!userSourceList.Contains(source))
+        {
+            return new UserSourceReportResultDto
+            {
+                Success = false, Reason = "Invalid source."
+            };
+        }
+        var now = TimeHelper.GetTimeStampInMilliseconds();
+        await _userSourceProvider.AddOrUpdateAsync(new UserSourceIndex
+        {
+            Id = GuidHelper.GenerateId(address, TimeHelper.GetTimeStampInMilliseconds().ToString()),
+            Address = address,
+            UserVisitType = UserVisitType.Votigram,
+            Source = source,
+            VisitTime = now
+        });
+        return new UserSourceReportResultDto
+        {
+            Success = true
+        };
     }
 }

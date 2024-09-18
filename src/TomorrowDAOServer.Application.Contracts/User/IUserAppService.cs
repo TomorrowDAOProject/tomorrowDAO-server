@@ -13,4 +13,5 @@ public interface IUserAppService
     Task<UserIndex> GetUserByCaHashAsync(string caHash);
     Task<string> GetUserAddressByCaHashAsync(string chainId, string caHash);
     Task<List<UserIndex>> GetUser();
+    Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, long source);
 }
