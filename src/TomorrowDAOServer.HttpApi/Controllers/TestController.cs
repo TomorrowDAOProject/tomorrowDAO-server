@@ -49,5 +49,4 @@ public class TestController
     {
         return _emojiOptions.CurrentValue.Smile;
     }
-    
 }
