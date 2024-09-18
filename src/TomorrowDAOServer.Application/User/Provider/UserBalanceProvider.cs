@@ -43,7 +43,7 @@ public class UserBalanceProvider : IUserBalanceProvider, ISingletonDependency
             {
                 Query = @"
 			    query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!) {
-                    data:getSyncUserBalanceInfos(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight}){
+                    getSyncUserBalanceInfos(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight}){
                         id,
                         chainId,
                         address,
@@ -63,7 +63,7 @@ public class UserBalanceProvider : IUserBalanceProvider, ISingletonDependency
                     endBlockHeight = input.EndBlockHeight
                 }
             });
-            return response?.Data ?? new List<UserBalance>();
+            return response?.GetSyncUserBalanceInfos ?? new List<UserBalance>();
         }
         catch (Exception e)
         {

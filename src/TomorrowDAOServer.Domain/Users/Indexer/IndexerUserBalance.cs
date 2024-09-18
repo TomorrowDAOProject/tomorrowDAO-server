@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-using TomorrowDAOServer.Common;
 
 namespace TomorrowDAOServer.Users.Indexer;
 
-public class IndexerUserBalance : IndexerCommonResult<IndexerUserBalance>
+public class IndexerUserBalance
 {
-    public List<UserBalance> Data { get; set; }
+    public List<UserBalance> GetSyncUserBalanceInfos { get; set; }
 }
 
 public class UserBalance
