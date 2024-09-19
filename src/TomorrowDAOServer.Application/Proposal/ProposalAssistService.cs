@@ -210,7 +210,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
             AddProposalLife(ref result, ProposalStage.WaitingActive, ProposalStatus.Published);
         }
 
-        if (DateTime.UtcNow < activeStartTime)
+        if (DateTime.UtcNow > activeStartTime)
         {
             AddProposalLife(ref result, ProposalStage.Active, ProposalStatus.PendingVote);
         }
