@@ -27,19 +27,21 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
     private readonly ILogger<UserAppService> _logger;
     private readonly IObjectMapper _objectMapper;
     private readonly IUserProvider _userProvider;
-    private readonly IUserSourceProvider _userSourceProvider;
+    private readonly IUserVisitProvider _userVisitProvider;
+    private readonly IUserVisitSummaryProvider _userVisitSummaryProvider;
     private readonly IOptionsMonitor<UserOptions> _userOptions;
 
     public UserAppService(INESTRepository<UserIndex, Guid> userIndexRepository, ILogger<UserAppService> logger,
-        IObjectMapper objectMapper, IUserProvider userProvider, IUserSourceProvider userSourceProvider, 
-        IOptionsMonitor<UserOptions> userOptions)
+        IObjectMapper objectMapper, IUserProvider userProvider, IUserVisitProvider userVisitProvider, 
+        IOptionsMonitor<UserOptions> userOptions, IUserVisitSummaryProvider userVisitSummaryProvider)
     {
         _userIndexRepository = userIndexRepository;
         _logger = logger;
         _objectMapper = objectMapper;
         _userProvider = userProvider;
-        _userSourceProvider = userSourceProvider;
+        _userVisitProvider = userVisitProvider;
         _userOptions = userOptions;
+        _userVisitSummaryProvider = userVisitSummaryProvider;
     }
 
     public async Task CreateUserAsync(UserDto user)
@@ -124,14 +126,37 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         var matchedSource = userSourceList.FirstOrDefault(s => 
             string.Equals(s, source, StringComparison.OrdinalIgnoreCase));
         var now = TimeHelper.GetTimeStampInMilliseconds();
-        await _userSourceProvider.AddOrUpdateAsync(new UserVisitSourceIndex
+        var visitType = UserVisitType.Votigram;
+        await _userVisitProvider.AddOrUpdateAsync(new UserVisitIndex
         {
-            Id = GuidHelper.GenerateId(address, TimeHelper.GetTimeStampInMilliseconds().ToString()),
+            Id = GuidHelper.GenerateId(address, chainId, visitType.ToString(), now.ToString()),
+            ChainId = chainId,
             Address = address,
-            UserVisitType = UserVisitType.Votigram,
+            UserVisitType = visitType,
             Source = matchedSource!,
             VisitTime = now
         });
+        var summaryId = GuidHelper.GenerateId(address, chainId, visitType.ToString());
+        var visitSummaryIndex = await _userVisitSummaryProvider.GetByIdAsync(summaryId);
+        if (visitSummaryIndex == null)
+        {
+            visitSummaryIndex = new UserVisitSummaryIndex
+            {
+                Id = summaryId,
+                ChainId = chainId,
+                Address = address,
+                UserVisitType = visitType,
+                Source = matchedSource!,
+                CreateTime = now,
+                ModificationTime = now
+            };
+        }
+        else
+        {
+            visitSummaryIndex.ModificationTime = now;
+        }
+        await _userVisitSummaryProvider.AddOrUpdateAsync(visitSummaryIndex);
+        
         return new UserSourceReportResultDto
         {
             Success = true
