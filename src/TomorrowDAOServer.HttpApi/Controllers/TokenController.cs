@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +5,6 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.Token.Dto;
-using TomorrowDAOServer.User;
 using Volo.Abp;
 
 namespace TomorrowDAOServer.Controllers;
@@ -17,15 +15,12 @@ namespace TomorrowDAOServer.Controllers;
 [Route("api/app/token")]
 public class TokenController
 {
-    private readonly IUserTokenService _userTokenService;
     private readonly ITokenService _tokenService;
     private readonly ITransferTokenService _transferTokenService;
     private readonly IIssueTokenService _issueTokenService;
 
-    public TokenController(IUserTokenService userTokenService, ITokenService tokenService,
-        ITransferTokenService transferTokenService, IIssueTokenService issueTokenService)
+    public TokenController(ITokenService tokenService, ITransferTokenService transferTokenService, IIssueTokenService issueTokenService)
     {
-        _userTokenService = userTokenService;
         _tokenService = tokenService;
         _transferTokenService = transferTokenService;
         _issueTokenService = issueTokenService;
