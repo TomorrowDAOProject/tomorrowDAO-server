@@ -656,11 +656,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     var referral = await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, addressCaHash);
                     if (referral != null)
                     {
-                        _logger.LogInformation("Ranking vote, referralRelationFirstVote.{0}", address);
+                        _logger.LogInformation("Ranking vote, referralRelationFirstVote.{0} {1}", address, addressCaHash);
                         var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
                         var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<Voted>(voteEventLog);
                         referral.FirstVoteTime = voteEvent.VoteTimestamp?.ToDateTime();
-                        if (_rankingOptions.CurrentValue.IsReferralActive())
+                        if (!string.IsNullOrEmpty(referral.ReferralCode) 
+                            && !string.IsNullOrEmpty(referral.InviterCaHash)
+                            && _rankingOptions.CurrentValue.IsReferralActive())
                         {
                             referral.IsReferralActivity = true;
                             var inviter = await GetAddressFromCaHash(chainId, referral.InviterCaHash);
