@@ -67,7 +67,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IPortkeyProvider _portkeyProvider;
     private readonly IUserBalanceProvider _userBalanceProvider;
-    private List<RankingAppIndex> _defaultRankingAppListCache = new();
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -503,15 +502,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
                 if (voteRecordEs == null)
                 {
-                    canVoteAmount = 1;
-                    //         var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
-                    //             { ChainId = chainId, DAOId = daoId });
-                    //         var balance =
-                    //             await _transferTokenProvider.GetBalanceAsync(chainId, daoIndex!.GovernanceToken, userAddress);
-                    //         if (balance.Balance > 0)
-                    //         {
-                    //             canVoteAmount = 1;
-                    //         }
+                    var userBalance= await _userBalanceProvider.GetByIdAsync(GuidHelper.GenerateGrainId(userAddress,
+                        chainId, CommonConstant.GetVotigramSymbol(chainId)));
+                    canVoteAmount = (userBalance?.Amount ?? 0) > 0 ? 1 : 0;
                 }
             }
         }

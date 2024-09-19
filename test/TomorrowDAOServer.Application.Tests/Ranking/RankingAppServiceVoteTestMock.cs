@@ -55,24 +55,25 @@ public partial class RankingAppServiceVoteTest
         var mock = new Mock<IDistributedCache<string>>();
 
         mock.Setup(o =>
-                o.GetAsync(It.IsAny<string>(), null, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string key, bool? hideErrors, bool considerUow, CancellationToken token) =>
+                o.GetAsync(It.IsAny<string>(), null, It.IsAny<bool>(), It.IsAny<CancellationToken>()))!
+            .ReturnsAsync((string key, bool? _, bool _, CancellationToken _) =>
             {
-                if (key.IndexOf(RankingVoteStatusEnum.Voted.ToString()) != -1)
+                if (key.Contains(RankingVoteStatusEnum.Voted.ToString()))
                 {
                     return JsonConvert.SerializeObject(new RankingVoteRecord
                     {
                         TransactionId = TransactionHash.ToHex(),
-                        VoteTime = TimeHelper.ToUtcString(DateTime.Now),
+                        VoteTime = DateTime.Now.ToUtcString(),
                         Status = RankingVoteStatusEnum.Voted,
                     });
                 }
-                else if (key.IndexOf(RankingVoteStatusEnum.Voting.ToString()) > 20)
+
+                if (key.IndexOf(RankingVoteStatusEnum.Voting.ToString(), StringComparison.Ordinal) > 20)
                 {
                     return JsonConvert.SerializeObject(new RankingVoteRecord
                     {
                         TransactionId = TransactionHash.ToHex(),
-                        VoteTime = TimeHelper.ToUtcString(DateTime.Now),
+                        VoteTime = DateTime.Now.ToUtcString(),
                         Status = RankingVoteStatusEnum.Voting,
                     });
                 }
