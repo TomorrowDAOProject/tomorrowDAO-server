@@ -20,26 +20,8 @@ using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.Ranking;
 
-public partial class RankingAppServiceVoteTest
+public partial class RankingAppServiceTest
 {
-    private IOptionsMonitor<RankingOptions> MockRankingOptions()
-    {
-        var mock = new Mock<IOptionsMonitor<RankingOptions>>();
-
-        mock.Setup(o => o.CurrentValue).Returns(new RankingOptions
-        {
-            DaoIds = new List<string>() { DAOId },
-            DescriptionPattern = string.Empty,
-            DescriptionBegin = string.Empty,
-            LockUserTimeout = 60000,
-            VoteTimeout = 60000,
-            RetryTimes = 30,
-            RetryDelay = 2000
-        });
-
-        return mock.Object;
-    }
-
     private IAbpDistributedLock MockAbpDistributedLock()
     {
         var mockLockProvider = new Mock<IAbpDistributedLock>();
