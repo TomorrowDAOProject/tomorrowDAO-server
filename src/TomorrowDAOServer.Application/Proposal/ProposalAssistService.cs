@@ -203,7 +203,17 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex)
     {
         var result = new List<ProposalLifeDto>();
-        AddProposalLife(ref result, ProposalStage.Active, ProposalStatus.PendingVote);
+        var deployTime = proposalIndex.DeployTime;
+        var activeStartTime = proposalIndex.ActiveStartTime;
+        if (deployTime < activeStartTime)
+        {
+            AddProposalLife(ref result, ProposalStage.WaitingActive, ProposalStatus.Published);
+        }
+
+        if (DateTime.UtcNow < activeStartTime)
+        {
+            AddProposalLife(ref result, ProposalStage.Active, ProposalStatus.PendingVote);
+        }
 
         var proposalStatus = proposalIndex.ProposalStatus;
         var isVetoed = proposalIndex.VetoProposalId.IsNullOrEmpty();

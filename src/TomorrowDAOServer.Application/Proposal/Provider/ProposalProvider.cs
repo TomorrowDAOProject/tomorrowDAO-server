@@ -397,6 +397,18 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                 shouldQuery.Add(q => q.Bool(b => b.Must(ProposalStatusMustQuery(ProposalStatus.BelowThreshold))));
                 break;
             }
+            case ProposalStatus.PendingVote:
+                mustQuery.Add(q => q.Term(i =>
+                    i.Field(f => f.ProposalStatus).Value(proposalStatus)));
+                mustQuery.Add(q => q.DateRange(d => d
+                    .Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow)));
+                break;
+            case ProposalStatus.Published:
+                mustQuery.Add(q => q.Term(i =>
+                    i.Field(f => f.ProposalStatus).Value(proposalStatus)));
+                mustQuery.Add(q => q.DateRange(d => d
+                    .Field(f => f.ActiveStartTime).GreaterThanOrEquals(DateTime.UtcNow)));
+                break;
             default:
                 mustQuery.Add(q => q.Term(i =>
                     i.Field(f => f.ProposalStatus).Value(proposalStatus)));

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Common;
@@ -22,9 +23,20 @@ public static class MapHelper
         };
     }
 
-    public static string MapProposalStatusString(ProposalStatus realProposalStatus)
+    public static string MapProposalStatusString(ProposalIndex index)
     {
-        return MapProposalStatus(realProposalStatus).ToString();
+        var realProposalStatus = index.ProposalStatus;
+        return DateTime.UtcNow < index.ActiveStartTime 
+            ? ProposalStatus.Published.ToString() 
+            : MapProposalStatus(realProposalStatus).ToString();
+    }
+    
+    public static string MapProposalStageString(ProposalIndex index)
+    {
+        var realProposalStage = index.ProposalStage;
+        return DateTime.UtcNow < index.ActiveStartTime 
+            ? ProposalStage.WaitingActive.ToString() 
+            : MapProposalStageString(realProposalStage);
     }
     
     public static string MapProposalStageString(ProposalStage realProposalStage)
