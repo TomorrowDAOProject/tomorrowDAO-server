@@ -294,6 +294,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
         var historyUserVotes = (await _voteProvider.GetNeedMoveVoteRecordListAsync())
             .Where(x => x.TotalRecorded == false).ToList();
+        string value;
         switch (type)
         {
             case "1":
@@ -316,6 +317,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 break;
             case "8":
                 await FixReferralPoints(chainId);
+                break;
+            case "9":
+                value = await _rankingAppPointsRedisProvider.GetAsync(chainId);
+                _logger.LogInformation("RedisValue key {chainId} value {value}", chainId, value);
+                break;
+            case "10":
+                value = await _distributedCache.GetAsync(chainId);
+                _logger.LogInformation("RedisDistributedCacheValue key {chainId} value {value}", chainId, value);
                 break;
         }
     }
