@@ -332,24 +332,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private async Task GetFixReferralPoints(string chainId)
     {
         _logger.LogInformation("GetFixReferralPointsBegin chainId {chainId}", chainId);
-        var list = await _referralInviteProvider.GetNeedFixAsync(chainId);
-        var inviteeCaHashList = list.Select(x => x.InviteeCaHash).ToList();
-        var inviteeAddressList = await _userAppService.GetUserByCaHashListAsync(inviteeCaHashList);
-        var addressDic = inviteeAddressList
-            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == chainId))
-            .GroupBy(ui => ui.CaHash)
-            .ToDictionary(
-                group => group.Key,
-                group => group.First().AddressInfos.First(ai => ai.ChainId == chainId)?.Address ?? string.Empty
-            );
+        var list = _rankingOptions.CurrentValue.ReferralPointsAddressList;
         var res = new List<RedisPointsDto>();
-        foreach (var (caHash, address) in addressDic)
+        foreach (var address in list)
         {
             var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
             res.Add(new RedisPointsDto
             {
                 Address = address,
-                CaHash = caHash,
                 Points = points
             });
         }
@@ -359,17 +349,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private async Task FixReferralPoints(string chainId)
     {
         _logger.LogInformation("FixReferralPointsBegin chainId {chainId}", chainId);
-        var list = await _referralInviteProvider.GetNeedFixAsync(chainId);
-        var inviteeCaHashList = list.Select(x => x.InviteeCaHash).ToList();
-        var inviteeAddressList = await _userAppService.GetUserByCaHashListAsync(inviteeCaHashList);
-        var addressDic = inviteeAddressList
-            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == chainId))
-            .GroupBy(ui => ui.CaHash)
-            .ToDictionary(
-                group => group.Key,
-                group => group.First().AddressInfos.First(ai => ai.ChainId == chainId)?.Address ?? string.Empty
-            );
-        foreach (var (caHash, address) in addressDic)
+        var list = _rankingOptions.CurrentValue.ReferralPointsAddressList;
+        foreach (var address in list)
         {
             await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync("T5bxBnC9GWUhVpUQv1hwvsEr7vNi2CHTSVnGEhDStNxthV19J", address, -1);
         }
