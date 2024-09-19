@@ -78,4 +78,10 @@ public partial class RankingAppServiceTest
             });
         return mock.Object;
     }
+
+    private IRankingAppPointsRedisProvider MockRankingAppPointsRedisProvider()
+    {
+        var mock = new Mock<IRankingAppPointsRedisProvider>();
+        return mock.Object;
+    }
 }

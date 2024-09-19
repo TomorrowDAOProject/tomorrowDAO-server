@@ -25,6 +25,7 @@ public partial class RankingAppServiceTest : TomorrowDaoServerApplicationTestBas
         services.AddSingleton(MockRankingAppProvider());
         services.AddSingleton(MockUserProvider());
         services.AddSingleton(MockDAOProvider());
+        services.AddSingleton(MockRankingAppPointsRedisProvider());
     }
 
     [Fact]
