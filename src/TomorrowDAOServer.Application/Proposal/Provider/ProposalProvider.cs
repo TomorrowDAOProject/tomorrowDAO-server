@@ -405,7 +405,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                 break;
             case ProposalStatus.Published:
                 mustQuery.Add(q => q.Term(i =>
-                    i.Field(f => f.ProposalStatus).Value(proposalStatus)));
+                    i.Field(f => f.ProposalStatus).Value(ProposalStatus.PendingVote)));
                 mustQuery.Add(q => q.DateRange(d => d
                     .Field(f => f.ActiveStartTime).GreaterThanOrEquals(DateTime.UtcNow)));
                 break;
