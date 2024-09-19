@@ -38,14 +38,6 @@ public class TokenController
     }
 
     [HttpGet]
-    [Route("list")]
-    [Authorize]
-    public async Task<List<UserTokenDto>> GetTokenAsync(GetUserTokenInput input)
-    {
-        return await _userTokenService.GetUserTokensAsync(input.ChainId);
-    }
-
-    [HttpGet]
     [Route("price")]
     public async Task<TokenPriceDto> GetTokenPriceAsync(GetTokenPriceInput input)
     {
