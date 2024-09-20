@@ -29,7 +29,7 @@ public class StatisticService : TomorrowDAOServerAppService, IStatisticService
         var dauReferral = await _referralInviteProvider.GetByTimeRangeAsync(input.StartTime, input.EndTime);
         return new DauDto
         {
-            DauReferral = dauReferral
+            DauReferral = dauReferral.Count(x => !string.IsNullOrEmpty(x.ReferralCode))
         };
     }
 }

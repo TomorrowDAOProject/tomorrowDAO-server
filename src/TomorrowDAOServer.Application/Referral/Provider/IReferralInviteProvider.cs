@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Nest;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Referral.Dto;
 using Volo.Abp.DependencyInjection;
@@ -18,7 +19,7 @@ public interface IReferralInviteProvider
     Task AddOrUpdateAsync(ReferralInviteRelationIndex relationIndex);
     Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
     Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
-    Task<long> GetByTimeRangeAsync(long startTime, long endTime);
+    Task<List<ReferralInviteRelationIndex>> GetByTimeRangeAsync(long startTime, long endTime);
 }
 
 public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDependency
@@ -151,12 +152,10 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         return response.Aggregations.Terms("inviter_agg").Buckets;
     }
 
-    public async Task<long> GetByTimeRangeAsync(long startTime, long endTime)
+    public async Task<List<ReferralInviteRelationIndex>> GetByTimeRangeAsync(long startTime, long endTime)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
         {
-            q => q.Exists(i => i.Field(t => t.ReferralCode)),  
-            q => !q.Term(i => i.Field(t => t.ReferralCode).Value("")), 
             q => q.Range(r => r  
                 .Field(f => f.Timestamp)
                 .GreaterThanOrEquals(startTime)
@@ -165,6 +164,6 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
         QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b.Must(mustQuery));
 
-        return (await _referralInviteRepository.CountAsync(Filter)).Count;
+        return await IndexHelper.GetAllIndex(Filter, _referralInviteRepository);
     }
 }
