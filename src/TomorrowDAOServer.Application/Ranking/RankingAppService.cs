@@ -352,7 +352,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var list = _rankingOptions.CurrentValue.ReferralPointsAddressList;
         foreach (var address in list)
         {
-            await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync("T5bxBnC9GWUhVpUQv1hwvsEr7vNi2CHTSVnGEhDStNxthV19J", address, -1);
+            await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync("T5bxBnC9GWUhVpUQv1hwvsEr7vNi2CHTSVnGEhDStNxthV19J", address, 1);
         }
         _logger.LogInformation("FixReferralPointsEnd chainId {chainId}", chainId);
     }
