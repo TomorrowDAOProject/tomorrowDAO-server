@@ -125,8 +125,8 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
                 )
                 .Filter(
                     f => f.Term(t => t.Field(f => f.IsReferralActivity).Value(true)),
-                    m => !m.Term(t => t.Field(f => f.ReferralCode).Value("")), 
-                    m => !m.Term(t => t.Field(f => f.InviterCaHash).Value("")) 
+                    f => f.Wildcard(w => w.Field(f => f.ReferralCode).Value("*?*")),
+                    f => f.Wildcard(w => w.Field(f => f.InviterCaHash).Value("*?*"))
                 )));
 
         if (input.StartTime != 0 && input.EndTime != 0)
