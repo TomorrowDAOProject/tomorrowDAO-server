@@ -1,8 +1,10 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
+using TomorrowDAOServer.Referral.Provider;
 using Volo.Abp;
 using Volo.Abp.Caching;
 
@@ -17,13 +19,16 @@ public class TestController
     private IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IDistributedCache<string> _distributedCache;
     private readonly IOptionsMonitor<EmojiOptions> _emojiOptions;
+    private readonly IReferralInviteProvider _referralInviteProvider;
 
     public TestController(IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, 
-        IDistributedCache<string> distributedCache, IOptionsMonitor<EmojiOptions> emojiOptions)
+        IDistributedCache<string> distributedCache, IOptionsMonitor<EmojiOptions> emojiOptions, 
+        IReferralInviteProvider referralInviteProvider)
     {
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _distributedCache = distributedCache;
         _emojiOptions = emojiOptions;
+        _referralInviteProvider = referralInviteProvider;
     }
     
     [HttpGet("redis-value")]
@@ -48,5 +53,11 @@ public class TestController
     public string Emoji()
     {
         return _emojiOptions.CurrentValue.Smile;
+    }
+    
+    [HttpGet("not-vote-invitee")]
+    public async Task<ReferralInviteRelationIndex> NotVoteInviteeAsync(string chainId, string caHash)
+    {
+        return await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, caHash);
     }
 }
