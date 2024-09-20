@@ -282,7 +282,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return voteRecord;
     }
 
-    public async Task MoveHistoryDataAsync(string chainId, string type, string key)
+    public async Task MoveHistoryDataAsync(string chainId, string type, string key, string value)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
@@ -294,7 +294,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var historyAppVotes = await _rankingAppProvider.GetNeedMoveRankingAppListAsync();
         var historyUserVotes = (await _voteProvider.GetNeedMoveVoteRecordListAsync())
             .Where(x => x.TotalRecorded == false).ToList();
-        string value;
+        string searchValue;
         switch (type)
         {
             case "1":
@@ -319,12 +319,15 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 await FixReferralPoints(chainId);
                 break;
             case "9":
-                value = await _rankingAppPointsRedisProvider.GetAsync(key);
-                _logger.LogInformation("RedisValue key {key} value {value}", key, value);
+                searchValue = await _rankingAppPointsRedisProvider.GetAsync(key);
+                _logger.LogInformation("RedisValue key {key} value {value}", key, searchValue);
                 break;
             case "10":
-                value = await _distributedCache.GetAsync(key);
-                _logger.LogInformation("RedisDistributedCacheValue key {key} value {value}", key, value);
+                searchValue = await _distributedCache.GetAsync(key);
+                _logger.LogInformation("RedisDistributedCacheValue key {key} value {value}", key, searchValue);
+                break;
+            case "11":
+                await _rankingAppPointsRedisProvider.SetAsync(key, value);
                 break;
         }
     }
