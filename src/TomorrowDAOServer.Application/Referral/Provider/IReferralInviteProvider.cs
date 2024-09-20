@@ -11,7 +11,6 @@ namespace TomorrowDAOServer.Referral.Provider;
 
 public interface IReferralInviteProvider
 {
-    Task<List<ReferralInviteRelationIndex>> GetNeedFixAsync(string chainId);
     Task<ReferralInviteRelationIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash);
     Task<ReferralInviteRelationIndex> GetByInviteeCaHashAsync(string chainId, string inviteeCaHash);
     Task<List<ReferralInviteRelationIndex>> GetByIdsAsync(List<string> ids);
@@ -19,6 +18,7 @@ public interface IReferralInviteProvider
     Task AddOrUpdateAsync(ReferralInviteRelationIndex relationIndex);
     Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
     Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
+    Task<long> GetByTimeRangeAsync(long startTime, long endTime);
 }
 
 public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDependency
@@ -28,21 +28,6 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
     public ReferralInviteProvider(INESTRepository<ReferralInviteRelationIndex, string> referralInviteRepository)
     {
         _referralInviteRepository = referralInviteRepository;
-    }
-
-    public async Task<List<ReferralInviteRelationIndex>> GetNeedFixAsync(string chainId)
-    {
-        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
-        {
-            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q => q.Exists(e => e.Field(f => f.FirstVoteTime)),
-            q => q.Term(i => i.Field(t => t.ReferralCode).Value(""))
-        };
-        QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b
-            .Must(mustQuery));
-
-        var tuple = await _referralInviteRepository.GetListAsync(Filter);
-        return tuple.Item2;
     }
 
     public async Task<ReferralInviteRelationIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash)
@@ -164,5 +149,22 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
         var response = await _referralInviteRepository.SearchAsync(query, 0, int.MaxValue);
         return response.Aggregations.Terms("inviter_agg").Buckets;
+    }
+
+    public async Task<long> GetByTimeRangeAsync(long startTime, long endTime)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
+        {
+            q => q.Exists(i => i.Field(t => t.ReferralCode)),  
+            q => !q.Term(i => i.Field(t => t.ReferralCode).Value("")), 
+            q => q.Range(r => r  
+                .Field(f => f.Timestamp)
+                .GreaterThanOrEquals(startTime)
+                .LessThanOrEquals(endTime))
+        };
+
+        QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return (await _referralInviteRepository.CountAsync(Filter)).Count;
     }
 }
