@@ -518,9 +518,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 var voteRecordEs = await GetRankingVoteRecordEsAsync(chainId, userAddress, proposalId);
                 if (voteRecordEs == null)
                 {
-                    var userBalance= await _userBalanceProvider.GetByIdAsync(GuidHelper.GenerateGrainId(userAddress,
-                        chainId, CommonConstant.GetVotigramSymbol(chainId)));
-                    canVoteAmount = (userBalance?.Amount ?? 0) > 0 ? 1 : 0;
+                    canVoteAmount = 1;
+                    // var userBalance = await _userBalanceProvider.GetByIdAsync(GuidHelper.GenerateGrainId(userAddress,
+                    //     chainId, CommonConstant.GetVotigramSymbol(chainId)));
+                    // canVoteAmount = (userBalance?.Amount ?? 0) > 0 ? 1 : 0;
                 }
             }
         }
