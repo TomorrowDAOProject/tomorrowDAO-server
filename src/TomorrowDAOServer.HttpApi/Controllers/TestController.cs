@@ -12,7 +12,7 @@ namespace TomorrowDAOServer.Controllers;
 
 [RemoteService]
 [Area("app")]
-[ControllerName("Ranking")]
+[ControllerName("Test")]
 [Route("api/app/test")]
 public class TestController
 {
