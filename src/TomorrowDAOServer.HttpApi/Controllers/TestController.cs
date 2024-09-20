@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -5,6 +6,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
+using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Caching;
 
@@ -20,15 +22,17 @@ public class TestController
     private readonly IDistributedCache<string> _distributedCache;
     private readonly IOptionsMonitor<EmojiOptions> _emojiOptions;
     private readonly IReferralInviteProvider _referralInviteProvider;
+    private readonly IUserProvider _userProvider;
 
     public TestController(IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, 
         IDistributedCache<string> distributedCache, IOptionsMonitor<EmojiOptions> emojiOptions, 
-        IReferralInviteProvider referralInviteProvider)
+        IReferralInviteProvider referralInviteProvider, IUserProvider userProvider)
     {
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _distributedCache = distributedCache;
         _emojiOptions = emojiOptions;
         _referralInviteProvider = referralInviteProvider;
+        _userProvider = userProvider;
     }
     
     [HttpGet("redis-value")]
@@ -59,5 +63,11 @@ public class TestController
     public async Task<ReferralInviteRelationIndex> NotVoteInviteeAsync(string chainId, string caHash)
     {
         return await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, caHash);
+    }
+    
+    [HttpGet("get-and-validate-user-address")]
+    public async Task<string> GetAndValidateUserAddressAsync(string userId, string chainId)
+    {
+        return await _userProvider.GetAndValidateUserAddressAsync(new Guid(userId), chainId);
     }
 }
