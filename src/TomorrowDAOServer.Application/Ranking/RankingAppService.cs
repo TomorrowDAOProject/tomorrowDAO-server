@@ -282,7 +282,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return voteRecord;
     }
 
-    public async Task MoveHistoryDataAsync(string chainId, string type)
+    public async Task MoveHistoryDataAsync(string chainId, string type, string key)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
@@ -319,12 +319,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 await FixReferralPoints(chainId);
                 break;
             case "9":
-                value = await _rankingAppPointsRedisProvider.GetAsync(chainId);
-                _logger.LogInformation("RedisValue key {chainId} value {value}", chainId, value);
+                value = await _rankingAppPointsRedisProvider.GetAsync(key);
+                _logger.LogInformation("RedisValue key {key} value {value}", key, value);
                 break;
             case "10":
-                value = await _distributedCache.GetAsync(chainId);
-                _logger.LogInformation("RedisDistributedCacheValue key {chainId} value {value}", chainId, value);
+                value = await _distributedCache.GetAsync(key);
+                _logger.LogInformation("RedisDistributedCacheValue key {key} value {value}", key, value);
                 break;
         }
     }
