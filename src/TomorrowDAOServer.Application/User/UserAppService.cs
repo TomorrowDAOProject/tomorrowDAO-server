@@ -129,14 +129,14 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         var visitType = UserVisitType.Votigram;
         await _userVisitProvider.AddOrUpdateAsync(new UserVisitIndex
         {
-            Id = GuidHelper.GenerateId(address, chainId, visitType.ToString(), now.ToString()),
+            Id = GuidHelper.GenerateId(address, chainId, visitType.ToString(), matchedSource, now.ToString()),
             ChainId = chainId,
             Address = address,
             UserVisitType = visitType,
             Source = matchedSource!,
             VisitTime = now
         });
-        var summaryId = GuidHelper.GenerateId(address, chainId, visitType.ToString());
+        var summaryId = GuidHelper.GenerateId(address, chainId, visitType.ToString(), matchedSource);
         var visitSummaryIndex = await _userVisitSummaryProvider.GetByIdAsync(summaryId);
         if (visitSummaryIndex == null)
         {
