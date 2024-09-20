@@ -13,17 +13,17 @@ namespace TomorrowDAOServer.Controllers;
 [Route("api/app/user")]
 public class UserController
 {
-    private readonly IUserAppService _userAppService;
+    private readonly IUserService _userService;
 
-    public UserController(IUserAppService userAppService)
+    public UserController(IUserService userService)
     {
-        _userAppService = userAppService;
+        _userService = userService;
     }
 
     [HttpGet("user-source-report")]
     [Authorize]
     public async Task<UserSourceReportResultDto> UserSourceAsync(string chainId, string source)
     {
-        return await _userAppService.UserSourceReportAsync(chainId, source);
+        return await _userService.UserSourceReportAsync(chainId, source);
     }
 }

@@ -4,18 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Nest;
-using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
-using TomorrowDAOServer.Enums;
-using TomorrowDAOServer.Options;
 using TomorrowDAOServer.User.Dtos;
-using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
-using Volo.Abp.Users;
 
 namespace TomorrowDAOServer.User;
 
@@ -26,22 +20,13 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
     private readonly INESTRepository<UserIndex, Guid> _userIndexRepository;
     private readonly ILogger<UserAppService> _logger;
     private readonly IObjectMapper _objectMapper;
-    private readonly IUserProvider _userProvider;
-    private readonly IUserVisitProvider _userVisitProvider;
-    private readonly IUserVisitSummaryProvider _userVisitSummaryProvider;
-    private readonly IOptionsMonitor<UserOptions> _userOptions;
 
     public UserAppService(INESTRepository<UserIndex, Guid> userIndexRepository, ILogger<UserAppService> logger,
-        IObjectMapper objectMapper, IUserProvider userProvider, IUserVisitProvider userVisitProvider, 
-        IOptionsMonitor<UserOptions> userOptions, IUserVisitSummaryProvider userVisitSummaryProvider)
+        IObjectMapper objectMapper)
     {
         _userIndexRepository = userIndexRepository;
         _logger = logger;
         _objectMapper = objectMapper;
-        _userProvider = userProvider;
-        _userVisitProvider = userVisitProvider;
-        _userOptions = userOptions;
-        _userVisitSummaryProvider = userVisitSummaryProvider;
     }
 
     public async Task CreateUserAsync(UserDto user)
@@ -109,57 +94,5 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>();
         QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _userIndexRepository.GetListAsync(Filter)).Item2;
-    }
-
-    public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
-    {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        var userSourceList = _userOptions.CurrentValue.UserSourceList;
-        if (!userSourceList.Contains(source, StringComparer.OrdinalIgnoreCase))
-        {
-            return new UserSourceReportResultDto
-            {
-                Success = false, Reason = "Invalid source."
-            };
-        }
-        var matchedSource = userSourceList.FirstOrDefault(s => 
-            string.Equals(s, source, StringComparison.OrdinalIgnoreCase));
-        var now = TimeHelper.GetTimeStampInMilliseconds();
-        var visitType = UserVisitType.Votigram;
-        await _userVisitProvider.AddOrUpdateAsync(new UserVisitIndex
-        {
-            Id = GuidHelper.GenerateId(address, chainId, visitType.ToString(), matchedSource, now.ToString()),
-            ChainId = chainId,
-            Address = address,
-            UserVisitType = visitType,
-            Source = matchedSource!,
-            VisitTime = now
-        });
-        var summaryId = GuidHelper.GenerateId(address, chainId, visitType.ToString(), matchedSource);
-        var visitSummaryIndex = await _userVisitSummaryProvider.GetByIdAsync(summaryId);
-        if (visitSummaryIndex == null)
-        {
-            visitSummaryIndex = new UserVisitSummaryIndex
-            {
-                Id = summaryId,
-                ChainId = chainId,
-                Address = address,
-                UserVisitType = visitType,
-                Source = matchedSource!,
-                CreateTime = now,
-                ModificationTime = now
-            };
-        }
-        else
-        {
-            visitSummaryIndex.ModificationTime = now;
-        }
-        await _userVisitSummaryProvider.AddOrUpdateAsync(visitSummaryIndex);
-        
-        return new UserSourceReportResultDto
-        {
-            Success = true
-        };
     }
 }

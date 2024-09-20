@@ -33,36 +33,36 @@ public partial class UserGrainTest : TomorrowDAOServerGrainsTestsBase
     {
         var grain = Cluster.GrainFactory.GetGrain<IUserGrain>(UserId);
 
-        // var grainResultDto = await grain.CreateUser(new UserGrainDto
-        // {
-        //     AppId = "AppId",
-        //     UserId = UserId,
-        //     UserName = "UserName",
-        //     CaHash = Address1,
-        //     AddressInfos = new List<AddressInfo> {
-        //         new()
-        //         {
-        //             ChainId = ChainIdAELF,
-        //             Address = Address1
-        //         }, 
-        //         new()
-        //         {
-        //             ChainId = ChainIdtDVW,
-        //             Address = Address2
-        //         }
-        //     },
-        //     CreateTime = DateTime.Now.Millisecond,
-        //     ModificationTime = DateTime.Now.Millisecond
-        // });
-        // grainResultDto.ShouldNotBeNull();
-        // grainResultDto.Success.ShouldBeTrue();
-        // grainResultDto.Data.ShouldNotBeNull();
-        // grainResultDto.Data.UserId.ShouldBe(UserId);
-        //
-        // var resultDto = await grain.GetUser();
-        // resultDto.ShouldNotBeNull();
-        // resultDto.Success.ShouldBeTrue();
-        // resultDto.Data.ShouldNotBeNull();
-        // resultDto.Data.UserId.ShouldBe(UserId);
+        var grainResultDto = await grain.CreateUser(new UserGrainDto
+        {
+            AppId = "AppId",
+            UserId = UserId,
+            UserName = "UserName",
+            CaHash = Address1,
+            AddressInfos = new List<AddressInfo> {
+                new()
+                {
+                    ChainId = ChainIdAELF,
+                    Address = Address1
+                }, 
+                new()
+                {
+                    ChainId = ChainIdtDVW,
+                    Address = Address2
+                }
+            },
+            CreateTime = DateTime.Now.Millisecond,
+            ModificationTime = DateTime.Now.Millisecond
+        });
+        grainResultDto.ShouldNotBeNull();
+        grainResultDto.Success.ShouldBeTrue();
+        grainResultDto.Data.ShouldNotBeNull();
+        grainResultDto.Data.UserId.ShouldBe(UserId);
+        
+        var resultDto = await grain.GetUser();
+        resultDto.ShouldNotBeNull();
+        resultDto.Success.ShouldBeTrue();
+        resultDto.Data.ShouldNotBeNull();
+        resultDto.Data.UserId.ShouldBe(UserId);
     }
 }
