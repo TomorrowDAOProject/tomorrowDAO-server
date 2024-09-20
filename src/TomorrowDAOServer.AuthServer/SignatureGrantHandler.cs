@@ -19,6 +19,7 @@ using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.User.Dtos;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Identity;
+using Newtonsoft.Json;
 using Portkey.Contracts.CA;
 using TomorrowDAOServer.Common;
 using Volo.Abp.DistributedLocking;
@@ -369,6 +370,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             addressInfos.AddRange(holderInfoDto.CaHolderInfo.Select(t => new AddressInfo
                 { ChainId = t.ChainId, Address = t.CaAddress }));
             chainIds = holderInfoDto.CaHolderInfo.Select(t => t.ChainId).ToList();
+            _logger.LogInformation("GetAddressInfosAsyncHolderInfoDtoGraphql holderInfoDto {0}", JsonConvert.SerializeObject(holderInfoDto));
         }
 
         var chains = _chainOptions.CurrentValue.ChainInfos.Select(key => _chainOptions.CurrentValue.ChainInfos[key.Key])
@@ -379,6 +381,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             try
             {
                 var addressInfo = await GetAddressInfoAsync(chainId, caHash);
+                _logger.LogInformation("GetAddressInfosAsyncHolderInfoDtoChain addressInfo {0}", JsonConvert.SerializeObject(addressInfo));
                 addressInfos.Add(addressInfo);
             }
             catch (Exception e)
