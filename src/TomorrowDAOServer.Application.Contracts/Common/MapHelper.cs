@@ -35,7 +35,8 @@ public static class MapHelper
     {
         var realProposalStage = index.ProposalStage;
         return DateTime.UtcNow < index.ActiveStartTime 
-            ? ProposalStage.WaitingActive.ToString() 
+            // ? ProposalStage.WaitingActive.ToString() 
+            ? "Waiting Active"
             : MapProposalStageString(realProposalStage);
     }
     
