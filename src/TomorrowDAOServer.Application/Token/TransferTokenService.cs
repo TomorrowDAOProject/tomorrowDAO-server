@@ -62,9 +62,9 @@ public class TransferTokenService : TomorrowDAOServerAppService, ITransferTokenS
         {
             _logger.LogInformation("Transfer token, start...");
 
-            var address =
-                await _userProvider.GetAndValidateUserAddressAsync(
-                    CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+            var userId = CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty;
+            _logger.LogInformation("TransferTokenUserId {0}", userId);
+            var address = await _userProvider.GetAndValidateUserAddressAsync(userId, input.ChainId);
             if (address.IsNullOrWhiteSpace())
             {
                 throw new UserFriendlyException("User Address Not Found.");
