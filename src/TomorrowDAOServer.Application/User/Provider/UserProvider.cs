@@ -64,9 +64,11 @@ public class UserProvider : IUserProvider, ISingletonDependency
         var userGrainDto = await GetUserAsync(userId);
         if (userGrainDto == null)
         {
+            _logger.LogInformation("GetUserAddressAsyncUserGrainDtoIsNull userId {0} chainId {1}", userId, chainId);
             return string.Empty;
         }
 
+        _logger.LogInformation("GetUserAddressAsyncUserGrainDtoNotNull userId {0} chainId {1}", userId, chainId);
         var addressInfo = userGrainDto.AddressInfos.Find(a => a.ChainId == chainId);
         return addressInfo == null ? string.Empty : addressInfo.Address;
     }
