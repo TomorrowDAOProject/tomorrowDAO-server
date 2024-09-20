@@ -375,6 +375,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
         var chains = _chainOptions.CurrentValue.ChainInfos.Select(key => _chainOptions.CurrentValue.ChainInfos[key.Key])
             .Select(chainOptionsChainInfo => chainOptionsChainInfo.ChainId).Where(t => !chainIds.Contains(t));
+        _logger.LogInformation("GetAddressInfosAsyncOption chainOptions {0} chains {1}", JsonConvert.SerializeObject(_chainOptions), chains.Count());
 
         foreach (var chainId in chains)
         {
