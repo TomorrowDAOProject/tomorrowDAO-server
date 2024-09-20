@@ -45,6 +45,7 @@ public static class MapHelper
         return realProposalStage switch
         {
             ProposalStage.Execute => "Queued",
+            ProposalStage.WaitingActive => "Waiting Active",
             _ => realProposalStage.ToString()
         };
     }
