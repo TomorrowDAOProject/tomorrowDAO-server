@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Orleans;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.State.Users;
@@ -17,11 +19,13 @@ public class UserGrain : Grain<UserState>, IUserGrain
 {
     private readonly IObjectMapper _objectMapper;
     private readonly IUserAppService _userAppService;
+    private readonly ILogger<UserGrain> _logger;
 
-    public UserGrain(IObjectMapper objectMapper, IUserAppService userAppService)
+    public UserGrain(IObjectMapper objectMapper, IUserAppService userAppService, ILogger<UserGrain> logger)
     {
         _objectMapper = objectMapper;
         _userAppService = userAppService;
+        _logger = logger;
     }
 
     public override async Task OnActivateAsync()
@@ -38,6 +42,7 @@ public class UserGrain : Grain<UserState>, IUserGrain
 
     public async Task<GrainResultDto<UserGrainDto>> CreateUser(UserGrainDto input)
     {
+        _logger.LogInformation("CreateUserGrain UserGrainDto {0}",JsonConvert.SerializeObject(input));
         if (State.Id == Guid.Empty)
         {
             State.Id = this.GetPrimaryKey();

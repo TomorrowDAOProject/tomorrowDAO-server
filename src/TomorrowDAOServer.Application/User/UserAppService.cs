@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
@@ -35,11 +36,11 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         {
             var userIndex = _objectMapper.Map<UserDto, UserIndex>(user);
             await _userIndexRepository.AddOrUpdateAsync(userIndex);
-            _logger.LogInformation("Create user success, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
+            _logger.LogInformation("CreateUserAsyncEs, UserDto {0}", JsonConvert.SerializeObject(user));
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Create user error, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
+            _logger.LogError(e, "CreateUserAsyncException, UserDto {0}", JsonConvert.SerializeObject(user));
         }
     }
 
