@@ -108,7 +108,7 @@ public class TokenServiceTest
             Symbol = "ELF", Decimals = "8", LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds()
         });
         var result = await _service.GetTvlAsync("chainId");
-        result.ShouldBe(0.40000000000000002);
+        result.Tvl.ShouldBe(0.40000000000000002);
     }
 
     [Fact]

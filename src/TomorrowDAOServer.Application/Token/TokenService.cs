@@ -9,6 +9,7 @@ using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Token.Dto;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver.Linq;
 using Orleans;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
@@ -100,7 +101,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         return await _graphQlProvider.GetTokenInfoAsync(chainId, symbol.ToUpper());
     }
 
-    public async Task<double> GetTvlAsync(string chainId)
+    public async Task<TvlDetail> GetTvlAsync(string chainId)
     {
         var list = await _graphQlProvider.GetDAOAmountAsync(chainId);
         var tokens = list.Where(x => x.Amount > 0).Where(x => !string.IsNullOrEmpty(x.GovernanceToken))
@@ -109,10 +110,18 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var priceTasks = tokens.Select(x => GetTokenPriceAsync(x, CommonConstant.USD)).ToList();
         var tokenInfoResults = (await Task.WhenAll(tokenInfoTasks)).ToDictionary(x => x.Symbol, x => x); 
         var priceResults = (await Task.WhenAll(priceTasks)).ToDictionary(x => x.BaseCoin, x => x);
-        var sum = list.Where(x => x.Amount > 0).Sum(x => 
-            x.Amount / Math.Pow(10, Convert.ToDouble(tokenInfoResults.GetValueOrDefault(x.GovernanceToken)?.Decimals ?? "0")) 
-            * (double)(priceResults.GetValueOrDefault(x.GovernanceToken)?.Price ?? 0));
-        return sum;
+        var detail = list.Where(x => x.Amount > 0).Select(x => new TokenTvl
+        {
+            Symbol = x.GovernanceToken,
+            Tvl = x.Amount / Math.Pow(10,
+                      Convert.ToDouble(tokenInfoResults.GetValueOrDefault(x.GovernanceToken)?.Decimals ?? "0"))
+                  * (double)(priceResults.GetValueOrDefault(x.GovernanceToken)?.Price ?? 0)
+        }).Where(x => x.Tvl > 0).ToList();
+        var sum = detail.Sum(x => x.Tvl);
+        return new TvlDetail
+        {
+            Tvl = sum
+        };
     }
 
     public async Task<TokenPriceDto> GetTokenPriceAsync(string baseCoin, string quoteCoin)
