@@ -120,7 +120,8 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var sum = detail.Sum(x => x.Tvl);
         return new TvlDetail
         {
-            Tvl = sum
+            Tvl = sum,
+            Detail = detail
         };
     }
 

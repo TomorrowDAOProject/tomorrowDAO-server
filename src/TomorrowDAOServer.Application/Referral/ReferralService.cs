@@ -81,38 +81,9 @@ public class ReferralService : ApplicationService, IReferralService
     {
         var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), input.ChainId);
         var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input);
-        long rank = 1;           
-        long lastInviteCount = -1;  
-        long currentRank = 1;
-
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
-        var userDic = userList
-            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == input.ChainId))
-            .GroupBy(ui => ui.CaHash)
-            .ToDictionary(
-                group => group.Key,
-                group => group.First().AddressInfos.First(ai => ai.ChainId == input.ChainId)?.Address ?? string.Empty
-            );
-
-        var inviterList = inviterBuckets.Select((bucket, _) =>
-        {
-            var inviteCount = (long)(bucket.ValueCount("invite_count").Value ?? 0);
-            if (inviteCount != lastInviteCount)
-            {
-                currentRank = rank;
-                lastInviteCount = inviteCount;
-            }
-            var referralInvite = new InviteLeaderBoardDto
-            {
-                InviterCaHash = bucket.Key,
-                Inviter = userDic.GetValueOrDefault(bucket.Key, string.Empty),
-                InviteAndVoteCount = inviteCount,
-                Rank = currentRank  
-            };
-            rank++;  
-            return referralInvite;
-        }).ToList();
+        var inviterList = RankHelper.GetRankedList(input.ChainId, userList, inviterBuckets);
         var me = inviterList.Find(x => x.InviterCaHash == addressCaHash);
         return new InviteBoardPageResultDto<InviteLeaderBoardDto>
         {

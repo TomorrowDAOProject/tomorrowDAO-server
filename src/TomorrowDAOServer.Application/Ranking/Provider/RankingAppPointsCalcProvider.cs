@@ -11,6 +11,14 @@ namespace TomorrowDAOServer.Ranking.Provider
         public long CalculatePointsFromVotes(long voteCount);
         public long CalculatePointsFromLikes(long likeCount);
         public long CalculateVotesFromPoints(long votePoints);
+        public long CalculatePointsFromDailyViewAsset();
+        public long CalculatePointsFromDailyFirstInvite();
+        public long CalculatePointsFromExploreJoinTgChannel();
+        public long CalculatePointsFromExploreFollowX();
+        public long CalculatePointsFromExploreJoinDiscord();
+        public long CalculatePointsFromExploreCumulateFiveInvite();
+        public long CalculatePointsFromExploreCumulateTenInvite();
+        public long CalculatePointsFromExploreCumulateTwentyInvite();
     }
 
     public class RankingAppPointsCalcProvider : IRankingAppPointsCalcProvider, ISingletonDependency
@@ -23,6 +31,46 @@ namespace TomorrowDAOServer.Ranking.Provider
         {
             _logger = logger;
             _rankingOptions = rankingOptions;
+        }
+
+        public long CalculatePointsFromDailyViewAsset()
+        {
+            return _rankingOptions.CurrentValue.PointsDailyViewAsset;
+        }
+
+        public long CalculatePointsFromDailyFirstInvite()
+        {
+            return _rankingOptions.CurrentValue.PointsDailyFirstInvite;
+        }
+
+        public long CalculatePointsFromExploreJoinTgChannel()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreJoinTgChannel;
+        }
+
+        public long CalculatePointsFromExploreFollowX()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreFollowX;
+        }
+
+        public long CalculatePointsFromExploreJoinDiscord()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreJoinDiscord;
+        }
+
+        public long CalculatePointsFromExploreCumulateFiveInvite()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreCumulateFiveInvite;
+        }
+
+        public long CalculatePointsFromExploreCumulateTenInvite()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreCumulateTenInvite;
+        }
+
+        public long CalculatePointsFromExploreCumulateTwentyInvite()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreCumulateTwentyInvite;
         }
 
         public long CalculatePointsFromReferralVotes(long voteCount)

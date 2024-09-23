@@ -20,6 +20,15 @@ public class RankingOptions
     public long PointsPerVote { get; set; } = 10000;
     public long PointsPerLike { get; set; } = 1;
     public long PointsFirstReferralVote { get; set; } = 50000;
+    public long PointsDailyViewAsset { get; set; } = 10000;
+    public long PointsDailyFirstInvite { get; set; } = 20000;
+    public long PointsExploreJoinTgChannel { get; set; } = 10000;
+    public long PointsExploreFollowX { get; set; } = 10000;
+    public long PointsExploreJoinDiscord { get; set; } = 10000;
+    public long PointsExploreCumulateFiveInvite { get; set; } = 100000;
+    public long PointsExploreCumulateTenInvite { get; set; } = 300000;
+    public long PointsExploreCumulateTwentyInvite { get; set; } = 500000;
+    
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
     public List<string> ReferralPointsAddressList { get; set; } = new();

@@ -312,12 +312,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             case "6":
                 await AddDefaultProposal(chainId);
                 break;
-            case "7":
-                await GetFixReferralPoints(chainId);
-                break;
-            case "8":
-                await FixReferralPoints(chainId);
-                break;
             case "9":
                 searchValue = await _rankingAppPointsRedisProvider.GetAsync(key);
                 _logger.LogInformation("RedisValue key {key} value {value}", key, searchValue);
@@ -330,34 +324,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 await _rankingAppPointsRedisProvider.SetAsync(key, value);
                 break;
         }
-    }
-
-    private async Task GetFixReferralPoints(string chainId)
-    {
-        _logger.LogInformation("GetFixReferralPointsBegin chainId {chainId}", chainId);
-        var list = _rankingOptions.CurrentValue.ReferralPointsAddressList;
-        var res = new List<RedisPointsDto>();
-        foreach (var address in list)
-        {
-            var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
-            res.Add(new RedisPointsDto
-            {
-                Address = address,
-                Points = points
-            });
-        }
-        _logger.LogInformation("GetFixReferralPointsEnd chainId {chainId} list {1}", chainId,  JsonConvert.SerializeObject(res));
-    }
-    
-    private async Task FixReferralPoints(string chainId)
-    {
-        _logger.LogInformation("FixReferralPointsBegin chainId {chainId}", chainId);
-        var list = _rankingOptions.CurrentValue.ReferralPointsAddressList;
-        foreach (var address in list)
-        {
-            await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync("T5bxBnC9GWUhVpUQv1hwvsEr7vNi2CHTSVnGEhDStNxthV19J", address, 1);
-        }
-        _logger.LogInformation("FixReferralPointsEnd chainId {chainId}", chainId);
     }
 
     private async Task AddDefaultProposal(string chainId)
