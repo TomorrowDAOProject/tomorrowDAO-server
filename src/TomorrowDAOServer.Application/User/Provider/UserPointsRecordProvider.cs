@@ -71,14 +71,9 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             return;
         }
 
-        var proposalId = information?.GetValueOrDefault(CommonConstant.ProposalId) ?? string.Empty;
         var pointsRecordIndex = new UserPointsIndex
         {
-            Id = UserTask.Daily == userTask 
-                ? UserTaskDetail.DailyVote == userTaskDetail 
-                    ? GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, proposalId, completeTime.ToUtcString(TimeHelper.DatePattern))
-                    : GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, completeTime.ToUtcString(TimeHelper.DatePattern))
-                : GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address),
+            Id = GetId(chainId, address, userTask.Value, userTaskDetail, pointsType, completeTime, information),
             ChainId = chainId, Address = address, Information = information ?? new Dictionary<string, string>(),
             UserTask = userTask.Value, UserTaskDetail = userTaskDetail,
             PointsType = pointsType, PointsTime = completeTime,
@@ -87,6 +82,42 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
                 : _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType)
         };
         await _userPointsRecordRepository.AddOrUpdateAsync(pointsRecordIndex);
+    }
+
+    private string GetId(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail, PointsType pointsType,
+        DateTime completeTime, Dictionary<string, string> information = null)
+    {
+        switch (pointsType)
+        {
+            case PointsType.Vote:
+                var proposalId = information?.GetValueOrDefault(CommonConstant.ProposalId) ?? string.Empty;
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address,
+                    proposalId, completeTime.ToUtcString(TimeHelper.DatePattern));
+            case PointsType.DailyFirstInvite:
+            case PointsType.DailyViewAsset:
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address,
+                    completeTime.ToUtcString(TimeHelper.DatePattern));
+            case PointsType.InviteVote:
+                var invitee = information?.GetValueOrDefault(CommonConstant.Invitee) ?? string.Empty;
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, invitee);
+            case PointsType.BeInviteVote:
+                var inviter = information?.GetValueOrDefault(CommonConstant.Inviter) ?? string.Empty;
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, inviter);
+            case PointsType.TopInviter:
+                var endTime = information?.GetValueOrDefault(CommonConstant.CycleEndTime) ?? string.Empty;
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, endTime);
+            case PointsType.All:
+            case PointsType.Like:
+            case PointsType.ExploreJoinTgChannel:
+            case PointsType.ExploreFollowX:
+            case PointsType.ExploreJoinDiscord:
+            case PointsType.ExploreCumulateFiveInvite:
+            case PointsType.ExploreCumulateTenInvite:
+            case PointsType.ExploreCumulateTwentyInvite:
+            default:
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address);
+        }
+
     }
 
     public async Task<Tuple<long, List<UserPointsIndex>>> GetPointsListAsync(GetMyPointsInput input, string address)
