@@ -262,7 +262,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     {
         return new List<TaskInfoDetail>
         {
-            new() { UserTaskDetail = UserTaskDetail.DailyVote.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.Vote)},
+            new() { UserTaskDetail = UserTaskDetail.DailyVote.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.Vote, 1)},
             new() { UserTaskDetail = UserTaskDetail.DailyFirstInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyFirstInvite) },
             new() { UserTaskDetail = UserTaskDetail.DailyViewAsset.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAsset) }
         };
