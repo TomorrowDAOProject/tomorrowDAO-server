@@ -234,13 +234,16 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             .GroupBy(task => task.UserTaskDetail.ToString())
             .Select(g => g.OrderByDescending(task => task.PointsTime).First())
             .ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
-        var defaultProposalProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
         var latestDailyVote = dailyTaskList.Where(x => x.UserTaskDetail == UserTaskDetail.DailyVote)
             .MaxBy(x => x.PointsTime);
-        var latestDailyVoteProposalId = latestDailyVote.Information.GetValueOrDefault(CommonConstant.ProposalId, string.Empty);
-        if (defaultProposalProposalId != latestDailyVoteProposalId)
+        if (latestDailyVote != null)
         {
-            taskDictionary.Remove(UserTaskDetail.DailyVote.ToString());
+            var defaultProposalProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
+            var latestDailyVoteProposalId = latestDailyVote.Information.GetValueOrDefault(CommonConstant.ProposalId, string.Empty);
+            if (defaultProposalProposalId != latestDailyVoteProposalId)
+            {
+                taskDictionary.Remove(UserTaskDetail.DailyVote.ToString());
+            }
         }
         var completeCount = await _referralInviteProvider.GetInviteCountAsync(chainId, address);
         var taskDetails = userTask == UserTask.Daily
