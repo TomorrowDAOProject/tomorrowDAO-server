@@ -82,7 +82,9 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             ChainId = chainId, Address = address, Information = information ?? new Dictionary<string, string>(),
             UserTask = userTask.Value, UserTaskDetail = userTaskDetail,
             PointsType = pointsType, PointsTime = completeTime,
-            Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType)
+            Points = pointsType is PointsType.Vote or PointsType.BeInviteVote or PointsType.InviteVote 
+                ? _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType, 1)
+                : _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType)
         };
         await _userPointsRecordRepository.AddOrUpdateAsync(pointsRecordIndex);
     }
