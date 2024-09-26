@@ -52,6 +52,7 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
         var (latestReferralActiveEnd, latest) = _rankingOptions.CurrentValue.IsLatestReferralActiveEnd();
         if (!latestReferralActiveEnd)
         {
+            _logger.LogInformation("LatestActivityNotEnd chainId: {chainId}", chainId);
             return -1L;
         }
 
@@ -60,6 +61,8 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
         var existed = await _referralTopInviterProvider.GetExistByTimeAsync(startTime, endTime);
         if (existed)
         {
+            _logger.LogInformation("TopInviterListAlreadyGenerated chainId: {chainId} startTime {startTime} endTime {endTime}", 
+                chainId, startTime, endTime);
             return -1L;
         }
 
@@ -68,7 +71,8 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var topList = RankHelper.GetRankedList(chainId, userList, inviterBuckets)
             .Where(referralInvite => referralInvite.Rank is >= 1 and <= 10).ToList();
-        _logger.LogInformation("GenerateTopInviterTopList chainId: {chainId} count: {count}", chainId, topList?.Count);
+        _logger.LogInformation("GenerateTopInviterTopList chainId: {chainId} count: {count} startTime {startTime} endTime {endTime}", 
+            chainId, topList?.Count, startTime, endTime);
         var toAddTopInviters = new List<ReferralTopInviterIndex>();
         var now = DateTime.Now;
         foreach (var leaderBoardDto in topList)
