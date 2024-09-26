@@ -29,13 +29,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
-    private readonly IProposalProvider _proposalProvider;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider, 
         IUserPointsRecordProvider userPointsRecordProvider, 
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider, 
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, IProposalProvider proposalProvider)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -45,7 +44,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _referralInviteProvider = referralInviteProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
-        _proposalProvider = proposalProvider;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -236,8 +234,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             .GroupBy(task => task.UserTaskDetail.ToString())
             .Select(g => g.OrderByDescending(task => task.PointsTime).First())
             .ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
-        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
-        var defaultProposalProposalId = defaultProposal.ProposalId;
+        var defaultProposalProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
         var latestDailyVote = dailyTaskList.Where(x => x.UserTaskDetail == UserTaskDetail.DailyVote)
             .MaxBy(x => x.PointsTime);
         var latestDailyVoteProposalId = latestDailyVote.Information.GetValueOrDefault(CommonConstant.ProposalId, string.Empty);
