@@ -113,8 +113,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         var detail = list.Where(x => x.Amount > 0).Select(x => new TokenTvl
         {
             Symbol = x.GovernanceToken,
-            Tvl = x.Amount / Math.Pow(10,
-                      Convert.ToDouble(tokenInfoResults.GetValueOrDefault(x.GovernanceToken)?.Decimals ?? "0"))
+            Tvl = x.Amount / Math.Pow(10, Convert.ToDouble(tokenInfoResults.GetValueOrDefault(x.GovernanceToken)?.Decimals ?? "0"))
                   * (double)(priceResults.GetValueOrDefault(x.GovernanceToken)?.Price ?? 0)
         }).Where(x => x.Tvl > 0).ToList();
         var sum = detail.Sum(x => x.Tvl);

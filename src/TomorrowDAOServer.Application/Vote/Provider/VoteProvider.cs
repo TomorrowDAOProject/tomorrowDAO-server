@@ -490,6 +490,11 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.Voter).Value(voter)),
             q => q.Terms(i => i.Field(f => f.VotingItemId).Terms(votingItemIds))
         };
+        if (votingItemIds != null && !votingItemIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Terms(i => i.Field(f => f.VotingItemId).Terms(votingItemIds)));
+        }
+
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
     }

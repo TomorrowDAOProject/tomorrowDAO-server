@@ -27,9 +27,11 @@ public interface IRankingAppPointsRedisProvider
     Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
     Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
     Task IncrementReferralVotePointsAsync(string inviter, string invitee, long voteCount);
-    Task SaveDefaultRankingProposalIdAsync(string chainId, string value, DateTime? expire);
+    Task IncrementReferralTopInviterPointsAsync(string address);
+    Task IncrementTaskPointsAsync(string address, UserTaskDetail userTaskDetail);
     Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId);
     Task<string> GetDefaultRankingProposalIdAsync(string chainId);
+    Task GenerateRedisDefaultProposal(string proposalId, string proposalDesc, string chainId);
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -168,13 +170,19 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         await Task.WhenAll(IncrementAsync(inviterUserKey, referralVotePoints), IncrementAsync(inviteeUserKey, referralVotePoints));
     }
 
-    public async Task SaveDefaultRankingProposalIdAsync(string chainId, string value, DateTime? expire)
+    public async Task IncrementReferralTopInviterPointsAsync(string address)
     {
-        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
-        await _distributedCache.SetAsync(distributeCacheKey, value, new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(87600),
-        });
+        var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
+        var referralTopInviterPoints = _rankingAppPointsCalcProvider.CalculatePointsFromReferralTopInviter();
+        await IncrementAsync(userKey, referralTopInviterPoints);
+    }
+
+    public async Task IncrementTaskPointsAsync(string address, UserTaskDetail userTaskDetail)
+    {
+        var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
+        var pointsType = TaskPointsHelper.GetPointsTypeFromUserTaskDetail(userTaskDetail);
+        var taskPoints = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType);
+        await IncrementAsync(userKey, taskPoints);
     }
 
     public async Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId)
@@ -202,5 +210,16 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     {
         var (proposalId, _) = await GetDefaultRankingProposalInfoAsync(chainId);
         return proposalId;
+    }
+    
+    public async Task GenerateRedisDefaultProposal(string proposalId, string proposalDesc, string chainId)
+    {
+        var aliasString = RankHelper.GetAliasString(proposalDesc);
+        var value = proposalId + CommonConstant.Comma + aliasString;
+        var distributeCacheKey = RedisHelper.GenerateDefaultProposalCacheKey(chainId);
+        await _distributedCache.SetAsync(distributeCacheKey, value, new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(87600),
+        });
     }
 }

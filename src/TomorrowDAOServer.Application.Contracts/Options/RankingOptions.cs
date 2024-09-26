@@ -19,15 +19,16 @@ public class RankingOptions
     public int RetryDelay { get; set; } = 2000;
     public long PointsPerVote { get; set; } = 10000;
     public long PointsPerLike { get; set; } = 1;
-    public long PointsFirstReferralVote { get; set; } = 50000;
-    public long PointsDailyViewAsset { get; set; } = 10000;
-    public long PointsDailyFirstInvite { get; set; } = 20000;
-    public long PointsExploreJoinTgChannel { get; set; } = 10000;
-    public long PointsExploreFollowX { get; set; } = 10000;
-    public long PointsExploreJoinDiscord { get; set; } = 10000;
-    public long PointsExploreCumulateFiveInvite { get; set; } = 100000;
-    public long PointsExploreCumulateTenInvite { get; set; } = 300000;
-    public long PointsExploreCumulateTwentyInvite { get; set; } = 500000;
+    public long PointsFirstReferralVote { get; set; } = 5_0000;
+    public long PointsReferralTopInviter { get; set; } = 10_0000;
+    public long PointsDailyViewAsset { get; set; } = 1_0000;
+    public long PointsDailyFirstInvite { get; set; } = 2_0000;
+    public long PointsExploreJoinTgChannel { get; set; } = 1_0000;
+    public long PointsExploreFollowX { get; set; } = 1_0000;
+    public long PointsExploreJoinDiscord { get; set; } = 1_0000;
+    public long PointsExploreCumulateFiveInvite { get; set; } = 10_0000;
+    public long PointsExploreCumulateTenInvite { get; set; } = 30_0000;
+    public long PointsExploreCumulateTwentyInvite { get; set; } = 50_0000;
     
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
@@ -71,6 +72,18 @@ public class RankingOptions
         return false;
     }
     
+    public Tuple<bool, ReferralActiveDto> IsLatestReferralActiveEnd()
+    {
+        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var latest = ParseReferralActiveTimes().Config.FirstOrDefault();
+        if (latest != null)
+        {
+            return new Tuple<bool, ReferralActiveDto>(currentTime > latest.EndTime, latest) ;
+        }
+
+        return new Tuple<bool,ReferralActiveDto>(false, null);
+    }
+
     public TimeSpan GetLockUserTimeoutTimeSpan()
     {
         return TimeSpan.FromMilliseconds(LockUserTimeout);

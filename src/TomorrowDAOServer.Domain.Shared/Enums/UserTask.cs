@@ -2,6 +2,7 @@ namespace TomorrowDAOServer.Enums;
 
 public enum UserTask
 {
-    Daily = 0,
-    Explore = 1
+    None = 0,
+    Daily = 1,
+    Explore = 2
 }

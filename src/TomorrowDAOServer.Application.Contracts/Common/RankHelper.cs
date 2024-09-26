@@ -41,4 +41,9 @@ public class RankHelper
             return referralInvite;
         }).ToList();
     }
+    
+    public static string GetAliasString(string description)
+    {
+        return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString).Trim();
+    }
 }

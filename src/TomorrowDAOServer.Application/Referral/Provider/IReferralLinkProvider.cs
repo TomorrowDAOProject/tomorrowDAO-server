@@ -11,7 +11,7 @@ namespace TomorrowDAOServer.Referral.Provider;
 public interface IReferralLinkProvider
 {
     Task<ReferralLinkCodeIndex> GetByInviterAsync(string chainId, string caHash);
-    Task BulkAddOrUpdate(List<ReferralLinkCodeIndex> list);
+    Task BulkAddOrUpdateAsync(List<ReferralLinkCodeIndex> list);
     Task<List<ReferralLinkCodeIndex>> GetByReferralCodesAsync(string chainId, List<string> codes);
 }
 
@@ -35,7 +35,7 @@ public class ReferralLinkProvider : IReferralLinkProvider, ISingletonDependency
         return await _referralLinkRepository.GetAsync(Filter);
     }
 
-    public async Task BulkAddOrUpdate(List<ReferralLinkCodeIndex> list)
+    public async Task BulkAddOrUpdateAsync(List<ReferralLinkCodeIndex> list)
     {
         if (list == null || list.IsNullOrEmpty())
         {

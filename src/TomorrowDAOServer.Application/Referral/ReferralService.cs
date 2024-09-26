@@ -80,7 +80,7 @@ public class ReferralService : ApplicationService, IReferralService
     public async Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
         var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), input.ChainId);
-        var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input);
+        var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var inviterList = RankHelper.GetRankedList(input.ChainId, userList, inviterBuckets);

@@ -9,5 +9,4 @@ public class ReferralLinkCodeIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string ChainId { get; set; }
     [Keyword] public string InviterCaHash { get; set; }
     [Keyword] public string ReferralCode { get; set; }
-    public long CumulateCompleteAmount { get; set; }
 }

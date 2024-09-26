@@ -94,4 +94,9 @@ public static class CommonConstant
             _ => string.Empty
         };
     }
+    
+    // Information
+    public const string ProposalId = "ProposalId";
+    public const string ProposalTitle = "ProposalTitle";
+    public const string Alias = "Alias";
 }

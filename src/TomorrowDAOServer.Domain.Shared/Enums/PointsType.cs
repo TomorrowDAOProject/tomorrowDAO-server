@@ -11,16 +11,17 @@ public enum PointsType
     // referral activity
     InviteVote = 3, // inviter get points when invitee register and vote for first time during referral activity period
     BeInviteVote = 4, // invitee get points when invitee register and vote for first time during referral activity period
+    TopInviter = 5,
     
     // daily task
-    DailyViewAsset = 5,
-    DailyFirstInvite = 6,
+    DailyViewAsset = 6,
+    DailyFirstInvite = 7,
     
     // explore task
-    ExploreJoinTgChannel = 7,
-    ExploreFollowX = 8,
-    ExploreJoinDiscord = 9,
-    ExploreCumulateFiveInvite = 10,
-    ExploreCumulateTenInvite = 11,
-    ExploreCumulateTwentyInvite = 12
+    ExploreJoinTgChannel = 8,
+    ExploreFollowX = 9,
+    ExploreJoinDiscord = 10,
+    ExploreCumulateFiveInvite = 11,
+    ExploreCumulateTenInvite = 12,
+    ExploreCumulateTwentyInvite = 13
 }

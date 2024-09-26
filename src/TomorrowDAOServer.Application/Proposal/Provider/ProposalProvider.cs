@@ -196,18 +196,14 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
     public async Task<ProposalIndex> GetDefaultProposalAsync(string chainId)
     {
-        var currentStr = DateTime.UtcNow.ToString("O");
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Terms(i =>
                 i.Field(f => f.ChainId).Terms(chainId)), 
             q => q.Terms(i =>
                 i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking)),
-            // q => q.TermRange(
-            //     i => i.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).GreaterThanOrEquals(currentStr)),
-            // q => q.TermRange(
-            //     i => i.Field(f => f.ActiveStartTime.ToUtcMilliSeconds()).LessThanOrEquals(currentStr))
-            
+            q => q.DateRange(r => r
+                .Field(f => f.ActiveStartTime).LessThan(DateTime.UtcNow))
         };
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 

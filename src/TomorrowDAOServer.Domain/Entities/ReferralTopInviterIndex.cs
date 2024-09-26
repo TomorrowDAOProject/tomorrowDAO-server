@@ -10,7 +10,6 @@ public class ReferralTopInviterIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string ChainId { get; set; }
     [Keyword] public string InviterCaHash { get; set; }
     [Keyword] public string InviterAddress { get; set; }
-    [Keyword] public string ReferralCode { get; set; }
     public long StartTime { get; set; }
     public long EndTime { get; set; }
     public long Rank { get; set; }

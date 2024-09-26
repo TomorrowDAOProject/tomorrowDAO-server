@@ -128,4 +128,24 @@ public static class TimeHelper
     {
         return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
     }
+    
+    public static string ConvertStrTimeToDate(string strTimeStamp)
+    {
+        if (string.IsNullOrWhiteSpace(strTimeStamp))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            long timestamp = long.Parse(strTimeStamp);
+            DateTime dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
+            return dateTime.ToString(DatePattern);
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+    }
+
 }

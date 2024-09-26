@@ -85,21 +85,6 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
             {
                 var voteRecordList = _objectMapper.Map<List<IndexerVoteRecord>, List<VoteRecordIndex>>(toUpdate);
                 await UpdateValidRankingVote(chainId, voteRecordList);
-                // var voteDic = voteRecordList
-                //     .Where(x => x.ValidRankingVote)
-                //     .GroupBy(v => v.Voter) 
-                //     .ToDictionary(
-                //         g => g.Key,
-                //         g => g.OrderBy(v => v.VoteTime).First() 
-                //     );
-                // var voterList = voteRecordList.Where(x => x.ValidRankingVote).Select(x => x.Voter).ToList();
-                // var inviteList = await _referralInviteProvider.GetByNotVoteInvitees(chainId, voterList);
-                // foreach (var invite in inviteList)
-                // {
-                //     invite.FirstVoteTime = voteDic.GetValueOrDefault(invite.Invitee)?.VoteTime;
-                //     await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(invite.Inviter, invite.Invitee, 1);
-                // }
-                // await _referralInviteProvider.BulkAddOrUpdateAsync(inviteList);
                 await _voteRecordIndexRepository.BulkAddOrUpdateAsync(voteRecordList);
             }
             skipCount += queryList.Count;
