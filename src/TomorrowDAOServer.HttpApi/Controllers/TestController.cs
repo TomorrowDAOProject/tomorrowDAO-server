@@ -70,4 +70,10 @@ public class TestController
     {
         return await _userProvider.GetAndValidateUserAddressAsync(new Guid(userId), chainId);
     }
+    
+    [HttpGet("grain-test")]
+    public async Task<long> GrainTest(string chainId, string address)
+    {
+        return await _referralInviteProvider.IncrementInviteCountAsync(chainId, address);
+    }
 }
