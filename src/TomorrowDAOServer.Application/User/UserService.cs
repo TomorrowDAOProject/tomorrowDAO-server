@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver.Linq;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
+using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.User.Dtos;
@@ -27,12 +29,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
+    private readonly IProposalProvider _proposalProvider;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider, 
         IUserPointsRecordProvider userPointsRecordProvider, 
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider, 
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, IProposalProvider proposalProvider)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -42,6 +45,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _referralInviteProvider = referralInviteProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
+        _proposalProvider = proposalProvider;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -228,12 +232,23 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     
     private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string address, List<UserPointsIndex> dailyTaskList, UserTask userTask)
     {
-        var taskDictionary = dailyTaskList.ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
+        var taskDictionary = dailyTaskList
+            .GroupBy(task => task.UserTaskDetail.ToString())
+            .Select(g => g.OrderByDescending(task => task.PointsTime).First())
+            .ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
+        var defaultProposal = await _proposalProvider.GetDefaultProposalAsync(chainId);
+        var defaultProposalProposalId = defaultProposal.ProposalId;
+        var latestDailyVote = dailyTaskList.Where(x => x.UserTaskDetail == UserTaskDetail.DailyVote)
+            .MaxBy(x => x.PointsTime);
+        var latestDailyVoteProposalId = latestDailyVote.Information.GetValueOrDefault(CommonConstant.ProposalId, string.Empty);
+        if (defaultProposalProposalId != latestDailyVoteProposalId)
+        {
+            taskDictionary.Remove(UserTaskDetail.DailyVote.ToString());
+        }
         var completeCount = await _referralInviteProvider.GetInviteCountAsync(chainId, address);
         var taskDetails = userTask == UserTask.Daily
             ? InitDailyTaskDetailList()
             : InitExploreTaskDetailList(completeCount);
-       
         
         foreach (var taskDetail in taskDetails.Where(taskDetail => taskDictionary.TryGetValue(taskDetail.UserTaskDetail, out _)))
         {
