@@ -71,9 +71,15 @@ public class TestController
         return await _userProvider.GetAndValidateUserAddressAsync(new Guid(userId), chainId);
     }
     
-    [HttpGet("grain-test")]
-    public async Task<long> GrainTest(string chainId, string address)
+    [HttpGet("increment-invite-count")]
+    public async Task<long> IncrementInviteCountAsync(string chainId, string address)
     {
         return await _referralInviteProvider.IncrementInviteCountAsync(chainId, address);
+    }
+    
+    [HttpGet("get-invite-count")]
+    public async Task<long> GetInviteCountAsync(string chainId, string address)
+    {
+        return await _referralInviteProvider.GetInviteCountAsync(chainId, address);
     }
 }
