@@ -56,27 +56,4 @@ public class TaskPointsHelper
             _ => null
         };
     }
-    
-    public static List<TaskInfoDetail> InitDailyTaskDetailList()
-    {
-        return new List<TaskInfoDetail>
-        {
-            new() { UserTaskDetail = UserTaskDetail.DailyVote.ToString() },
-            new() { UserTaskDetail = UserTaskDetail.DailyFirstInvite.ToString() },
-            new() { UserTaskDetail = UserTaskDetail.DailyViewAsset.ToString() }
-        };
-    }
-    
-    public static List<TaskInfoDetail> InitExploreTaskDetailList(long completeCount)
-    {
-        return new List<TaskInfoDetail>
-        {
-            new() { UserTaskDetail = UserTaskDetail.ExploreJoinTgChannel.ToString() },
-            new() { UserTaskDetail = UserTaskDetail.ExploreFollowX.ToString() },
-            new() { UserTaskDetail = UserTaskDetail.ExploreJoinDiscord.ToString() },
-            new() { UserTaskDetail = UserTaskDetail.ExploreCumulateFiveInvite.ToString(), CompleteCount = completeCount, TaskCount = 5 },
-            new() { UserTaskDetail = UserTaskDetail.ExploreCumulateTenInvite.ToString(), CompleteCount = completeCount, TaskCount = 10 },
-            new() { UserTaskDetail = UserTaskDetail.ExploreCumulateTwentyInvite.ToString(), CompleteCount = completeCount, TaskCount = 20 }
-        };
-    }
 }

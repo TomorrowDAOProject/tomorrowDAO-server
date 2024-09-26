@@ -26,11 +26,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IUserPointsRecordProvider _userPointsRecordProvider;
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IReferralInviteProvider _referralInviteProvider;
+    private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider, 
         IUserPointsRecordProvider userPointsRecordProvider, 
-        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider)
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider, 
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -39,6 +41,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _userPointsRecordProvider = userPointsRecordProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _referralInviteProvider = referralInviteProvider;
+        _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -228,21 +231,38 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var taskDictionary = dailyTaskList.ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
         var completeCount = await _referralInviteProvider.GetInviteCountAsync(chainId, address);
         var taskDetails = userTask == UserTask.Daily
-            ? TaskPointsHelper.InitDailyTaskDetailList()
-            : TaskPointsHelper.InitExploreTaskDetailList(completeCount);
+            ? InitDailyTaskDetailList()
+            : InitExploreTaskDetailList(completeCount);
        
         
-        foreach (var taskDetail in taskDetails)
+        foreach (var taskDetail in taskDetails.Where(taskDetail => taskDictionary.TryGetValue(taskDetail.UserTaskDetail, out _)))
         {
-            if (!taskDictionary.TryGetValue(taskDetail.UserTaskDetail, out var task))
-            {
-                continue;
-            }
-
-            taskDetail.Points = task.Points;
             taskDetail.Complete = true;
         }
 
         return taskDetails;
+    }
+    
+    private List<TaskInfoDetail> InitDailyTaskDetailList()
+    {
+        return new List<TaskInfoDetail>
+        {
+            new() { UserTaskDetail = UserTaskDetail.DailyVote.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.Vote)},
+            new() { UserTaskDetail = UserTaskDetail.DailyFirstInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyFirstInvite) },
+            new() { UserTaskDetail = UserTaskDetail.DailyViewAsset.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAsset) }
+        };
+    }
+    
+    private List<TaskInfoDetail> InitExploreTaskDetailList(long completeCount)
+    {
+        return new List<TaskInfoDetail>
+        {
+            new() { UserTaskDetail = UserTaskDetail.ExploreJoinTgChannel.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinTgChannel) },
+            new() { UserTaskDetail = UserTaskDetail.ExploreFollowX.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreFollowX) },
+            new() { UserTaskDetail = UserTaskDetail.ExploreJoinDiscord.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinDiscord) },
+            new() { UserTaskDetail = UserTaskDetail.ExploreCumulateFiveInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreCumulateFiveInvite), CompleteCount = completeCount, TaskCount = 5 },
+            new() { UserTaskDetail = UserTaskDetail.ExploreCumulateTenInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreCumulateTenInvite), CompleteCount = completeCount, TaskCount = 10 },
+            new() { UserTaskDetail = UserTaskDetail.ExploreCumulateTwentyInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreCumulateTwentyInvite), CompleteCount = completeCount, TaskCount = 20 }
+        };
     }
 }

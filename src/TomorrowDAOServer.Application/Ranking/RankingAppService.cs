@@ -651,6 +651,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                             var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Daily,
                                 UserTaskDetail.DailyFirstInvite, voteTime);
                             var inviteCount = await _referralInviteProvider.IncrementInviteCountAsync(chainId, address);
+                            _logger.LogInformation("RankingVoteInviteCount inviter {inviter} invitee {invitee} inviteCount {inviteCount} success {success}", 
+                                inviter, address, inviteCount, success);
                             if (success)
                             {
                                 await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(inviter, UserTaskDetail.DailyFirstInvite);
@@ -671,7 +673,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                                     userTaskDetail, voteTime);
                             }
                         }
-                        if (IsValidReferralActivity(referral))
+                        if (IsValidReferralActivity(referral, voteTime))
                         {
                             referral.IsReferralActivity = true;
                             _logger.LogInformation("Ranking vote, referralRelationFirstVoteInActive.{0} {1}", address, inviter);
@@ -742,9 +744,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                && !string.IsNullOrEmpty(referral.InviterCaHash);
     }
 
-    private bool IsValidReferralActivity(ReferralInviteRelationIndex referral)
+    private bool IsValidReferralActivity(ReferralInviteRelationIndex referral, DateTime voteTime)
     {
-        return IsValidReferral(referral) && _rankingOptions.CurrentValue.IsReferralActive();
+        return IsValidReferral(referral) && _rankingOptions.CurrentValue.IsReferralActive(voteTime);
     }
 
     private Dictionary<string, string> GetInformation(ProposalIndex proposalIndex, string alias)

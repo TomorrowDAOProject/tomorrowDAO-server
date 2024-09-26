@@ -59,14 +59,14 @@ public class RankingOptions
         return configDto;
     }
 
-    public bool IsReferralActive()
+    public bool IsReferralActive(DateTime time)
     {
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var utcMilliSeconds = time.ToUtcMilliSeconds();
         var config = ParseReferralActiveTimes();
         var latest = config.Config.FirstOrDefault();
         if (latest != null)
         {
-            return currentTime >= latest.StartTime && currentTime <= latest.EndTime;
+            return utcMilliSeconds >= latest.StartTime && utcMilliSeconds <= latest.EndTime;
         }
 
         return false;
