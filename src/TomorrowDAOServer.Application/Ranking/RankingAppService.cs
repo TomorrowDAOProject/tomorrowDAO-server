@@ -650,7 +650,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                         {
                             var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Daily,
                                 UserTaskDetail.DailyFirstInvite, voteTime);
-                            var inviteCount = await _referralInviteProvider.IncrementInviteCountAsync(chainId, address);
+                            var inviteCount = await _referralInviteProvider.IncrementInviteCountAsync(chainId, inviter);
                             _logger.LogInformation("RankingVoteInviteCount inviter {inviter} invitee {invitee} inviteCount {inviteCount} success {success}", 
                                 inviter, address, inviteCount, success);
                             if (success)
