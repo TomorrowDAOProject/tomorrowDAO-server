@@ -30,6 +30,8 @@ public class RankingOptions
     public long PointsExploreCumulateTenInvite { get; set; } = 30_0000;
     public long PointsExploreCumulateTwentyInvite { get; set; } = 50_0000;
     
+    public long PointsExploreForwardX { get; set; } = 1_0000;
+    
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
     public List<string> ReferralPointsAddressList { get; set; } = new();

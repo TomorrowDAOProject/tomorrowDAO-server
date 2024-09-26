@@ -23,5 +23,6 @@ public enum PointsType
     ExploreJoinDiscord = 10,
     ExploreCumulateFiveInvite = 11,
     ExploreCumulateTenInvite = 12,
-    ExploreCumulateTwentyInvite = 13
+    ExploreCumulateTwentyInvite = 13,
+    ExploreForwardX = 14
 }

@@ -278,6 +278,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             new() { UserTaskDetail = UserTaskDetail.ExploreJoinTgChannel.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinTgChannel) },
             new() { UserTaskDetail = UserTaskDetail.ExploreFollowX.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreFollowX) },
             new() { UserTaskDetail = UserTaskDetail.ExploreJoinDiscord.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinDiscord) },
+            new() { UserTaskDetail = UserTaskDetail.ExploreForwardX.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreForwardX) },
             new() { UserTaskDetail = UserTaskDetail.ExploreCumulateFiveInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreCumulateFiveInvite), CompleteCount = completeCount, TaskCount = 5 },
             new() { UserTaskDetail = UserTaskDetail.ExploreCumulateTenInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreCumulateTenInvite), CompleteCount = completeCount, TaskCount = 10 },
             new() { UserTaskDetail = UserTaskDetail.ExploreCumulateTwentyInvite.ToString(), Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreCumulateTwentyInvite), CompleteCount = completeCount, TaskCount = 20 }

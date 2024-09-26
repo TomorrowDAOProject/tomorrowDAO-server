@@ -75,6 +75,11 @@ namespace TomorrowDAOServer.Ranking.Provider
         {
             return _rankingOptions.CurrentValue.PointsExploreCumulateTwentyInvite;
         }
+        
+        public long CalculatePointsFromPointsExploreForwardX()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreForwardX;
+        }
 
         public long CalculatePointsFromPointsType(PointsType? pointsType, long count = 0)
         {
@@ -92,6 +97,7 @@ namespace TomorrowDAOServer.Ranking.Provider
                 PointsType.ExploreCumulateFiveInvite => CalculatePointsFromExploreCumulateFiveInvite(),
                 PointsType.ExploreCumulateTenInvite => CalculatePointsFromExploreCumulateTenInvite(),
                 PointsType.ExploreCumulateTwentyInvite => CalculatePointsFromExploreCumulateTwentyInvite(),
+                PointsType.ExploreForwardX => CalculatePointsFromPointsExploreForwardX(),
                 _ => 0
             };
         }
