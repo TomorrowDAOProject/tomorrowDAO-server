@@ -14,7 +14,8 @@ public enum UserTaskDetail
     ExploreJoinTgChannel = 4,
     ExploreFollowX = 5,
     ExploreJoinDiscord = 6,
-    ExploreCumulateFiveInvite = 7,
-    ExploreCumulateTenInvite = 8,
-    ExploreCumulateTwentyInvite = 9
+    ExploreForwardX = 7,
+    ExploreCumulateFiveInvite = 8,
+    ExploreCumulateTenInvite = 9,
+    ExploreCumulateTwentyInvite = 10
 }
