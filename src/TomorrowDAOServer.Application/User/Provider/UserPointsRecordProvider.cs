@@ -76,8 +76,8 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
         {
             Id = UserTask.Daily == userTask 
                 ? UserTaskDetail.DailyVote == userTaskDetail 
-                    ? GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, completeTime.ToUtcString(TimeHelper.DatePattern))
-                    : GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, proposalId, completeTime.ToUtcString(TimeHelper.DatePattern))
+                    ? GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, proposalId, completeTime.ToUtcString(TimeHelper.DatePattern))
+                    : GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, completeTime.ToUtcString(TimeHelper.DatePattern))
                 : GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address),
             ChainId = chainId, Address = address, Information = information ?? new Dictionary<string, string>(),
             UserTask = userTask.Value, UserTaskDetail = userTaskDetail,
