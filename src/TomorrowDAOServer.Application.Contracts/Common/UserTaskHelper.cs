@@ -23,7 +23,7 @@ public class TaskPointsHelper
     {
         UserTaskDetail.DailyViewAsset, 
         UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX,
-        UserTaskDetail.ExploreFollowX, UserTaskDetail.ExploreJoinDiscord,
+        UserTaskDetail.ExploreForwardX, UserTaskDetail.ExploreJoinDiscord,
     };
 
     public static List<UserTaskDetail> GetUserTaskDetailFromUserTask(UserTask userTask)
@@ -50,6 +50,7 @@ public class TaskPointsHelper
             UserTaskDetail.ExploreJoinTgChannel => PointsType.ExploreJoinTgChannel,
             UserTaskDetail.ExploreFollowX => PointsType.ExploreFollowX,
             UserTaskDetail.ExploreJoinDiscord => PointsType.ExploreJoinDiscord,
+            UserTaskDetail.ExploreForwardX => PointsType.ExploreForwardX,
             UserTaskDetail.ExploreCumulateFiveInvite => PointsType.ExploreCumulateFiveInvite,
             UserTaskDetail.ExploreCumulateTenInvite => PointsType.ExploreCumulateTenInvite,
             UserTaskDetail.ExploreCumulateTwentyInvite => PointsType.ExploreCumulateTwentyInvite,
