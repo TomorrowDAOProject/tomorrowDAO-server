@@ -99,4 +99,10 @@ public static class CommonConstant
     public const string ProposalId = "ProposalId";
     public const string ProposalTitle = "ProposalTitle";
     public const string Alias = "Alias";
+    public const string CycleStartTime = "CycleStartTime";
+    public const string CycleEndTime = "CycleEndTime";
+    public const string InviteCount = "InviteCount";
+    public const string Rank = "Rank";
+    public const string Inviter = "Inviter";
+    public const string Invitee = "Invitee";
 }

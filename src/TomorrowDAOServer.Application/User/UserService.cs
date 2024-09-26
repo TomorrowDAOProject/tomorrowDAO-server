@@ -202,15 +202,18 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 var proposalTitle = information.GetValueOrDefault(CommonConstant.ProposalTitle, string.Empty);
                 return new Tuple<string, string>("Voted for: " + alias, proposalTitle);
             case PointsType.InviteVote:
-                var invitee = GetIndexString(id,2, CommonConstant.Middleline);
+                var invitee = information.GetValueOrDefault(CommonConstant.Invitee, string.Empty);
                 return new Tuple<string, string>("Invite friends", "Invitee : ELF_" + invitee + "_" + chainId);
             case PointsType.BeInviteVote:
-                var inviter = GetIndexString(id,1, CommonConstant.Middleline);
+                var inviter = information.GetValueOrDefault(CommonConstant.Inviter, string.Empty);
                 return new Tuple<string, string>("Accept Invitation", "Inviter : ELF_" + inviter + "_" + chainId);
             case PointsType.TopInviter:
-                var startTime = TimeHelper.ConvertStrTimeToDate(GetIndexString(id, 3, CommonConstant.Middleline));
-                var endTime = TimeHelper.ConvertStrTimeToDate(GetIndexString(id, 4, CommonConstant.Middleline));
+                var startTime = TimeHelper.ConvertStrTimeToDate(information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty));
+                var endTime = TimeHelper.ConvertStrTimeToDate(information.GetValueOrDefault(CommonConstant.CycleEndTime, string.Empty));
                 return new Tuple<string, string>("Top 10 Inviters", "Cycle: " + startTime + "-" + endTime);
+            case PointsType.DailyFirstInvite:
+                var firstInvitee = information.GetValueOrDefault(CommonConstant.Invitee, string.Empty);
+                return new Tuple<string, string>(pointsType.ToString(), "Invitee : ELF_" + firstInvitee + "_" + chainId);
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }

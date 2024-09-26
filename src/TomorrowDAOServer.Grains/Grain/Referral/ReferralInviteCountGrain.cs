@@ -6,7 +6,7 @@ namespace TomorrowDAOServer.Grains.Grain.Referral;
 public interface IReferralInviteCountGrain : IGrainWithStringKey
 {
     Task<long> GetInviteCountAsync();
-    Task<long> IncrementInviteCountAsync();
+    Task<long> IncrementInviteCountAsync(long delta);
 }
 
 public class ReferralInviteCountGrain : Grain<InviteCountState>, IReferralInviteCountGrain
@@ -28,9 +28,9 @@ public class ReferralInviteCountGrain : Grain<InviteCountState>, IReferralInvite
         return Task.FromResult(State.InviteCount);
     }
 
-    public async Task<long> IncrementInviteCountAsync()
+    public async Task<long> IncrementInviteCountAsync(long delta)
     {
-        State.InviteCount++;
+        State.InviteCount += delta ;
         await WriteStateAsync();
         return State.InviteCount;
     }

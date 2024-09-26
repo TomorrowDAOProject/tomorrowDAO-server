@@ -55,13 +55,15 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
             return -1L;
         }
 
-        var existed = await _referralTopInviterProvider.GetExistByTimeAsync(latest.StartTime, latest.EndTime);
+        var endTime = latest.EndTime;
+        var startTime = latest.StartTime;
+        var existed = await _referralTopInviterProvider.GetExistByTimeAsync(startTime, endTime);
         if (existed)
         {
             return -1L;
         }
 
-        var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(latest.StartTime, latest.EndTime);
+        var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(startTime, endTime);
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var topList = RankHelper.GetRankedList(chainId, userList, inviterBuckets)
@@ -78,17 +80,18 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
             toAddTopInviters.Add(new ReferralTopInviterIndex
             {
                 Id = GuidHelper.GenerateGrainId(chainId, inviter, 
-                    inviterCaHash, latest.StartTime, latest.EndTime),
+                    inviterCaHash, startTime, endTime),
                 ChainId = chainId, InviterCaHash = inviterCaHash,
-                InviterAddress = inviter, StartTime = latest.StartTime,
-                EndTime = latest.EndTime, Rank = rank,
+                InviterAddress = inviter, StartTime = startTime,
+                EndTime = endTime, Rank = rank,
                 InviterCount = inviteAndVoteCount,
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromReferralTopInviter(),
                 CreateTime = now
             });
             await _rankingAppPointsRedisProvider.IncrementReferralTopInviterPointsAsync(inviter);
             await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, UserTaskDetail.None,
-                PointsType.TopInviter, TimeHelper.GetDateTimeFromTimeStamp(latest.EndTime));
+                PointsType.TopInviter, TimeHelper.GetDateTimeFromTimeStamp(endTime),
+                InformationHelper.GetTopInviterInformation(startTime, endTime, rank, inviteAndVoteCount));
         }
         await _referralTopInviterProvider.BulkAddOrUpdateAsync(toAddTopInviters);
         return -1L;
