@@ -72,9 +72,9 @@ public class TestController
     }
     
     [HttpGet("increment-invite-count")]
-    public async Task<long> IncrementInviteCountAsync(string chainId, string address)
+    public async Task<long> IncrementInviteCountAsync(string chainId, string address, long delta)
     {
-        return await _referralInviteProvider.IncrementInviteCountAsync(chainId, address);
+        return await _referralInviteProvider.IncrementInviteCountAsync(chainId, address, delta);
     }
     
     [HttpGet("get-invite-count")]
