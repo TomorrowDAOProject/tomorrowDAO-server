@@ -353,7 +353,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _logger.LogInformation("ReferralInviteToPointsRecordBegin chainId {chainId}", chainId);
         var invitePair = _rankingOptions.CurrentValue.ReferralPointsAddressList;
         var inviter = invitePair[0];
-        var invitee = invitePair[0];
+        var invitee = invitePair[1];
         var voteRecord = (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, invitee, null))
             .Where(vote => vote.ValidRankingVote).MinBy(vote => vote.VoteTime);
         if (voteRecord != null)
