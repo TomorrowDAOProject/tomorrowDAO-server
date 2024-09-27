@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using TomorrowDAOServer.Enums;
-using TomorrowDAOServer.User.Dtos;
 
 namespace TomorrowDAOServer.Common;
 
