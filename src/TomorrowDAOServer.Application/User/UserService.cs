@@ -127,9 +127,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             var (title, desc) = GetTitleAndDesc(pointsRecord);
             data.Add(new MyPointsDto
             {
-                Points = pointsRecord.Points,
-                Title = title,
-                Description = desc,
+                Id = pointsRecord.Id, Points = pointsRecord.Points,
+                Title = title, Description = desc,
                 PointsType = pointsRecord.PointsType.ToString()
             });
         }
@@ -192,12 +191,9 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     {
         var information = index.Information;
         var pointsType = index.PointsType;
-        var id = index.Id;
         var chainId = index.ChainId;
         switch (pointsType)
         {
-            case PointsType.Like:
-                return new Tuple<string, string>("Like", string.Empty);
             case PointsType.Vote:
                 var alias = information.GetValueOrDefault(CommonConstant.Alias, string.Empty);
                 var proposalTitle = information.GetValueOrDefault(CommonConstant.ProposalTitle, string.Empty);
@@ -209,12 +205,27 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 var inviter = information.GetValueOrDefault(CommonConstant.Inviter, string.Empty);
                 return new Tuple<string, string>("Accept Invitation", "Inviter : ELF_" + inviter + "_" + chainId);
             case PointsType.TopInviter:
-                var startTime = TimeHelper.ConvertStrTimeToDate(information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty));
-                var endTime = TimeHelper.ConvertStrTimeToDate(information.GetValueOrDefault(CommonConstant.CycleEndTime, string.Empty));
+                var startTime = information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty);
+                var endTime = information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty);
                 return new Tuple<string, string>("Top 10 Inviters", startTime + "-" + endTime);
+            case PointsType.DailyViewAsset:
+                return new Tuple<string, string>("Tasks", "View your assets");
             case PointsType.DailyFirstInvite:
-                var firstInvitee = information.GetValueOrDefault(CommonConstant.Invitee, string.Empty);
-                return new Tuple<string, string>(pointsType.ToString(), "Invitee : ELF_" + firstInvitee + "_" + chainId);
+                return new Tuple<string, string>("Tasks", "Invite 1 friend");
+            case PointsType.ExploreJoinTgChannel:
+                return new Tuple<string, string>("Tasks", "Join channel");
+            case PointsType.ExploreFollowX:
+                return new Tuple<string, string>("Tasks", "Follow us on X");
+            case PointsType.ExploreJoinDiscord:
+                return new Tuple<string, string>("Tasks", "Join Discord");
+            case PointsType.ExploreForwardX:
+                return new Tuple<string, string>("Tasks", "RT Post");
+            case PointsType.ExploreCumulateFiveInvite:
+                return new Tuple<string, string>("Tasks", "Invite 5 friends");
+            case PointsType.ExploreCumulateTenInvite:
+                return new Tuple<string, string>("Tasks", "Invite 10 friends");
+            case PointsType.ExploreCumulateTwentyInvite:
+                return new Tuple<string, string>("Tasks", "Invite 20 friends");
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
