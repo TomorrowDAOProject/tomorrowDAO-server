@@ -88,6 +88,12 @@ public class ReferralService : ApplicationService, IReferralService
     public async Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
         var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), input.ChainId);
+        if (input.StartTime == 0 || input.EndTime == 0)
+        {
+            var latest = _rankingOptions.CurrentValue.ParseReferralActiveTimes().Config.First();
+            input.StartTime = latest.StartTime;
+            input.EndTime = latest.EndTime;
+        }
         var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
