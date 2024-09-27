@@ -19,7 +19,7 @@ public interface IReferralInviteProvider
     Task<List<ReferralInviteRelationIndex>> GetByIdsAsync(List<string> ids);
     Task BulkAddOrUpdateAsync(List<ReferralInviteRelationIndex> list);
     Task AddOrUpdateAsync(ReferralInviteRelationIndex relationIndex);
-    Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
+    Task<long> GetInvitedCountByInviterCaHashAsync(long startTime, long endTime, string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
     Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(long startTime, long endTime);
     Task<List<ReferralInviteRelationIndex>> GetByTimeRangeAsync(long startTime, long endTime);
     Task<long> IncrementInviteCountAsync(string chainId, string address, long delta);
@@ -100,12 +100,16 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         await _referralInviteRepository.AddOrUpdateAsync(relationIndex);
     }
 
-    public async Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false)
+    public async Task<long> GetInvitedCountByInviterCaHashAsync(long startTime, long endTime, string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false)
     {
+        var starTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(startTime).DateTime;
+        var endTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(endTime).DateTime;
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash))
+            q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash)),
+            q => q.DateRange(r => r
+            .Field(f => f.FirstVoteTime).GreaterThanOrEquals(starTimeDate).LessThanOrEquals(endTimeDate))
         };
         if (isVoted)
         {
