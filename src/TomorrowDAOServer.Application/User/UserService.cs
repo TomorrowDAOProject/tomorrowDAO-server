@@ -129,7 +129,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 Points = pointsRecord.Points,
                 Title = title,
-                Description = desc
+                Description = desc,
+                PointsType = pointsRecord.PointsType.ToString()
             });
         }
 
@@ -210,7 +211,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             case PointsType.TopInviter:
                 var startTime = TimeHelper.ConvertStrTimeToDate(information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty));
                 var endTime = TimeHelper.ConvertStrTimeToDate(information.GetValueOrDefault(CommonConstant.CycleEndTime, string.Empty));
-                return new Tuple<string, string>("Top 10 Inviters", "Cycle: " + startTime + "-" + endTime);
+                return new Tuple<string, string>("Top 10 Inviters", startTime + "-" + endTime);
             case PointsType.DailyFirstInvite:
                 var firstInvitee = information.GetValueOrDefault(CommonConstant.Invitee, string.Empty);
                 return new Tuple<string, string>(pointsType.ToString(), "Invitee : ELF_" + firstInvitee + "_" + chainId);
