@@ -95,7 +95,7 @@ public class ReferralService : ApplicationService, IReferralService
             input.EndTime = latest.EndTime;
         }
         var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
-        var caHashList = inviterBuckets.Select(bucket => bucket.Key).Distinct().ToList();
+        var caHashList = inviterBuckets.Select(bucket => bucket.Key).Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var inviterList = RankHelper.GetRankedList(input.ChainId, userList, inviterBuckets);
         var me = inviterList.Find(x => x.InviterCaHash == addressCaHash);
