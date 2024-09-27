@@ -22,7 +22,7 @@ public class RankHelper
                 group => group.First().AddressInfos.First(ai => ai.ChainId == chainId)?.Address ?? string.Empty
             );
 
-        return inviterBuckets.Select((bucket, _) =>
+        return inviterBuckets.Where(bucket => !string.IsNullOrEmpty(bucket.Key)).Select((bucket, _) =>
         {
             var inviteCount = (long)(bucket.ValueCount("invite_count").Value ?? 0);
             if (inviteCount != lastInviteCount)
