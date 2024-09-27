@@ -102,15 +102,18 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
     public async Task<long> GetInvitedCountByInviterCaHashAsync(long startTime, long endTime, string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false)
     {
-        var starTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(startTime).DateTime;
-        var endTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(endTime).DateTime;
+        
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
             q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash)),
-            q => q.DateRange(r => r
-            .Field(f => f.FirstVoteTime).GreaterThanOrEquals(starTimeDate).LessThanOrEquals(endTimeDate))
         };
+        if (startTime != 0 && endTime != 0)
+        {
+            var starTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(startTime).DateTime;
+            var endTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(endTime).DateTime;
+            mustQuery.Add(q => q.DateRange(r => r.Field(f => f.FirstVoteTime).GreaterThanOrEquals(starTimeDate).LessThanOrEquals(endTimeDate)));
+        }
         if (isVoted)
         {
             mustQuery.Add(q => q.Exists(e => e.Field(f => f.FirstVoteTime)));
