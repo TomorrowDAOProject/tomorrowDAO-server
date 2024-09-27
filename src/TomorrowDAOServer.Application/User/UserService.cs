@@ -209,23 +209,23 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 var endTime = information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty);
                 return new Tuple<string, string>("Top 10 Inviters", startTime + "-" + endTime);
             case PointsType.DailyViewAsset:
-                return new Tuple<string, string>("Tasks", "View your assets");
+                return new Tuple<string, string>("Task", "View your assets");
             case PointsType.DailyFirstInvite:
-                return new Tuple<string, string>("Tasks", "Invite 1 friend");
+                return new Tuple<string, string>("Task", "Invite 1 friend");
             case PointsType.ExploreJoinTgChannel:
-                return new Tuple<string, string>("Tasks", "Join channel");
+                return new Tuple<string, string>("Task", "Join channel");
             case PointsType.ExploreFollowX:
-                return new Tuple<string, string>("Tasks", "Follow us on X");
+                return new Tuple<string, string>("Task", "Follow us on X");
             case PointsType.ExploreJoinDiscord:
-                return new Tuple<string, string>("Tasks", "Join Discord");
+                return new Tuple<string, string>("Task", "Join Discord");
             case PointsType.ExploreForwardX:
-                return new Tuple<string, string>("Tasks", "RT Post");
+                return new Tuple<string, string>("Task", "RT Post");
             case PointsType.ExploreCumulateFiveInvite:
-                return new Tuple<string, string>("Tasks", "Invite 5 friends");
+                return new Tuple<string, string>("Task", "Invite 5 friends");
             case PointsType.ExploreCumulateTenInvite:
-                return new Tuple<string, string>("Tasks", "Invite 10 friends");
+                return new Tuple<string, string>("Task", "Invite 10 friends");
             case PointsType.ExploreCumulateTwentyInvite:
-                return new Tuple<string, string>("Tasks", "Invite 20 friends");
+                return new Tuple<string, string>("Task", "Invite 20 friends");
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
