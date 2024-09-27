@@ -41,6 +41,12 @@ public class TestController
         return await _rankingAppPointsRedisProvider.GetAsync(key);
     }
     
+    [HttpGet("increment")]
+    public async Task IncrementAsync(string key, long delta)
+    {
+        await _rankingAppPointsRedisProvider.IncrementAsync(key, delta);
+    }
+    
     [HttpGet("redis-value-distributed-cache")]
     public async Task<string> GetRedisValueDistributedCacheAsync(string key)
     {
