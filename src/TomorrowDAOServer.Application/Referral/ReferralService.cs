@@ -126,7 +126,8 @@ public class ReferralService : ApplicationService, IReferralService
         {
             EstimatedReward = estimatedReward,
             AccountCreation = accountCreation,
-            VotigramVote = votigramVote
+            VotigramVote = votigramVote,
+            VotigramActivityVote = votigramActivityVote
         };
     }
 
