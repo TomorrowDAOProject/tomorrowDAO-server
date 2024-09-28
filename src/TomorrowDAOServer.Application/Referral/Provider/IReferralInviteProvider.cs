@@ -113,7 +113,7 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
             var startTimeInSeconds = startTime / 1000;
             var endTimeInSeconds = endTime / 1000;
 
-            mustQuery.Add(q => q.LongRange(r => r
+            mustQuery.Add(q => q.Range(r => r
                 .Field(f => f.Timestamp).GreaterThanOrEquals(startTimeInSeconds).LessThanOrEquals(endTimeInSeconds)
             ));
         }
