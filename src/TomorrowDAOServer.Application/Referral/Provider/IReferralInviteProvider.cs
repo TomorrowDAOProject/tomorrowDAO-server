@@ -19,6 +19,7 @@ public interface IReferralInviteProvider
     Task<List<ReferralInviteRelationIndex>> GetByIdsAsync(List<string> ids);
     Task BulkAddOrUpdateAsync(List<ReferralInviteRelationIndex> list);
     Task AddOrUpdateAsync(ReferralInviteRelationIndex relationIndex);
+    Task<long> GetAccountCreationAsync(long startTime, long endTime, string chainId, string inviterCaHash);
     Task<long> GetInvitedCountByInviterCaHashAsync(long startTime, long endTime, string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
     Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(long startTime, long endTime);
     Task<List<ReferralInviteRelationIndex>> GetByTimeRangeAsync(long startTime, long endTime);
@@ -98,6 +99,26 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
             return;
         }
         await _referralInviteRepository.AddOrUpdateAsync(relationIndex);
+    }
+
+    public async Task<long> GetAccountCreationAsync(long startTime, long endTime, string chainId, string inviterCaHash)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash)),
+        };
+        if (startTime != 0 && endTime != 0)
+        {
+            var startTimeInSeconds = startTime / 1000;
+            var endTimeInSeconds = endTime / 1000;
+
+            mustQuery.Add(q => q.LongRange(r => r
+                .Field(f => f.Timestamp).GreaterThanOrEquals(startTimeInSeconds).LessThanOrEquals(endTimeInSeconds)
+            ));
+        }
+        QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _referralInviteRepository.CountAsync(Filter)).Count;
     }
 
     public async Task<long> GetInvitedCountByInviterCaHashAsync(long startTime, long endTime, string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false)
