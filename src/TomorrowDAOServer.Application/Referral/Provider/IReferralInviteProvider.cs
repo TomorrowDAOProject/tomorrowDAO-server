@@ -134,10 +134,7 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
             .Query(q => q.Bool(b => b
                 .Must(
                     m => m.Exists(e => e.Field(f => f.FirstVoteTime)),
-                    f => f.Term(t => t.Field(f => f.IsReferralActivity).Value(true))
-                )
-                .Filter(
-                    // f => f.Term(t => t.Field(f => f.IsReferralActivity).Value(true)),
+                    f => f.Term(t => t.Field(f => f.IsReferralActivity).Value(true)),
                     f => f.Wildcard(w => w.Field(f => f.ReferralCode).Value("*?*")),
                     f => f.Wildcard(w => w.Field(f => f.InviterCaHash).Value("*?*"))
                 )));
