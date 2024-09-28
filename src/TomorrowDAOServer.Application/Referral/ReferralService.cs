@@ -72,7 +72,7 @@ public class ReferralService : ApplicationService, IReferralService
 
         var startTime = latest.StartTime;
         var endTime = latest.EndTime;
-        var accountCreation = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, false);
+        var accountCreation = await _referralInviteProvider.GetAccountCreationAsync(startTime, endTime, chainId, addressCaHash);
         var votigramVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true);
         var votigramActivityVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true, true);
         var estimatedReward = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramActivityVote);
