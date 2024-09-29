@@ -206,7 +206,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Accept Invitation", "Inviter : ELF_" + inviter + "_" + chainId);
             case PointsType.TopInviter:
                 var startTime = information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty);
-                var endTime = information.GetValueOrDefault(CommonConstant.CycleStartTime, string.Empty);
+                var endTime = information.GetValueOrDefault(CommonConstant.CycleEndTime, string.Empty);
                 return new Tuple<string, string>("Top 10 Inviters", startTime + "-" + endTime);
             case PointsType.DailyViewAsset:
                 return new Tuple<string, string>("Task", "View your assets");
