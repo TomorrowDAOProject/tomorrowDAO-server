@@ -37,8 +37,8 @@ public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingleto
                     new GraphQLRequest
                     {
                         Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$proposalIds:[String]!,$orgType:NetworkDaoOrgType!){
-            data:getNetworkDaoProposals(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,proposalIds:$proposalIds,orgType:$orgType})
+                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$proposalIds:[String]!,$proposalType:NetworkDaoProposalType!){
+            data:getNetworkDaoProposals(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,proposalIds:$proposalIds,proposalType:$proposalType})
             {            
                 items {
                     proposalId,organizationAddress,title,description,proposalType,chainId,blockHash,blockHeight,previousBlockHash,isDeleted
@@ -53,7 +53,7 @@ public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingleto
                             endBlockHeight = input.EndBlockHeight,
                             chainId = input.ChainId,
                             proposalIds = input.ProposalIds,
-                            orgType = input.ProposalType
+                            proposalType = input.ProposalType
                         }
                     });
             return graphQlResponse?.Data ?? new NetworkDaoPagedResultDto<NetworkDaoProposalDto>();
