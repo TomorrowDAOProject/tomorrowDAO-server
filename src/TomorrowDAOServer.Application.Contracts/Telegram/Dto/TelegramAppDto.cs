@@ -13,12 +13,25 @@ public class TelegramAppDto
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
+    public string QueryDetailUrl { get; set; }
 }
 
 public class SaveTelegramAppsInput
 {
     public string ChainId { get; set; }
     public TelegramAppDto TelegramAppDto { get; set; }
+}
+
+public class SetCategoryInput
+{
+    public string ChainId { get; set; }
+    public List<string> Types { get; set; }
+}
+
+public class LoadAllTelegramAppsInput
+{
+    public string ChainId { get; set; }
+    public ContentType ContentType { get; set; } = ContentType.Body;
 }
 
 public class LoadTelegramAppsInput

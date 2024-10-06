@@ -48,8 +48,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
-        var userAddress =
-            await _userProvider.GetAndValidateUserAddressAsync(
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
                 CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         if (input.ParentId != CommonConstant.RootParentId)
         {
@@ -59,12 +58,23 @@ public class DiscussionService : ApplicationService, IDiscussionService
                 return new NewCommentResultDto { Reason = "Invalid parentId: not existed." };
             }
 
-            if (parentComment.Commenter == userAddress)
+            if (parentComment.Commenter == address)
             {
                 return new NewCommentResultDto { Reason = "Invalid parentId: can not comment self." };
             }
         }
 
+        return string.IsNullOrEmpty(input.ProposalId) ? await CommentApp(address, input) : await CommentProposal(address, input);
+    }
+
+    private async Task<NewCommentResultDto> CommentApp(string address, NewCommentInput input)
+    {
+        var commentIndex = _objectMapper.Map<NewCommentInput, CommentIndex>(input);
+        return await Comment(address, input.Alias, commentIndex);
+    }
+    
+    private async Task<NewCommentResultDto> CommentProposal(string address, NewCommentInput input)
+    {
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
         if (proposalIndex == null)
         {
@@ -83,9 +93,9 @@ public class DiscussionService : ApplicationService, IDiscussionService
             var member = await _daoProvider.GetMemberAsync(new GetMemberInput
             {
                 ChainId = input.ChainId,
-                DAOId = proposalIndex.DAOId, Address = userAddress
+                DAOId = proposalIndex.DAOId, Address = address
             });
-            if (member.Address != userAddress)
+            if (member.Address != address)
             {
                 return new NewCommentResultDto { Reason = "Invalid proposalId: not multi sig dao member." };
             }
@@ -94,7 +104,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
         {
             var isDepositor = await _treasuryAssetsService.IsTreasuryDepositorAsync(new IsTreasuryDepositorInput
             {
-                ChainId = input.ChainId, Address = userAddress,
+                ChainId = input.ChainId, Address = address,
                 GovernanceToken = daoIndex.GovernanceToken, TreasuryAddress = daoIndex.TreasuryAccountAddress
             });
             if (!isDepositor)
@@ -103,17 +113,22 @@ public class DiscussionService : ApplicationService, IDiscussionService
             }
         }
 
-        var count = await _discussionProvider.GetCommentCountAsync(input.ProposalId);
+        var commentIndex = _objectMapper.Map<ProposalIndex, CommentIndex>(proposalIndex);
+        _objectMapper.Map(input, commentIndex);
+        return await Comment(address, input.ProposalId, commentIndex);
+    }
+
+    private async Task<NewCommentResultDto> Comment(string address, string commentSubject, CommentIndex commentIndex)
+    {
+        var count = await _discussionProvider.GetCommentCountAsync(commentSubject);
         if (count < 0)
         {
             return new NewCommentResultDto { Reason = "Retry later." };
         }
 
-        var commentIndex = _objectMapper.Map<ProposalIndex, CommentIndex>(proposalIndex);
-        _objectMapper.Map(input, commentIndex);
         var now = TimeHelper.GetTimeStampInMilliseconds();
-        commentIndex.Id = GuidHelper.GenerateId(proposalIndex.ProposalId, now.ToString(), count.ToString());
-        commentIndex.Commenter = userAddress;
+        commentIndex.Id = GuidHelper.GenerateId(commentSubject, now.ToString(), count.ToString());
+        commentIndex.Commenter = address;
         commentIndex.CommentStatus = CommentStatusEnum.Normal;
         commentIndex.CreateTime = commentIndex.ModificationTime = now;
         await _discussionProvider.NewCommentAsync(commentIndex);
@@ -123,6 +138,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public async Task<CommentListPageResultDto> GetCommentListAsync(GetCommentListInput input)
     {
+        input.ProposalId = string.IsNullOrEmpty(input.ProposalId) ? input.Alias : input.ProposalId;
         if (string.IsNullOrEmpty(input.SkipId))
         {
             var result = await _discussionProvider.GetCommentListAsync(input);

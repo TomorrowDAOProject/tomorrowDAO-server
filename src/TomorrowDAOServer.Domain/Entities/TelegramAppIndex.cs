@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
 using Nest;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Entities;
 
@@ -15,4 +18,7 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public TelegramAppCategory TelegramAppCategory { get; set; }
+    public string QueryDetailUrl { get; set; }
 }

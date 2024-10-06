@@ -105,4 +105,8 @@ public static class CommonConstant
     public const string Rank = "Rank";
     public const string Inviter = "Inviter";
     public const string Invitee = "Invitee";
+    
+    // Discover
+    public const string Recommend = "Recommend";
+    public const double InterestedPercent = 0.75;
 }

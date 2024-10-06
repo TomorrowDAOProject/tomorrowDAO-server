@@ -9,6 +9,8 @@ using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
+using TomorrowDAOServer.Discover.Provider;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
@@ -22,7 +24,7 @@ using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.Vote;
 
-public partial class VoteRecordSyncDataService : ScheduleSyncDataService
+public class VoteRecordSyncDataService : ScheduleSyncDataService
 {
     private readonly ILogger<VoteRecordSyncDataService> _logger;
     private readonly IObjectMapper _objectMapper;
@@ -34,6 +36,7 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
+    private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
     private const int MaxResultCount = 500;
     
     public VoteRecordSyncDataService(ILogger<VoteRecordSyncDataService> logger,
@@ -41,7 +44,7 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
         IVoteProvider voteProvider, INESTRepository<VoteRecordIndex, string> voteRecordIndexRepository, 
         IChainAppService chainAppService, IOptionsMonitor<RankingOptions> rankingOptions, IProposalProvider proposalProvider, 
         ITelegramAppsProvider telegramAppsProvider, IReferralInviteProvider referralInviteProvider, 
-        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider)
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IDiscoverChoiceProvider discoverChoiceProvider)
         : base(logger, graphQlProvider)
     {
         _logger = logger;
@@ -54,6 +57,7 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
         _telegramAppsProvider = telegramAppsProvider;
         _referralInviteProvider = referralInviteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
+        _discoverChoiceProvider = discoverChoiceProvider;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
@@ -109,13 +113,30 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
                 .ToList();
             var aliasList = validMemoList.Select(x => x.Alias).ToList();
             var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
-            var validAliasDic = telegramApps.Item2.ToDictionary(x => x.Alias, x => x.Title);
+            var validAliasDic = telegramApps.Item2.ToDictionary(x => x.Alias, x => x);
+            var choices = new List<DiscoverChoiceIndex>();
             foreach (var item in validMemoList.Where(x => validAliasDic.ContainsKey(x.Alias)))
             {
+                var telegramAppIndex = validAliasDic.GetValueOrDefault(item.Alias);
                 item.Record.ValidRankingVote = true;
                 item.Record.Alias = item.Alias;
-                item.Record.Title = validAliasDic.GetValueOrDefault(item.Alias);
+                item.Record.Title = telegramAppIndex?.Title ?? string.Empty;
+                if (telegramAppIndex != null)
+                {
+                    choices.Add(new DiscoverChoiceIndex
+                    {
+                        Id = GuidHelper.GenerateGrainId(chainId, item.Record.Voter, telegramAppIndex.TelegramAppCategory.ToString(),
+                            DiscoverChoiceType.Vote.ToString()),
+                        ChainId = chainId,
+                        Address = item.Record.Voter,
+                        TelegramAppCategory = telegramAppIndex.TelegramAppCategory,
+                        DiscoverChoiceType = DiscoverChoiceType.Vote,
+                        UpdateTime = DateTime.UtcNow
+                    });
+                }
             }
+
+            await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
         }
         catch (Exception e)
         {
