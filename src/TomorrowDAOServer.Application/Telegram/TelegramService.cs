@@ -72,7 +72,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     private Dictionary<string, TelegramAppCategory> ParseTypes(IEnumerable<string> types)
     {
         var result = new Dictionary<string, TelegramAppCategory>();
-        foreach (var parts in types.Select(type => type.Split(CommonConstant.Colon)))
+        foreach (var parts in types.Select(type => type.Split(CommonConstant.Middleline)))
         {
             if (parts.Length != 2 || !Enum.TryParse(parts[1], out TelegramAppCategory category))
             {
