@@ -52,13 +52,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             throw new UserFriendlyException("Invalid input.");
         }
 
-        var address =
-            await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
-        {
-            throw new UserFriendlyException("Access denied.");
-        }
+        await CheckAddress(input.ChainId);
 
         try
         {
@@ -78,12 +72,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
 
     public async Task<List<TelegramAppDto>> LoadAllTelegramAppsAsync(LoadAllTelegramAppsInput input)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
-        {
-            throw new UserFriendlyException("Access denied.");
-        }
+        await CheckAddress(input.ChainId);
 
         var loadUrlList = _telegramOptions.CurrentValue.LoadUrlList;
         var loadApps = new List<TelegramAppDto>();
@@ -111,13 +100,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             return new Dictionary<string, TelegramAppDetailDto>();
         }
 
-        var address =
-            await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
-        {
-            throw new UserFriendlyException("Access denied.");
-        }
+        await CheckAddress(input.ChainId);
 
         var res = new Dictionary<string, TelegramAppDetailDto>();
         foreach (var keyValuePair in input.Apps)
@@ -139,13 +122,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
 
     public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(LoadAllTelegramAppsDetailInput input)
     {
-        var address =
-            await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
-        {
-            throw new UserFriendlyException("Access denied.");
-        }
+        await CheckAddress(input.ChainId);
 
         var appList = await _telegramAppsProvider.GetAllAsync();
         var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.LongDescription)).ToList();
@@ -308,5 +285,15 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         // var web = new HtmlWeb();
         // var doc = web.Load(url);
         // var scriptNodes = doc.DocumentNode.SelectNodes("//script[contains(text(), 'self.__next_f.push')]");
+    }
+
+    private async Task CheckAddress(string chainId)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
+        {
+            throw new UserFriendlyException("Access denied.");
+        }
     }
 }
