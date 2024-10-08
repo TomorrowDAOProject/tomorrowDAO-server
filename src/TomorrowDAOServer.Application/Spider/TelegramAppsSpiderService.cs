@@ -10,6 +10,7 @@ using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Options;
@@ -127,9 +128,9 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
     public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(LoadAllTelegramAppsDetailInput input)
     {
         await CheckAddress(input.ChainId);
-
         var appList = await _telegramAppsProvider.GetAllAsync();
-        var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.LongDescription)).ToList();
+        var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.LongDescription))
+            .Where(x => !string.IsNullOrEmpty(x.QueryDetailUrl)).ToList();
         var dic = needLoadDetailAppList.GroupBy(app => app.QueryDetailUrl)
             .ToDictionary(
                 group => group.Key,
@@ -137,7 +138,8 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
                     .GroupBy(app => app.Title)
                     .ToDictionary(
                         g => g.Key, 
-                        g => g.First().Alias 
+                        g => g.First().Title
+                            .Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower()
                     )
             );
         
