@@ -54,8 +54,11 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         }
         
         var typesDic = ParseTypes(input.Types);
-        var aliases = typesDic.Keys.ToList();
-        var exists = await _telegramAppsProvider.GetByAliasesAsync(aliases);
+        var names = typesDic.Keys.ToList();
+        var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Names = names
+        })).Item2;
         foreach (var app in exists)
         {
             if (typesDic.TryGetValue(app.Alias, out var category))
@@ -149,7 +152,10 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         }
         var telegramAppIndices = _objectMapper.Map<List<TelegramAppDto>, List<TelegramAppIndex>>(telegramAppDtos);
         var aliases = telegramAppIndices.Select(x => x.Alias).ToList();
-        var exists = await _telegramAppsProvider.GetByAliasesAsync(aliases);
+        var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = aliases
+        })).Item2;
         var toUpdate = telegramAppIndices.Where(x => exists.All(y => x.Id != y.Id)).ToList();
         await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
     }
