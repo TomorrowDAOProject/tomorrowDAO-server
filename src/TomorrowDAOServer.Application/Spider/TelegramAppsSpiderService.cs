@@ -83,6 +83,10 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
                 ChainId = input.ChainId, Url = url, ContentType = input.ContentType
             }));
         }
+        loadApps = loadApps
+            .GroupBy(app => app.Alias)  
+            .Select(group => group.First()) 
+            .ToList();
 
         return loadApps;
     }
