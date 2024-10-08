@@ -48,14 +48,14 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     {
         await CheckAddress(input.ChainId);
         var typesDic = ParseTypes(input.Types.Split(CommonConstant.Comma));
-        var names = typesDic.Keys.ToList();
+        var aliases = typesDic.Keys.ToList();
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
-            Names = names
+            Aliases = aliases
         })).Item2;
         foreach (var app in exists)
         {
-            if (typesDic.TryGetValue(app.Title, out var category))
+            if (typesDic.TryGetValue(app.Alias, out var category))
             {
                 app.TelegramAppCategory = category; 
             }
@@ -66,7 +66,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     private Dictionary<string, TelegramAppCategory> ParseTypes(IEnumerable<string> types)
     {
         var result = new Dictionary<string, TelegramAppCategory>();
-        foreach (var parts in types.Select(type => type.Split(CommonConstant.Middleline)))
+        foreach (var parts in types.Select(type => type.Split(CommonConstant.Colon)))
         {
             if (parts.Length != 2 || !Enum.TryParse(parts[1], out TelegramAppCategory category))
             {

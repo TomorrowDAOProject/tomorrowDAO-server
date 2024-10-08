@@ -80,7 +80,9 @@ public class DiscoverService : ApplicationService, IDiscoverService
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         var choiceList = await _discoverChoiceProvider.GetByAddressAsync(input.ChainId, address);
         var types = choiceList.Select(x => x.TelegramAppCategory).ToList();
-        var appList = await _telegramAppsProvider.GetAllAsync();
+        var appList = (await _telegramAppsProvider.GetAllAsync())
+            .Where(x => !string.IsNullOrEmpty(x.Url))
+            .Where(x => x.TelegramAppCategory != TelegramAppCategory.None).ToList();
         var userInterestedAppList = appList.Where(app => types.Contains(app.TelegramAppCategory)).ToList();
         var userNotInterestedAppList = appList.Where(app => !types.Contains(app.TelegramAppCategory)).ToList();
         var recommendApps = new List<DiscoverAppDto>();

@@ -127,15 +127,12 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         await CheckAddress(input.ChainId);
         var url = _telegramOptions.CurrentValue.DetailUrl;
         var appList = await _telegramAppsProvider.GetAllAsync();
-        var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.LongDescription)).ToList();
+        var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.Url)).ToList();
         var dic = needLoadDetailAppList.ToDictionary(x => x.Title,
                 x => x.Title.Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower());
         var loadRes = await LoadTelegramAppsDetailAsync(new LoadTelegramAppsDetailInput
         {
-            ChainId = input.ChainId,
-            Url = url,
-            Header = input.Header,
-            Apps = dic
+            ChainId = input.ChainId, Url = url, Header = input.Header, Apps = dic
         });
 
         return loadRes;
