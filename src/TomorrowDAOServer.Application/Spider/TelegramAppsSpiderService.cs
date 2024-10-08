@@ -83,9 +83,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
                 ChainId = input.ChainId, Url = url, ContentType = input.ContentType
             }));
         }
-        loadApps = loadApps
-            .GroupBy(app => app.Alias)  
-            .Select(group => group.First()) 
+        loadApps = loadApps.GroupBy(app => app.Alias).Select(group => group.First()) 
             .ToList();
 
         return loadApps;
@@ -130,12 +128,8 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         var url = _telegramOptions.CurrentValue.DetailUrl;
         var appList = await _telegramAppsProvider.GetAllAsync();
         var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.LongDescription)).ToList();
-        var dic = needLoadDetailAppList.ToDictionary(
-                x => x.Title,
-                x => x.Title.Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower()
-            );
-        
-        var mergedRes = new Dictionary<string, TelegramAppDetailDto>();
+        var dic = needLoadDetailAppList.ToDictionary(x => x.Title,
+                x => x.Title.Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower());
         var loadRes = await LoadTelegramAppsDetailAsync(new LoadTelegramAppsDetailInput
         {
             ChainId = input.ChainId,
@@ -144,10 +138,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             Apps = dic
         });
 
-        mergedRes = mergedRes.Concat(loadRes)
-            .ToDictionary(x => x.Key, x => x.Value);
-
-        return mergedRes;
+        return loadRes;
     }
 
     private async Task<TelegramAppDetailDto> AnalyzeDetailPageAsync(string inputUrl, Dictionary<string, string> header,

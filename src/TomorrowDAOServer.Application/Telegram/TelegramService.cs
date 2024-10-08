@@ -188,7 +188,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
 
         var telegramAppDtos = await GetTelegramAppAsync(new QueryTelegramAppsInput
         {
-            Aliases = telegramAppDetailDtos.Keys.ToList(),
+            Names = telegramAppDetailDtos.Keys.ToList(),
         });
         if (telegramAppDtos.IsNullOrEmpty())
         {
