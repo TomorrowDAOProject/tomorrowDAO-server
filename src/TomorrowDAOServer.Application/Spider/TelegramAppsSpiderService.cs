@@ -74,7 +74,6 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
     public async Task<List<TelegramAppDto>> LoadAllTelegramAppsAsync(LoadAllTelegramAppsInput input)
     {
         await CheckAddress(input.ChainId);
-
         var loadUrlList = _telegramOptions.CurrentValue.LoadUrlList;
         var loadApps = new List<TelegramAppDto>();
         foreach (var url in loadUrlList)
@@ -128,35 +127,25 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
     public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(LoadAllTelegramAppsDetailInput input)
     {
         await CheckAddress(input.ChainId);
+        var url = _telegramOptions.CurrentValue.DetailUrl;
         var appList = await _telegramAppsProvider.GetAllAsync();
-        var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.LongDescription))
-            .Where(x => !string.IsNullOrEmpty(x.QueryDetailUrl)).ToList();
-        var dic = needLoadDetailAppList.GroupBy(app => app.QueryDetailUrl)
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .GroupBy(app => app.Title)
-                    .ToDictionary(
-                        g => g.Key, 
-                        g => g.First().Title
-                            .Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower()
-                    )
+        var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.LongDescription)).ToList();
+        var dic = needLoadDetailAppList.ToDictionary(
+                x => x.Title,
+                x => x.Title.Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower()
             );
         
         var mergedRes = new Dictionary<string, TelegramAppDetailDto>();
-        foreach (var pair in dic)
+        var loadRes = await LoadTelegramAppsDetailAsync(new LoadTelegramAppsDetailInput
         {
-            var loadRes = await LoadTelegramAppsDetailAsync(new LoadTelegramAppsDetailInput
-            {
-                ChainId = input.ChainId,
-                Url = pair.Key,
-                Header = input.Header,
-                Apps = pair.Value
-            });
+            ChainId = input.ChainId,
+            Url = url,
+            Header = input.Header,
+            Apps = dic
+        });
 
-            mergedRes = mergedRes.Concat(loadRes)
-                .ToDictionary(x => x.Key, x => x.Value);
-        }
+        mergedRes = mergedRes.Concat(loadRes)
+            .ToDictionary(x => x.Key, x => x.Value);
 
         return mergedRes;
     }

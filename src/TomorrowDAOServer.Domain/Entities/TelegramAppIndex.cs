@@ -20,5 +20,4 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public List<string> Screenshots { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]
     public TelegramAppCategory TelegramAppCategory { get; set; }
-    public string QueryDetailUrl { get; set; }
 }

@@ -150,17 +150,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var telegramAppIndices = _objectMapper.Map<List<TelegramAppDto>, List<TelegramAppIndex>>(telegramAppDtos);
         var aliases = telegramAppIndices.Select(x => x.Alias).ToList();
         var exists = await _telegramAppsProvider.GetByAliasesAsync(aliases);
-        var existsDict = exists.ToDictionary(e => e.Alias);
-        var toUpdate = telegramAppIndices.Select(app =>
-        {
-            if (!existsDict.TryGetValue(app.Alias, out var existingApp))
-            {
-                return app;
-            }
-
-            existingApp.QueryDetailUrl = app.QueryDetailUrl;
-            return existingApp;
-        }).ToList();
+        var toUpdate = telegramAppIndices.Where(x => exists.All(y => x.Id != y.Id)).ToList();
         await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
     }
 
