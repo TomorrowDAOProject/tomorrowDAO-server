@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Telegram.Dto;
 
@@ -14,6 +17,8 @@ public class TelegramAppDto
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
     public string QueryDetailUrl { get; set; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public TelegramAppCategory TelegramAppCategory { get; set; }
 }
 
 public class SaveTelegramAppsInput

@@ -13,6 +13,7 @@ public static class CommonConstant
     public const string Middleline = "-";
     public const string Colon = ":";
     public const string Space = " ";
+    public const char SpaceChar = ' ';
     public const string EmptyString = "";
     public const string ELF = "ELF";
     public const string USDT = "USDT";
