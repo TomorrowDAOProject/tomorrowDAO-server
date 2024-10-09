@@ -276,6 +276,8 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.InviteCode))
             ;
         CreateMap<UserBalance, UserBalanceIndex>();
-        CreateMap<TelegramAppIndex, DiscoverAppDto>();
+        CreateMap<TelegramAppIndex, DiscoverAppDto>()
+            .ForMember(des => des.Categories, opt
+                => opt.MapFrom(source => MapCategories(source.Categories)));
     }
 }

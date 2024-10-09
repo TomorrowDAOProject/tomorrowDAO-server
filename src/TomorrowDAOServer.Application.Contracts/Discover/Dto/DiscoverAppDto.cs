@@ -13,4 +13,5 @@ public class DiscoverAppDto
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
     public long TotalPoints { get; set; }
+    public List<string> Categories { get; set; }
 }
