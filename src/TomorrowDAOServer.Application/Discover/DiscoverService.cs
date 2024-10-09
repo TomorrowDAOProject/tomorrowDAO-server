@@ -79,8 +79,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var address = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         var choiceList = await _discoverChoiceProvider.GetByAddressAsync(input.ChainId, address);
-        var types = choiceList.Select(x => x.TelegramAppCategory).ToList();
-        var appList = (await _telegramAppsProvider.GetAllAsync())
+        var types = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
+        var appList = (await _telegramAppsProvider.GetAllHasUrlAsync())
             .Where(x => !string.IsNullOrEmpty(x.Url))
             .Where(x => x.TelegramAppCategory != TelegramAppCategory.None).ToList();
         var userInterestedAppList = appList.Where(app => types.Contains(app.TelegramAppCategory)).ToList();
@@ -102,8 +102,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
     
     private async Task<List<DiscoverAppDto>> GetCategoryAppListAsync(GetDiscoverAppListInput input)
     {
-        CheckCategory(input.Category);
-        var appList = await _telegramAppsProvider.GetByCategoryAsync(input);
+        var category = CheckCategory(input.Category);
+        var appList = await _telegramAppsProvider.GetByCategoryAsync(category, input.SkipCount, input.MaxResultCount);
         var categoryApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(appList);
         await FillTotalPoints(input.ChainId, categoryApps);
         return categoryApps;
@@ -138,7 +138,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     private static TelegramAppCategory CheckCategory(string category)
     {
-        if (Enum.TryParse<TelegramAppCategory>(category, true, out var categoryEnum))
+        if (Enum.TryParse<TelegramAppCategory>(category, true, out var categoryEnum) && categoryEnum != TelegramAppCategory.None)
         {
             return categoryEnum;
         }
