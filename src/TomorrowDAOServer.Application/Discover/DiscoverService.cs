@@ -82,8 +82,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var types = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
         var appList = (await _telegramAppsProvider.GetAllHasUrlAsync())
             .Where(x => !string.IsNullOrEmpty(x.Url)).ToList();
-        var userInterestedAppList = appList.Where(app => types.Intersect(app.Categories).Any()).ToList();
-        var userNotInterestedAppList = appList.Where(app => !types.Intersect(app.Categories).Any()).ToList();
+        var userInterestedAppList = appList.Where(app => app.Categories != null &&  types.Intersect(app.Categories).Any()).ToList();
+        var userNotInterestedAppList = appList.Where(app => app.Categories != null && !types.Intersect(app.Categories).Any()).ToList();
         var recommendApps = new List<DiscoverAppDto>();
         var interestedCount = (int)(input.MaxResultCount * CommonConstant.InterestedPercent);
         var notInterestedCount = input.MaxResultCount - interestedCount;
