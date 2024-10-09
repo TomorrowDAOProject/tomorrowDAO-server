@@ -17,6 +17,7 @@ public class MapperBase : Profile
             ["param"] = string.IsNullOrEmpty(param) ? "" : param
         };
     }
+    protected static ISet<string> UserCreatedMethods = new HashSet<string>() { "CreateProposal", "Release" };
 
     protected static GovernanceMechanism MapGovernanceMechanism(string governanceToken)
     {
@@ -38,5 +39,12 @@ public class MapperBase : Profile
     protected static string MapChainIdToBase58(int chainId)
     {
         return ChainHelper.ConvertChainIdToBase58(chainId);
+    }
+    
+    protected static NetworkDaoCreatedByEnum MapCreateBy(string methodName)
+    {
+        return UserCreatedMethods.Contains(methodName)
+            ? NetworkDaoCreatedByEnum.USER
+            : NetworkDaoCreatedByEnum.SYSTEM_CONTRACT;
     }
 }

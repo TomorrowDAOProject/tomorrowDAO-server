@@ -12,7 +12,11 @@ using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Governance.Dto;
+using TomorrowDAOServer.NetworkDao;
 using TomorrowDAOServer.NetworkDao.Dto;
+using TomorrowDAOServer.NetworkDao.Index;
+using TomorrowDAOServer.NetworkDao.Migrator;
+using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Proposal.Dto;
@@ -32,6 +36,8 @@ using TomorrowDAOServer.Users.Indexer;
 using TomorrowDAOServer.Vote;
 using TomorrowDAOServer.Vote.Dto;
 using TomorrowDAOServer.Vote.Index;
+using IndexerProposal = TomorrowDAOServer.Proposal.Index.IndexerProposal;
+using ProposalIndex = TomorrowDAOServer.Entities.ProposalIndex;
 using TokenInfo = AElf.Contracts.MultiToken.TokenInfo;
 
 namespace TomorrowDAOServer;
@@ -135,38 +141,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<File, FileDto>().ReverseMap();
         CreateMap<PermissionInfo, PermissionInfoDto>().ReverseMap();
 
-        CreateMap<ExplorerProposalResult, ProposalListResponse>()
-            .ForMember(des => des.DeployTime,
-                opt => opt.MapFrom(src => src.ReleasedTime.DefaultIfEmpty(src.ReleasedTime).ToUtcMilliSeconds()))
-            .ForMember(des => des.GovernanceType, opt => opt.MapFrom(src => src.ProposalType))
-            .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.ProposalType))
-            .ForMember(des => des.ProposalStatus, opt => opt.MapFrom(src => src.Status))
-            .ForMember(des => des.StartTime, opt => opt.MapFrom(src => src.CreateAt.ToUtcMilliSeconds()))
-            .ForMember(des => des.ExpiredTime, opt => opt.MapFrom(src => src.ExpiredTime.ToUtcMilliSeconds()))
-            .ForMember(des => des.EndTime,
-                opt => opt.MapFrom(src => src.ReleasedTime.DefaultIfEmpty(src.ExpiredTime).ToUtcMilliSeconds()))
-            .ForMember(des => des.ApprovedCount, opt => opt.MapFrom(src => src.Approvals))
-            .ForMember(des => des.RejectionCount, opt => opt.MapFrom(src => src.Rejections))
-            .ForMember(des => des.AbstentionCount, opt => opt.MapFrom(src => src.Abstentions))
-            .ForMember(des => des.TotalVoteCount,
-                opt => opt.MapFrom(src => src.Approvals + src.Rejections + src.Abstentions))
-            .ForMember(des => des.MinimalRequiredThreshold,
-                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalApprovalThreshold))
-            .ForMember(des => des.MinimalApproveThreshold,
-                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalApprovalThreshold))
-            .ForMember(des => des.MinimalVoteThreshold,
-                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MinimalVoteThreshold))
-            .ForMember(des => des.MaximalRejectionThreshold,
-                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MaximalRejectionThreshold))
-            .ForMember(des => des.MaximalAbstentionThreshold,
-                opt => opt.MapFrom(src => src.OrganizationInfo.ReleaseThreshold.MaximalAbstentionThreshold))
-            .ForMember(des => des.Transaction, opt => opt.MapFrom(src => new ProposalListResponse.TransactionDto
-            {
-                ContractMethodName = src.ContractMethod,
-                ToAddress = src.ContractAddress
-            }))
-            .ReverseMap();
-
         CreateMap<TreasuryFundDto, TreasuryAssetsDto>()
             .ForMember(des => des.Amount, opt => opt.MapFrom(src => src.AvailableFunds));
 
@@ -199,8 +173,34 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<IndexerGovernanceSchemeDto, GovernanceSchemeDto>();
         CreateMap<IndexerGovernanceScheme, GovernanceScheme>()
             .ForMember(des => des.GovernanceMechanism, opt
-                => opt.MapFrom(source => source.GovernanceMechanism.ToString()))
+                => opt.MapFrom(source => source.GovernanceMechanism.ToString()));
+
+        //NetworkDAO Migrator
+        CreateMap<TomorrowDAOServer.NetworkDao.Index.IndexerProposal, TomorrowDAOServer.NetworkDao.NetworkDaoProposalIndex>();
+        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoProposalIndex, TomorrowDAOServer.NetworkDao.NetworkDaoProposalListIndex>()
+            .ForMember(des => des.CreatedTxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId))
+            .ForMember(des => des.CreatedAt, opt => opt.MapFrom(src => src.BlockTime))
+            .ForMember(des => des.CreatedBy, opt => opt.MapFrom(src => MapCreateBy(src.ContractMethod)))
             ;
+        CreateMap<TomorrowDAOServer.NetworkDao.Index.IndexerProposalVoteRecord, TomorrowDAOServer.NetworkDao.NetworkDaoProposalVoteIndex>();
+        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoProposalListIndex, GetProposalListResultDto>()
+            .ForMember(des => des.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
+            .ForMember(des => des.CreateTxId, opt => opt.MapFrom(src => src.CreatedTxId))
+            .ForMember(des => des.CreatedBy, opt => opt.MapFrom(src => src.CreatedBy.ToString()))
+            .ForMember(des => des.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(des => des.OrgAddress, opt => opt.MapFrom(src => src.OrganizationAddress))
+            .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType.ToString()));
+        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoProposalIndex, GetProposalListResultDto>()
+            .ForMember(des => des.CreateAt, opt => opt.MapFrom(src => src.SaveTime))
+            .ForMember(des => des.CreateTxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId))
+            .ForMember(des => des.CreatedBy, opt => opt.MapFrom(src => MapCreateBy(src.ContractMethod)))
+            .ForMember(des => des.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(des => des.OrgAddress, opt => opt.MapFrom(src => src.OrganizationAddress))
+            .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType.ToString()))
+            .ReverseMap();
+        CreateMap<TomorrowDAOServer.NetworkDao.Index.IndexerOrgChanged, TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex>()
+            .ForMember(des => des.OrgAddress, opt => opt.MapFrom(src => src.OrganizationAddress))
+            .ForMember(des => des.TxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId));
 
         CreateMap<IndexerVoteRecord, IndexerVoteHistoryDto>()
             .ForMember(des => des.TimeStamp, opt

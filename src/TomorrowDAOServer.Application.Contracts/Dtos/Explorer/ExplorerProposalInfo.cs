@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Enums;
 using ProposalType = TomorrowDAOServer.Common.Enum.ProposalType;
 
 namespace TomorrowDAOServer.Dtos.Explorer;
@@ -35,7 +36,7 @@ public class ExplorerProposalInfo
     public ExplorerProposalStatusEnum Status { get; set; }
     public string ReleasedTxId { get; set; }
     public DateTime ReleasedTime { get; set; }
-    public ExplorerCreatedByTypeEnum CreatedBy { get; set; }
+    public NetworkDaoCreatedByEnum CreatedBy { get; set; }
     public bool IsContractDeployed { get; set; }
     public ProposalType ProposalType { get; set; }
 }

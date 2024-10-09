@@ -6,6 +6,7 @@ using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.Monitor;
 using TomorrowDAOServer.Monitor.Http;
 using TomorrowDAOServer.Monitor.Logging;
+using TomorrowDAOServer.NetworkDao.Sync;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Referral;
@@ -61,6 +62,10 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddTransient<IScheduleSyncDataService, VoteWithdrawSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, TokenPriceUpdateService>();
         context.Services.AddTransient<IScheduleSyncDataService, ProposalNumUpdateService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoMainChainProposalSyncService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoSideChainProposalSyncService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoMainChainOrgSyncService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoSideChainOrgSyncService>();
         context.Services.AddTransient<IExchangeProvider, OkxProvider>();
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();

@@ -13,5 +13,9 @@ public enum WorkerBusinessType
     TokenPriceUpdate,
     ProposalNumUpdate,
     ReferralSync,
-    UserBalanceSync
+    UserBalanceSync,
+    NetworkDaoMainChainSync,
+    NetworkDaoSideChainSync,
+    NetworkDaoMainChainOrgSync,
+    NetworkDaoSideChainOrgSync
 }
