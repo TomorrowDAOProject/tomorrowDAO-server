@@ -10,12 +10,12 @@ using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Discussion.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Telegram.Dto;
+using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Treasury;
 using TomorrowDAOServer.Treasury.Dto;
-using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
-using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
@@ -33,10 +33,11 @@ public class DiscussionService : ApplicationService, IDiscussionService
     private readonly IUserProvider _userProvider;
     private readonly IDAOProvider _daoProvider;
     private readonly ITreasuryAssetsService _treasuryAssetsService;
+    private readonly ITelegramAppsProvider _telegramAppsProvider;
 
     public DiscussionService(IDiscussionProvider discussionProvider, ProposalProvider proposalProvider,
         IObjectMapper objectMapper, IUserProvider userProvider, IDAOProvider daoProvider,
-        ITreasuryAssetsService treasuryAssetsService)
+        ITreasuryAssetsService treasuryAssetsService, ITelegramAppsProvider telegramAppsProvider)
     {
         _discussionProvider = discussionProvider;
         _proposalProvider = proposalProvider;
@@ -44,6 +45,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
         _userProvider = userProvider;
         _daoProvider = daoProvider;
         _treasuryAssetsService = treasuryAssetsService;
+        _telegramAppsProvider = telegramAppsProvider;
     }
 
     public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
@@ -69,7 +71,16 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     private async Task<NewCommentResultDto> CommentApp(string address, NewCommentInput input)
     {
+        var (count, app) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = new List<string> { input.Alias }
+        });
+        if (count == 0)
+        {
+            return new NewCommentResultDto { Reason = "Invalid alias: not existed." };
+        }
         var commentIndex = _objectMapper.Map<NewCommentInput, CommentIndex>(input);
+        commentIndex.ProposalId = input.Alias;
         return await Comment(address, input.Alias, commentIndex);
     }
     
@@ -138,28 +149,45 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public async Task<CommentListPageResultDto> GetCommentListAsync(GetCommentListInput input)
     {
-        input.ProposalId = string.IsNullOrEmpty(input.ProposalId) ? input.Alias : input.ProposalId;
+        var isCommentProposal = string.IsNullOrEmpty(input.Alias);
+        input.ProposalId = isCommentProposal ? input.ProposalId : input.Alias;
+        CommentListPageResultDto list;
         if (string.IsNullOrEmpty(input.SkipId))
         {
             var result = await _discussionProvider.GetCommentListAsync(input);
-            return new CommentListPageResultDto
+            list = new CommentListPageResultDto
             {
                 TotalCount = result.Item1,
                 Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result.Item2),
                 HasMore = result.Item1 > input.SkipCount + input.MaxResultCount
             };
         }
-
-        var comment = await _discussionProvider.GetCommentAsync(input.SkipId) ?? new CommentIndex();
-        var totalCount = await _discussionProvider.CountCommentListAsync(input);
-        var result1 = await _discussionProvider.GetEarlierAsync(input.SkipId, input.ProposalId, comment.CreateTime,
-            input.MaxResultCount);
-        return new CommentListPageResultDto
+        else
         {
-            TotalCount = totalCount,
-            Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result1.Item2),
-            HasMore = result1.Item1 > input.SkipCount + input.MaxResultCount
-        };
+            var comment = await _discussionProvider.GetCommentAsync(input.SkipId) ?? new CommentIndex();
+            var totalCount = await _discussionProvider.CountCommentListAsync(input);
+            var result1 = await _discussionProvider.GetEarlierAsync(input.SkipId, input.ProposalId, comment.CreateTime,
+                input.MaxResultCount);
+            list = new CommentListPageResultDto
+            {
+                TotalCount = totalCount,
+                Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result1.Item2),
+                HasMore = result1.Item1 > input.SkipCount + input.MaxResultCount
+            };
+        }
+
+        if (isCommentProposal)
+        {
+            return list;
+        }
+
+        foreach (var commentDto in list.Items)
+        {
+            commentDto.Alias = commentDto.ProposalId;
+            commentDto.ProposalId = string.Empty;
+        }
+
+        return list;
     }
 
     public async Task<CommentBuildingDto> GetCommentBuildingAsync(GetCommentBuildingInput input)

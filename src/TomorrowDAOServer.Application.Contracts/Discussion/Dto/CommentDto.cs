@@ -6,6 +6,7 @@ public class CommentDto
     public string ChainId { get; set; }
     public string DAOId { get; set; }
     public string ProposalId { get; set; }
+    public string Alias { get; set; }
     public string Commenter { get; set; }
     public string Comment { get; set; }
     public string ParentId { get; set; }
