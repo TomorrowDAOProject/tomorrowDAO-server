@@ -95,5 +95,4 @@ public class LoadTelegramAppsDetailInput
 public class LoadAllTelegramAppsDetailInput
 {
     public string ChainId { get; set; }
-    public Dictionary<string, string> Header { get; set; }
 }

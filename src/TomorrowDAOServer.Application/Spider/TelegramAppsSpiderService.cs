@@ -122,10 +122,11 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         return res;
     }
 
-    public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(LoadAllTelegramAppsDetailInput input)
+    public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(string chainId)
     {
-        await CheckAddress(input.ChainId);
+        await CheckAddress(chainId);
         var url = _telegramOptions.CurrentValue.DetailUrl;
+        var header = _telegramOptions.CurrentValue.TgHeader;
         var appList = await _telegramAppsProvider.GetAllAsync();
         var needLoadDetailAppList = appList.Where(x => string.IsNullOrEmpty(x.Url)).ToList();
         var dic = needLoadDetailAppList.ToDictionary(x => x.Title,
@@ -134,7 +135,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
                 : x.Title.Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower());
         var loadRes = await LoadTelegramAppsDetailAsync(new LoadTelegramAppsDetailInput
         {
-            ChainId = input.ChainId, Url = url, Header = input.Header, Apps = dic
+            ChainId = chainId, Url = url, Header = header, Apps = dic
         });
 
         return loadRes;
