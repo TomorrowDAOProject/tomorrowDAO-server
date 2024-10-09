@@ -121,18 +121,17 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                 item.Record.ValidRankingVote = true;
                 item.Record.Alias = item.Alias;
                 item.Record.Title = telegramAppIndex?.Title ?? string.Empty;
-                if (telegramAppIndex != null)
+                if (telegramAppIndex != null && telegramAppIndex.Categories != null)
                 {
-                    choices.Add(new DiscoverChoiceIndex
+                    choices.AddRange(telegramAppIndex.Categories.Select(category => new DiscoverChoiceIndex
                     {
-                        Id = GuidHelper.GenerateGrainId(chainId, item.Record.Voter, telegramAppIndex.TelegramAppCategory.ToString(),
-                            DiscoverChoiceType.Vote.ToString()),
+                        Id = GuidHelper.GenerateGrainId(chainId, item.Record.Voter, category.ToString(), DiscoverChoiceType.Vote.ToString()),
                         ChainId = chainId,
                         Address = item.Record.Voter,
-                        TelegramAppCategory = telegramAppIndex.TelegramAppCategory,
+                        TelegramAppCategory = category,
                         DiscoverChoiceType = DiscoverChoiceType.Vote,
                         UpdateTime = DateTime.UtcNow
-                    });
+                    }));
                 }
             }
 

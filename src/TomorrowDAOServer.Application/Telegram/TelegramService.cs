@@ -44,10 +44,28 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         _daoAliasProvider = daoAliasProvider;
     }
 
-    public async Task SetCategoryAsync(SetCategoryInput input)
+    public async Task SetCategoryAsync(string chainId)
     {
-        await CheckAddress(input.ChainId);
-        var typesDic = ParseTypes(input.Types.Split(CommonConstant.Comma));
+        await CheckAddress(chainId);
+        var types = _telegramOptions.CurrentValue.Types;
+        if (types.IsNullOrEmpty())
+        {
+            var allCategories = Enum.GetValues(typeof(TelegramAppCategory)).Cast<TelegramAppCategory>().ToList();
+            var random = new Random();
+
+            var all = await _telegramAppsProvider.GetAllAsync();
+
+            foreach (var app in all)
+            {
+                var randomCategories = allCategories.OrderBy(x => random.Next()).Take(random.Next(1, 4)).ToList();
+                app.Categories = randomCategories; 
+            }
+
+            await _telegramAppsProvider.BulkAddOrUpdateAsync(all);
+            return;
+        }
+        
+        var typesDic = ParseTypes(types.Split(CommonConstant.Comma));
         var aliases = typesDic.Keys.ToList();
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
@@ -57,26 +75,29 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         {
             if (typesDic.TryGetValue(app.Alias, out var category))
             {
-                app.TelegramAppCategory = category; 
+                app.Categories = category; 
             }
         }
         await _telegramAppsProvider.BulkAddOrUpdateAsync(exists);
     }
     
-    private Dictionary<string, TelegramAppCategory> ParseTypes(IEnumerable<string> types)
+    private Dictionary<string, List<TelegramAppCategory>> ParseTypes(IEnumerable<string> types)
     {
-        var result = new Dictionary<string, TelegramAppCategory>();
+        var result = new Dictionary<string, List<TelegramAppCategory>>();
+    
         foreach (var parts in types.Select(type => type.Split(CommonConstant.Colon)))
         {
-            if (parts.Length != 2 || !Enum.TryParse(parts[1], out TelegramAppCategory category))
+            if (parts.Length != 2)
             {
                 continue;
             }
 
-            if (!result.ContainsKey(parts[0]))
-            {
-                result.Add(parts[0].Trim(), category);
-            }
+            var categories = parts[1].Split(CommonConstant.Add)
+                .Select(cat => cat.Trim())
+                .Where(cat => Enum.TryParse(cat, out TelegramAppCategory category))
+                .Select(cat => (TelegramAppCategory)Enum.Parse(typeof(TelegramAppCategory), cat))
+                .ToList();
+            result.Add(parts[0].Trim(), categories);
         }
 
         return result;

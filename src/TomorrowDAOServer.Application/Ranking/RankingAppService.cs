@@ -394,16 +394,18 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _logger.LogInformation("VoteToCategoryBegin chainId {chainId}", chainId);
         var appList = await _telegramAppsProvider.GetAllAsync();
         var voteRecordList = await _voteProvider.GetNeedMoveVoteRecordListAsync();
-        var appDictionary = appList.ToDictionary(app => app.Alias, app => app.TelegramAppCategory);
+        var appDictionary = appList.ToDictionary(app => app.Alias, app => app.Categories);
         var voterCategoryDic = voteRecordList
-            .Where(record => !string.IsNullOrEmpty(record.Alias))  
+            .Where(record => !string.IsNullOrEmpty(record.Alias))
             .GroupBy(record => record.Voter)
             .ToDictionary(
-                group => group.Key,  
+                group => group.Key,
                 group => group
-                    .Select(record => record.Alias).Distinct()  
-                    .Where(alias => appDictionary.TryGetValue(alias, out _)) 
-                    .Select(alias => appDictionary[alias]).ToList()  
+                    .SelectMany(record => appDictionary.TryGetValue(record.Alias, out var categories) 
+                        ? categories 
+                        : Enumerable.Empty<TelegramAppCategory>())
+                    .Distinct()
+                    .ToList()
             );
         var toAdd = new List<DiscoverChoiceIndex>();
         foreach (var (voter, categories) in voterCategoryDic)

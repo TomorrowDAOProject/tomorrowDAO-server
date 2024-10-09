@@ -81,10 +81,10 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var choiceList = await _discoverChoiceProvider.GetByAddressAsync(input.ChainId, address);
         var types = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
         var appList = (await _telegramAppsProvider.GetAllHasUrlAsync())
-            .Where(x => !string.IsNullOrEmpty(x.Url))
-            .Where(x => x.TelegramAppCategory != TelegramAppCategory.None).ToList();
-        var userInterestedAppList = appList.Where(app => types.Contains(app.TelegramAppCategory)).ToList();
-        var userNotInterestedAppList = appList.Where(app => !types.Contains(app.TelegramAppCategory)).ToList();
+            .Where(x => x.Categories is { Count: > 0 })
+            .Where(x => !string.IsNullOrEmpty(x.Url)).ToList();
+        var userInterestedAppList = appList.Where(app => types.Intersect(app.Categories).Any()).ToList();
+        var userNotInterestedAppList = appList.Where(app => !types.Intersect(app.Categories).Any()).ToList();
         var recommendApps = new List<DiscoverAppDto>();
         var interestedCount = (int)(input.MaxResultCount * CommonConstant.InterestedPercent);
         var notInterestedCount = input.MaxResultCount - interestedCount;
@@ -93,7 +93,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         if (recommendApps.Count < input.MaxResultCount)
         {
             var remainingCount = input.MaxResultCount - recommendApps.Count;
-            var remainingApps = appList.Where(app => !recommendApps.Select(r => r.Alias).Contains(app.Id)).ToList();
+            var remainingApps = appList.Where(app => !recommendApps.Select(r => r.Alias).Contains(app.Alias)).ToList();
             AddRandomApps(remainingApps, remainingCount, recommendApps);
         }
         await FillTotalPoints(input.ChainId, recommendApps);
@@ -138,7 +138,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     private static TelegramAppCategory CheckCategory(string category)
     {
-        if (Enum.TryParse<TelegramAppCategory>(category, true, out var categoryEnum) && categoryEnum != TelegramAppCategory.None)
+        if (Enum.TryParse<TelegramAppCategory>(category, true, out var categoryEnum))
         {
             return categoryEnum;
         }

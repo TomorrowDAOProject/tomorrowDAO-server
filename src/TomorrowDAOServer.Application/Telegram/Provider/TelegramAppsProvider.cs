@@ -99,7 +99,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {
-            q => q.Term(i => i.Field(f => f.TelegramAppCategory).Value(category)),
+            q => q.Terms(t => t.Field(f => f.Categories).Terms(category)),
             q => q.Exists(i => i.Field(f => f.Url))
         };
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
