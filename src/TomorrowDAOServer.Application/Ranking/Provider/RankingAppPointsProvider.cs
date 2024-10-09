@@ -201,8 +201,11 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
     public async Task<Dictionary<string, long>> GetTotalPointsByAliasAsync(string chainId, List<string> aliases)
     {
         var query = new QueryContainerDescriptor<RankingAppUserPointsIndex>();
+        if (aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, long>();
+        }
 
-        // 构建查询条件
         var mustQuery = query.Bool(b => b.Must(
                 m => m.Term(t => t.Field(f => f.ChainId).Value(chainId)) 
                      && m.Terms(t => t.Field(f => f.Alias).Terms(aliases))    
