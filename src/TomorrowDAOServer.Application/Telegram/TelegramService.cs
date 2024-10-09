@@ -48,6 +48,23 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     {
         await CheckAddress(chainId);
         var types = _telegramOptions.CurrentValue.Types;
+        if (types.IsNullOrEmpty())
+        {
+            var allCategories = Enum.GetValues(typeof(TelegramAppCategory)).Cast<TelegramAppCategory>().ToList();
+            var random = new Random();
+
+            var all = await _telegramAppsProvider.GetAllAsync();
+
+            foreach (var app in all)
+            {
+                var randomCategories = allCategories.OrderBy(x => random.Next()).Take(random.Next(1, 4)).ToList();
+                app.Categories = randomCategories; 
+            }
+
+            await _telegramAppsProvider.BulkAddOrUpdateAsync(all);
+            return;
+        }
+        
         var typesDic = ParseTypes(types.Split(CommonConstant.Comma));
         var aliases = typesDic.Keys.ToList();
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
