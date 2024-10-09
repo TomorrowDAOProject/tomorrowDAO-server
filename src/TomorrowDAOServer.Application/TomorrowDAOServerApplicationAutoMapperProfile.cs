@@ -5,6 +5,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Contract.Dto;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
+using TomorrowDAOServer.Discover.Dto;
 using TomorrowDAOServer.Discussion;
 using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Dtos;
@@ -275,5 +276,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.InviteCode))
             ;
         CreateMap<UserBalance, UserBalanceIndex>();
+        CreateMap<TelegramAppIndex, DiscoverAppDto>();
     }
 }

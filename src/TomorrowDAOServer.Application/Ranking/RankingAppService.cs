@@ -16,6 +16,7 @@ using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.MQ;
@@ -25,7 +26,6 @@ using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
-using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
@@ -69,6 +69,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IPortkeyProvider _portkeyProvider;
     private readonly IUserBalanceProvider _userBalanceProvider;
     private readonly IUserPointsRecordProvider _userPointsRecordProvider;
+    private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -81,7 +82,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider,
         IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider,
         IUserAppService userAppService, IPortkeyProvider portkeyProvider, IUserBalanceProvider userBalanceProvider,
-        IUserPointsRecordProvider userPointsRecordProvider)
+        IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -103,6 +104,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _portkeyProvider = portkeyProvider;
         _userBalanceProvider = userBalanceProvider;
         _userPointsRecordProvider = userPointsRecordProvider;
+        _discoverChoiceProvider = discoverChoiceProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -307,6 +309,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             case "5":
                 await ReferralInviteCountToGrain(chainId);
                 break;
+            case "6":
+                await VoteToCategory(chainId);
+                break;
             case "9":
                 searchValue = await _rankingAppPointsRedisProvider.GetAsync(key);
                 _logger.LogInformation("RedisValue key {key} value {value}", key, searchValue);
@@ -383,7 +388,41 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         await _referralInviteProvider.IncrementInviteCountAsync(chainId, inviter, 1);
         _logger.LogInformation("ReferralInviteCountToGrainEnd chainId {chainId}", chainId);
     }
-    
+
+    private async Task VoteToCategory(string chainId)
+    {
+        _logger.LogInformation("VoteToCategoryBegin chainId {chainId}", chainId);
+        var appList = await _telegramAppsProvider.GetAllAsync();
+        var voteRecordList = await _voteProvider.GetNeedMoveVoteRecordListAsync();
+        var appDictionary = appList.ToDictionary(app => app.Alias, app => app.TelegramAppCategory);
+        var voterCategoryDic = voteRecordList
+            .Where(record => !string.IsNullOrEmpty(record.Alias))  
+            .GroupBy(record => record.Voter)
+            .ToDictionary(
+                group => group.Key,  
+                group => group
+                    .Select(record => record.Alias).Distinct()  
+                    .Where(alias => appDictionary.TryGetValue(alias, out _)) 
+                    .Select(alias => appDictionary[alias]).ToList()  
+            );
+        var toAdd = new List<DiscoverChoiceIndex>();
+        foreach (var (voter, categories) in voterCategoryDic)
+        {
+            toAdd.AddRange(categories.Select(category => new DiscoverChoiceIndex
+            {
+                Id = GuidHelper.GenerateGrainId(chainId, voter, category.ToString(), DiscoverChoiceType.Vote.ToString()),
+                ChainId = chainId,
+                Address = voter,
+                TelegramAppCategory = category,
+                DiscoverChoiceType = DiscoverChoiceType.Vote,
+                UpdateTime = DateTime.UtcNow
+            }));
+        }
+
+        await _discoverChoiceProvider.BulkAddOrUpdateAsync(toAdd);
+        _logger.LogInformation("VoteToCategoryEnd chainId {chainId}", chainId);
+    }
+
     private async Task UpdateRankingAppInfo()
     {
         //update RankingAppIndex url、LongDescription、Screenshots

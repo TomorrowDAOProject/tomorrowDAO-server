@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Telegram.Dto;
 using Volo.Abp.DependencyInjection;
 
@@ -12,9 +14,12 @@ namespace TomorrowDAOServer.Telegram.Provider;
 
 public interface ITelegramAppsProvider
 {
-    Task SaveTelegramAppAsync(TelegramAppIndex telegramAppIndex);
-    Task SaveTelegramAppsAsync(List<TelegramAppIndex> telegramAppIndices);
+    Task AddOrUpdateAsync(TelegramAppIndex telegramAppIndex);
+    Task BulkAddOrUpdateAsync(List<TelegramAppIndex> telegramAppIndices);
     Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input);
+    Task<List<TelegramAppIndex>> GetAllAsync();
+    Task<List<TelegramAppIndex>> GetAllHasUrlAsync();
+    Task<List<TelegramAppIndex>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount);
 }
 
 public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
@@ -29,13 +34,17 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         _telegramAppIndexRepository = telegramAppIndexRepository;
     }
 
-    public async Task SaveTelegramAppAsync(TelegramAppIndex telegramAppIndex)
+    public async Task AddOrUpdateAsync(TelegramAppIndex telegramAppIndex)
     {
         await _telegramAppIndexRepository.AddOrUpdateAsync(telegramAppIndex);
     }
 
-    public async Task SaveTelegramAppsAsync(List<TelegramAppIndex> telegramAppIndices)
+    public async Task BulkAddOrUpdateAsync(List<TelegramAppIndex> telegramAppIndices)
     {
+        if (telegramAppIndices == null || telegramAppIndices.IsNullOrEmpty())
+        {
+            return;
+        }
         await _telegramAppIndexRepository.BulkAddOrUpdateAsync(telegramAppIndices);
     }
 
@@ -66,5 +75,34 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _telegramAppIndexRepository.GetListAsync(Filter);
+    }
+
+    public async Task<List<TelegramAppIndex>> GetAllAsync()
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>();
+        QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
+    }
+
+    public async Task<List<TelegramAppIndex>> GetAllHasUrlAsync()
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
+        {
+            q => q.Exists(i => i.Field(f => f.Url))
+
+        };
+        QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
+    }
+
+    public async Task<List<TelegramAppIndex>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.TelegramAppCategory).Value(category)),
+            q => q.Exists(i => i.Field(f => f.Url))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _telegramAppIndexRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount)).Item2;
     }
 }

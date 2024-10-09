@@ -29,6 +29,21 @@ public class TelegramController : AbpController
         _telegramAppsSpiderService = telegramAppsSpiderService;
         _telegramService = telegramService;
     }
+    
+    [HttpGet("set-category")]
+    [Authorize]
+    public async Task SetCategoryAsync(SetCategoryInput input)
+    { 
+        await _telegramService.SetCategoryAsync(input);
+    }
+    
+    [HttpGet("load-all")]
+    [Authorize]
+    public async Task LoadAllTelegramAppsAsync(LoadAllTelegramAppsInput input)
+    { 
+        var apps = await _telegramAppsSpiderService.LoadAllTelegramAppsAsync(input);
+        await _telegramService.SaveNewTelegramAppsAsync(apps);
+    }
 
     [HttpGet("load")]
     [Authorize]
@@ -36,7 +51,7 @@ public class TelegramController : AbpController
     {
         var telegramAppDtos = await _telegramAppsSpiderService.LoadTelegramAppsAsync(input);
 
-        await _telegramService.SaveTelegramAppsAsync(telegramAppDtos);
+        await _telegramService.SaveNewTelegramAppsAsync(telegramAppDtos);
         return telegramAppDtos;
     }
 
@@ -46,7 +61,15 @@ public class TelegramController : AbpController
     {
         var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadTelegramAppsDetailAsync(input);
         
-        return await _telegramService.SaveTelegramAppDetailAsync(input, telegramAppDetailDtos);
+        return await _telegramService.SaveTelegramAppDetailAsync(telegramAppDetailDtos);
+    }
+    
+    [HttpPost("load-all-detail")]
+    [Authorize]
+    public async Task LoadAllTelegramAppsDetailAsync(string chainId)
+    {
+        var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsDetailAsync(chainId);
+        await _telegramService.SaveTelegramAppDetailAsync(telegramAppDetailDtos);
     }
 
     [HttpPost("save")]
