@@ -30,7 +30,6 @@ public class SaveTelegramAppsInput
 public class SetCategoryInput
 {
     public string ChainId { get; set; }
-    public string Types { get; set; }
 }
 
 public class LoadAllTelegramAppsInput

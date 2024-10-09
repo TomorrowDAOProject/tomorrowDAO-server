@@ -8,4 +8,5 @@ public class TelegramOptions
     public List<string> LoadUrlList { get; set; } = new();
     public string DetailUrl { get; set; }
     public Dictionary<string, string> TgHeader { get; set; } = new();
+    public string Types { get; set; }
 }

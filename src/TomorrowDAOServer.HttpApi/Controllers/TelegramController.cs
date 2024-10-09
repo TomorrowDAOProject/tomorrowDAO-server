@@ -32,9 +32,9 @@ public class TelegramController : AbpController
     
     [HttpGet("set-category")]
     [Authorize]
-    public async Task SetCategoryAsync(SetCategoryInput input)
+    public async Task SetCategoryAsync(string chainId)
     { 
-        await _telegramService.SetCategoryAsync(input);
+        await _telegramService.SetCategoryAsync(chainId);
     }
     
     [HttpGet("load-all")]
