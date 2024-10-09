@@ -64,7 +64,7 @@ public class TelegramController : AbpController
         return await _telegramService.SaveTelegramAppDetailAsync(telegramAppDetailDtos);
     }
     
-    [HttpPost("load-all-detail")]
+    [HttpGet("load-all-detail")]
     [Authorize]
     public async Task LoadAllTelegramAppsDetailAsync(string chainId)
     {
