@@ -75,4 +75,11 @@ public class RankingController : AbpController
     {
         return "success";
     }
+    
+    [HttpGet("activity-result")]
+    [Authorize]
+    public async Task GetRankingActivityResultAsync(string chainId, string proposalId)
+    {
+        await _rankingAppService.GetRankingActivityResultAsync(chainId, proposalId);
+    }
 }
