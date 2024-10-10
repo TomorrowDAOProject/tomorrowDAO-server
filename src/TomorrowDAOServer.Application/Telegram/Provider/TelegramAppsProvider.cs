@@ -19,7 +19,7 @@ public interface ITelegramAppsProvider
     Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input);
     Task<List<TelegramAppIndex>> GetAllAsync();
     Task<List<TelegramAppIndex>> GetAllHasUrlAsync();
-    Task<List<TelegramAppIndex>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount);
+    Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount);
 }
 
 public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
@@ -95,7 +95,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
     }
 
-    public async Task<List<TelegramAppIndex>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount)
+    public async Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {
@@ -103,6 +103,6 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
             q => q.Exists(i => i.Field(f => f.Url))
         };
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return (await _telegramAppIndexRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount)).Item2;
+        return await _telegramAppIndexRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount);
     }
 }

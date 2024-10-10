@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Discover;
 using TomorrowDAOServer.Discover.Dto;
 using Volo.Abp;
@@ -28,16 +29,16 @@ public class DiscoverController
         return await _discoverService.DiscoverViewedAsync(chainId);
     }
     
-    [HttpGet("choose")]
+    [HttpPost("choose")]
     [Authorize]
-    public async Task<bool> DiscoverChooseAsync(string chainId, List<string> choices)
+    public async Task<bool> DiscoverChooseAsync(GetDiscoverChooseInput input)
     {
-        return await _discoverService.DiscoverChooseAsync(chainId, choices);
+        return await _discoverService.DiscoverChooseAsync(input.ChainId, input.Choices);
     }
     
     [HttpGet("app-list")]
     [Authorize]
-    public async Task<List<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
+    public async Task<PageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
         return await _discoverService.GetDiscoverAppListAsync(input);
     }

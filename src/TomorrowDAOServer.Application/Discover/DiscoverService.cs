@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Discover.Dto;
 using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
@@ -64,7 +65,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return true;
     }
 
-    public async Task<List<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
+    public async Task<PageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
         if (input.Category == CommonConstant.Recommend)
         {
@@ -74,7 +75,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return await GetCategoryAppListAsync(input);
     }
 
-    private async Task<List<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input)
+    private async Task<PageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
@@ -97,16 +98,22 @@ public class DiscoverService : ApplicationService, IDiscoverService
             AddRandomApps(remainingApps, remainingCount, recommendApps);
         }
         await FillTotalPoints(input.ChainId, recommendApps);
-        return recommendApps.ToList();
+        return new PageResultDto<DiscoverAppDto>
+        {
+            TotalCount = input.MaxResultCount, Data = recommendApps.ToList()
+        };
     }
     
-    private async Task<List<DiscoverAppDto>> GetCategoryAppListAsync(GetDiscoverAppListInput input)
+    private async Task<PageResultDto<DiscoverAppDto>> GetCategoryAppListAsync(GetDiscoverAppListInput input)
     {
         var category = CheckCategory(input.Category);
-        var appList = await _telegramAppsProvider.GetByCategoryAsync(category, input.SkipCount, input.MaxResultCount);
+        var (totalCount, appList) = await _telegramAppsProvider.GetByCategoryAsync(category, input.SkipCount, input.MaxResultCount);
         var categoryApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(appList);
         await FillTotalPoints(input.ChainId, categoryApps);
-        return categoryApps;
+        return new PageResultDto<DiscoverAppDto>
+        {
+            TotalCount = totalCount, Data = categoryApps
+        };
     }
     
     private void AddRandomApps(IReadOnlyCollection<TelegramAppIndex> appList, int count, List<DiscoverAppDto> targetList)
