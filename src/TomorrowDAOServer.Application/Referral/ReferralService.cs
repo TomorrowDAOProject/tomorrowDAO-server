@@ -85,7 +85,10 @@ public class ReferralService : ApplicationService, IReferralService
             EstimatedReward = estimatedReward,
             AccountCreation = accountCreation,
             VotigramVote = votigramVote,
-            VotigramActivityVote = votigramActivityVote
+            VotigramActivityVote = votigramActivityVote,
+            StartTime = startTime,
+            EndTime = endTime,
+            DuringCycle = true
         };
     }
 
