@@ -284,12 +284,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task MoveHistoryDataAsync(string chainId, string type, string key, string value)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
-        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
-        {
-            throw new UserFriendlyException("Access denied.");
-        }
-
+        var address = await CheckAddress(chainId);
         _logger.LogInformation("MoveHistoryDataAsync address {address} chainId {chainId} type {type}", address, chainId,
             type);
         string searchValue;
@@ -423,7 +418,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         await _discoverChoiceProvider.BulkAddOrUpdateAsync(toAdd);
-        _logger.LogInformation("VoteToCategoryEnd chainId {chainId}", chainId);
+        _logger.LogInformation("VoteToCategoryEnd chainId {chainId} count {count}", chainId, toAdd.Count);
     }
 
     private async Task UpdateRankingAppInfo()
@@ -485,6 +480,30 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             ExceptionHelper.ThrowSystemException("liking", e);
             return 0;
         }
+    }
+
+    public async Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId)
+    {
+        await CheckAddress(chainId);
+        var voters = await _voteProvider.GetDistinctVotersAsync(proposalId);
+        var tasks = voters.Select(async voter => 
+        {
+            var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(voter);
+            return (Voter: voter, Points: points);
+        }).ToList();
+        var voterPointsList = await Task.WhenAll(tasks);
+        var sortedVoters = voterPointsList.OrderByDescending(vp => vp.Points).ToList();
+        var resultDto = new RankingActivityResultDto
+        {
+            Data = sortedVoters.Select((vp, index) => new RankingActivityUserInfotDto
+            {
+                Rank = index + 1,
+                Address = vp.Voter,
+                Points = vp.Points
+            }).ToList()
+        };
+    
+        return resultDto;
     }
 
     private async Task SaveVotingRecordAsync(string chainId, string address,
@@ -791,5 +810,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private bool IsValidReferralActivity(ReferralInviteRelationIndex referral, DateTime voteTime)
     {
         return IsValidReferral(referral) && _rankingOptions.CurrentValue.IsReferralActive(voteTime);
+    }
+    
+    private async Task<string> CheckAddress(string chainId)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
+        {
+            throw new UserFriendlyException("Access denied.");
+        }
+
+        return address;
     }
 }
