@@ -6,4 +6,7 @@ public class InviteDetailDto
     public long AccountCreation { get; set; }
     public long VotigramVote { get; set; }
     public long VotigramActivityVote { get; set; }
+    public long StartTime { get; set; }
+    public long EndTime { get; set; }
+    public bool DuringCycle { get; set; }
 }
