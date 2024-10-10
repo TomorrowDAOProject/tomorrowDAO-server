@@ -68,12 +68,14 @@ public class ReferralService : ApplicationService, IReferralService
     public async Task<InviteDetailDto> InviteDetailAsync(string chainId)
     {
         var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
-        if (!_rankingOptions.CurrentValue.ReferralActivityValid)
+        var currentCycle = await _referralCycleProvider.GetCurrentCycleAsync();
+        if (!_rankingOptions.CurrentValue.ReferralActivityValid || !IsCycleValid(currentCycle))
         {
             return new InviteDetailDto();
         }
 
-        var (startTime, endTime) = await GetDetailTime();
+        var startTime = currentCycle.StartTime;
+        var endTime = currentCycle.StartTime;
         var accountCreation = await _referralInviteProvider.GetAccountCreationAsync(startTime, endTime, chainId, addressCaHash);
         var votigramVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true);
         var votigramActivityVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true, true);
@@ -112,10 +114,6 @@ public class ReferralService : ApplicationService, IReferralService
     public async Task<ReferralActiveConfigDto> ConfigAsync()
     {
         var cycles = await _referralCycleProvider.GetEffectCyclesAsync();
-        if (cycles.IsNullOrEmpty())
-        {
-            return _rankingOptions.CurrentValue.ParseReferralActiveTimes();
-        }
         
         return new ReferralActiveConfigDto
         {
@@ -184,18 +182,6 @@ public class ReferralService : ApplicationService, IReferralService
             Id = GuidHelper.GenerateGrainId(chainId, startTime, endTime),
             ChainId = chainId, StartTime = startTime, EndTime = endTime, PointsDistribute = input.PointsDistribute
         });
-    }
-
-    private async Task<Tuple<long, long>> GetDetailTime()
-    {
-        var currentCycle = await _referralCycleProvider.GetCurrentCycleAsync();
-        if (IsCycleValid(currentCycle))
-        {
-            return new Tuple<long, long>(currentCycle.StartTime, currentCycle.EndTime);
-        }
-        
-        var (_, latest) = _rankingOptions.CurrentValue.IsLatestReferralActiveEnd();
-        return new Tuple<long, long>(latest.StartTime, latest.StartTime);
     }
 
     private async Task<Tuple<long, long>> GetLeaderBoardTime()
