@@ -102,6 +102,7 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
         try
         {
             var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+            var recordDiscover = _rankingOptions.CurrentValue.RecordDiscover;
             var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId) && x.Option == VoteOption.Approved && x.Amount == 1)
                 .Select(x => x.VotingItemId).Distinct().ToList();
             var rankingProposalIds = (await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds))
@@ -121,13 +122,14 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                 item.Record.ValidRankingVote = true;
                 item.Record.Alias = item.Alias;
                 item.Record.Title = telegramAppIndex?.Title ?? string.Empty;
-                if (telegramAppIndex != null && telegramAppIndex.Categories != null)
+                if (recordDiscover && telegramAppIndex is { Categories: not null })
                 {
+                    var address = item.Record.Voter;
                     choices.AddRange(telegramAppIndex.Categories.Select(category => new DiscoverChoiceIndex
                     {
-                        Id = GuidHelper.GenerateGrainId(chainId, item.Record.Voter, category.ToString(), DiscoverChoiceType.Vote.ToString()),
+                        Id = GuidHelper.GenerateGrainId(chainId, address, category.ToString(), DiscoverChoiceType.Vote.ToString()),
                         ChainId = chainId,
-                        Address = item.Record.Voter,
+                        Address = address,
                         TelegramAppCategory = category,
                         DiscoverChoiceType = DiscoverChoiceType.Vote,
                         UpdateTime = DateTime.UtcNow
