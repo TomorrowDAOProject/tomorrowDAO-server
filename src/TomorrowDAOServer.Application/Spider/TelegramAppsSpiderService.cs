@@ -85,7 +85,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         }
         loadApps = loadApps.GroupBy(app => app.Alias).Select(group => group.First()) 
             .ToList();
-
+        _logger.LogInformation("LoadAllTelegramAppsAsyncEnd count {count}", loadApps.Count);
         return loadApps;
     }
 
@@ -138,6 +138,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             ChainId = chainId, Url = url, Header = header, Apps = dic
         });
 
+        _logger.LogInformation("LoadAllTelegramAppsDetailAsyncEnd count {count}", loadRes.Count);
         return loadRes;
     }
 
