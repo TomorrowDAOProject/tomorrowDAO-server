@@ -36,6 +36,7 @@ public class RankingOptions
     public string ReferralDomain { get; set; }
     public List<string> ReferralPointsAddressList { get; set; } = new();
     public bool RecordDiscover { get; set; } = false;
+    public bool ReferralActivityValid { get; set; } = true;
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {
