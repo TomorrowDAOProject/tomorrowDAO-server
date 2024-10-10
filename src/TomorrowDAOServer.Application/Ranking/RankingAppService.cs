@@ -481,17 +481,34 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
     }
 
-    public async Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId)
+    public async Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId, int count)
     {
         await CheckAddress(chainId);
-        var voters = await _voteProvider.GetDistinctVotersAsync(proposalId);
-        var tasks = voters.Select(async voter => 
+        var voters = (await _voteProvider.GetDistinctVotersAsync(proposalId)).Distinct().ToList();
+        var voterKeyMap = voters.ToDictionary(voter => voter, RedisHelper.GenerateUserPointsAllCacheKey);
+        var keys = voterKeyMap.Values.ToList();
+        var groupedKeys = keys.Select((key, index) => new { key, index })
+            .GroupBy(x => x.index / 500)
+            .Select(g => g.Select(x => x.key).ToList())
+            .ToList();
+        var allPoints = new Dictionary<string, long>();
+        foreach (var keyGroup in groupedKeys)
         {
-            var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(voter);
-            return (Voter: voter, Points: points);
+            var partialResults = await _rankingAppPointsRedisProvider.MultiGetAsync(keyGroup);
+            foreach (var (key, points) in partialResults)
+            {
+                if (long.TryParse(points, out var pointsLong))
+                {
+                    allPoints[key] = pointsLong;
+                }
+            }
+        }
+        var voterPointsList = voters.Select(voter => 
+        {
+            var key = voterKeyMap[voter];
+            return (Voter: voter, Points: allPoints.TryGetValue(key, out var points) ? points : 0L);
         }).ToList();
-        var voterPointsList = await Task.WhenAll(tasks);
-        var sortedVoters = voterPointsList.OrderByDescending(vp => vp.Points).ToList();
+        var sortedVoters = voterPointsList.OrderByDescending(vp => vp.Points).Take((int)count).ToList();
         var resultDto = new RankingActivityResultDto
         {
             Data = sortedVoters.Select((vp, index) => new RankingActivityUserInfotDto
