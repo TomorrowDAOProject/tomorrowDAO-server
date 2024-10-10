@@ -75,7 +75,7 @@ public class ReferralService : ApplicationService, IReferralService
         }
 
         var startTime = currentCycle.StartTime;
-        var endTime = currentCycle.StartTime;
+        var endTime = currentCycle.EndTime;
         var accountCreation = await _referralInviteProvider.GetAccountCreationAsync(startTime, endTime, chainId, addressCaHash);
         var votigramVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true);
         var votigramActivityVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true, true);
