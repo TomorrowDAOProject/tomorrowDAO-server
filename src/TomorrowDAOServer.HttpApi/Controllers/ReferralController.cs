@@ -56,7 +56,7 @@ public class ReferralController
         return await _referralService.ReferralBindingStatusAsync(chainId);
     }
     
-    [HttpGet("referral-binding-status")]
+    [HttpGet("set-cycle")]
     [Authorize]
     public async Task SetCycleAsync(SetCycleInput input)
     {
