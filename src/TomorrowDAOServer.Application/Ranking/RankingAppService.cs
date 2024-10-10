@@ -751,7 +751,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                                     userTaskDetail, voteTime);
                             }
                         }
-                        if (IsValidReferralActivity(referral, voteTime))
+                        if (IsValidReferralActivity(referral))
                         {
                             referral.IsReferralActivity = true;
                             _logger.LogInformation("Ranking vote, referralRelationFirstVoteInActive.{0} {1}", address, inviter);
@@ -824,9 +824,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                && !string.IsNullOrEmpty(referral.InviterCaHash);
     }
 
-    private bool IsValidReferralActivity(ReferralInviteRelationIndex referral, DateTime voteTime)
+    private bool IsValidReferralActivity(ReferralInviteRelationIndex referral)
     {
-        return IsValidReferral(referral) && _rankingOptions.CurrentValue.IsReferralActive(voteTime);
+        return IsValidReferral(referral) && _rankingOptions.CurrentValue.ReferralActivityValid;
     }
     
     private async Task<string> CheckAddress(string chainId)
