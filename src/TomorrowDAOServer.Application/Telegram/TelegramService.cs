@@ -97,7 +97,15 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
                 .Where(cat => Enum.TryParse(cat, out TelegramAppCategory category))
                 .Select(cat => (TelegramAppCategory)Enum.Parse(typeof(TelegramAppCategory), cat))
                 .ToList();
-            result.Add(parts[0].Trim(), categories);
+            var alias = parts[0].Trim();
+            if (result.TryGetValue(alias, out var existingCategories))
+            {
+                existingCategories.AddRange(categories.Where(cat => !existingCategories.Contains(cat)));
+            }
+            else
+            {
+                result.Add(alias, categories);
+            }
         }
 
         return result;
