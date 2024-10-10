@@ -49,12 +49,6 @@ public class ReferralController
         return await _referralService.ConfigAsync();
     }
     
-    [HttpGet("invite-detail-test")]
-    public async Task<InviteDetailDto> InviteDetailAsync(string chainId, string caHash)
-    {
-        return await _referralService.InviteDetailAsyncTest(chainId, caHash);
-    }
-    
     [HttpGet("referral-binding-status")]
     [Authorize]
     public async Task<ReferralBindingStatusDto> ReferralBindingStatusAsync(string chainId)
