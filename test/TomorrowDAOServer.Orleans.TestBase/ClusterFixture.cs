@@ -10,6 +10,7 @@ using AElf.Types;
 using AutoMapper;
 using Elasticsearch.Net;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.Hosting;
@@ -33,33 +34,38 @@ public class ClusterFixture : IDisposable, ISingletonDependency
     public ClusterFixture()
     {
         var builder = new TestClusterBuilder();
-        var randomPort = DateTime.UtcNow.Second * 1000 + DateTime.UtcNow.Millisecond;
-        builder.Options.BaseGatewayPort = 2000 + randomPort;
-        builder.Options.BaseSiloPort = 1000 + randomPort;
-        builder.Options.InitialSilosCount = 1;
-
         builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
-        // builder.AddClientBuilderConfigurator<TestClientBuilderConfigurator>();
+        builder.AddClientBuilderConfigurator<TestClientBuilderConfigurator>();
         Cluster = builder.Build();
-        var retryCount = 30;
-        while (true)
-        {
-            try
-            {
-                Cluster.Deploy();
-                break;
-            }
-            catch (Exception ex)
-            {
-                builder.Options.BaseGatewayPort++;
-                builder.Options.BaseSiloPort++;
-                Cluster = builder.Build();
-                if (retryCount-- <= 0)
-                {
-                    throw;
-                }
-            }
-        }
+        Cluster.Deploy();
+        // var builder = new TestClusterBuilder();
+        // var randomPort = DateTime.UtcNow.Second * 1000 + DateTime.UtcNow.Millisecond;
+        // builder.Options.BaseGatewayPort = 2000 + randomPort;
+        // builder.Options.BaseSiloPort = 1000 + randomPort;
+        // builder.Options.InitialSilosCount = 1;
+        //
+        // builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
+        // builder.AddClientBuilderConfigurator<TestClientBuilderConfigurator>();
+        // Cluster = builder.Build();
+        // var retryCount = 30;
+        // while (true)
+        // {
+        //     try
+        //     {
+        //         Cluster.Deploy();
+        //         break;
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         builder.Options.BaseGatewayPort++;
+        //         builder.Options.BaseSiloPort++;
+        //         Cluster = builder.Build();
+        //         if (retryCount-- <= 0)
+        //         {
+        //             throw;
+        //         }
+        //     }
+        // }
     }
 
     public void Dispose()
@@ -142,6 +148,13 @@ public class ClusterFixture : IDisposable, ISingletonDependency
                 })
                 .AddMemoryGrainStorage("PubSubStore")
                 .AddMemoryGrainStorageAsDefault();
+        }
+    }
+    
+    private class TestClientBuilderConfigurator : IClientBuilderConfigurator
+    {
+        public void Configure(Microsoft.Extensions.Configuration.IConfiguration configuration, IClientBuilder clientBuilder)
+        {
         }
     }
 

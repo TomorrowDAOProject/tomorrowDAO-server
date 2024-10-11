@@ -1,4 +1,5 @@
 using System;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch.Options;
 using Confluent.Kafka;
 using TomorrowDAOServer.EntityEventHandler.Core;
@@ -52,7 +53,8 @@ namespace TomorrowDAOServer.EntityEventHandler;
     //typeof(AbpEventBusRabbitMqModule),
     typeof(AbpEventBusKafkaModule),
     typeof(TomorrowDAOServerWorkerModule),
-    typeof(AbpBackgroundJobsHangfireModule)
+    typeof(AbpBackgroundJobsHangfireModule),
+    typeof(AOPExceptionModule)
     // typeof(AbpBackgroundJobsRabbitMqModule)
 )]
 public class TomorrowDAOServerEntityEventHandlerModule : AbpModule

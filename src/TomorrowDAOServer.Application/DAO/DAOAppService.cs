@@ -108,7 +108,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
             await Task.WhenAll(getTreasuryAddressTask, getGovernanceSchemeTask, getBpWithRoundTask);
             var bpInfo = getBpWithRoundTask.Result;
             daoInfo.HighCouncilTermNumber = bpInfo.Round;
-            daoInfo.HighCouncilMemberCount = bpInfo.AddressList.Count;
+            daoInfo.HighCouncilMemberCount = bpInfo.AddressList?.Count ?? 0;
         }
         else
         {
@@ -165,14 +165,15 @@ public class DAOAppService : ApplicationService, IDAOAppService
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput input)
     {
         var daoOption = _daoOptions.CurrentValue;
-        var topDaoNames = daoOption.GetTopDaoNames();  
+        var topDaoNames = daoOption.GetTopDaoNames();
         var excludeNames = new HashSet<string>(daoOption.FilteredDaoNames.Union(topDaoNames));
 
         Tuple<long, List<DAOListDto>> result;
         long totalCount;
         if (DAOType.Verified == input.DaoType)
         {
-            result = await GetNameSearchList(input, topDaoNames.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
+            result = await GetNameSearchList(input,
+                topDaoNames.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
             totalCount = topDaoNames.Count;
             var verifiedTypeDic = daoOption.GetVerifiedTypeDic();
             foreach (var dao in result.Item2)
@@ -190,6 +191,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         {
             dao.DaoType = input.DaoType.ToString();
         }
+
         return new PagedResultDto<DAOListDto>
         {
             TotalCount = totalCount,

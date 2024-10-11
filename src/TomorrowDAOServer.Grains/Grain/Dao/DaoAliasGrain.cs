@@ -16,12 +16,10 @@ public interface IDaoAliasGrain : IGrainWithStringKey
 
 public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
 {
-    private readonly ILogger<DaoAliasGrain> _logger;
     private readonly IObjectMapper _objectMapper;
 
-    public DaoAliasGrain(ILogger<DaoAliasGrain> logger, IObjectMapper objectMapper)
+    public DaoAliasGrain(IObjectMapper objectMapper)
     {
-        _logger = logger;
         _objectMapper = objectMapper;
     }
 

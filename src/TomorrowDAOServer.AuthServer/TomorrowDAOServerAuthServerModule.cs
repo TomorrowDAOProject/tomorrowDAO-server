@@ -1,3 +1,4 @@
+using AElf.ExceptionHandler;
 using Localization.Resources.AbpUi;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
@@ -46,7 +47,8 @@ namespace TomorrowDAOServer.Auth;
     typeof(TomorrowDAOServerDomainModule),
     typeof(AbpAspNetCoreSerilogModule),
     //typeof(AbpEventBusRabbitMqModule),
-    typeof(TomorrowDAOServerGrainsModule)
+    typeof(TomorrowDAOServerGrainsModule),
+    typeof(AOPExceptionModule)
 )]
 public class TomorrowDAOServerAuthServerModule : AbpModule
 {

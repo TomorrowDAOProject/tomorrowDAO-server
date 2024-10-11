@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using AElf.ExceptionHandler;
 using AutoResponseWrapper;
 using Confluent.Kafka;
 using GraphQL.Client.Abstractions;
@@ -62,7 +63,8 @@ namespace TomorrowDAOServer
         typeof(AbpSwashbuckleModule),
         typeof(AbpEventBusKafkaModule),
         // typeof(AbpCachingModule),
-        typeof(AbpBlobStoringAliyunModule)
+        typeof(AbpBlobStoringAliyunModule),
+        typeof(AOPExceptionModule)
     )]
     public class TomorrowDAOServerHttpApiHostModule : AbpModule
     {

@@ -3,7 +3,7 @@
   <Import Project="..\..\common.props" />
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>TomorrowDAOServer</RootNamespace>
 <!--    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>-->
@@ -19,6 +19,8 @@
     <PackageReference Include="Volo.Abp.FeatureManagement.Domain.Shared" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.PermissionManagement.Domain.Shared" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.SettingManagement.Domain.Shared" Version="8.2.0" />
+    <PackageReference Include="AElf.ExceptionHandler" Version="1.4.0" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.0.0"/>
   </ItemGroup>
 
   <ItemGroup>
