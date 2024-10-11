@@ -96,7 +96,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         };
         if (aliases != null && !aliases.IsNullOrEmpty())
         {
-            mustQuery.Add(q => q.Terms(t => t.Field(f => f.Alias).Terms(aliases)));
+            mustQuery.Add(q => !q.Terms(t => t.Field(f => f.Alias).Terms(aliases)));
         }
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
