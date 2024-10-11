@@ -82,8 +82,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var choiceList = await _discoverChoiceProvider.GetByAddressAsync(input.ChainId, address);
         var types = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
         var appList = (await _telegramAppsProvider.GetAllDisplayAsync(input.Aliases))
-            .Where(x => x.Categories is { Count: > 0 })
-            .Where(x => !string.IsNullOrEmpty(x.Url)).ToList();
+            .Where(x => x.Categories is { Count: > 0 }).ToList();
         var userInterestedAppList = appList.Where(app => types.Intersect(app.Categories).Any()).ToList();
         var userNotInterestedAppList = appList.Where(app => !types.Intersect(app.Categories).Any()).ToList();
         var recommendApps = new List<DiscoverAppDto>();
@@ -100,7 +99,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await FillTotalPoints(input.ChainId, recommendApps);
         return new PageResultDto<DiscoverAppDto>
         {
-            TotalCount = input.MaxResultCount, Data = recommendApps.ToList()
+            TotalCount = appList.Count, Data = recommendApps.ToList()
         };
     }
     

@@ -91,7 +91,8 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         {
             q => q.Exists(i => i.Field(f => f.Url)),
             q => q.Exists(i => i.Field(f => f.LongDescription)),
-            q => q.Exists(i => i.Field(f => f.Screenshots))
+            q => q.Exists(i => i.Field(f => f.Screenshots)),
+            q => q.Exists(i => i.Field(f => f.Categories))
         };
         if (aliases != null && !aliases.IsNullOrEmpty())
         {
