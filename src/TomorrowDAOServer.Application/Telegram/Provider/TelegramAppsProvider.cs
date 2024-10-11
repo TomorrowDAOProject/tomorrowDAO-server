@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
@@ -18,7 +19,7 @@ public interface ITelegramAppsProvider
     Task BulkAddOrUpdateAsync(List<TelegramAppIndex> telegramAppIndices);
     Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input);
     Task<List<TelegramAppIndex>> GetAllAsync();
-    Task<List<TelegramAppIndex>> GetAllDisplayAsync();
+    Task<List<TelegramAppIndex>> GetAllDisplayAsync(List<string> aliases);
     Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount);
 }
 
@@ -84,7 +85,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
     }
 
-    public async Task<List<TelegramAppIndex>> GetAllDisplayAsync()
+    public async Task<List<TelegramAppIndex>> GetAllDisplayAsync(List<string> aliases)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {
@@ -92,6 +93,10 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
             q => q.Exists(i => i.Field(f => f.LongDescription)),
             q => q.Exists(i => i.Field(f => f.Screenshots))
         };
+        if (aliases != null && !aliases.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Terms(t => t.Field(f => f.Alias).Terms(aliases)));
+        }
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
     }

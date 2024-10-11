@@ -36,7 +36,7 @@ public class DiscoverController
         return await _discoverService.DiscoverChooseAsync(input.ChainId, input.Choices);
     }
     
-    [HttpGet("app-list")]
+    [HttpPost("app-list")]
     [Authorize]
     public async Task<PageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {

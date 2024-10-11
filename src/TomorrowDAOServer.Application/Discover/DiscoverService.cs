@@ -81,7 +81,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         var choiceList = await _discoverChoiceProvider.GetByAddressAsync(input.ChainId, address);
         var types = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
-        var appList = (await _telegramAppsProvider.GetAllDisplayAsync())
+        var appList = (await _telegramAppsProvider.GetAllDisplayAsync(input.Aliases))
             .Where(x => x.Categories is { Count: > 0 })
             .Where(x => !string.IsNullOrEmpty(x.Url)).ToList();
         var userInterestedAppList = appList.Where(app => types.Intersect(app.Categories).Any()).ToList();
