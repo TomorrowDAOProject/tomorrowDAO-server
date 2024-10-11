@@ -487,8 +487,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var voters = (await _voteProvider.GetDistinctVotersAsync(proposalId)).Distinct().ToList();
         var voterKeyMap = voters.ToDictionary(voter => voter, RedisHelper.GenerateUserPointsAllCacheKey);
         var keys = voterKeyMap.Values.ToList();
+        var groupCount = _rankingOptions.CurrentValue.GroupCount;
         var groupedKeys = keys.Select((key, index) => new { key, index })
-            .GroupBy(x => x.index / 500)
+            .GroupBy(x => x.index / groupCount)
             .Select(g => g.Select(x => x.key).ToList())
             .ToList();
         var allPoints = new Dictionary<string, long>();

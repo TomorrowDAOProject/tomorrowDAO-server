@@ -37,6 +37,7 @@ public class RankingOptions
     public List<string> ReferralPointsAddressList { get; set; } = new();
     public bool RecordDiscover { get; set; } = false;
     public bool ReferralActivityValid { get; set; } = true;
+    public long GroupCount { get; set; } = 500;
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {

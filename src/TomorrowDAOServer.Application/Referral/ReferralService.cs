@@ -116,8 +116,8 @@ public class ReferralService : ApplicationService, IReferralService
 
     public async Task<ReferralActiveConfigDto> ConfigAsync()
     {
-        var cycles = await _referralCycleProvider.GetEffectCyclesAsync();
-        
+        var cycles = (await _referralCycleProvider.GetEffectCyclesAsync())
+            .OrderByDescending(c => c.StartTime).ToList();
         return new ReferralActiveConfigDto
         {
             Config = cycles.Select(cycle => new ReferralActiveDto
