@@ -62,7 +62,7 @@ public class GraphQlHelper : IGraphQlHelper, ISingletonDependency
     }
 }
 
-public class GraphQlResponseException : Exception
+public class GraphQlResponseException : System.Exception
 {
     public GraphQlResponseException(string message) : base(message)
     {
