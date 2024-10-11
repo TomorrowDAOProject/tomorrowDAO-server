@@ -99,7 +99,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await FillTotalPoints(input.ChainId, recommendApps);
         return new PageResultDto<DiscoverAppDto>
         {
-            TotalCount = appList.Count, Data = recommendApps.ToList()
+            TotalCount = appList.Count + input.Aliases?.Count ?? 0, Data = recommendApps.ToList()
         };
     }
     
