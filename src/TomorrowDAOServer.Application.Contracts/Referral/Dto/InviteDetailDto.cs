@@ -9,4 +9,6 @@ public class InviteDetailDto
     public long StartTime { get; set; }
     public long EndTime { get; set; }
     public bool DuringCycle { get; set; }
+    public string Address { get; set; }
+    public string CaHash { get; set; }
 }
