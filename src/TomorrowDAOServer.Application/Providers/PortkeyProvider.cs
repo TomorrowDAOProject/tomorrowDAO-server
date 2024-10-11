@@ -7,6 +7,7 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Options;
@@ -104,7 +105,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetSyncReferralListAsyncException startTime {0} endTime {1} skipCount {2} maxResultCount {3}",
+            Log.Error(e, "GetSyncReferralListAsyncException startTime {0} endTime {1} skipCount {2} maxResultCount {3}",
                 startTime, endTime, skipCount, maxResultCount);
         }
 
@@ -123,7 +124,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetReferralCodeCaHashAsyncException count {0}", referralCodes.Count);
+            Log.Error(e, "GetReferralCodeCaHashAsyncException count {0}", referralCodes.Count);
         }
 
         return new List<ReferralCodeInfo>();
@@ -192,7 +193,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetCaHolderTransactionAsyncException chainId {0}, caAddress {1}", chainId, caAddress);
+            Log.Error(e, "GetCaHolderTransactionAsyncException chainId {0}, caAddress {1}", chainId, caAddress);
         }
 
         return new List<CaHolderTransactionDetail>();

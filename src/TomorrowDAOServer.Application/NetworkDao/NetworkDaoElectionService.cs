@@ -7,6 +7,7 @@ using AElf.Contracts.Election;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Nito.AsyncEx;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
@@ -49,7 +50,7 @@ public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonD
                 await _contractProvider.CallTransactionAsync<PubkeyList>(CommonConstant.MainChainId,
                     getVotedCandidatesTransaction);
 
-            _logger.LogInformation("voted candidates count: {0}", pubkeyList?.Value?.Count ?? 0);
+            Log.Information("voted candidates count: {0}", pubkeyList?.Value?.Count ?? 0);
             if (pubkeyList == null || pubkeyList.Value.IsNullOrEmpty())
             {
                 return _lastQueryAmount;
@@ -69,7 +70,7 @@ public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonD
 
             await tasks.WhenAll();
             var amount = tasks.Sum(task => task.Result?.ObtainedActiveVotedVotesAmount ?? 0);
-            _logger.LogInformation("BP staking amount: {0}", amount);
+            Log.Information("BP staking amount: {0}", amount);
             if (amount > 0)
             {
                 _lastQueryAmount = amount;
@@ -80,7 +81,7 @@ public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonD
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "get BP voting staking amount error.");
+            Log.Error(e, "get BP voting staking amount error.");
             return _lastQueryAmount;
         }
     }

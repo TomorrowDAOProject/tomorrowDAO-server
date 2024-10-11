@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Election.Dto;
@@ -57,7 +58,7 @@ public class ElectionService : TomorrowDAOServerAppService, IElectionService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "get high council members error, chainId={0},daoId={1}", input.ChainId, input.DaoId);
+            Log.Error(e, "get high council members error, chainId={0},daoId={1}", input.ChainId, input.DaoId);
             throw new UserFriendlyException($"System exception occurred during querying High Council member list. {e.Message}");
         }
     }

@@ -5,6 +5,7 @@ using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -147,7 +148,7 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetUserTaskCompleteTimeAsyncException id {id}", id);
+            Log.Error(e, "GetUserTaskCompleteTimeAsyncException id {id}", id);
             return false;
         }
     }

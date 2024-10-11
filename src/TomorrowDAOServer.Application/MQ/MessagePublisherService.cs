@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Eto;
@@ -28,7 +29,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
     public async Task SendLikeMessageAsync(string chainId, string proposalId, string address,
         List<RankingAppLikeDetailDto> likeList)
     {
-        _logger.LogInformation("SendLikeMessageAsync, chainId={0}, proposalId={1}, address={2}, like={3}", chainId,
+        Log.Information("SendLikeMessageAsync, chainId={0}, proposalId={1}, address={2}, like={3}", chainId,
             proposalId, address, JsonConvert.SerializeObject(likeList));
 
         try
@@ -56,7 +57,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SendLikeMessageAsync error: chainId={0}, proposalId={1}, address={2}, like={3}",
+            Log.Error(e, "SendLikeMessageAsync error: chainId={0}, proposalId={1}, address={2}, like={3}",
                 chainId, proposalId, address, JsonConvert.SerializeObject(likeList));
         }
     }
@@ -64,7 +65,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
     public async Task SendVoteMessageAsync(string chainId, string proposalId, string address, string appAlias,
         long amount)
     {
-        _logger.LogInformation("SendVoteMessageAsync, chainId={0}, proposalId={1}, address={2}, alias={3}, amount={4}",
+        Log.Information("SendVoteMessageAsync, chainId={0}, proposalId={1}, address={2}, alias={3}, amount={4}",
             chainId, proposalId, address, appAlias, amount);
 
         try
@@ -84,7 +85,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
         }
         catch (Exception e)
         {
-            _logger.LogError(e,
+            Log.Error(e,
                 "SendVoteMessageAsync error: chainId={0}, proposalId={1}, address={2}, alias={3}, amount={4}",
                 chainId, proposalId, address, appAlias, amount);
         }
@@ -92,7 +93,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
     
     public async Task SendReferralFirstVoteMessageAsync(string chainId, string inviter, string invitee)
     {
-        _logger.LogInformation("SendReferralFirstVoteMessageAsync, chainId={0}, inviter={1}, invitee={2}", 
+        Log.Information("SendReferralFirstVoteMessageAsync, chainId={0}, inviter={1}, invitee={2}", 
             chainId, inviter, invitee);
 
         try

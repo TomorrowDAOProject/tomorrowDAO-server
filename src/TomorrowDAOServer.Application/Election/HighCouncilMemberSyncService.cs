@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -40,7 +41,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        _logger.LogInformation("high council member sync start: chainId={0}, lastEndHeight={1}, newIndexHeight={2}",
+        Log.Information("high council member sync start: chainId={0}, lastEndHeight={1}, newIndexHeight={2}",
             chainId, lastEndHeight, newIndexHeight);
 
         var daoIds = new HashSet<string>();
@@ -49,7 +50,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         var configChangedBlockHeight =
             await GetHighCouncilConfigChangedDaoId(daoIds, chainId, lastEndHeight, newIndexHeight);
 
-        _logger.LogInformation(
+        Log.Information(
             "high council member sync, changed daoIds={0}, chainId={1}, lastEndHeight={2}, newIndexHeight={3}",
             JsonConvert.SerializeObject(daoIds), chainId, lastEndHeight, newIndexHeight);
 
@@ -58,7 +59,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
             try
             {
                 var addressList = await _scriptService.GetCurrentHCAsync(chainId, daoId);
-                _logger.LogInformation("high council member count: daoId={0}, chaiId={1}, count={2}", daoId, chainId,
+                Log.Information("high council member count: daoId={0}, chaiId={1}, count={2}", daoId, chainId,
                     addressList.IsNullOrEmpty() ? 0 : addressList.Count);
                 if (!addressList.IsNullOrEmpty())
                 {
@@ -70,20 +71,20 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
             }
             catch (Exception e)
             {
-                _logger.LogError("high council member sync error, chainId={0}, daoId={1}", chainId, daoId);
+                Log.Error("high council member sync error, chainId={0}, daoId={1}", chainId, daoId);
             }
         }
 
         newIndexHeight = Math.Min(candidateElectedBlockHeight, configChangedBlockHeight);
 
-        _logger.LogInformation("high council member sync end: newIndexHeight={0}", newIndexHeight);
+        Log.Information("high council member sync end: newIndexHeight={0}", newIndexHeight);
 
         return newIndexHeight;
     }
 
     private async Task UpdateHighCouncilManagedDaoIndexAsync(string chainId, string daoId, ISet<string> addressList)
     {
-        _logger.LogInformation("Update HighCouncilManagedDAOIndex start... chain={0},daoId={1},current members={2}",
+        Log.Information("Update HighCouncilManagedDAOIndex start... chain={0},daoId={1},current members={2}",
             chainId, daoId, JsonConvert.SerializeObject(addressList));
         try
         {
@@ -95,7 +96,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
                     ChainId = chainId,
                     DaoId = daoId
                 });
-            _logger.LogInformation("Update HighCouncilManangedDAOIndex, historical members:{0}",
+            Log.Information("Update HighCouncilManangedDAOIndex, historical members:{0}",
                 JsonConvert.SerializeObject(managedDaoIndices ?? new List<HighCouncilManagedDaoIndex>()));
 
             var deleteIndices = new List<HighCouncilManagedDaoIndex>();
@@ -118,7 +119,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
                     CreateTime = DateTime.Now
                 })
                 .ToList();
-            _logger.LogInformation("Update HighCouncilManagedDAOIndex, add members={0}, delete members={1}",
+            Log.Information("Update HighCouncilManagedDAOIndex, add members={0}, delete members={1}",
                 JsonConvert.SerializeObject(addIndices), JsonConvert.SerializeObject(deleteIndices));
             if (!deleteIndices.IsNullOrEmpty())
             {
@@ -132,7 +133,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Update HighCouncilManagedDAOIndex error.");
+            Log.Error(e, "Update HighCouncilManagedDAOIndex error.");
         }
     }
 
@@ -179,7 +180,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         }
         catch (Exception e)
         {
-            _logger.LogError(e,
+            Log.Error(e,
                 "query candidate elected daoId error: chainId={0}, lastEndHeight={1}, newIndexHeight={2}", chainId,
                 lastEndHeight, newIndexHeight);
         }
@@ -218,7 +219,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         }
         catch (Exception e)
         {
-            _logger.LogError(e,
+            Log.Error(e,
                 "query high council config changed daoId error: chainId={0}, lastEndHeight={1}, newIndexHeight={2}",
                 chainId, lastEndHeight, newIndexHeight);
         }

@@ -8,6 +8,7 @@ using TomorrowDAOServer.Common.GraphQL;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.DAO.Dtos;
@@ -296,7 +297,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e,
+            Log.Error(e,
                 "GetMyParticipatedDaoListAsyncException chainId {chainId}, address {address}, skipCount {skipCount}, maxResultCount {maxResultCount}",
                 input.ChainId, input.Address, input.SkipCount, input.MaxResultCount);
             return new PageResultDto<IndexerDAOInfo>();
@@ -337,7 +338,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e,
+            Log.Error(e,
                 "GetMemberListAsync chainId {chainId}, daoId {daoId}, skipCount {skipCount}, maxResultCount {maxResultCount}",
                 listInput.ChainId, listInput.DAOId, listInput.SkipCount, listInput.MaxResultCount);
             return new PageResultDto<MemberDto>();
@@ -373,7 +374,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetIsMemberAsync chainId {chainId}, daoId {daoId}, address {address}",
+            Log.Error(e, "GetIsMemberAsync chainId {chainId}, daoId {daoId}, address {address}",
                 input.ChainId, input.DAOId, input.Address);
             return new MemberDto();
         }

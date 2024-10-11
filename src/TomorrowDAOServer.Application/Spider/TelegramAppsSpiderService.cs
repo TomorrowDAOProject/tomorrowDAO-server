@@ -11,6 +11,7 @@ using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Options;
@@ -69,7 +70,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "exec LoadTelegramAppsAsync error, {0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "exec LoadTelegramAppsAsync error, {0}", JsonConvert.SerializeObject(input));
             throw;
         }
     }
@@ -105,7 +106,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "LoadTelegramAppsDetailAsync error. AppName={0}", keyValuePair);
+                Log.Error(e, "LoadTelegramAppsDetailAsync error. AppName={0}", keyValuePair);
                 throw;
             }
         }

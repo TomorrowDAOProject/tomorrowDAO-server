@@ -9,6 +9,7 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Token;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using Volo.Abp.Caching;
 
 namespace TomorrowDAOServer.ThirdPart.Exchange;
@@ -45,7 +46,7 @@ public class CoinGeckoProvider : AbstractExchangeProvider
         var from = MappingSymbol(fromSymbol);
         var to = MappingSymbol(toSymbol);
         var url = _coinGeckoOptions.CurrentValue.BaseUrl + SimplePriceUri;
-        _logger.LogDebug("CoinGecko url {Url}", url);
+        Log.Debug("CoinGecko url {Url}", url);
 
         var price = await _httpProvider.InvokeAsync<Price>(HttpMethod.Get,
             _coinGeckoOptions.CurrentValue.BaseUrl + SimplePriceUri,

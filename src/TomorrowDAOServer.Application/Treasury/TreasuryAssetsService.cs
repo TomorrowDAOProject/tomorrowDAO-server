@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Dtos;
@@ -124,7 +125,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "get treasury assets error. daoId={0}, chainId={1}", input?.DaoId, input?.ChainId);
+            Log.Error(e, "get treasury assets error. daoId={0}, chainId={1}", input?.DaoId, input?.ChainId);
             throw new UserFriendlyException($"System exception occurred during querying treasury assets. {e.Message}");
         }
     }
@@ -153,7 +154,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "exec IsTreasuryDepositorAsync error. {0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "exec IsTreasuryDepositorAsync error. {0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException(
                 $"An exception occurred when running the IsTreasuryDepositor method, {e.Message}");
         }
@@ -187,7 +188,7 @@ public class TreasuryAssetsService : TomorrowDAOServerAppService, ITreasuryAsset
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetTreasuryAddressAsync error, {0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "GetTreasuryAddressAsync error, {0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException($"System exception occurred during querying treasury address. {e.Message}");
         }
     }

@@ -10,10 +10,10 @@ public interface ICommentCountGrain : IGrainWithStringKey
 
 public class CommentCountGrain : Grain<CommentState>, ICommentCountGrain
 {
-    public override Task OnActivateAsync()
+    public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         ReadStateAsync();
-        return base.OnActivateAsync();
+        return base.OnActivateAsync(cancellationToken);
     }
 
     public async Task<long> GetNextCount()

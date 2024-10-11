@@ -5,6 +5,7 @@ using AElf.Client.Dto;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
@@ -58,7 +59,7 @@ public class TransferTokenProvider : ITransferTokenProvider, ISingletonDependenc
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Call {0} error. {1},{2},{3}",
+            Log.Error(e, "Call {0} error. {1},{2},{3}",
                 CommonConstant.TokenMethodGetBalance, chainId, symbol, address);
             return new GetBalanceOutput();
         }

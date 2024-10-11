@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Common.Provider;
@@ -133,14 +134,14 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
             AssertHelper.IsTrue(resp.Success, resp.Msg);
             if (!resp.Success)
             {
-                _logger.LogError("get token from explorer fail, code={0},message={1}", resp.Code, resp.Msg);
+                Log.Error("get token from explorer fail, code={0},message={1}", resp.Code, resp.Msg);
             }
 
             return resp.Data ?? new ExplorerTokenInfoResponse();
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "get token from explorer error, chainId={0},symbol={1}", chainId, request.Symbol);
+            Log.Error(e, "get token from explorer error, chainId={0},symbol={1}", chainId, request.Symbol);
         }
 
         return new ExplorerTokenInfoResponse();

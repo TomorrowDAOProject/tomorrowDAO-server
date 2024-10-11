@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Common;
 
 namespace TomorrowDAOServer.Middleware;
@@ -52,7 +53,7 @@ public class DeviceInfoMiddleware
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Decode device info error");
+            Log.Error(e, "Decode device info error");
         }
         return null;
     }

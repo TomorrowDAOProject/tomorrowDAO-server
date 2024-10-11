@@ -6,7 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Monitor.Common;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace TomorrowDAOServer.Monitor.Orleans.Filters;
 
@@ -86,7 +88,7 @@ public class MethodCallFilter : IOutgoingGrainCallFilter
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "error recording results for grain");
+            Log.Error(e, "error recording results for grain");
         }
         return Task.CompletedTask;
     }

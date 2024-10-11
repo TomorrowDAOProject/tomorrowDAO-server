@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Enums;
 using Volo.Abp.DependencyInjection;
 
@@ -31,7 +32,7 @@ public class ScheduleSyncDataContext : ITransientDependency, IScheduleSyncDataCo
         var stopwatch = Stopwatch.StartNew();
         await _syncDataServiceMap.GetOrDefault(businessType).DealDataAsync();
         stopwatch.Stop();
-        _logger.LogInformation("It took {Elapsed} ms to execute synchronized data for businessType: {businessType}",
+        Log.Information("It took {Elapsed} ms to execute synchronized data for businessType: {businessType}",
             stopwatch.ElapsedMilliseconds, businessType);
     }
 

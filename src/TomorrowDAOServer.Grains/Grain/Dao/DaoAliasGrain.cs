@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Grains.State.Dao;
 using Volo.Abp.ObjectMapping;
@@ -24,10 +25,10 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         _objectMapper = objectMapper;
     }
 
-    public override Task OnActivateAsync()
+    public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         ReadStateAsync();
-        return base.OnActivateAsync();
+        return base.OnActivateAsync(cancellationToken);
     }
 
     public async Task<GrainResultDto<int>> SaveDaoAliasInfoAsync(DaoAliasDto daoAliasDto)
@@ -71,7 +72,7 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Save dao alias info error, daoAliasDto={0}",
+            Log.Error(e, "Save dao alias info error, daoAliasDto={0}",
                 JsonConvert.SerializeObject(daoAliasDto));
             return new GrainResultDto<int>
             {
@@ -96,7 +97,7 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Get dao alias info error");
+            Log.Error(e, "Get dao alias info error");
             return Task.FromResult(new GrainResultDto<List<DaoAliasDto>>
             {
                 Message = $"Get dao alias info error. {e.Message}"

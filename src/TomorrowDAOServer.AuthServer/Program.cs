@@ -34,6 +34,7 @@ public class Program
             builder.Configuration.AddJsonFile("apollo.appsettings.json");
             builder.Host.AddAppSettingsSecretsJson()
                 .UseApollo()
+                .UseOrleansClient()
                 .UseAutofac()
                 .UseSerilog();
             await builder.AddApplicationAsync<TomorrowDAOServerAuthServerModule>();

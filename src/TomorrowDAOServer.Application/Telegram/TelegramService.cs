@@ -6,6 +6,7 @@ using AElf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
@@ -74,7 +75,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SaveTelegramAppAsync error. {0}", JsonConvert.SerializeObject(telegramAppDto));
+            Log.Error(e, "SaveTelegramAppAsync error. {0}", JsonConvert.SerializeObject(telegramAppDto));
             throw new UserFriendlyException($"System exception occurred during saving telegram app. {e.Message}");
         }
     }
@@ -93,7 +94,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SaveTelegramAppsAsync error. {0}", JsonConvert.SerializeObject(telegramAppDtos));
+            Log.Error(e, "SaveTelegramAppsAsync error. {0}", JsonConvert.SerializeObject(telegramAppDtos));
             throw new UserFriendlyException($"System exception occurred during saving telegram apps. {e.Message}");
         }
     }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -72,7 +73,7 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
                 EndBlockHeight = newIndexHeight
             };
             queryList = await _voteProvider.GetSyncVoteRecordListAsync(input);
-            _logger.LogInformation("VoteRecordSyncDataService queryList chainId: {chainId} skipCount: {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
+            Log.Information("VoteRecordSyncDataService queryList chainId: {chainId} skipCount: {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
                 chainId, skipCount, lastEndHeight, newIndexHeight, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())
             {
@@ -119,7 +120,7 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "UpdateValidRankingVoteException");
+            Log.Error(e, "UpdateValidRankingVoteException");
         }
     }
 

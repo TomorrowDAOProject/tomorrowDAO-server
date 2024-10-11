@@ -11,6 +11,7 @@ using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
@@ -77,7 +78,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         foreach (var node in _chainOptions.CurrentValue.ChainInfos)
         {
             _clients[node.Key] = new AElfClient(node.Value.BaseUrl);
-            _logger.LogInformation("init AElfClient: {ChainId}, {Node}", node.Key, node.Value.BaseUrl);
+            Log.Information("init AElfClient: {ChainId}, {Node}", node.Key, node.Value.BaseUrl);
         }
     }
 
@@ -128,13 +129,13 @@ public class ContractProvider : IContractProvider, ISingletonDependency
                 await CallTransactionAsync<Address>(chainId, transaction);
             
             sw.Stop();
-            _logger.LogInformation("GetDAOByIdDuration: GetTreasuryAddress {0}", sw.ElapsedMilliseconds);
+            Log.Information("GetDAOByIdDuration: GetTreasuryAddress {0}", sw.ElapsedMilliseconds);
             
             return treasuryAddress == null ? string.Empty : treasuryAddress.ToBase58();
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "get treasury address error. daoId={0}, chainId={1}", daoId, chainId);
+            Log.Error(e, "get treasury address error. daoId={0}, chainId={1}", daoId, chainId);
             return string.Empty;
         }
     }

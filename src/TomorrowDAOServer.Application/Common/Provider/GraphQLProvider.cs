@@ -8,6 +8,7 @@ using GraphQL.Client.Abstractions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
@@ -72,7 +73,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetTokenInfoAsync Exception chainId {chainId} symbol {symbol}", chainId, symbol);
+            Log.Error(e, "GetTokenInfoAsync Exception chainId {chainId} symbol {symbol}", chainId, symbol);
             return new TokenInfoDto();
         }
     }
@@ -86,7 +87,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SetTokenInfoAsync Exception chainId {chainId} symbol {symbol}", tokenInfo.ChainId, tokenInfo.Symbol);
+            Log.Error(e, "SetTokenInfoAsync Exception chainId {chainId} symbol {symbol}", tokenInfo.ChainId, tokenInfo.Symbol);
         }
     }
 
@@ -99,7 +100,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetBPAsync Exception chainId {chainId}", chainId);
+            Log.Error(e, "GetBPAsync Exception chainId {chainId}", chainId);
             return new List<string>();
         }
     }
@@ -114,13 +115,13 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetBPWithRoundAsync Exception chainId {chainId}", chainId);
+            Log.Error(e, "GetBPWithRoundAsync Exception chainId {chainId}", chainId);
             return new BpInfoDto();
         }
         finally
         {
             sw.Stop();
-            _logger.LogInformation("GetDAOByIdDuration: GetBPWithRound {0}", sw.ElapsedMilliseconds);
+            Log.Information("GetDAOByIdDuration: GetBPWithRound {0}", sw.ElapsedMilliseconds);
         }
     }
 
@@ -133,7 +134,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SetBPAsync Exception chainId {chainId}", chainId);
+            Log.Error(e, "SetBPAsync Exception chainId {chainId}", chainId);
         }
     }
 
@@ -146,7 +147,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetProposalNumAsyncException chainId {chainId}", chainId);
+            Log.Error(e, "GetProposalNumAsyncException chainId {chainId}", chainId);
             return 0;
         }
     }
@@ -160,7 +161,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SetProposalNumAsyncException chainId {chainId}", chainId);
+            Log.Error(e, "SetProposalNumAsyncException chainId {chainId}", chainId);
         }
     }
 
@@ -173,7 +174,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetIndexBlockHeight on chain {id} error", chainId);
+            Log.Error(e, "GetIndexBlockHeight on chain {id} error", chainId);
             return CommonConstant.LongError;
         }
     }
@@ -187,7 +188,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SetIndexBlockHeight on chain {id} error", chainId);
+            Log.Error(e, "SetIndexBlockHeight on chain {id} error", chainId);
         }
     }
 
@@ -199,7 +200,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetIndexBlockHeightAsync Exception on chain {chainId}", chainId);
+            Log.Error(e, "GetIndexBlockHeightAsync Exception on chain {chainId}", chainId);
             return 0;
         }
     }
@@ -230,7 +231,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetHoldersAsyncException chainId={chainId}, symbol={symbol}", chainId, symbols);
+            Log.Error(e, "GetHoldersAsyncException chainId={chainId}, symbol={symbol}", chainId, symbols);
         }
         return new Dictionary<string, long>();
     }
@@ -257,7 +258,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetDAOAmountAsyncException chainId={chainId}", chainId);
+            Log.Error(e, "GetDAOAmountAsyncException chainId={chainId}", chainId);
         }
 
         return new List<DAOAmount>();
@@ -273,7 +274,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SetHighCouncilMembersAsync error: chain={id},DaoId={daoId}", chainId, daoId);
+            Log.Error(e, "SetHighCouncilMembersAsync error: chain={id},DaoId={daoId}", chainId, daoId);
         }
     }
 
@@ -288,12 +289,12 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "SetHighCouncilMembersAsync error: chain={id},DaoId={daoId}", chainId, daoId);
+            Log.Error(e, "SetHighCouncilMembersAsync error: chain={id},DaoId={daoId}", chainId, daoId);
         }
         finally
         {
             sw.Stop();
-            _logger.LogInformation("GetDAOByIdDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
+            Log.Information("GetDAOByIdDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
         }
 
         return new List<string>();
@@ -303,11 +304,11 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     {
         try
         {
-            _logger.LogInformation("Set dao alias info, input={0}", JsonConvert.SerializeObject(daoAliasDto));
+            Log.Information("Set dao alias info, input={0}", JsonConvert.SerializeObject(daoAliasDto));
             var grainId = GuidHelper.GenerateId(chainId, alias);
             var grain = _clusterClient.GetGrain<IDaoAliasGrain>(grainId);
             var result = await grain.SaveDaoAliasInfoAsync(daoAliasDto);
-            _logger.LogInformation("Set dao alias info result: {0}", JsonConvert.SerializeObject(result));
+            Log.Information("Set dao alias info result: {0}", JsonConvert.SerializeObject(result));
             if (result.Success)
             {
                 return result.Data;
@@ -317,7 +318,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Set dao alias info error.");
+            Log.Error(e, "Set dao alias info error.");
             throw;
         }
     }

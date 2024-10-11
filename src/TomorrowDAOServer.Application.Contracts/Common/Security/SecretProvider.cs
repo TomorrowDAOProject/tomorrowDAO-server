@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.HttpClient;
@@ -72,7 +73,7 @@ public class SecretProvider : ISecretProvider, ITransientDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "CallSignatureServiceFailed, err: {err}, hash: {body}", e.ToString(),
+            Log.Error(e, "CallSignatureServiceFailed, err: {err}, hash: {body}", e.ToString(),
                 JsonConvert.SerializeObject(hash.ToHex()));
             return null;
         }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Election.Dto;
@@ -122,7 +123,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         daoInfo.OfGovernanceSchemeThreshold(governanceSchemeDto.Data?.FirstOrDefault());
 
         sw.Stop();
-        _logger.LogInformation("GetDAOByIdDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
+        Log.Information("GetDAOByIdDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
 
         return daoInfo;
     }
@@ -156,7 +157,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetMemberListAsync error, {0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "GetMemberListAsync error, {0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException($"System exception occurred during querying member list. {e.Message}");
         }
     }
@@ -308,7 +309,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "IsDaoMemberAsync error. input={0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "IsDaoMemberAsync error. input={0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException($"Exception in checking if user is a DAO member, {e.Message}");
         }
     }

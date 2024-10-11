@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Options;
@@ -36,19 +37,19 @@ public class PointsHub : AbpHub
     
     public async Task UnsubscribePointsProduce(CommonRequest input)
     {
-        _logger.LogInformation("UnsubscribePointsProduce, chainId {chainId}", input.ChainId);
+        Log.Information("UnsubscribePointsProduce, chainId {chainId}", input.ChainId);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(input.ChainId));
     }
 
     public async Task RequestPointsProduce(CommonRequest input)
     {
         var chainId = input.ChainId;
-        _logger.LogInformation("RequestPointsProduceBegin, chainId {chainId}", chainId);
+        Log.Information("RequestPointsProduceBegin, chainId {chainId}", chainId);
         await Groups.AddToGroupAsync(Context.ConnectionId, HubHelper.GetPointsGroupName(chainId));
         var currentPoints = await GetDefaultAllAppPointsAsync(chainId);
         await Clients.Caller.SendAsync(CommonConstant.RequestPointsProduce, 
             new PointsProduceDto { PointsList = currentPoints });
-        _logger.LogInformation("RequestPointsProduceEnd, chainId {chainId}", chainId);
+        Log.Information("RequestPointsProduceEnd, chainId {chainId}", chainId);
         await PushRequestPointsProduceAsync(chainId);
     }
 
@@ -57,7 +58,7 @@ public class PointsHub : AbpHub
         var key = HubHelper.GetPointsGroupName(chainId);
         if (!IsPushRunning.TryAdd(key, true))
         {
-            _logger.LogInformation("PushRequestPointsProduceAsyncIsRunning, chainId {chainId}", chainId);
+            Log.Information("PushRequestPointsProduceAsyncIsRunning, chainId {chainId}", chainId);
             return;
         }
 
@@ -79,7 +80,7 @@ public class PointsHub : AbpHub
                     var cacheSum = _pointsCache.Sum(x => x.Points);
                     if (currentSum != cacheSum)
                     {
-                        _logger.LogInformation("PushRequestPointsProduceAsyncNoNeedToPushWrong, chainId {chainId} currentSum {currentSum} cacheSum {cacheSum}",
+                        Log.Information("PushRequestPointsProduceAsyncNoNeedToPushWrong, chainId {chainId} currentSum {currentSum} cacheSum {cacheSum}",
                             chainId, currentSum, cacheSum);
                     }
                 }
@@ -88,7 +89,7 @@ public class PointsHub : AbpHub
         }
         catch (Exception e)
         {
-            _logger.LogError("PushRequestPointsProduceAsyncException: {e}", e);
+            Log.Error("PushRequestPointsProduceAsyncException: {e}", e);
         }
         finally
         {
@@ -105,7 +106,7 @@ public class PointsHub : AbpHub
 
     private bool IsEqual(IReadOnlyCollection<RankingAppPointsBaseDto> currentPoints)
     {
-        // _logger.LogInformation("IsEqual currentPoints {currentPoints} _pointsCache {_pointsCache}", 
+        // Log.Information("IsEqual currentPoints {currentPoints} _pointsCache {_pointsCache}", 
         //     JsonConvert.SerializeObject(currentPoints), JsonConvert.SerializeObject(_pointsCache));
         return currentPoints.Count == _pointsCache.Count
                && !currentPoints.Except(_pointsCache, new AllFieldsEqualComparer<RankingAppPointsBaseDto>()).Any();

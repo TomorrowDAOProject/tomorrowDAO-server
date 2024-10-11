@@ -5,6 +5,7 @@ using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Discussion.Dto;
@@ -48,7 +49,7 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetCommentCountAsyncException proposalId {proposalId}", proposalId);
+            Log.Error(e, "GetCommentCountAsyncException proposalId {proposalId}", proposalId);
             return -1;
         }
     }

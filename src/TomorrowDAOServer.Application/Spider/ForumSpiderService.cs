@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using PuppeteerSharp;
+using Serilog;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Spider.Dto;
 using Volo.Abp;
@@ -42,7 +43,7 @@ public class ForumSpiderService : TomorrowDAOServerAppService, IForumSpiderServi
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "exec LinkPreviewAsync error, {0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "exec LinkPreviewAsync error, {0}", JsonConvert.SerializeObject(input));
             return await Task.FromResult(new LinkPreviewDto());
         }
     }
@@ -168,7 +169,7 @@ public class ForumSpiderService : TomorrowDAOServerAppService, IForumSpiderServi
         {
             Browser = SupportedBrowser.Chromium
         });
-        _logger.LogInformation(
+        Log.Information(
             "Puppeteer: Browser={Browser}, CacheDir={CacheDir}, Platform={Platform}",
             browserFetcher.Browser, browserFetcher.CacheDir, browserFetcher.Platform);
 

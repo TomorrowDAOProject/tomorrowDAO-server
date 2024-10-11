@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Common.HttpClient;
@@ -191,15 +192,15 @@ public class HttpProvider : IHttpProvider
         var time = stopwatch.ElapsedMilliseconds;
         // log
         if (withLog)
-            _logger.LogInformation(
+            Log.Information(
                 "Request To {FullUrl}, statusCode={StatusCode}, time={Time}, query={Query}, body={Body}, resp={Content}",
                 fullUrl, response.StatusCode, time, builder.Query, body, content);
         else if (debugLog)
-            _logger.LogDebug(
+            Log.Debug(
                 "Request To {FullUrl}, statusCode={StatusCode}, time={Time}, query={Query}, header={Header}, body={Body}, resp={Content}",
                 fullUrl, response.StatusCode, time, builder.Query, request.Headers.ToString(), body, content);
         else
-            _logger.LogDebug(
+            Log.Debug(
                 "Request To {FullUrl}, statusCode={StatusCode}, time={Time}", fullUrl, response.StatusCode, time);
         return response;
     }

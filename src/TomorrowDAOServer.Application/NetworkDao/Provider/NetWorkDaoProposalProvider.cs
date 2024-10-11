@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.NetworkDao.Dto;
@@ -60,7 +61,7 @@ public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingleto
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetNetworkDaoProposalsAsync error, Param={Param}",
+            Log.Error(e, "GetNetworkDaoProposalsAsync error, Param={Param}",
                 JsonConvert.SerializeObject(input));
             throw;
         }

@@ -5,6 +5,7 @@ using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
 
@@ -34,13 +35,13 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
                 var lastEndHeight = await _graphQlProvider.GetLastEndHeightAsync(chainId, businessType);
                 if (lastEndHeight < 0)
                 {
-                    _logger.LogInformation(
+                    Log.Information(
                         "Skip deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight}",
                         businessType, chainId, lastEndHeight);
                     continue;
                 }
                 var newIndexHeight = await _graphQlProvider.GetIndexBlockHeightAsync(chainId);
-                _logger.LogInformation(
+                Log.Information(
                     "Start deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight} newIndexHeight: {newIndexHeight}",
                     businessType, chainId, lastEndHeight, newIndexHeight);
                 var blockHeight = await SyncIndexerRecordsAsync(chainId, lastEndHeight, newIndexHeight);
@@ -48,14 +49,14 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
                 if (blockHeight > 0)
                 {
                     await _graphQlProvider.SetLastEndHeightAsync(chainId, businessType, blockHeight);
-                    _logger.LogInformation(
+                    Log.Information(
                         "End deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {BlockHeight}",
                         businessType, chainId, blockHeight);
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "DealDataAsync error businessType:{businessType} chainId: {chainId}",
+                Log.Error(e, "DealDataAsync error businessType:{businessType} chainId: {chainId}",
                     businessType.ToString(), chainId);
             }
         }
@@ -77,14 +78,14 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
             if (blockHeight > 0)
             {
                 await _graphQlProvider.SetLastEndHeightAsync(chainId, businessType, blockHeight);
-                _logger.LogInformation(
+                Log.Information(
                     "reset last end height for businessType: {businessType} chainId: {chainId} lastEndHeight: {BlockHeight}",
                     businessType, chainId, blockHeight);
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "reset last end height error, businessType:{businessType} chainId: {chainId}",
+            Log.Error(e, "reset last end height error, businessType:{businessType} chainId: {chainId}",
                 businessType.ToString(), chainId);
         }
     }

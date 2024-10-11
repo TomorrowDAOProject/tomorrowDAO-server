@@ -7,6 +7,7 @@ using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.DAO.Indexer;
@@ -91,13 +92,13 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             var voteItems = result.Data?? new List<IndexerVote>();
             
             sw.Stop();
-            _logger.LogInformation("ProposalListDuration: GetVoteItemsAsync {0}", sw.ElapsedMilliseconds);
+            Log.Information("ProposalListDuration: GetVoteItemsAsync {0}", sw.ElapsedMilliseconds);
             
             return voteItems.ToDictionary(vote => vote.VotingItemId, vote => vote);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetVoteItemsAsync Exception chainId {chainId}, votingItemIds {votingItemIds}", chainId, votingItemIds);
+            Log.Error(e, "GetVoteItemsAsync Exception chainId {chainId}, votingItemIds {votingItemIds}", chainId, votingItemIds);
             return new Dictionary<string, IndexerVote>();
         }
     }
@@ -126,7 +127,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetVoteWithdrawnAsync Exception chainId {chainId}, daoId {daoId}, voter {voter}", chainId, daoId, voter);
+            Log.Error(e, "GetVoteWithdrawnAsync Exception chainId {chainId}, daoId {daoId}, voter {voter}", chainId, daoId, voter);
             return new List<WithdrawnDto>();
         }
     }
@@ -164,7 +165,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetLimitVoteRecordAsync Exception chainId {chainId}, votingItemId {votingItemId}, voter {voter}, sorting {sorting}", 
+            Log.Error(e, "GetLimitVoteRecordAsync Exception chainId {chainId}, votingItemId {votingItemId}, voter {voter}, sorting {sorting}", 
                 input.ChainId, input.VotingItemId, input.Voter, input.Sorting);
             return new List<IndexerVoteRecord>();
         }
@@ -201,7 +202,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetAllVoteRecordAsync Exception chainId {chainId}, daoId {daoId}, voter {voter}", input.ChainId, input.DAOId, input.Voter);
+            Log.Error(e, "GetAllVoteRecordAsync Exception chainId {chainId}, daoId {daoId}, voter {voter}", input.ChainId, input.DAOId, input.Voter);
             return new List<IndexerVoteRecord>();
         }
     }
@@ -249,7 +250,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
     //     }
     //     catch (Exception e)
     //     {
-    //         _logger.LogError(e, "GetAddressVoteRecordAsync Exception chainId {chainId}, voter {voter}", input.ChainId, input.Voter);
+    //         Log.Error(e, "GetAddressVoteRecordAsync Exception chainId {chainId}, voter {voter}", input.ChainId, input.Voter);
     //         return new List<IndexerVoteRecord>();
     //     }
     // }
@@ -278,7 +279,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         var voteSchemeInfos = await GetVoteSchemeAsync(input);
         
         sw.Stop();
-        _logger.LogInformation("ProposalListDuration: GetVoteSchemeDicAsync {0}", sw.ElapsedMilliseconds);
+        Log.Information("ProposalListDuration: GetVoteSchemeDicAsync {0}", sw.ElapsedMilliseconds);
         
         return voteSchemeInfos.ToDictionary(x => x.VoteSchemeId, x => x);
     }
@@ -318,7 +319,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetSyncVoteRecordListAsync Exception chainId {chainId}", input.ChainId);
+            Log.Error(e, "GetSyncVoteRecordListAsync Exception chainId {chainId}", input.ChainId);
             return new List<IndexerVoteRecord>();
         }
     }
@@ -347,7 +348,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetSyncVoteWithdrawListAsync Exception chainId {chainId}", input.ChainId);
+            Log.Error(e, "GetSyncVoteWithdrawListAsync Exception chainId {chainId}", input.ChainId);
             return new List<WithdrawnDto>();
         }
     }
@@ -453,7 +454,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetDaoVoterRecordAsyncException chainId={chainId}, daoId={daoId}, voter={voter}", chainId, daoId, voter);
+            Log.Error(e, "GetDaoVoterRecordAsyncException chainId={chainId}, daoId={daoId}, voter={voter}", chainId, daoId, voter);
         }
         return new IndexerDAOVoterRecord();
     }

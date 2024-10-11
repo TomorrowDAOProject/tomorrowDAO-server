@@ -6,6 +6,7 @@ using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Entities;
@@ -272,7 +273,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             }  
             catch (OverflowException e)  
             {  
-                _logger.LogError(e, "The number is too large or too small for a long.");  
+                Log.Error(e, "The number is too large or too small for a long.");  
                 result.Add(daoId, 0);
             } 
         }

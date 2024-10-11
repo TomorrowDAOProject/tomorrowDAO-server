@@ -9,8 +9,8 @@ using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Token.Dto;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver.Linq;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Common.Aws;
@@ -70,7 +70,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= CommonConstant.OneDay)
         {
             sw.Stop();
-            _logger.LogInformation("ProposalListDuration: GetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            Log.Information("ProposalListDuration: GetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
             
             return tokenInfo;
         }
@@ -79,7 +79,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         if (tokenResponse == null || tokenResponse.Symbol.IsNullOrWhiteSpace())
         {
             sw.Stop();
-            _logger.LogInformation("ProposalListDuration: ExplorerGetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            Log.Information("ProposalListDuration: ExplorerGetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
             
             return tokenInfo;
         }
@@ -164,12 +164,12 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Query exchange failed, providerName={ProviderName}", providerName);
+                Log.Error(e, "Query exchange failed, providerName={ProviderName}", providerName);
             }
         }
         
         await exchangeGrain.SetAsync(exchange);
-        _logger.LogInformation("UpdateExchangePriceAsync pair {pair}, price {price}, exchange {exchange}", 
+        Log.Information("UpdateExchangePriceAsync pair {pair}, price {price}, exchange {exchange}", 
             pair, AvgPrice(exchange), exchange.ExchangeInfos.Keys);
     }
     
@@ -199,7 +199,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "FixImageAsyncError, chainId {} symbol {}", chainId, symbol);
+            Log.Error(e, "FixImageAsyncError, chainId {} symbol {}", chainId, symbol);
         }
 
         return string.Empty;

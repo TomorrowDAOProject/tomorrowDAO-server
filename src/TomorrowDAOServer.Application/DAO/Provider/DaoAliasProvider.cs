@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Options;
@@ -45,7 +46,7 @@ public class DaoAliasProvider : IDaoAliasProvider, ISingletonDependency
             var alias = await GenerateDaoAliasAsync(daoIndex.Metadata?.Name);
             if (alias.IsNullOrEmpty())
             {
-                _logger.LogInformation("Generate dao alias fail, empty alias. daoIndex={0}",
+                Log.Information("Generate dao alias fail, empty alias. daoIndex={0}",
                     JsonConvert.SerializeObject(daoIndex));
                 return daoIndex.Id;
             }
@@ -68,7 +69,7 @@ public class DaoAliasProvider : IDaoAliasProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Generate dao alias error, daoIndo={0}", JsonConvert.SerializeObject(daoIndex));
+            Log.Error(e, "Generate dao alias error, daoIndo={0}", JsonConvert.SerializeObject(daoIndex));
             return daoIndex!.Id;
         }
     }

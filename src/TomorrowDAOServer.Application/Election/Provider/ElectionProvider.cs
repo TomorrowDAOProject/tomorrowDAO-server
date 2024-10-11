@@ -6,6 +6,7 @@ using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Common.Provider;
@@ -83,7 +84,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetCandidateElectedRecordsAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
+            Log.Error(e, "GetCandidateElectedRecordsAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
                 input.ChainId, input.DaoId, JsonConvert.SerializeObject(input));
             throw;
         }
@@ -121,7 +122,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetHighCouncilConfigAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
+            Log.Error(e, "GetHighCouncilConfigAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
                 input.ChainId, input.DaoId, JsonConvert.SerializeObject(input));
             throw;
         }
@@ -158,7 +159,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetVotingItemAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
+            Log.Error(e, "GetVotingItemAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
                 input.ChainId, input.DaoId, JsonConvert.SerializeObject(input));
             throw;
         }

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
@@ -115,7 +116,7 @@ public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonD
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Get proposal list error. request={0}", JsonConvert.SerializeObject(request));
+            Log.Error(e, "Get proposal list error. request={0}", JsonConvert.SerializeObject(request));
             throw new UserFriendlyException("Failed to query the proposal list. {0}", e.Message);
         }
     }
@@ -237,21 +238,21 @@ public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonD
 
         var refreshAsync = async () =>
         {
-            _logger.LogDebug("Refresh start: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
+            Log.Debug("Refresh start: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
             var proposals = await GetProposalListAsync(chainId, proposalType);
             await _proposalResultCache.SetAsync(proposalCacheKey, proposals, cacheTime());
             await _proposalResultCacheBottom.SetAsync(proposalBottomCacheKey, proposals, cacheTimeBottom());
-            _logger.LogDebug("Refresh finish: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
+            Log.Debug("Refresh finish: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
             return proposals;
         };
 
         return await _proposalResultCache.GetOrAddAsync(proposalCacheKey,
             () =>
             {
-                _logger.LogDebug("GetOrAdd start: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
+                Log.Debug("GetOrAdd start: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
                 var refreshTask = refreshAsync(); // to refresh async
                 var existsData = _proposalResultCacheBottom.Get(proposalBottomCacheKey);
-                _logger.LogDebug("GetOrAdd end: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
+                Log.Debug("GetOrAdd end: chainId={ChainId}, type={Type}", chainId, proposalType.ToString());
                 return Task.FromResult(existsData); // return values from long-time cache
             }, () => cacheTime());
     }

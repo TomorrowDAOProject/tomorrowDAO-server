@@ -13,13 +13,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
-using Orleans;
 using TomorrowDAOServer.Auth.Options;
 using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.User.Dtos;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Identity;
 using Portkey.Contracts.CA;
+using Serilog;
 using TomorrowDAOServer.Common;
 using Volo.Abp.DistributedLocking;
 using Volo.Abp.Identity;
@@ -92,7 +92,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
                               signature: 
                               """+string.Join("-", address, timestampVal);
-            _logger.LogInformation("newSignText:{newSignText}",newSignText);
+            Log.Information("newSignText:{newSignText}",newSignText);
             if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
                     out var managerPublicKey))
             {
@@ -119,7 +119,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
             _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
 
-            _logger.LogInformation(
+            Log.Information(
                 "publicKeyVal:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
                 publicKeyVal, signatureVal, address, caHash, chainId, timestamp);
 
@@ -130,7 +130,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     _chainOptions.CurrentValue);
                 if (!managerCheck.HasValue || !managerCheck.Value)
                 {
-                    _logger.LogError("Manager validation failed. caHash:{0}, address:{2}, chainId:{3}",
+                    Log.Error("Manager validation failed. caHash:{0}, address:{2}, chainId:{3}",
                         caHash, address, chainId);
                     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Manager validation failed.");
                 }
@@ -193,14 +193,17 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             claimsPrincipal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
             claimsPrincipal.SetAudiences("TomorrowDAOServer");
 
-            await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
-                .SetAsync(principal);
+            var abpOpenIddictClaimDestinationsManager = context.HttpContext.RequestServices
+                .GetRequiredService<AbpOpenIddictClaimsPrincipalManager>();
+            // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
+            //     .SetAsync(principal);
+            await abpOpenIddictClaimDestinationsManager.HandleAsync(context.Request, principal);
 
             return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "generate token error");
+            Log.Error(e, "generate token error");
             return GetForbidResult(OpenIddictConstants.Errors.ServerError, "Internal error.");
         }
     }
@@ -254,7 +257,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         var graphQlResult = await CheckAddressFromGraphQlAsync(graphQlUrl, caHash, manager);
         if (!graphQlResult.HasValue || !graphQlResult.Value)
         {
-            _logger.LogDebug("graphql is invalid.");
+            Log.Debug("graphql is invalid.");
             return await CheckAddressFromContractAsync(chainId, caHash, manager, chainOptions);
         }
 
@@ -298,7 +301,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
             if (identityResult.Succeeded)
             {
-                _logger.LogInformation("save user info into grain, userId:{userId}", userId.ToString());
+                Log.Information("save user info into grain, userId:{userId}", userId.ToString());
                 var grain = _clusterClient.GetGrain<IUserGrain>(userId);
 
                 await grain.CreateUser(new UserGrainDto
@@ -309,14 +312,14 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     AppId = string.IsNullOrEmpty(caHash) ? AuthConstant.NightElfAppId : AuthConstant.PortKeyAppId,
                     AddressInfos = addressInfos,
                 });
-                _logger.LogInformation("create user success, userId:{userId}", userId.ToString());
+                Log.Information("create user success, userId:{userId}", userId.ToString());
             }
 
             result = identityResult.Succeeded;
         }
         else
         {
-            _logger.LogError("do not get lock, keys already exits, userId:{userId}", userId.ToString());
+            Log.Error("do not get lock, keys already exits, userId:{userId}", userId.ToString());
         }
 
         return result;
@@ -385,7 +388,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "get holder from chain error, caHash:{caHash}", caHash);
+                Log.Error(e, "get holder from chain error, caHash:{caHash}", caHash);
             }
         }
 
@@ -444,11 +447,11 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         {
             if (methodName != AuthConstant.GetHolderInfo)
             {
-                _logger.LogError(e, "CallTransaction error, chain id:{chainId}, methodName:{methodName}", chainId,
+                Log.Error(e, "CallTransaction error, chain id:{chainId}, methodName:{methodName}", chainId,
                     methodName);
             }
 
-            _logger.LogError(e, "CallTransaction error, chain id:{chainId}, methodName:{methodName}", chainId,
+            Log.Error(e, "CallTransaction error, chain id:{chainId}, methodName:{methodName}", chainId,
                 methodName);
             return null;
         }

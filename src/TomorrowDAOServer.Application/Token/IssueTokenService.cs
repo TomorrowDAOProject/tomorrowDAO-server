@@ -9,6 +9,7 @@ using AElf.Types;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
@@ -105,7 +106,7 @@ public class IssueTokenService : TomorrowDAOServerAppService, IIssueTokenService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "IssueTokensAsync error. {0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "IssueTokensAsync error. {0}", JsonConvert.SerializeObject(input));
             ExceptionHelper.ThrowSystemException("querying token info", e);
             return null;
         }
@@ -128,7 +129,7 @@ public class IssueTokenService : TomorrowDAOServerAppService, IIssueTokenService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetTokenInfoAsync error. symbol={0}, chainId={1}", symbol, chainId);
+            Log.Error(e, "GetTokenInfoAsync error. symbol={0}, chainId={1}", symbol, chainId);
             throw;
         }
     }
@@ -148,7 +149,7 @@ public class IssueTokenService : TomorrowDAOServerAppService, IIssueTokenService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetProxyAccountByProxyAccountAddressAsync error. chainId={0}, address={0}", chainId,
+            Log.Error(e, "GetProxyAccountByProxyAccountAddressAsync error. chainId={0}, address={0}", chainId,
                 proxyAccountAddress.ToBase58());
             throw;
         }

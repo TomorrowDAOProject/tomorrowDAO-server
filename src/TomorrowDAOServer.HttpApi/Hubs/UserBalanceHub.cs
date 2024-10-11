@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Options;
@@ -68,7 +69,7 @@ public class UserBalanceHub : AbpHub
         var groupName = HubHelper.GetUserBalanceGroupName(chainId);
         if (!IsPushRunning.TryAdd(groupName, true))
         {
-            _logger.LogInformation("PushRequestUserBalanceProduceAsyncIsRunning, chainId {chainId}", chainId);
+            Log.Information("PushRequestUserBalanceProduceAsyncIsRunning, chainId {chainId}", chainId);
             return;
         }
 

@@ -32,6 +32,7 @@ namespace TomorrowDAOServer
                 builder.Configuration.AddJsonFile("apollo.appsettings.json");
                 builder.Host.AddAppSettingsSecretsJson()
                     .UseApollo()
+                    .UseOrleansClient()
                     .UseAutofac()
                     .UseSerilog();
 

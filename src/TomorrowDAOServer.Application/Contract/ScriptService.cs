@@ -6,6 +6,7 @@ using AElf;
 using AElf.Types;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Contract.Dto;
 using TomorrowDAOServer.Options;
@@ -67,7 +68,7 @@ public class ScriptService : IScriptService, ITransientDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetProposalInfoAsync Exception chainId {chainId} proposalId {proposalId}", chainId, proposalId);
+            Log.Error(e, "GetProposalInfoAsync Exception chainId {chainId} proposalId {proposalId}", chainId, proposalId);
             return null;
         }
         

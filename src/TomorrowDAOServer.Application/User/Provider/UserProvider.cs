@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Grains.Grain.Users;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -49,7 +50,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "get user info error, userId={0}", userId.ToString());
+            Log.Error(e, "get user info error, userId={0}", userId.ToString());
             return null;
         }
     }
@@ -98,7 +99,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
             return userAddress;
         }
 
-        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        Log.Error("query user address fail, userId={0}, chainId={1}", userId, chainId);
         throw new UserFriendlyException("No user address found");
     }
 
@@ -109,7 +110,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         {
             return new Tuple<string, string>(address, addressCaHash);
         }
-        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        Log.Error("query user address fail, userId={0}, chainId={1}", userId, chainId);
         throw new UserFriendlyException("No user address and caHash found");
     }
 }
