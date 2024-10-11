@@ -67,7 +67,7 @@ public class ReferralService : ApplicationService, IReferralService
 
     public async Task<InviteDetailDto> InviteDetailAsync(string chainId)
     {
-        var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
+        var (address, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
         var currentCycle = await _referralCycleProvider.GetCurrentCycleAsync();
         if (!_rankingOptions.CurrentValue.ReferralActivityValid || !IsCycleValid(currentCycle))
         {
@@ -88,7 +88,9 @@ public class ReferralService : ApplicationService, IReferralService
             VotigramActivityVote = votigramActivityVote,
             StartTime = startTime,
             EndTime = endTime,
-            DuringCycle = true
+            DuringCycle = true,
+            Address = address,
+            CaHash = addressCaHash
         };
     }
 
