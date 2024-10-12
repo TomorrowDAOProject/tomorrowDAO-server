@@ -178,7 +178,6 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             telegramAppDto.EditorChoice = AnalyzeEditorChoice(tabDivNode);
             telegramAppDto.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(telegramAppDto.Title);
             telegramAppDto.Id = HashHelper.ComputeFrom(telegramAppDto.Title).ToHex();
-            telegramAppDto.QueryDetailUrl = url;
             dtos.Add(telegramAppDto);
         }
 
