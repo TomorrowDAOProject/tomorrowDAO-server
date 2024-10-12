@@ -9,10 +9,12 @@ public static class CommonConstant
     
     public const long LongError = -1;
     public const string Comma = ",";
+    public const string Add = "+";
     public const string Underline = "_";
     public const string Middleline = "-";
     public const string Colon = ":";
-
+    public const string Space = " ";
+    public const char SpaceChar = ' ';
     public const string EmptyString = "";
     public const string ELF = "ELF";
     public const string USDT = "USDT";
@@ -105,4 +107,8 @@ public static class CommonConstant
     public const string Rank = "Rank";
     public const string Inviter = "Inviter";
     public const string Invitee = "Invitee";
+    
+    // Discover
+    public const string Recommend = "Recommend";
+    public const double InterestedPercent = 0.75;
 }
