@@ -25,6 +25,8 @@ public interface IRankingAppPointsProvider
 
     Task<RankingAppUserPointsIndex> GetRankingUserPointsIndexByAliasAsync(string chainId, string proposalId,
         string address, string alias = null, PointsType type = PointsType.All);
+
+    Task<Dictionary<string, long>>  GetTotalPointsByAliasAsync(string chainId, List<string> aliases);
 }
 
 public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDependency
@@ -195,4 +197,50 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
 
         return await _userPointsIndexRepository.GetAsync(Filter);
     }
+
+    public async Task<Dictionary<string, long>> GetTotalPointsByAliasAsync(string chainId, List<string> aliases)
+    {
+        var query = new QueryContainerDescriptor<RankingAppUserPointsIndex>();
+        if (aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, long>();
+        }
+
+        var mustQuery = query.Bool(b => b.Must(
+                m => m.Term(t => t.Field(f => f.ChainId).Value(chainId)) 
+                     && m.Terms(t => t.Field(f => f.Alias).Terms(aliases))    
+            )
+        );
+
+        var searchQuery = new SearchDescriptor<RankingAppUserPointsIndex>()
+            .Query(_ => mustQuery)
+            .Aggregations(a => a
+                .Terms("alias_agg", t => t
+                    .Field(f => f.Alias)  
+                    .Size(aliases.Count)  
+                    .Aggregations(aa => aa
+                        .Sum("points_sum", sum => sum 
+                            .Field(f => f.Points)
+                        )
+                    )
+                )
+            );
+
+        var response = await _userPointsIndexRepository.SearchAsync(searchQuery, 0, int.MaxValue);
+
+        var aliasTotalPoints = new Dictionary<string, long>();
+        var aliasAgg = response.Aggregations.Terms("alias_agg");
+
+        foreach (var bucket in aliasAgg.Buckets)
+        {
+            var alias = bucket.Key;
+            var totalPoints = bucket.Sum("points_sum")?.Value ?? 0;
+            aliasTotalPoints[alias] = (long)totalPoints;
+        }
+
+        return aliasTotalPoints;
+    }
+
+
+
 }

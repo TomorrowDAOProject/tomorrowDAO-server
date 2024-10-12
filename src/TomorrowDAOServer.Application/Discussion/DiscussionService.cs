@@ -10,12 +10,12 @@ using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Discussion.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Telegram.Dto;
+using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Treasury;
 using TomorrowDAOServer.Treasury.Dto;
-using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
-using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
@@ -33,10 +33,11 @@ public class DiscussionService : ApplicationService, IDiscussionService
     private readonly IUserProvider _userProvider;
     private readonly IDAOProvider _daoProvider;
     private readonly ITreasuryAssetsService _treasuryAssetsService;
+    private readonly ITelegramAppsProvider _telegramAppsProvider;
 
     public DiscussionService(IDiscussionProvider discussionProvider, ProposalProvider proposalProvider,
         IObjectMapper objectMapper, IUserProvider userProvider, IDAOProvider daoProvider,
-        ITreasuryAssetsService treasuryAssetsService)
+        ITreasuryAssetsService treasuryAssetsService, ITelegramAppsProvider telegramAppsProvider)
     {
         _discussionProvider = discussionProvider;
         _proposalProvider = proposalProvider;
@@ -44,12 +45,12 @@ public class DiscussionService : ApplicationService, IDiscussionService
         _userProvider = userProvider;
         _daoProvider = daoProvider;
         _treasuryAssetsService = treasuryAssetsService;
+        _telegramAppsProvider = telegramAppsProvider;
     }
 
     public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
-        var userAddress =
-            await _userProvider.GetAndValidateUserAddressAsync(
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
                 CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         if (input.ParentId != CommonConstant.RootParentId)
         {
@@ -59,12 +60,32 @@ public class DiscussionService : ApplicationService, IDiscussionService
                 return new NewCommentResultDto { Reason = "Invalid parentId: not existed." };
             }
 
-            if (parentComment.Commenter == userAddress)
+            if (parentComment.Commenter == address)
             {
                 return new NewCommentResultDto { Reason = "Invalid parentId: can not comment self." };
             }
         }
 
+        return string.IsNullOrEmpty(input.ProposalId) ? await CommentApp(address, input) : await CommentProposal(address, input);
+    }
+
+    private async Task<NewCommentResultDto> CommentApp(string address, NewCommentInput input)
+    {
+        var (count, app) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = new List<string> { input.Alias }
+        });
+        if (count == 0)
+        {
+            return new NewCommentResultDto { Reason = "Invalid alias: not existed." };
+        }
+        var commentIndex = _objectMapper.Map<NewCommentInput, CommentIndex>(input);
+        commentIndex.ProposalId = input.Alias;
+        return await Comment(address, input.Alias, commentIndex);
+    }
+    
+    private async Task<NewCommentResultDto> CommentProposal(string address, NewCommentInput input)
+    {
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
         if (proposalIndex == null)
         {
@@ -83,9 +104,9 @@ public class DiscussionService : ApplicationService, IDiscussionService
             var member = await _daoProvider.GetMemberAsync(new GetMemberInput
             {
                 ChainId = input.ChainId,
-                DAOId = proposalIndex.DAOId, Address = userAddress
+                DAOId = proposalIndex.DAOId, Address = address
             });
-            if (member.Address != userAddress)
+            if (member.Address != address)
             {
                 return new NewCommentResultDto { Reason = "Invalid proposalId: not multi sig dao member." };
             }
@@ -94,7 +115,7 @@ public class DiscussionService : ApplicationService, IDiscussionService
         {
             var isDepositor = await _treasuryAssetsService.IsTreasuryDepositorAsync(new IsTreasuryDepositorInput
             {
-                ChainId = input.ChainId, Address = userAddress,
+                ChainId = input.ChainId, Address = address,
                 GovernanceToken = daoIndex.GovernanceToken, TreasuryAddress = daoIndex.TreasuryAccountAddress
             });
             if (!isDepositor)
@@ -103,17 +124,22 @@ public class DiscussionService : ApplicationService, IDiscussionService
             }
         }
 
-        var count = await _discussionProvider.GetCommentCountAsync(input.ProposalId);
+        var commentIndex = _objectMapper.Map<ProposalIndex, CommentIndex>(proposalIndex);
+        _objectMapper.Map(input, commentIndex);
+        return await Comment(address, input.ProposalId, commentIndex);
+    }
+
+    private async Task<NewCommentResultDto> Comment(string address, string commentSubject, CommentIndex commentIndex)
+    {
+        var count = await _discussionProvider.GetCommentCountAsync(commentSubject);
         if (count < 0)
         {
             return new NewCommentResultDto { Reason = "Retry later." };
         }
 
-        var commentIndex = _objectMapper.Map<ProposalIndex, CommentIndex>(proposalIndex);
-        _objectMapper.Map(input, commentIndex);
         var now = TimeHelper.GetTimeStampInMilliseconds();
-        commentIndex.Id = GuidHelper.GenerateId(proposalIndex.ProposalId, now.ToString(), count.ToString());
-        commentIndex.Commenter = userAddress;
+        commentIndex.Id = GuidHelper.GenerateId(commentSubject, now.ToString(), count.ToString());
+        commentIndex.Commenter = address;
         commentIndex.CommentStatus = CommentStatusEnum.Normal;
         commentIndex.CreateTime = commentIndex.ModificationTime = now;
         await _discussionProvider.NewCommentAsync(commentIndex);
@@ -123,27 +149,45 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public async Task<CommentListPageResultDto> GetCommentListAsync(GetCommentListInput input)
     {
+        var isCommentProposal = string.IsNullOrEmpty(input.Alias);
+        input.ProposalId = isCommentProposal ? input.ProposalId : input.Alias;
+        CommentListPageResultDto list;
         if (string.IsNullOrEmpty(input.SkipId))
         {
             var result = await _discussionProvider.GetCommentListAsync(input);
-            return new CommentListPageResultDto
+            list = new CommentListPageResultDto
             {
                 TotalCount = result.Item1,
                 Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result.Item2),
                 HasMore = result.Item1 > input.SkipCount + input.MaxResultCount
             };
         }
-
-        var comment = await _discussionProvider.GetCommentAsync(input.SkipId) ?? new CommentIndex();
-        var totalCount = await _discussionProvider.CountCommentListAsync(input);
-        var result1 = await _discussionProvider.GetEarlierAsync(input.SkipId, input.ProposalId, comment.CreateTime,
-            input.MaxResultCount);
-        return new CommentListPageResultDto
+        else
         {
-            TotalCount = totalCount,
-            Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result1.Item2),
-            HasMore = result1.Item1 > input.SkipCount + input.MaxResultCount
-        };
+            var comment = await _discussionProvider.GetCommentAsync(input.SkipId) ?? new CommentIndex();
+            var totalCount = await _discussionProvider.CountCommentListAsync(input);
+            var result1 = await _discussionProvider.GetEarlierAsync(input.SkipId, input.ProposalId, comment.CreateTime,
+                input.MaxResultCount);
+            list = new CommentListPageResultDto
+            {
+                TotalCount = totalCount,
+                Items = _objectMapper.Map<List<CommentIndex>, List<CommentDto>>(result1.Item2),
+                HasMore = result1.Item1 > input.SkipCount + input.MaxResultCount
+            };
+        }
+
+        if (isCommentProposal)
+        {
+            return list;
+        }
+
+        foreach (var commentDto in list.Items)
+        {
+            commentDto.Alias = commentDto.ProposalId;
+            commentDto.ProposalId = string.Empty;
+        }
+
+        return list;
     }
 
     public async Task<CommentBuildingDto> GetCommentBuildingAsync(GetCommentBuildingInput input)

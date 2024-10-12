@@ -18,4 +18,5 @@ public interface IRankingAppService
     Task<RankingVoteRecord> GetVoteStatusAsync(GetVoteStatusInput input);
     Task MoveHistoryDataAsync(string chainId, string type, string key, string value);
     Task<long> LikeAsync(RankingAppLikeInput input);
+    Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId, int count);
 }

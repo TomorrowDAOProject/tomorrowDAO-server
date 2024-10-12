@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AElf;
 using AElf.Types;
 using AutoMapper;
@@ -38,5 +39,15 @@ public class MapperBase : Profile
     protected static string MapChainIdToBase58(int chainId)
     {
         return ChainHelper.ConvertChainIdToBase58(chainId);
+    }
+    
+    protected static List<string> MapCategories(List<TelegramAppCategory> list)
+    {
+        if (list == null || list.IsNullOrEmpty())
+        {
+            return new List<string>();
+        }
+
+        return list.Select(x => x.ToString()).ToList();
     }
 }

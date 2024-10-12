@@ -44,9 +44,9 @@ public class ReferralController
     }
     
     [HttpGet("config")]
-    public ReferralActiveConfigDto ConfigAsync()
+    public async Task<ReferralActiveConfigDto> ConfigAsync()
     {
-        return _referralService.ConfigAsync();
+        return await _referralService.ConfigAsync();
     }
     
     [HttpGet("referral-binding-status")]
@@ -54,5 +54,12 @@ public class ReferralController
     public async Task<ReferralBindingStatusDto> ReferralBindingStatusAsync(string chainId)
     {
         return await _referralService.ReferralBindingStatusAsync(chainId);
+    }
+    
+    [HttpGet("set-cycle")]
+    [Authorize]
+    public async Task SetCycleAsync(SetCycleInput input)
+    {
+        await _referralService.SetCycleAsync(input);
     }
 }
