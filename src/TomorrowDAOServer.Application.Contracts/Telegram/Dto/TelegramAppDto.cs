@@ -16,7 +16,6 @@ public class TelegramAppDto
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
-    public string QueryDetailUrl { get; set; }
     public List<TelegramAppCategory> Categories { get; set; }
 }
 
