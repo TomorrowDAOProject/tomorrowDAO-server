@@ -73,7 +73,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
             blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight).Max());
             var (convertProposalList, rankingProposalList) = await _proposalAssistService.ConvertProposalList(chainId, queryList);
             await _proposalProvider.BulkAddOrUpdateAsync(convertProposalList);
-            await _rankingAppService.GenerateRankingApp(rankingProposalList);
+            await _rankingAppService.GenerateRankingApp(chainId, rankingProposalList);
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
 

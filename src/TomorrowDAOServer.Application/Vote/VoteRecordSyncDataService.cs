@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nest;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
-using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Ranking.Provider;
+using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Vote.Index;
@@ -32,13 +32,16 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private readonly IProposalProvider _proposalProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
+    private readonly IReferralInviteProvider _referralInviteProvider;
+    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private const int MaxResultCount = 500;
     
     public VoteRecordSyncDataService(ILogger<VoteRecordSyncDataService> logger,
         IObjectMapper objectMapper, IGraphQLProvider graphQlProvider,
         IVoteProvider voteProvider, INESTRepository<VoteRecordIndex, string> voteRecordIndexRepository, 
         IChainAppService chainAppService, IOptionsMonitor<RankingOptions> rankingOptions, IProposalProvider proposalProvider, 
-        ITelegramAppsProvider telegramAppsProvider)
+        ITelegramAppsProvider telegramAppsProvider, IReferralInviteProvider referralInviteProvider, 
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider)
         : base(logger, graphQlProvider)
     {
         _logger = logger;
@@ -49,6 +52,8 @@ public partial class VoteRecordSyncDataService : ScheduleSyncDataService
         _rankingOptions = rankingOptions;
         _proposalProvider = proposalProvider;
         _telegramAppsProvider = telegramAppsProvider;
+        _referralInviteProvider = referralInviteProvider;
+        _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)

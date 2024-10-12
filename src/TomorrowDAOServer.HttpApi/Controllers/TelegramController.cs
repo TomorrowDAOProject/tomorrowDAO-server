@@ -13,7 +13,7 @@ namespace TomorrowDAOServer.Controllers;
 
 [RemoteService]
 [Area("app")]
-[ControllerName("Forum")]
+[ControllerName("Telegram")]
 [Route("api/app/telegram")]
 public class TelegramController : AbpController
 {
@@ -39,7 +39,16 @@ public class TelegramController : AbpController
         await _telegramService.SaveTelegramAppsAsync(telegramAppDtos);
         return telegramAppDtos;
     }
-    
+
+    [HttpPost("load/detail")]
+    [Authorize]
+    public async Task<IDictionary<string, TelegramAppDetailDto>> LoadTelegramAppsDetailAsync(LoadTelegramAppsDetailInput input)
+    {
+        var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadTelegramAppsDetailAsync(input);
+        
+        return await _telegramService.SaveTelegramAppDetailAsync(input, telegramAppDetailDtos);
+    }
+
     [HttpPost("save")]
     [Authorize]
     public async Task<bool> LoadTelegramAppsAsync(SaveTelegramAppsInput input)

@@ -11,5 +11,9 @@ public enum WorkerBusinessType
     VoteRecordSync,
     VoteWithdrawSync,
     TokenPriceUpdate,
-    ProposalNumUpdate
+    ProposalNumUpdate,
+    ReferralSync,
+    UserBalanceSync,
+    TopInviterGenerate,
+    ProposalRedisUpdate
 }

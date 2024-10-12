@@ -9,6 +9,8 @@ using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
@@ -24,7 +26,13 @@ public partial class RankingAppServiceTest
 
         mock.Setup(o => o.CurrentValue).Returns(new RankingOptions
         {
-            DaoIds = new List<string>{DAOId}, DescriptionBegin = "##GameRanking:", DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9\s\-]+(?:\s*,\s*[a-zA-Z0-9\s\-]+)*)?$"
+            DaoIds = new List<string>{DAOId}, 
+            DescriptionBegin = "##GameRanking:", 
+            DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9\s\-]+(?:\s*,\s*[a-zA-Z0-9\s\-]+)*)?$",
+            LockUserTimeout = 60000,
+            VoteTimeout = 60000,
+            RetryTimes = 30,
+            RetryDelay = 2000
         });
 
         return mock.Object;
@@ -43,6 +51,8 @@ public partial class RankingAppServiceTest
         var mock = new Mock<IUserProvider>();
         mock.Setup(o => o.GetUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
             .ReturnsAsync(Address1);
+        mock.Setup(o => o.GetAndValidateUserAddressAndCaHashAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(new Tuple<string, string>(Address1, Address1CaHash));
         return mock.Object;
     }
     
@@ -76,6 +86,30 @@ public partial class RankingAppServiceTest
                     VoteAmount = 1L, ActiveEndTime = DateTime.Now.AddDays(1), ProposalDescription = "##GameRanking:crypto-bot,xrocket,favorite-stickers-bot"
                 }
             });
+        return mock.Object;
+    }
+
+    private IRankingAppPointsRedisProvider MockRankingAppPointsRedisProvider()
+    {
+        var mock = new Mock<IRankingAppPointsRedisProvider>();
+        return mock.Object;
+    }
+    
+    private IUserBalanceProvider MockUserBalanceProvider()
+    {
+        var mock = new Mock<IUserBalanceProvider>();
+        mock.Setup(o => o.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UserBalanceIndex{Amount = 1});
+        return mock.Object;
+    }
+    
+    private IProposalProvider MockProposalProvider()
+    {
+        var mock = new Mock<IProposalProvider>();
+        mock.Setup(o => o.GetProposalByIdAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new ProposalIndex{ActiveStartTime = DateTime.UtcNow, ActiveEndTime = DateTime.UtcNow.AddDays(1)});
+        mock.Setup(o => o.GetRankingProposalListAsync(It.IsAny<GetRankingListInput>()))
+            .ReturnsAsync(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() { ProposalId = ProposalId1 } }));
         return mock.Object;
     }
 }

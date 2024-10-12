@@ -5,10 +5,13 @@ namespace TomorrowDAOServer.Common;
 
 public static class CommonConstant
 {
+    public const string DateFormat = "yyyy-MM-dd HH:mm:ss";
+    
     public const long LongError = -1;
     public const string Comma = ",";
     public const string Underline = "_";
     public const string Middleline = "-";
+    public const string Colon = ":";
 
     public const string EmptyString = "";
     public const string ELF = "ELF";
@@ -23,12 +26,16 @@ public static class CommonConstant
     public const string CaContractAddressName = "CaAddress";
     public const string VoteContractAddressName = "VoteContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
+    public const string ProxyAccountContractAddressName = "AElf.Contracts.ProxyAccountContract";
         
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
     public const string TokenMethodGetBalance = "GetBalance";
     public const string TokenMethodTransfer = "Transfer";
+    public const string TokenMethodGetTokenInfo = "GetTokenInfo";
+    public const string TokenMethodIssue = "Issue";
+    public const string ProxyAccountMethodGetProxyAccountByAddress = "GetProxyAccountByProxyAccountAddress";
     
     public const string TransactionStateMined = "MINED";
     public const string TransactionStatePending = "PENDING";
@@ -42,6 +49,7 @@ public static class CommonConstant
     public const string VoteEventVoted = "Voted";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
+    public const string DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)?$";
     public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;
@@ -59,4 +67,42 @@ public static class CommonConstant
             { "b39d3b9a1cea1ff57735520fdaa414bf9c1fc05f5d00cf41326809051882f2ac", VoteMechanism.TOKEN_BALLOT }
         }}
     };
+    
+    // Hub
+    public const string ReceivePointsProduce = "ReceivePointsProduce";
+    public const string RequestPointsProduce = "RequestPointsProduce";
+    public const string RequestUserBalanceProduce = "RequestUserBalanceProduce";
+    public const string ReceiveUserBalanceProduce = "ReceiveUserBalanceProduce";
+    
+    // Referral
+    public const string CreateAccountMethodName = "CreateCAHolder";
+    public const string ProjectCode = "13027";
+    public const string OrganicTraffic = "OrganicTraffic";
+    public const string OrganicTrafficBeforeProjectCode = "OrganicTrafficBeforeProjectCode";
+    
+    // Votigram
+    public const string VotigramCollectionSymbolTestNet = "TOMORROWPASSTEST-1"; 
+    public const string VotigramCollectionSymbolMainNet = "TOMORROWPASS-1"; 
+    
+    public static string GetVotigramSymbol(string chainId)
+    {
+        return chainId switch
+        {
+            MainNetSideChainId => VotigramCollectionSymbolMainNet,
+            MainChainId => string.Empty,
+            TestNetSideChainId => VotigramCollectionSymbolTestNet,
+            _ => string.Empty
+        };
+    }
+    
+    // Information
+    public const string ProposalId = "ProposalId";
+    public const string ProposalTitle = "ProposalTitle";
+    public const string Alias = "Alias";
+    public const string CycleStartTime = "CycleStartTime";
+    public const string CycleEndTime = "CycleEndTime";
+    public const string InviteCount = "InviteCount";
+    public const string Rank = "Rank";
+    public const string Inviter = "Inviter";
+    public const string Invitee = "Invitee";
 }

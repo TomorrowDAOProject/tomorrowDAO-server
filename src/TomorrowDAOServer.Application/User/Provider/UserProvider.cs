@@ -12,7 +12,10 @@ public interface IUserProvider
 {
     Task<UserGrainDto> GetUserAsync(Guid userId);
     Task<string> GetUserAddressAsync(Guid userId, string chainId);
+    Task<Tuple<string, string>> GetUserAddressAndCaHashAsync(Guid userId, string chainId);
     Task<string> GetAndValidateUserAddressAsync(Guid userId, string chainId);
+    Task<Tuple<string, string>> GetAndValidateUserAddressAndCaHashAsync(Guid userId, string chainId);
+
 }
 
 public class UserProvider : IUserProvider, ISingletonDependency
@@ -68,6 +71,25 @@ public class UserProvider : IUserProvider, ISingletonDependency
         return addressInfo == null ? string.Empty : addressInfo.Address;
     }
     
+    public async Task<Tuple<string, string>> GetUserAddressAndCaHashAsync(Guid userId, string chainId)
+    {
+        if (chainId.IsNullOrWhiteSpace())
+        {
+            return new Tuple<string, string>(string.Empty, string.Empty);
+        }
+
+        var userGrainDto = await GetUserAsync(userId);
+        if (userGrainDto == null)
+        {
+            return new Tuple<string, string>(string.Empty, string.Empty);
+        }
+
+        var addressInfo = userGrainDto.AddressInfos.Find(a => a.ChainId == chainId);
+        var address =  addressInfo == null ? string.Empty : addressInfo.Address;
+        var addressCaHash = userGrainDto.CaHash ?? string.Empty;
+        return new Tuple<string, string>(address, addressCaHash);
+    }
+    
     public async Task<string> GetAndValidateUserAddressAsync(Guid userId, string chainId)
     {
         var userAddress = await GetUserAddressAsync(userId, chainId);
@@ -78,5 +100,16 @@ public class UserProvider : IUserProvider, ISingletonDependency
 
         _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
         throw new UserFriendlyException("No user address found");
+    }
+
+    public async Task<Tuple<string, string>> GetAndValidateUserAddressAndCaHashAsync(Guid userId, string chainId)
+    {
+        var (address, addressCaHash) = await GetUserAddressAndCaHashAsync(userId, chainId);
+        if (!address.IsNullOrWhiteSpace() && !addressCaHash.IsNullOrWhiteSpace())
+        {
+            return new Tuple<string, string>(address, addressCaHash);
+        }
+        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        throw new UserFriendlyException("No user address and caHash found");
     }
 }

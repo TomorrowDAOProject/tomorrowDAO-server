@@ -24,6 +24,10 @@ namespace TomorrowDAOServer.Worker
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<HighCouncilMemberSyncWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<TokenPriceUpdateWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalNumUpdateWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ReferralSyncWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<UserBalanceSyncWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ReferralTopInviterGenerateWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalRedisUpdateWorker>());
         }
     }
 }

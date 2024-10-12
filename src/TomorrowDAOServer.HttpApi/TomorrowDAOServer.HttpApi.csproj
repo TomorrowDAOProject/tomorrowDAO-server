@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TomorrowDAOServer.Application.Contracts\TomorrowDAOServer.Application.Contracts.csproj" />
+    <ProjectReference Include="..\TomorrowDAOServer.Application\TomorrowDAOServer.Application.csproj" />
     <ProjectReference Include="..\TomorrowDAOServer.EntityEventHandler.Core\TomorrowDAOServer.EntityEventHandler.Core.csproj" />
   </ItemGroup>
 
@@ -23,6 +24,7 @@
     <PackageReference Include="Volo.Abp.FeatureManagement.HttpApi" Version="7.0.0" />
     <PackageReference Include="Volo.Abp.SettingManagement.HttpApi" Version="7.0.0" />
     <PackageReference Include="Newtonsoft.Json " Version="13.0.3" />
+    <PackageReference Include="Volo.Abp.AspNetCore.SignalR" Version="7.0.0" />
   </ItemGroup>
 
   

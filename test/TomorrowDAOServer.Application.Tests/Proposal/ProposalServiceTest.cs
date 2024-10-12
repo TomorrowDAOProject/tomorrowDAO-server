@@ -21,6 +21,8 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Ranking;
+using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote;
@@ -37,7 +39,6 @@ namespace TomorrowDAOServer.Proposal;
 public class ProposalServiceTest 
 {
     private readonly IObjectMapper _objectMapper;
-    private readonly IOptionsMonitor<ProposalTagOptions> _proposalTagOptionsMonitor;
     private readonly IProposalProvider _proposalProvider;
     private readonly IVoteProvider _voteProvider;
     private readonly IDAOProvider _DAOProvider;
@@ -45,7 +46,6 @@ public class ProposalServiceTest
     private readonly ILogger<ProposalProvider> _logger;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGraphQLProvider _graphQlProvider;
-    private readonly IScriptService _scriptService;
     private readonly IUserProvider _userProvider;
     private readonly IElectionProvider _electionProvider;
     private readonly ITokenService _tokenService;
@@ -53,11 +53,11 @@ public class ProposalServiceTest
     private readonly ICurrentUser _currentUser;
     private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
 
     public ProposalServiceTest()
     {
         _objectMapper = Substitute.For<IObjectMapper>();
-        _proposalTagOptionsMonitor = Substitute.For<IOptionsMonitor<ProposalTagOptions>>();
         _proposalProvider = Substitute.For<IProposalProvider>();
         _voteProvider = Substitute.For<IVoteProvider>();
         _DAOProvider = Substitute.For<IDAOProvider>();
@@ -65,14 +65,15 @@ public class ProposalServiceTest
         _logger = Substitute.For<ILogger<ProposalProvider>>();
         _explorerProvider = Substitute.For<IExplorerProvider>();
         _graphQlProvider = Substitute.For<IGraphQLProvider>();
-        _scriptService = Substitute.For<IScriptService>();
         _userProvider = Substitute.For<IUserProvider>();
         _electionProvider = Substitute.For<IElectionProvider>();
         _tokenService = Substitute.For<ITokenService>();
         _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
+        _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
+        _rankingAppPointsRedisProvider = Substitute.For<IRankingAppPointsRedisProvider>();
         _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, 
-            _graphQlProvider, _scriptService, _proposalAssistService, _DAOProvider, _proposalTagOptionsMonitor, 
-            _logger, _userProvider, _electionProvider, _tokenService, _rankingOptions);
+            _graphQlProvider, _proposalAssistService, _DAOProvider, 
+            _logger, _userProvider, _electionProvider, _tokenService, _rankingOptions, _rankingAppPointsRedisProvider);
         
         _currentUser = Substitute.For<ICurrentUser>();
         _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();

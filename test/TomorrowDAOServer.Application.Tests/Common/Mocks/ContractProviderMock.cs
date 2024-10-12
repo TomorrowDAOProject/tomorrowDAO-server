@@ -6,12 +6,15 @@ using AElf;
 using AElf.Client;
 using AElf.Client.Dto;
 using AElf.Contracts.Election;
+using AElf.Contracts.ProxyAccountContract;
 using AElf.Types;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Moq;
 using NSubstitute;
 using TomorrowDAOServer.Common.AElfSdk;
 using static TomorrowDAOServer.Common.TestConstant;
+using TokenInfo = AElf.Contracts.MultiToken.TokenInfo;
 
 namespace TomorrowDAOServer.Common.Mocks;
 
@@ -27,6 +30,8 @@ public class ContractProviderMock
         MockCreateTransactionAsync(mock);
         MockCallTransactionAsync<PubkeyList>(mock);
         MockCallTransactionAsync<CandidateVote>(mock);
+        MockCallTransactionAsync<TokenInfo>(mock);
+        MockCallTransactionAsync<ProxyAccount>(mock);
         MockGetTreasuryAddressAsync(mock);
         MockSendTransactionAsync(mock);
         MockContractAddress(mock);
@@ -170,6 +175,35 @@ public class ContractProviderMock
                     AllObtainedVotedVotesAmount = 200,
                     Pubkey = ByteStringHelper.FromHexString(PublicKey1)
                 });
+            }
+            else if (typeof(T) == typeof(TokenInfo))
+            {
+                return await Task.FromResult<T>((T)(object)new TokenInfo
+                {
+                    Symbol = ELF,
+                    TokenName = "aelf",
+                    Supply = 10,
+                    TotalSupply = 100,
+                    Decimals = 1,
+                    Issuer = Address.FromBase58(Address1),
+                    IsBurnable = true,
+                    IssueChainId = ChainHelper.ConvertBase58ToChainId(ChainIdAELF),
+                    Issued = 10
+                });
+            }
+            else if (typeof(T) == typeof(ProxyAccount))
+            {
+                var proxyAccount = new ProxyAccount
+                {
+                    CreateChainId = ChainHelper.ConvertBase58ToChainId(ChainIdAELF),
+                    ProxyAccountHash = TransactionHash
+                };
+                proxyAccount.ManagementAddresses.Add(new ManagementAddress
+                    {
+                        Address = Address.FromBase58(Address1)
+                    }
+                );
+                return await Task.FromResult<T>((T)(object)proxyAccount);
             }
 
             throw new Exception("Not support type.");

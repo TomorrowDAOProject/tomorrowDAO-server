@@ -57,4 +57,42 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
 
         return ObjectMapper.Map<UserIndex, UserDto>(users.First());
     }
+
+    public async Task<List<UserIndex>> GetUserByCaHashListAsync(List<string> caHashes)
+    {
+        if (caHashes.IsNullOrEmpty())
+        {
+            return new List<UserIndex>();
+        }
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>
+        {
+            q => q.Terms(i => i.Field(t => t.CaHash).Terms(caHashes))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        var (_, list) = await _userIndexRepository.GetListAsync(Filter);
+        return list;
+    }
+
+    public async Task<UserIndex> GetUserByCaHashAsync(string caHash)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.CaHash).Value(caHash))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _userIndexRepository.GetAsync(Filter);
+    }
+
+    public async Task<string> GetUserAddressByCaHashAsync(string chainId, string caHash)
+    {
+        var user = await GetUserByCaHashAsync(caHash);
+        return user?.AddressInfos?.FirstOrDefault(x => x.ChainId == chainId)?.Address ?? string.Empty;
+    }
+
+    public async Task<List<UserIndex>> GetUser()
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>();
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _userIndexRepository.GetListAsync(Filter)).Item2;
+    }
 }

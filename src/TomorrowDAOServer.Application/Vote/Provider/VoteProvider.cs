@@ -28,15 +28,17 @@ public interface IVoteProvider
     Task<List<IndexerVoteRecord>> GetAllVoteRecordAsync(GetAllVoteRecordInput input);
     Task<List<IndexerVoteSchemeInfo>> GetVoteSchemeAsync(GetVoteSchemeInput input);
 
-    Task<IDictionary<string, IndexerVoteSchemeInfo>> GetVoteSchemeDicAsync(GetVoteSchemeInput input);
+    Task<Dictionary<string, IndexerVoteSchemeInfo>> GetVoteSchemeDicAsync(GetVoteSchemeInput input);
     Task<List<IndexerVoteRecord>> GetSyncVoteRecordListAsync(GetChainBlockHeightInput input);
     Task<List<WithdrawnDto>> GetSyncVoteWithdrawListAsync(GetChainBlockHeightInput input);
     Task<List<VoteRecordIndex>> GetByVotingItemIdsAsync(string chainId, List<string> votingItemIds);
     Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds);
+    Task<List<VoteRecordIndex>> GetByVotersAndVotingItemIdAsync(string chainId, List<string> voters, string votingItemId);
     Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter);
     Task<Tuple<long, List<VoteRecordIndex>>> GetPageVoteRecordAsync(GetPageVoteRecordInput input);
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
     Task<long> GetVotePoints(string chainId, string daoId, string voter);
+    Task<List<VoteRecordIndex>> GetNeedMoveVoteRecordListAsync();
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -270,7 +272,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         return graphQlResponse?.Data ?? new List<IndexerVoteSchemeInfo>();
     }
 
-    public async Task<IDictionary<string, IndexerVoteSchemeInfo>> GetVoteSchemeDicAsync(GetVoteSchemeInput input)
+    public async Task<Dictionary<string, IndexerVoteSchemeInfo>> GetVoteSchemeDicAsync(GetVoteSchemeInput input)
     {
         var sw = Stopwatch.StartNew();
         var voteSchemeInfos = await GetVoteSchemeAsync(input);
@@ -367,6 +369,18 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
     }
 
+    public async Task<List<VoteRecordIndex>> GetByVotersAndVotingItemIdAsync(string chainId, List<string> voters, string votingItemId)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(f => f.VotingItemId).Value(votingItemId)),
+            q => q.Terms(i => i.Field(f => f.Voter).Terms(voters)),
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
+    }
+
     public async Task<List<VoteRecordIndex>> GetNonWithdrawVoteRecordAsync(string chainId, string daoId, string voter)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
@@ -378,7 +392,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.VoteMechanism).Value(VoteMechanism.TOKEN_BALLOT))
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await GetAllIndex(Filter, _voteRecordIndexRepository);
+        return await IndexHelper.GetAllIndex(Filter, _voteRecordIndexRepository);
     }
 
     public async Task<Tuple<long, List<VoteRecordIndex>>> GetPageVoteRecordAsync(GetPageVoteRecordInput input)
@@ -457,6 +471,17 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         return (await _voteRecordIndexRepository.CountAsync(Filter)).Count;
     }
 
+    public async Task<List<VoteRecordIndex>> GetNeedMoveVoteRecordListAsync()
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.ValidRankingVote).Value(true)),
+            // q => q.Term(i => i.Field(f => f.TotalRecorded).Value(false))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await IndexHelper.GetAllIndex(Filter, _voteRecordIndexRepository);
+    }
+
     public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
@@ -465,30 +490,12 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.Voter).Value(voter)),
             q => q.Terms(i => i.Field(f => f.VotingItemId).Terms(votingItemIds))
         };
+        if (votingItemIds != null && !votingItemIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Terms(i => i.Field(f => f.VotingItemId).Terms(votingItemIds)));
+        }
+
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.GetListAsync(Filter)).Item2;
-    }
-
-    private static async Task<List<T>> GetAllIndex<T>(Func<QueryContainerDescriptor<T>, QueryContainer> filter, 
-        INESTReaderRepository<T, string> repository) 
-        where T : AbstractEntity<string>, IIndexBuild, new()
-    {
-        var res = new List<T>();
-        List<T> list;
-        var skipCount = 0;
-        
-        do
-        {
-            list = (await repository.GetListAsync(filterFunc: filter, skip: skipCount, limit: 5000)).Item2;
-            var count = list.Count;
-            res.AddRange(list);
-            if (list.IsNullOrEmpty() || count < 5000)
-            {
-                break;
-            }
-            skipCount += count;
-        } while (!list.IsNullOrEmpty());
-
-        return res;
     }
 }

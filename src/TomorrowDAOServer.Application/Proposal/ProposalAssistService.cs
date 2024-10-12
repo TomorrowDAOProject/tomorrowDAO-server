@@ -52,7 +52,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
         _rankingOptions = rankingOptions;
-        _regex = new Regex(_rankingOptions.CurrentValue.DescriptionPattern, RegexOptions.Compiled);
+        _regex = new Regex(CommonConstant.DescriptionPattern, RegexOptions.Compiled);
     }
 
     public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
@@ -203,7 +203,17 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex)
     {
         var result = new List<ProposalLifeDto>();
-        AddProposalLife(ref result, ProposalStage.Active, ProposalStatus.PendingVote);
+        var deployTime = proposalIndex.DeployTime;
+        var activeStartTime = proposalIndex.ActiveStartTime;
+        if (deployTime < activeStartTime)
+        {
+            AddProposalLife(ref result, ProposalStage.WaitingActive, ProposalStatus.Published);
+        }
+
+        if (DateTime.UtcNow > activeStartTime)
+        {
+            AddProposalLife(ref result, ProposalStage.Active, ProposalStatus.PendingVote);
+        }
 
         var proposalStatus = proposalIndex.ProposalStatus;
         var isVetoed = proposalIndex.VetoProposalId.IsNullOrEmpty();

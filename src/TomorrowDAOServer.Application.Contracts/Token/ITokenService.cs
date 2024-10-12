@@ -13,7 +13,7 @@ public interface ITokenService
     
     Task<TokenPriceDto> GetTokenPriceAsync(string baseCoin, string quoteCoin);
     
-    Task<double> GetTvlAsync(string chainId);
+    Task<TvlDetail> GetTvlAsync(string chainId);
 
     Task UpdateExchangePriceAsync(string baseCoin, string quoteCoin, List<ExchangeProviderName> providerNames);
 }

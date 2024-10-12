@@ -16,4 +16,6 @@ public class DAOListDto
     public bool IsNetworkDAO { get; set; }
 
     public long HighCouncilMemberCount { get; set; }
+    public string DaoType { get; set; }
+    public string VerifiedType { get; set; } = string.Empty;
 }

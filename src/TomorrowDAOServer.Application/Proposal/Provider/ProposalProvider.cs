@@ -29,7 +29,7 @@ public interface IProposalProvider
 
     public Task<List<ProposalIndex>> GetProposalByIdsAsync(string chainId, List<string> proposalIds);
 
-    public Task<long> GetProposalCountByDAOIds(string chainId, string DAOId);
+    public Task<long> GetProposalCountByDAOId(string chainId, string DAOId);
 
     public Task<IDictionary<string, long>> GetProposalCountByDaoIds(string chainId, ISet<string> daoIds);
 
@@ -197,18 +197,14 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
     public async Task<ProposalIndex> GetDefaultProposalAsync(string chainId)
     {
-        var currentStr = DateTime.UtcNow.ToString("O");
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Terms(i =>
                 i.Field(f => f.ChainId).Terms(chainId)), 
             q => q.Terms(i =>
                 i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking)),
-            q => q.TermRange(
-                i => i.Field(f => f.ActiveEndTime.ToUtcMilliSeconds()).GreaterThanOrEquals(currentStr)),
-            q => q.TermRange(
-                i => i.Field(f => f.ActiveStartTime.ToUtcMilliSeconds()).LessThanOrEquals(currentStr))
-            
+            q => q.DateRange(r => r
+                .Field(f => f.ActiveStartTime).LessThan(DateTime.UtcNow))
         };
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
@@ -237,7 +233,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             limit: input.MaxResultCount);
     }
 
-    public async Task<long> GetProposalCountByDAOIds(string chainId, string DAOId)
+    public async Task<long> GetProposalCountByDAOId(string chainId, string DAOId)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
 
@@ -259,8 +255,8 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         var query = new SearchDescriptor<ProposalIndex>().Size(0)
             .Query(q => q.Term(t => t.Field(f => f.ChainId).Value(chainId)))
             .Query(q => q.Terms(t => t.Field(f => f.DAOId).Terms(daoIds)))
-            .Aggregations(a => a.Terms("dao_ids", t => t.Field(f => f.DAOId).Size(Int32.MaxValue).Aggregations(aa =>
-                aa.ValueCount("proposal_count", vc => vc
+            .Aggregations(a => a.Terms("dao_ids", t => t.Field(f => f.DAOId).Size(Int32.MaxValue)
+                .Aggregations(aa => aa.ValueCount("proposal_count", vc => vc
                     .Field(f => f.Id)))));
 
         var response = await _proposalIndexRepository.SearchAsync(query, 0, Int32.MaxValue);
@@ -398,6 +394,18 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                 shouldQuery.Add(q => q.Bool(b => b.Must(ProposalStatusMustQuery(ProposalStatus.BelowThreshold))));
                 break;
             }
+            case ProposalStatus.PendingVote:
+                mustQuery.Add(q => q.Term(i =>
+                    i.Field(f => f.ProposalStatus).Value(proposalStatus)));
+                mustQuery.Add(q => q.DateRange(d => d
+                    .Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow)));
+                break;
+            case ProposalStatus.Published:
+                mustQuery.Add(q => q.Term(i =>
+                    i.Field(f => f.ProposalStatus).Value(ProposalStatus.PendingVote)));
+                mustQuery.Add(q => q.DateRange(d => d
+                    .Field(f => f.ActiveStartTime).GreaterThanOrEquals(DateTime.UtcNow)));
+                break;
             default:
                 mustQuery.Add(q => q.Term(i =>
                     i.Field(f => f.ProposalStatus).Value(proposalStatus)));

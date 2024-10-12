@@ -47,7 +47,6 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
         context.Services.AddMemoryCache();
         
         ConfigureGraphQl(context);
-        ConfigureProposalTagOptions(context);
         
         base.ConfigureServices(context);
     }
@@ -63,36 +62,5 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
             "http://127.0.0.1:8083/AElfIndexer_DApp/PortKeyIndexerCASchema/graphql",
             new NewtonsoftJsonSerializer()));
         context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
-    }
-    
-    private void ConfigureProposalTagOptions(ServiceConfigurationContext context)
-    {
-        context.Services.Configure<ProposalTagOptions>(o =>
-        {
-            o.Mapping = new Dictionary<string, List<string>>
-            {
-                { "Update Organization",  new List<string>
-                {
-                    "AddMembers", "ChangeMember", "RemoveMembers"
-                } },
-                { "DAO Upgrade",  new List<string> { 
-                        "UploadFileInfos",
-                        "RemoveFileInfos",
-                        "SetSubsistStatus",
-                        "EnableHighCouncil",
-                        "DisableHighCouncil",
-                        "HighCouncilConfigSet",
-                        "SetPermissions" 
-                    } 
-                },
-                { "Customized Vote Model",  new List<string> { 
-                        "Parliament",
-                        "Association",
-                        "Referendum",
-                        "Customize"
-                    } 
-                }
-            };
-        });
     }
 }

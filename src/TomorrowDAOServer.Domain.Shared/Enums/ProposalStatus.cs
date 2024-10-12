@@ -12,5 +12,6 @@ public enum ProposalStatus
     Vetoed = 7,
     Expired = 8,
     Executed = 9,
-    Defeated = 10
+    Defeated = 10,
+    Published = 11
 }

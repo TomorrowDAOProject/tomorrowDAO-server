@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace TomorrowDAOServer.Ranking.Dto;
 
@@ -21,4 +22,9 @@ public class RankingAppDetailDto
     public DateTime DeployTime { get; set; }
     public long VoteAmount { get; set; }
     public double VotePercent { get; set; }
+    public long PointsAmount { get; set; }
+    public double PointsPercent { get; set; }
+    public string Url { get; set; }
+    public string LongDescription { get; set; }
+    public List<string> Screenshots { get; set; }
 }

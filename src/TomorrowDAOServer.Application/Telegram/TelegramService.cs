@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using AElf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Telegram.Dto;
@@ -25,27 +28,30 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly IUserProvider _userProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
+    private readonly IDaoAliasProvider _daoAliasProvider;
 
     public TelegramService(ILogger<TelegramService> logger, IObjectMapper objectMapper,
         ITelegramAppsProvider telegramAppsProvider, IUserProvider userProvider,
-        IOptionsMonitor<TelegramOptions> telegramOptions)
+        IOptionsMonitor<TelegramOptions> telegramOptions, IDaoAliasProvider daoAliasProvider)
     {
         _logger = logger;
         _objectMapper = objectMapper;
         _telegramAppsProvider = telegramAppsProvider;
         _userProvider = userProvider;
         _telegramOptions = telegramOptions;
+        _daoAliasProvider = daoAliasProvider;
     }
-
 
     public async Task SaveTelegramAppAsync(TelegramAppDto telegramAppDto, string chainId)
     {
-        if (telegramAppDto == null || chainId.IsNullOrWhiteSpace())
+        if (telegramAppDto == null || telegramAppDto.Title.IsNullOrWhiteSpace() || chainId.IsNullOrWhiteSpace())
         {
             return;
         }
 
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
+        var address =
+            await _userProvider.GetAndValidateUserAddressAsync(
+                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
             throw new UserFriendlyException("Access denied.");
@@ -54,6 +60,16 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         try
         {
             var telegramAppIndex = _objectMapper.Map<TelegramAppDto, TelegramAppIndex>(telegramAppDto);
+            if (telegramAppIndex.Alias.IsNullOrWhiteSpace())
+            {
+                telegramAppIndex.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(telegramAppDto.Title);
+            }
+
+            if (telegramAppIndex.Id.IsNullOrWhiteSpace())
+            {
+                telegramAppIndex.Id = HashHelper.ComputeFrom(telegramAppDto.Title).ToHex();
+            }
+            
             await _telegramAppsProvider.SaveTelegramAppAsync(telegramAppIndex);
         }
         catch (Exception e)
@@ -105,5 +121,48 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             _logger.LogError(e, "GetTelegramAppAsync error. {0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException($"System exception occurred during querying telegram apps. {e.Message}");
         }
+    }
+
+    public async Task<IDictionary<string, TelegramAppDetailDto>> SaveTelegramAppDetailAsync(
+        LoadTelegramAppsDetailInput input, IDictionary<string, TelegramAppDetailDto> telegramAppDetailDtos)
+    {
+        if (telegramAppDetailDtos.IsNullOrEmpty())
+        {
+            return telegramAppDetailDtos;
+        }
+
+        var telegramAppDtos = await GetTelegramAppAsync(new QueryTelegramAppsInput
+        {
+            Names = input.Apps.Keys.ToList(),
+        });
+        if (telegramAppDtos.IsNullOrEmpty())
+        {
+            return new Dictionary<string, TelegramAppDetailDto>();
+        }
+
+        var res = new Dictionary<string, TelegramAppDetailDto>();
+        foreach (var telegramAppDto in telegramAppDtos)
+        {
+            if (!telegramAppDetailDtos.ContainsKey(telegramAppDto.Title))
+            {
+                continue;
+            }
+
+            var telegramAppDetailDto = telegramAppDetailDtos[telegramAppDto.Title];
+            var detailData = telegramAppDetailDto.Data?.FirstOrDefault();
+            var url = detailData?.Attributes?.Url;
+            var longDescription = detailData?.Attributes?.Long_description;
+            var screenshots = detailData?.Attributes?.Screenshots?.Data ??
+                              new List<TelegramAppScreenshotsItem>();
+            var screenshotList = screenshots.Select(item => item?.Attributes?.Url).ToList();
+            telegramAppDto.Url = url;
+            telegramAppDto.LongDescription = longDescription;
+            telegramAppDto.Screenshots = screenshotList;
+            res[telegramAppDto.Title] = telegramAppDetailDto;
+        }
+
+        await SaveTelegramAppsAsync(telegramAppDtos);
+
+        return res;
     }
 }

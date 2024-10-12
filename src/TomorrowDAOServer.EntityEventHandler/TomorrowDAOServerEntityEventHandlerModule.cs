@@ -1,5 +1,6 @@
 using System;
 using AElf.Indexing.Elasticsearch.Options;
+using Confluent.Kafka;
 using TomorrowDAOServer.EntityEventHandler.Core;
 using TomorrowDAOServer.EntityEventHandler.Core.Background.Options;
 using TomorrowDAOServer.Grains;
@@ -28,10 +29,18 @@ using Hangfire.Mongo;
 using Hangfire.Mongo.CosmosDB;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Volo.Abp.BackgroundJobs.Hangfire;
 using TomorrowDAOServer.Common.Enum;
 using MongoDB.Driver;
+using StackExchange.Redis;
 using TomorrowDAOServer.Options;
+using Volo.Abp.Caching;
+using Volo.Abp.EventBus;
+using Volo.Abp.EventBus.Kafka;
+using Volo.Abp.Kafka;
 
 namespace TomorrowDAOServer.EntityEventHandler;
 
@@ -41,6 +50,7 @@ namespace TomorrowDAOServer.EntityEventHandler;
     typeof(TomorrowDAOServerEntityEventHandlerCoreModule),
     typeof(AbpAspNetCoreSerilogModule),
     //typeof(AbpEventBusRabbitMqModule),
+    typeof(AbpEventBusKafkaModule),
     typeof(TomorrowDAOServerWorkerModule),
     typeof(AbpBackgroundJobsHangfireModule)
     // typeof(AbpBackgroundJobsRabbitMqModule)
@@ -51,6 +61,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
     {
         ConfigureTokenCleanupService();
         var configuration = context.Services.GetConfiguration();
+        var hostingEnvironment = context.Services.GetHostingEnvironment();
         Configure<WorkerOptions>(configuration);
         Configure<WorkerLastHeightOptions>(configuration);
         Configure<WorkerReRunProposalOptions>(configuration.GetSection("WorkerReRunProposalOptions"));
@@ -62,6 +73,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         Configure<NetworkDaoOptions>(configuration.GetSection("TokenPrice"));
         Configure<ExplorerOptions>(configuration.GetSection("Explorer"));
         Configure<RankingOptions>(configuration.GetSection("Ranking"));
+        Configure<GraphQLOptions>(configuration.GetSection("GraphQL"));
         ConfigureHangfire(context, configuration);
         // Configure<AbpRabbitMqBackgroundJobOptions>(configuration.GetSection("AbpRabbitMqBackgroundJob"));
         context.Services.AddHostedService<TomorrowDAOServerHostedService>();
@@ -89,6 +101,13 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         ConfigureEsIndexCreation();
         ConfigureGraphQl(context, configuration);
         // ConfigureBackgroundJob(configuration);
+        ConfigureCache(context, configuration);
+        ConfigureRedis(context, configuration, hostingEnvironment);
+        context.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration["Redis:Configuration"];
+        });
+        ConfigureKafka(context, configuration);
     }
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
@@ -190,6 +209,51 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
             opt.SchedulePollingInterval = TimeSpan.FromMilliseconds(3000);
             opt.HeartbeatInterval = TimeSpan.FromMilliseconds(3000);
             opt.Queues = new[] { "default", "notDefault" };
+        });
+    }
+    
+    private void ConfigureCache(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        var multiplexer = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+        context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+        
+        Configure<AbpDistributedCacheOptions>(options => { options.KeyPrefix = "TomorrowDAOServer:"; });
+    }
+    
+    private void ConfigureRedis(
+        ServiceConfigurationContext context,
+        IConfiguration configuration,
+        IWebHostEnvironment hostingEnvironment)
+    {
+        var dataProtectionBuilder = context.Services.AddDataProtection().SetApplicationName("TomorrowDAOServer");
+        if (!hostingEnvironment.IsDevelopment())
+        {
+            var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            dataProtectionBuilder.PersistKeysToStackExchangeRedis(redis, "TomorrowDAOServer-Protection-Keys");
+        }
+    }
+    
+    private void ConfigureKafka(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        Configure<AbpKafkaOptions>(options =>
+        {
+            options.Connections.Default.BootstrapServers = configuration.GetValue<string>("Kafka:Connections:Default:BootstrapServers");
+            //options.Connections.Default.SaslUsername = "user";
+            //options.Connections.Default.SaslPassword = "pwd";
+            options.ConfigureConsumer = config =>
+            {
+                config.SocketTimeoutMs = configuration.GetValue<int>("Kafka:Consumer:SocketTimeoutMs");
+                config.Acks = Acks.All;
+                config.GroupId = configuration.GetValue<string>("Kafka:EventBus:GroupId");
+                config.EnableAutoCommit = true;
+                config.AutoCommitIntervalMs = configuration.GetValue<int>("Kafka:Consumer:AutoCommitIntervalMs");
+            };
+            options.ConfigureTopic = topic =>
+            {
+                topic.Name = configuration.GetValue<string>("Kafka:EventBus:TopicName");
+                topic.ReplicationFactor = -1;
+                topic.NumPartitions = 1;
+            };
         });
     }
 }

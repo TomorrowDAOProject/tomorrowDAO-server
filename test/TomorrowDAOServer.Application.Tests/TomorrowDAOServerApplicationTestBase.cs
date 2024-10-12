@@ -28,11 +28,13 @@ public abstract partial class
     protected const string ProposalId3 = "bf0cc1d7f7adcc2a43a6cc08cc303719aad51196da7570ebd62eca8ed1100cf6";
     protected const string DAOId = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3";
     protected const string PrivateKey1 = "87ec6028d6c4fa6fd43a1a68c589e737dc8bf4b8968373068dc39a91f70fbeb1";
+    protected const string DAOName = "DAOName";
 
     protected const string PublicKey1 =
         "04f5db833e5377cab193e3fc663209ac3293ef67736021ee9cebfd1b95a058a5bb400aaeb02ed15dc93177c9bcf38057c4b8069f46601a2180e892a555345c89cf";
 
     protected const string Address1 = "2Md6Vo6SWrJPRJKjGeiJtrJFVkbc5EARXHGcxJoeD75pMSfdN2";
+    protected const string Address1CaHash = "c4e3d170923689c63f827add21a0312b553f9d18de02a77282c5e9fee411daf1";
     protected const string PrivateKey2 = "7f089cb3e5e5045b5a8369b81009b023f67414d53ab94c1d2c44dff6e10005d4";
 
     protected const string PublicKey2 =
@@ -40,7 +42,7 @@ public abstract partial class
 
     protected const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
 
-    protected readonly Mock<IUserProvider> UserProviderMock = new Mock<IUserProvider>();
+    protected readonly Mock<IUserProvider> UserProviderMock = new();
     protected readonly IUserProvider UserProvider = new Mock<IUserProvider>().Object;
     protected readonly ICurrentUser CurrentUser = Substitute.For<ICurrentUser>();
 
@@ -138,7 +140,8 @@ public abstract partial class
                             { "CaAddress", Address1},
                             { "AElf.ContractNames.Treasury", "AElfTreasuryContractAddress" },
                             {"AElf.ContractNames.Token", "AElfContractNamesToken"},
-                            {"VoteContractAddress", "VoteContractAddress"}
+                            {"VoteContractAddress", "VoteContractAddress"},
+                            {"AElf.Contracts.ProxyAccountContract", "ProxyAccountContract"}
                         }
                     }
                 },
@@ -152,7 +155,8 @@ public abstract partial class
                             { "CaAddress", "CAContractAddress" },
                             { "TreasuryContractAddress", "TreasuryContractAddress" },
                             {"AElf.ContractNames.Token", "AElfContractNamesToken"},
-                            {"VoteContractAddress", "VoteContractAddress"}
+                            {"VoteContractAddress", "VoteContractAddress"},
+                            {"AElf.Contracts.ProxyAccountContract", "ProxyAccountContract"}
                         }
                     }
                 },
@@ -166,7 +170,8 @@ public abstract partial class
                             { "CaAddress", Address1 },
                             { "TreasuryContractAddress", TreasuryContractAddress },
                             {"AElf.ContractNames.Token", Address1},
-                            {"VoteContractAddress", Address2}
+                            {"VoteContractAddress", Address2},
+                            {"AElf.Contracts.ProxyAccountContract", "ProxyAccountContract"}
                         }
                     }
                 }
@@ -181,8 +186,11 @@ public abstract partial class
     {
         CurrentUser.Id.Returns(userId);
         CurrentUser.IsAuthenticated.Returns(userId != Guid.Empty);
-        var address = userId != Guid.Empty ? (userAddress ?? Address1) : null;
+        var address = userId != Guid.Empty ? (userAddress ?? Address1) : string.Empty;
+        var addressCahash = userId != Guid.Empty ? Address1CaHash : string.Empty;
         UserProviderMock.Setup(o => o.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
             .ReturnsAsync(address);
+        UserProviderMock.Setup(o => o.GetAndValidateUserAddressAndCaHashAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync(new Tuple<string, string>(address, addressCahash));
     }
 }

@@ -1,5 +1,6 @@
 using Localization.Resources.AbpUi;
 using Microsoft.Extensions.DependencyInjection;
+using TomorrowDAOServer.EntityEventHandler.Core;
 using TomorrowDAOServer.Localization;
 using Volo.Abp.Account;
 using Volo.Abp.FeatureManagement;
@@ -19,7 +20,8 @@ namespace TomorrowDAOServer;
     typeof(AbpPermissionManagementHttpApiModule),
     typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpFeatureManagementHttpApiModule),
-    typeof(AbpSettingManagementHttpApiModule)
+    typeof(AbpSettingManagementHttpApiModule),
+    typeof(TomorrowDAOServerEntityEventHandlerCoreModule)
     )]
 public class TomorrowDAOServerHttpApiModule : AbpModule
 {

@@ -62,8 +62,8 @@ public partial class NetworkDaoTest
                     {
                         new ExplorerProposalResult
                         {
-                            Abstentions = null,
-                            Approvals = null,
+                            Abstentions = 0,
+                            Approvals = 0,
                             CanVote = false,
                             ContractAddress = null,
                             ContractMethod = null,
@@ -92,8 +92,8 @@ public partial class NetworkDaoTest
                         },
                         new ExplorerProposalResult
                         {
-                            Abstentions = null,
-                            Approvals = null,
+                            Abstentions = 0,
+                            Approvals = 0,
                             CanVote = false,
                             ContractAddress = null,
                             ContractMethod = null,
