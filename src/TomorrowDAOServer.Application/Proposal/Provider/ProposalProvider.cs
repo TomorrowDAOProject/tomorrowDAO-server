@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
@@ -41,7 +42,9 @@ public interface IProposalProvider
 
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
     public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
-    public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(GetRankingListInput input);
+    public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
+        RankingType rankingType, string excludeProposalId);
+    public Task<ProposalIndex> GetTopProposalAsync(string proposer);
 }
 
 public class ProposalProvider : IProposalProvider, ISingletonDependency
@@ -212,25 +215,33 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             sortExp: o => o.DeployTime);
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(GetRankingListInput input)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, string excludeProposalId)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
-            q => q.Terms(i =>
-                i.Field(f => f.ChainId).Terms(input.ChainId)), 
-            q => q.Terms(i =>
-                i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking))
+            q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)), 
+            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
+            q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType))
         };
-        if (!string.IsNullOrEmpty(input.DAOId))
+        if (!excludeProposalId.IsNullOrEmpty())
         {
-            mustQuery.Add(q => q.Terms(i =>
-                i.Field(f => f.DAOId).Terms(input.DAOId)));
+            mustQuery.Add(q => !q.Term(i => i.Field(f => f.ProposalId).Value(excludeProposalId)));
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: GetDescendingDeployTimeSortDescriptor(),
-            skip: input.SkipCount,
-            limit: input.MaxResultCount);
+            skip: skipCount, limit: maxResultCount);
+    }
+
+    public async Task<ProposalIndex> GetTopProposalAsync(string proposer)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.Proposer).Value(proposer))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _proposalIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending,
+            sortExp: o => o.DeployTime);
     }
 
     public async Task<long> GetProposalCountByDAOId(string chainId, string DAOId)

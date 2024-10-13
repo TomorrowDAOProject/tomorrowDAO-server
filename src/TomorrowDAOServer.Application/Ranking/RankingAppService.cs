@@ -155,11 +155,30 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
     {
-        var result = await _proposalProvider.GetRankingProposalListAsync(input);
+        var rankingType = CheckRankingType(input.Type);
+        var excludeProposalId = string.Empty;
+        var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
+        var res = new List<ProposalIndex>();
+        if (rankingType == RankingType.Verified)
+        {
+            if (input.SkipCount == 0)
+            {
+                var topProposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress);
+                excludeProposalId = topProposal.ProposalId;
+                input.MaxResultCount -= 1;
+                res.Add(topProposal);
+            }
+            else
+            {
+                input.SkipCount -= 1;
+            }
+        }
+        var result = await _proposalProvider.GetRankingProposalListAsync(input.ChainId, input.SkipCount, input.MaxResultCount, rankingType, excludeProposalId);
+        res.AddRange(result.Item2);
         return new PageResultDto<RankingListDto>
         {
             TotalCount = result.Item1,
-            Data = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(result.Item2)
+            Data = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res)
         };
     }
 
@@ -540,8 +559,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             });
     }
 
-    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId,
-        string proposalId)
+    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId, string proposalId)
     {
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         if (proposalId.IsNullOrEmpty())
@@ -608,6 +626,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             RankingList = rankingList.OrderByDescending(r => r.PointsAmount)
                 .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList()
         };
+    }
+
+    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)
+    {
+        var userAddress = await _userProvider
+            .GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId);
     }
 
     private Tuple<VoteInput, Transaction> ParseRawTransaction(string chainId, string rawTransaction)
@@ -840,5 +865,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         return address;
+    }
+    
+    private static RankingType CheckRankingType(string type)
+    {
+        if (Enum.TryParse<RankingType>(type, true, out var rankingType))
+        {
+            return rankingType;
+        }
+        throw new UserFriendlyException($"Invalid rankingType {type}.");
     }
 }
