@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using TomorrowDAOServer.Enums;
@@ -17,12 +19,23 @@ public class TelegramAppDto
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
     public List<TelegramAppCategory> Categories { get; set; }
+    public DateTime CreateTime { get; set; }
+    public DateTime UpdateTime { get; set; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public AppType AppType { get; set; }
+    public string Creator { get; set; }
 }
 
 public class SaveTelegramAppsInput
 {
-    public string ChainId { get; set; }
-    public TelegramAppDto TelegramAppDto { get; set; }
+    [Required] public string ChainId { get; set; }
+    [Required] public string Title { get; set; }
+    public string Icon { get; set; }
+    public string Description { get; set; }
+    public string Url { get; set; }
+    public string longDescription { get; set; }
+    public List<string> Screenshots { get; set; }
+    [Required] List<string> Categories { get; set; }
 }
 
 public class SetCategoryInput

@@ -56,6 +56,12 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<UserIndex, UserDto>().ReverseMap();
         CreateMap<AddressInfo, UserAddressInfo>().ReverseMap();
         CreateMap<TelegramAppDto, TelegramAppIndex>().ReverseMap();
+        CreateMap<SaveTelegramAppsInput, TelegramAppIndex>();
+        CreateMap<TelegramAppIndex, AppDetailDto>()
+            .ForMember(des => des.Categories, opt
+                => opt.MapFrom(source => MapCategories(source.Categories)))
+            .ForMember(des => des.AppType, opt
+                => opt.MapFrom(source => source.AppType.ToString()));
         CreateMap<IndexerUserToken, UserTokenDto>();
         CreateMap<IndexerProposal, ProposalIndex>();
         CreateMap<ExecuteTransactionDto, ExecuteTransaction>()
@@ -278,6 +284,8 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<UserBalance, UserBalanceIndex>();
         CreateMap<TelegramAppIndex, DiscoverAppDto>()
             .ForMember(des => des.Categories, opt
-                => opt.MapFrom(source => MapCategories(source.Categories)));
+                => opt.MapFrom(source => MapCategories(source.Categories)))
+            .ForMember(des => des.AppType, opt
+                => opt.MapFrom(source => source.AppType.ToString()));
     }
 }

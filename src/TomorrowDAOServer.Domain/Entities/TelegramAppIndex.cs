@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
 using Nest;
@@ -19,4 +20,9 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
     public List<TelegramAppCategory> Categories { get; set; }
+    public DateTime CreateTime { get; set; }
+    public DateTime UpdateTime { get; set; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public AppType AppType { get; set; }
+    [Keyword] public string Creator { get; set; }
 }

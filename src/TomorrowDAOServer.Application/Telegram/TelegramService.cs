@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -31,10 +32,11 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     private readonly IUserProvider _userProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
     private readonly IDaoAliasProvider _daoAliasProvider;
+    private readonly IUserBalanceProvider _userBalanceProvider;
 
-    public TelegramService(ILogger<TelegramService> logger, IObjectMapper objectMapper,
-        ITelegramAppsProvider telegramAppsProvider, IUserProvider userProvider,
-        IOptionsMonitor<TelegramOptions> telegramOptions, IDaoAliasProvider daoAliasProvider)
+    public TelegramService(ILogger<TelegramService> logger, IObjectMapper objectMapper,  IUserProvider userProvider,
+        ITelegramAppsProvider telegramAppsProvider, IOptionsMonitor<TelegramOptions> telegramOptions,
+        IDaoAliasProvider daoAliasProvider, IUserBalanceProvider userBalanceProvider)
     {
         _logger = logger;
         _objectMapper = objectMapper;
@@ -42,6 +44,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         _userProvider = userProvider;
         _telegramOptions = telegramOptions;
         _daoAliasProvider = daoAliasProvider;
+        _userBalanceProvider = userBalanceProvider;
     }
 
     public async Task SetCategoryAsync(string chainId)
@@ -111,35 +114,44 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         return result;
     }
 
-    public async Task SaveTelegramAppAsync(TelegramAppDto telegramAppDto, string chainId)
+    public async Task<bool> SaveTelegramAppAsync(SaveTelegramAppsInput input)
     {
-        if (telegramAppDto == null || telegramAppDto.Title.IsNullOrWhiteSpace() || chainId.IsNullOrWhiteSpace())
+        var address = await CheckAddress(input.ChainId);
+        var chainId = input.ChainId;
+        var symbol = CommonConstant.GetVotigramSymbol(chainId);
+        var title = input.Title;
+        var userBalance = await _userBalanceProvider.GetByIdAsync(GuidHelper.GenerateGrainId(address, chainId, symbol));
+        if (userBalance == null || userBalance.Amount < 1)
         {
-            return;
+            throw new UserFriendlyException("Nft Not enough.");
         }
 
-        await CheckAddress(chainId);
-
-        try
+        var (count, list) = await _telegramAppsProvider.GetTelegramAppsAsync(new 
+            QueryTelegramAppsInput { Names = new List<string> { title } });
+        var app = new TelegramAppIndex();
+        if (count > 0)
         {
-            var telegramAppIndex = _objectMapper.Map<TelegramAppDto, TelegramAppIndex>(telegramAppDto);
-            if (telegramAppIndex.Alias.IsNullOrWhiteSpace())
+            app = list[0];
+            if (address != app.Creator)
             {
-                telegramAppIndex.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(telegramAppDto.Title);
+                throw new UserFriendlyException("Can not edit this app: not creator.");
             }
-
-            if (telegramAppIndex.Id.IsNullOrWhiteSpace())
-            {
-                telegramAppIndex.Id = HashHelper.ComputeFrom(telegramAppDto.Title).ToHex();
-            }
-            
-            await _telegramAppsProvider.AddOrUpdateAsync(telegramAppIndex);
+            _objectMapper.Map(input, app);
         }
-        catch (Exception e)
+        else
         {
-            _logger.LogError(e, "SaveTelegramAppAsync error. {0}", JsonConvert.SerializeObject(telegramAppDto));
-            throw new UserFriendlyException($"System exception occurred during saving telegram app. {e.Message}");
+            _objectMapper.Map(input, app);
+            app.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(title);
+            app.Id = HashHelper.ComputeFrom(title).ToHex();
+            app.EditorChoice = true;
+            app.CreateTime = DateTime.UtcNow;
         }
+        
+        app.UpdateTime = DateTime.UtcNow;
+        app.AppType = AppType.Custom;
+        app.Creator = address;
+        await _telegramAppsProvider.AddOrUpdateAsync(app);
+        return true;
     }
 
     public async Task SaveTelegramAppsAsync(List<TelegramAppDto> telegramAppDtos)
@@ -236,6 +248,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             telegramAppDto.Url = url;
             telegramAppDto.LongDescription = longDescription;
             telegramAppDto.Screenshots = screenshotList;
+            telegramAppDto.UpdateTime = DateTime.UtcNow;
             res[telegramAppDto.Title] = telegramAppDetailDto;
         }
 
@@ -243,8 +256,26 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
 
         return res;
     }
-    
-    private async Task CheckAddress(string chainId)
+
+    public async Task<PageResultDto<AppDetailDto>> GetAppListAsync(GetAppListInput input)
+    {
+        var (count, list) = await _telegramAppsProvider.GetAppListAsync(input);
+        return new PageResultDto<AppDetailDto>
+        {
+            TotalCount = count, Data = _objectMapper.Map<List<TelegramAppIndex>, List<AppDetailDto>>(list)
+        };
+    }
+
+    public async Task<PageResultDto<AppDetailDto>> SearchAppAsync(string title)
+    {
+        var list = await _telegramAppsProvider.SearchAppAsync(title);
+        return new PageResultDto<AppDetailDto>
+        {
+            TotalCount = list.Count, Data = _objectMapper.Map<List<TelegramAppIndex>, List<AppDetailDto>>(list)
+        };
+    }
+
+    private async Task<string> CheckAddress(string chainId)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
@@ -252,5 +283,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         {
             throw new UserFriendlyException("Access denied.");
         }
+
+        return address;
     }
 }

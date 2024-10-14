@@ -47,18 +47,16 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task SaveTelegramAppAsyncTest()
     {
-        await _telegramService.SaveTelegramAppAsync(new TelegramAppDto(), null);
+        await _telegramService.SaveTelegramAppAsync(new SaveTelegramAppsInput());
         
         Login(Guid.NewGuid(),Address2);
-        await _telegramService.SaveTelegramAppAsync(new TelegramAppDto
+        await _telegramService.SaveTelegramAppAsync(new SaveTelegramAppsInput
         {
-            Id = Guid.NewGuid().ToString(),
-            Alias = "Alias",
+            ChainId = ChainIdAELF,
             Title = "Title",
             Icon = "Icon",
-            Description = "Description",
-            EditorChoice = false
-        }, ChainIdAELF);
+            Description = "Description"
+        });
     }
     
     [Fact]
@@ -69,15 +67,12 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
 
         var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            await _telegramService.SaveTelegramAppAsync(new TelegramAppDto
+            await _telegramService.SaveTelegramAppAsync(new SaveTelegramAppsInput
             {
-                Id = Guid.NewGuid().ToString(),
-                Alias = "Alias",
                 Title = "Title",
                 Icon = "Icon",
                 Description = "Description",
-                EditorChoice = false
-            }, ChainIdAELF);
+            });
         });
         exception.ShouldNotBeNull();
         exception.Message.ShouldNotBeNull();
