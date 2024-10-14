@@ -8,10 +8,10 @@ using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Ranking.Provider;
-using TomorrowDAOServer.Referral;
 using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.User;
@@ -21,7 +21,7 @@ using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.Users;
 
-namespace TomorrowDAOServer;
+namespace TomorrowDAOServer.Referral;
 
 [RemoteService(IsEnabled = false)]
 [DisableAuditing]
@@ -34,10 +34,13 @@ public class ReferralService : ApplicationService, IReferralService
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private readonly ILogger<IReferralService> _logger;
     private readonly IPortkeyProvider _portkeyProvider;
+    private readonly IReferralCycleProvider _referralCycleProvider;
+    private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
 
     public ReferralService(IReferralInviteProvider referralInviteProvider, IUserProvider userProvider, 
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, IUserAppService userAppService, 
-        IOptionsMonitor<RankingOptions> rankingOptions, ILogger<IReferralService> logger, IPortkeyProvider portkeyProvider)
+        IOptionsMonitor<RankingOptions> rankingOptions, ILogger<IReferralService> logger, IPortkeyProvider portkeyProvider,
+        IReferralCycleProvider referralCycleProvider, IOptionsMonitor<TelegramOptions> telegramOptions)
     {
         _referralInviteProvider = referralInviteProvider;
         _userProvider = userProvider;
@@ -46,6 +49,8 @@ public class ReferralService : ApplicationService, IReferralService
         _rankingOptions = rankingOptions;
         _logger = logger;
         _portkeyProvider = portkeyProvider;
+        _referralCycleProvider = referralCycleProvider;
+        _telegramOptions = telegramOptions;
     }
 
     // public async Task<GetLinkDto> GetLinkAsync(string token, string chainId)
@@ -64,15 +69,15 @@ public class ReferralService : ApplicationService, IReferralService
 
     public async Task<InviteDetailDto> InviteDetailAsync(string chainId)
     {
-        var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
-        var (latestReferralActiveEnd, latest) = _rankingOptions.CurrentValue.IsLatestReferralActiveEnd();
-        if (latestReferralActiveEnd)
+        var (address, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
+        var currentCycle = await _referralCycleProvider.GetCurrentCycleAsync();
+        if (!_rankingOptions.CurrentValue.ReferralActivityValid || !IsCycleValid(currentCycle))
         {
             return new InviteDetailDto();
         }
 
-        var startTime = latest.StartTime;
-        var endTime = latest.EndTime;
+        var startTime = currentCycle.StartTime;
+        var endTime = currentCycle.EndTime;
         var accountCreation = await _referralInviteProvider.GetAccountCreationAsync(startTime, endTime, chainId, addressCaHash);
         var votigramVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true);
         var votigramActivityVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true, true);
@@ -82,7 +87,12 @@ public class ReferralService : ApplicationService, IReferralService
             EstimatedReward = estimatedReward,
             AccountCreation = accountCreation,
             VotigramVote = votigramVote,
-            VotigramActivityVote = votigramActivityVote
+            VotigramActivityVote = votigramActivityVote,
+            StartTime = startTime,
+            EndTime = endTime,
+            DuringCycle = true,
+            Address = address,
+            CaHash = addressCaHash
         };
     }
 
@@ -91,9 +101,9 @@ public class ReferralService : ApplicationService, IReferralService
         var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), input.ChainId);
         if (input.StartTime == 0 || input.EndTime == 0)
         {
-            var latest = _rankingOptions.CurrentValue.ParseReferralActiveTimes().Config.First();
-            input.StartTime = latest.StartTime;
-            input.EndTime = latest.EndTime;
+            var (startTime, endTime) = await GetLeaderBoardTime();
+            input.StartTime = startTime;
+            input.EndTime = endTime;
         }
         var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
@@ -108,9 +118,17 @@ public class ReferralService : ApplicationService, IReferralService
         };
     }
 
-    public ReferralActiveConfigDto ConfigAsync()
+    public async Task<ReferralActiveConfigDto> ConfigAsync()
     {
-        return _rankingOptions.CurrentValue.ParseReferralActiveTimes();
+        var cycles = (await _referralCycleProvider.GetEffectCyclesAsync())
+            .OrderByDescending(c => c.StartTime).ToList();
+        return new ReferralActiveConfigDto
+        {
+            Config = cycles.Select(cycle => new ReferralActiveDto
+            {
+                StartTime = cycle.StartTime, EndTime = cycle.EndTime
+            }).ToList()
+        };
     }
 
     public async Task<ReferralBindingStatusDto> ReferralBindingStatusAsync(string chainId)
@@ -120,8 +138,7 @@ public class ReferralService : ApplicationService, IReferralService
         {
             throw new UserFriendlyException("No user found");
         }
-
-
+        
         var userAddress = user.AddressInfos?.Find(a => a.ChainId == chainId)?.Address ?? string.Empty;
         var addressCaHash = user.CaHash;
         if (string.IsNullOrEmpty(userAddress))
@@ -154,5 +171,46 @@ public class ReferralService : ApplicationService, IReferralService
 
         Log.Information("ReferralBindingStatusAsyncNewUserWaitingBind address {0} caHash {1}", userAddress, addressCaHash);
         return new ReferralBindingStatusDto { NeedBinding = true, BindingSuccess = false };
+    }
+
+    public async Task SetCycleAsync(SetCycleInput input)
+    {
+        var chainId = input.ChainId;
+        var startTime = input.StartTime;
+        var endTime = input.EndTime;
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
+        {
+            throw new UserFriendlyException("Access denied.");
+        }
+        
+        await _referralCycleProvider.AddOrUpdateAsync(new ReferralCycleIndex
+        {
+            Id = GuidHelper.GenerateGrainId(chainId, startTime, endTime),
+            ChainId = chainId, StartTime = startTime, EndTime = endTime, PointsDistribute = input.PointsDistribute
+        });
+    }
+
+    private async Task<Tuple<long, long>> GetLeaderBoardTime()
+    {
+        var currentCycle = await _referralCycleProvider.GetCurrentCycleAsync();
+        if (IsCycleValid(currentCycle))
+        {
+            return new Tuple<long, long>(currentCycle.StartTime, currentCycle.EndTime);
+        }
+
+        var latestCycle = await _referralCycleProvider.GetLatestCycleAsync();
+        if (IsCycleValid(latestCycle))
+        {
+            return new Tuple<long, long>(latestCycle.StartTime, latestCycle.EndTime);
+        }
+
+        var config = _rankingOptions.CurrentValue.ParseReferralActiveTimes().Config.First();
+        return new Tuple<long, long>(config.StartTime, config.EndTime);
+    }
+
+    private bool IsCycleValid(ReferralCycleIndex cycle)
+    {
+        return cycle != null && cycle.StartTime != 0 && cycle.EndTime != 0;
     }
 }

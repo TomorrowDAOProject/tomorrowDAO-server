@@ -18,6 +18,7 @@ using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.MQ;
@@ -27,7 +28,6 @@ using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
-using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
@@ -71,6 +71,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IPortkeyProvider _portkeyProvider;
     private readonly IUserBalanceProvider _userBalanceProvider;
     private readonly IUserPointsRecordProvider _userPointsRecordProvider;
+    private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -83,7 +84,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider,
         IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider,
         IUserAppService userAppService, IPortkeyProvider portkeyProvider, IUserBalanceProvider userBalanceProvider,
-        IUserPointsRecordProvider userPointsRecordProvider)
+        IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -105,6 +106,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _portkeyProvider = portkeyProvider;
         _userBalanceProvider = userBalanceProvider;
         _userPointsRecordProvider = userPointsRecordProvider;
+        _discoverChoiceProvider = discoverChoiceProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -283,12 +285,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task MoveHistoryDataAsync(string chainId, string type, string key, string value)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.GetId(), chainId);
-        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
-        {
-            throw new UserFriendlyException("Access denied.");
-        }
-
+        var address = await CheckAddress(chainId);
         Log.Information("MoveHistoryDataAsync address {address} chainId {chainId} type {type}", address, chainId,
             type);
         string searchValue;
@@ -308,6 +305,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 break;
             case "5":
                 await ReferralInviteCountToGrain(chainId);
+                break;
+            case "6":
+                await VoteToCategory(chainId);
                 break;
             case "9":
                 searchValue = await _rankingAppPointsRedisProvider.GetAsync(key);
@@ -385,7 +385,43 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         await _referralInviteProvider.IncrementInviteCountAsync(chainId, inviter, 1);
         Log.Information("ReferralInviteCountToGrainEnd chainId {chainId}", chainId);
     }
-    
+
+    private async Task VoteToCategory(string chainId)
+    {
+        _logger.LogInformation("VoteToCategoryBegin chainId {chainId}", chainId);
+        var appList = await _telegramAppsProvider.GetAllAsync();
+        var voteRecordList = await _voteProvider.GetNeedMoveVoteRecordListAsync();
+        var appDictionary = appList.ToDictionary(app => app.Alias, app => app.Categories);
+        var voterCategoryDic = voteRecordList
+            .Where(record => !string.IsNullOrEmpty(record.Alias))
+            .GroupBy(record => record.Voter)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .SelectMany(record => appDictionary.TryGetValue(record.Alias, out var categories) 
+                        ? categories 
+                        : Enumerable.Empty<TelegramAppCategory>())
+                    .Distinct()
+                    .ToList()
+            );
+        var toAdd = new List<DiscoverChoiceIndex>();
+        foreach (var (voter, categories) in voterCategoryDic)
+        {
+            toAdd.AddRange(categories.Select(category => new DiscoverChoiceIndex
+            {
+                Id = GuidHelper.GenerateGrainId(chainId, voter, category.ToString(), DiscoverChoiceType.Vote.ToString()),
+                ChainId = chainId,
+                Address = voter,
+                TelegramAppCategory = category,
+                DiscoverChoiceType = DiscoverChoiceType.Vote,
+                UpdateTime = DateTime.UtcNow
+            }));
+        }
+
+        await _discoverChoiceProvider.BulkAddOrUpdateAsync(toAdd);
+        _logger.LogInformation("VoteToCategoryEnd chainId {chainId} count {count}", chainId, toAdd.Count);
+    }
+
     private async Task UpdateRankingAppInfo()
     {
         //update RankingAppIndex url、LongDescription、Screenshots
@@ -445,6 +481,48 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             ExceptionHelper.ThrowSystemException("liking", e);
             return 0;
         }
+    }
+
+    public async Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId, int count)
+    {
+        await CheckAddress(chainId);
+        var voters = (await _voteProvider.GetDistinctVotersAsync(proposalId)).Distinct().ToList();
+        var voterKeyMap = voters.ToDictionary(voter => voter, RedisHelper.GenerateUserPointsAllCacheKey);
+        var keys = voterKeyMap.Values.ToList();
+        var groupCount = _rankingOptions.CurrentValue.GroupCount;
+        var groupedKeys = keys.Select((key, index) => new { key, index })
+            .GroupBy(x => x.index / groupCount)
+            .Select(g => g.Select(x => x.key).ToList())
+            .ToList();
+        var allPoints = new Dictionary<string, long>();
+        foreach (var keyGroup in groupedKeys)
+        {
+            var partialResults = await _rankingAppPointsRedisProvider.MultiGetAsync(keyGroup);
+            foreach (var (key, points) in partialResults)
+            {
+                if (long.TryParse(points, out var pointsLong))
+                {
+                    allPoints[key] = pointsLong;
+                }
+            }
+        }
+        var voterPointsList = voters.Select(voter => 
+        {
+            var key = voterKeyMap[voter];
+            return (Voter: voter, Points: allPoints.TryGetValue(key, out var points) ? points : 0L);
+        }).ToList();
+        var sortedVoters = voterPointsList.OrderByDescending(vp => vp.Points).Take((int)count).ToList();
+        var resultDto = new RankingActivityResultDto
+        {
+            Data = sortedVoters.Select((vp, index) => new RankingActivityUserInfotDto
+            {
+                Rank = index + 1,
+                Address = vp.Voter,
+                Points = vp.Points
+            }).ToList()
+        };
+    
+        return resultDto;
     }
 
     private async Task SaveVotingRecordAsync(string chainId, string address,
@@ -675,7 +753,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                                     userTaskDetail, voteTime);
                             }
                         }
-                        if (IsValidReferralActivity(referral, voteTime))
+                        if (IsValidReferralActivity(referral))
                         {
                             referral.IsReferralActivity = true;
                             Log.Information("Ranking vote, referralRelationFirstVoteInActive.{0} {1}", address, inviter);
@@ -748,8 +826,20 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                && !string.IsNullOrEmpty(referral.InviterCaHash);
     }
 
-    private bool IsValidReferralActivity(ReferralInviteRelationIndex referral, DateTime voteTime)
+    private bool IsValidReferralActivity(ReferralInviteRelationIndex referral)
     {
-        return IsValidReferral(referral) && _rankingOptions.CurrentValue.IsReferralActive(voteTime);
+        return IsValidReferral(referral) && _rankingOptions.CurrentValue.ReferralActivityValid;
+    }
+    
+    private async Task<string> CheckAddress(string chainId)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
+        {
+            throw new UserFriendlyException("Access denied.");
+        }
+
+        return address;
     }
 }

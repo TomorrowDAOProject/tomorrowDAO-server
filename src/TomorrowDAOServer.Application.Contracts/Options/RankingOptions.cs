@@ -35,6 +35,9 @@ public class RankingOptions
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
     public List<string> ReferralPointsAddressList { get; set; } = new();
+    public bool RecordDiscover { get; set; } = false;
+    public bool ReferralActivityValid { get; set; } = true;
+    public long GroupCount { get; set; } = 500;
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {
@@ -61,30 +64,30 @@ public class RankingOptions
         return configDto;
     }
 
-    public bool IsReferralActive(DateTime time)
-    {
-        var utcMilliSeconds = time.ToUtcMilliSeconds();
-        var config = ParseReferralActiveTimes();
-        var latest = config.Config.FirstOrDefault();
-        if (latest != null)
-        {
-            return utcMilliSeconds >= latest.StartTime && utcMilliSeconds <= latest.EndTime;
-        }
-
-        return false;
-    }
-    
-    public Tuple<bool, ReferralActiveDto> IsLatestReferralActiveEnd()
-    {
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var latest = ParseReferralActiveTimes().Config.FirstOrDefault();
-        if (latest != null)
-        {
-            return new Tuple<bool, ReferralActiveDto>(currentTime > latest.EndTime, latest) ;
-        }
-
-        return new Tuple<bool,ReferralActiveDto>(false, null);
-    }
+    // public bool IsReferralActive(DateTime time)
+    // {
+    //     var utcMilliSeconds = time.ToUtcMilliSeconds();
+    //     var config = ParseReferralActiveTimes();
+    //     var latest = config.Config.FirstOrDefault();
+    //     if (latest != null)
+    //     {
+    //         return utcMilliSeconds >= latest.StartTime && utcMilliSeconds <= latest.EndTime;
+    //     }
+    //
+    //     return false;
+    // }
+    //
+    // public Tuple<bool, ReferralActiveDto> IsLatestReferralActiveEnd()
+    // {
+    //     var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    //     var latest = ParseReferralActiveTimes().Config.FirstOrDefault();
+    //     if (latest != null)
+    //     {
+    //         return new Tuple<bool, ReferralActiveDto>(currentTime > latest.EndTime, latest) ;
+    //     }
+    //
+    //     return new Tuple<bool,ReferralActiveDto>(false, null);
+    // }
 
     public TimeSpan GetLockUserTimeoutTimeSpan()
     {

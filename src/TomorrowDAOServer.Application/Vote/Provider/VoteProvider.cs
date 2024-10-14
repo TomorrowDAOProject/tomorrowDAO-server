@@ -40,6 +40,7 @@ public interface IVoteProvider
     Task<IndexerDAOVoterRecord> GetDaoVoterRecordAsync(string chainId, string daoId, string voter);
     Task<long> GetVotePoints(string chainId, string daoId, string voter);
     Task<List<VoteRecordIndex>> GetNeedMoveVoteRecordListAsync();
+    Task<List<string>> GetDistinctVotersAsync(string proposalId);
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -481,6 +482,21 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await IndexHelper.GetAllIndex(Filter, _voteRecordIndexRepository);
+    }
+
+    public async Task<List<string>> GetDistinctVotersAsync(string proposalId)
+    {
+        var query = new SearchDescriptor<VoteRecordIndex>()
+            .Query(q => q.Bool(b => b
+                .Must(m => 
+                    m.Term(t => t.Field(f => f.VotingItemId).Value(proposalId)))))
+            .Size(0) 
+            .Aggregations(a => a
+                .Terms("distinct_voters", t => t.Field(f => f.Voter).Size(int.MaxValue)));
+        var response = await _voteRecordIndexRepository.SearchAsync(query, 0, int.MaxValue);
+        var distinctVoters = response.Aggregations.Terms("distinct_voters").Buckets
+            .Select(b => b.Key as string).ToList();
+        return distinctVoters;
     }
 
     public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)

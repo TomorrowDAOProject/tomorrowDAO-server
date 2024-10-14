@@ -36,9 +36,9 @@ public class DiscussionController
         return await _discussionService.GetCommentListAsync(input);
     }
     
-    [HttpGet("comment-building")]
-    public async Task<CommentBuildingDto> GetCommentBuildingAsync(GetCommentBuildingInput input)
-    {
-        return await _discussionService.GetCommentBuildingAsync(input);
-    }
+    // [HttpGet("comment-building")]
+    // public async Task<CommentBuildingDto> GetCommentBuildingAsync(GetCommentBuildingInput input)
+    // {
+    //     return await _discussionService.GetCommentBuildingAsync(input);
+    // }
 }
