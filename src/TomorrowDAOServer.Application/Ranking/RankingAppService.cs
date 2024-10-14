@@ -118,7 +118,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var toUpdate = new List<RankingAppIndex>();
         foreach (var proposal in proposalList)
         {
-            var aliases = GetAliasList(proposal.ProposalDescription);
+            var aliases = RankHelper.GetAliasList(proposal.ProposalDescription);
             var telegramApps = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
             {
                 Aliases = aliases
@@ -611,7 +611,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
             }
         }
-        var aliasList = GetAliasList(proposalDescription);
+        var aliasList = RankHelper.GetAliasList(proposalDescription);
         var appPointsList = await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId, aliasList);
         var appVoteAmountDic = appPointsList
             .Where(x => x.PointsType == PointsType.Vote)
@@ -827,12 +827,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             _logger.LogError(e, "Ranking vote, update transaction status error.{0}", transactionId);
         }
-    }
-
-    private List<string> GetAliasList(string description)
-    {
-        return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString)
-            .Trim().Split(CommonConstant.Comma).Select(alias => alias.Trim()).Distinct().ToList();
     }
 
     private bool IsVoteDuring(ProposalIndex index)

@@ -114,4 +114,5 @@ public static class CommonConstant
     
     // App
     public const string System = "System";
+    public const string ConnectionProposalIdMap = "ConnectionProposalIdMap";
 }

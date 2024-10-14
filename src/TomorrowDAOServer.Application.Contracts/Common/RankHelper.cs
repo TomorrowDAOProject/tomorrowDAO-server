@@ -46,4 +46,10 @@ public class RankHelper
     {
         return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString).Trim();
     }
+    
+    public static List<string> GetAliasList(string description)
+    {
+        return description.Replace(CommonConstant.DescriptionBegin, CommonConstant.EmptyString)
+            .Trim().Split(CommonConstant.Comma).Select(alias => alias.Trim()).Distinct().ToList();
+    }
 }

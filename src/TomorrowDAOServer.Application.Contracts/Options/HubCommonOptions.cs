@@ -12,6 +12,6 @@ public class HubCommonOptions
     
     public int GetDelay(string key)
     {
-        return DelayMaps.GetValueOrDefault(key, 1000);
+        return DelayMaps.GetValueOrDefault(key, 2000);
     }
 }
