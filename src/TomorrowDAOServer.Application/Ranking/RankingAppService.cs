@@ -71,6 +71,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IUserBalanceProvider _userBalanceProvider;
     private readonly IUserPointsRecordProvider _userPointsRecordProvider;
     private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
+    private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -83,7 +84,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider,
         IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider,
         IUserAppService userAppService, IPortkeyProvider portkeyProvider, IUserBalanceProvider userBalanceProvider,
-        IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider)
+        IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider, 
+        IRankingAppPointsProvider rankingAppPointsProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -106,6 +108,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _userBalanceProvider = userBalanceProvider;
         _userPointsRecordProvider = userPointsRecordProvider;
         _discoverChoiceProvider = discoverChoiceProvider;
+        _rankingAppPointsProvider = rankingAppPointsProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -153,8 +156,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId);
     }
 
-    public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
+    public async Task<RankingListPageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
     {
+        var chainId = input.ChainId;
+        var userAddress = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         var rankingType = CheckRankingType(input.Type);
         var excludeProposalId = string.Empty;
         var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
@@ -173,12 +179,22 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 input.SkipCount -= 1;
             }
         }
-        var result = await _proposalProvider.GetRankingProposalListAsync(input.ChainId, input.SkipCount, input.MaxResultCount, rankingType, excludeProposalId);
+        var result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, excludeProposalId);
         res.AddRange(result.Item2);
-        return new PageResultDto<RankingListDto>
+        var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res);
+        var proposalIds = list.Select(x => x.ProposalId).ToList();
+        var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
+        var pointsDic = pointsList.ToDictionary(x => x.ProposalId, x => x.Points);
+        foreach (var detail in list)
         {
-            TotalCount = result.Item1,
-            Data = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res)
+            detail.Type = input.Type;
+            var points = pointsDic.GetValueOrDefault(detail.ProposalId, 0);
+            detail.TotalVoteAmount = _rankingAppPointsCalcProvider.CalculateVotesFromPoints(points);
+        }
+        var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
+        return new RankingListPageResultDto<RankingListDto>
+        {
+            TotalCount = result.Item1, Data = list, UserTotalPoints = userAllPoints
         };
     }
 

@@ -13,4 +13,5 @@ public class RankingListDto
     public DateTime ActiveStartTime { get; set; }
     public DateTime ActiveEndTime { get; set; }
     public bool Active { get; set; } 
+    public string Type { get; set; } 
 }

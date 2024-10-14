@@ -31,7 +31,8 @@ public class RankingController : AbpController
     }
     
     [HttpGet("list")]
-    public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
+    [Authorize]
+    public async Task<RankingListPageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
     {
         return await _rankingAppService.GetRankingProposalListAsync(input);
     }
