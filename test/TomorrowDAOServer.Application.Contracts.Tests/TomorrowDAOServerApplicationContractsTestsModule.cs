@@ -1,3 +1,4 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Monitor;
 using TomorrowDAOServer.Monitor.Http;
@@ -23,7 +24,8 @@ namespace TomorrowDAOServer.Application.Contracts.Tests;
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
-    typeof(TomorrowDAOServerApplicationContractsModule)
+    typeof(TomorrowDAOServerApplicationContractsModule),
+    typeof(AOPExceptionModule)
 )]
 public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
 {

@@ -5,6 +5,7 @@ using System.Linq;
 using AElf.ExceptionHandler;
 using CodingSeb.ExpressionEvaluator;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Common.Handler;
 using Volo.Abp;
 
 namespace TomorrowDAOServer.Common;
@@ -26,8 +27,7 @@ public static class ExpressionHelper
         var top = toVer == null || current < toVer || current == toVer;
         return bottom && top;
     };
-
-
+    
     private static readonly Dictionary<string, object> ExtensionFunctions = new()
     {
         ["InList"] = InListFunction,
@@ -44,9 +44,15 @@ public static class ExpressionHelper
         return Evaluate(string.Join("", multilineExpression), variables);
     }
 
-    [ExceptionHandler(typeof(UserFriendlyException), typeof(Exception),
-        TargetType = typeof(DefaultExceptionHandler),
-        MethodName = nameof(DefaultExceptionHandler.HandleExceptionAndThrow))]
+    [ExceptionHandler(typeof(Exception),
+        TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.Default)]
+    [ExceptionHandler(typeof(UserFriendlyException),
+        TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.Default)]
+    [ExceptionHandler(typeof(ExpressionEvaluatorSyntaxErrorException),
+        TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.Default)]
     public static T Evaluate<T>(string expression, Dictionary<string, object> variables = null)
     {
         AssertHelper.NotEmpty(expression, "Expression cannot be null or whitespace.");

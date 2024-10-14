@@ -19,7 +19,7 @@
     <PackageReference Include="Volo.Abp.FeatureManagement.Domain.Shared" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.PermissionManagement.Domain.Shared" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.SettingManagement.Domain.Shared" Version="8.2.0" />
-    <PackageReference Include="AElf.ExceptionHandler" Version="1.4.0" />
+    <PackageReference Include="AElf.ExceptionHandler" Version="1.5.0" />
     <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.0.0"/>
   </ItemGroup>
 

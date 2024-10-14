@@ -1,13 +1,14 @@
+using System;
 using System.Threading.Tasks;
 using AElf.ExceptionHandler;
 using Serilog;
 using Volo.Abp;
 
-namespace TomorrowDAOServer;
+namespace TomorrowDAOServer.Common.Handler;
 
-public class DefaultExceptionHandler
+public partial class TmrwDaoExceptionHandler
 {
-    public static async Task<FlowBehavior> HandleExceptionAndThrow(UserFriendlyException ex)
+    public static async Task<FlowBehavior> HandleExceptionAndReThrow(Exception ex)
     {
         Log.Error(ex, "An unexpected system exception encountered.");
         return new FlowBehavior
@@ -15,7 +16,7 @@ public class DefaultExceptionHandler
             ExceptionHandlingStrategy = ExceptionHandlingStrategy.Rethrow
         };
     }
-    public static async Task<FlowBehavior> HandleExceptionAndThrow(System.Exception ex)
+    public static async Task<FlowBehavior> HandleExceptionAndThrow(Exception ex)
     {
         Log.Error(ex, "An unexpected system exception encountered.");
         
@@ -26,10 +27,9 @@ public class DefaultExceptionHandler
         };
     }
     
-    public static async Task<FlowBehavior> HandleExceptionAndReturn(System.Exception ex)
+    public static async Task<FlowBehavior> HandleExceptionAndReturn(Exception ex)
     {
-        Log.Error(ex, "");
-
+        //Log.Error(ex, "An unexpected system exception encountered.");
         return new FlowBehavior
         {
             ExceptionHandlingStrategy = ExceptionHandlingStrategy.Return

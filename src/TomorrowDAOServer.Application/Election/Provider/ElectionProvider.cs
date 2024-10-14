@@ -5,7 +5,6 @@ using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
-using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
@@ -13,6 +12,7 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Election.Dto;
 using TomorrowDAOServer.Election.Index;
 using Volo.Abp.DependencyInjection;
+using JsonConvert = Newtonsoft.Json.JsonConvert;
 
 namespace TomorrowDAOServer.Election.Provider;
 

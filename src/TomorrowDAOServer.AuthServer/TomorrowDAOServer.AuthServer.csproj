@@ -30,14 +30,14 @@
         <PackageReference Include="AElf.CSharp.Core" Version="1.6.0" />
         <PackageReference Include="AElf.Kernel.Types" Version="1.6.0" />
         <PackageReference Include="AElf.Types" Version="1.6.0" />
-        <PackageReference Include="Serilog" Version="4.0.2"/>
-        <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1"/>
+        <PackageReference Include="Serilog" Version="4.0.2" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
         <PackageReference Include="Serilog.AspNetCore" Version="6.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="6.0.5" />
         <PackageReference Include="DistributedLock.Redis" Version="1.0.2" />
         <PackageReference Include="GraphQL.Client" Version="5.1.0" />
         <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="5.1.0" />
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+<!--        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />-->
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="Microsoft.Orleans.Client" Version="7.0.0" />
         <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.0.0" />
@@ -56,6 +56,9 @@
         <PackageReference Include="Volo.Abp.Account.Web.OpenIddict" Version="8.2.0" />
         <PackageReference Include="Volo.Abp.Account.Application" Version="8.2.0" />
         <PackageReference Include="Volo.Abp.Account.HttpApi" Version="8.2.0" />
+        <PackageReference Include="Volo.Abp.MultiTenancy" Version="8.2.0"/>
+        <PackageReference Include="Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy" Version="8.2.0" />
+<!--        <PackageReference Include="OpenIddict" Version="5.5.0"/>-->
         <ProjectReference Include="..\TomorrowDAOServer.Grains\TomorrowDAOServer.Grains.csproj" />
         <ProjectReference Include="..\TomorrowDAOServer.MongoDB\TomorrowDAOServer.MongoDB.csproj" />
         <ProjectReference Include="..\TomorrowDAOServer.Application.Contracts\TomorrowDAOServer.Application.Contracts.csproj" />

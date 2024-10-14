@@ -1,4 +1,5 @@
 using AElf.ExceptionHandler;
+using Google.Protobuf.WellKnownTypes;
 using Localization.Resources.AbpUi;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
@@ -15,6 +16,7 @@ using TomorrowDAOServer.MongoDB;
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
+using Volo.Abp.AspNetCore.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite.Bundling;
@@ -67,6 +69,11 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
                 {
                     options.SetAccessTokenLifetime(DateTime.Now.AddHours(expirationHour) - DateTime.Now);
                 }
+
+                // options.AllowAuthorizationCodeFlow();
+                options.AllowClientCredentialsFlow();
+                options.AllowAuthorizationCodeFlow();
+                options.RequireProofKeyForCodeExchange();
             });
 
             builder.AddValidation(options =>
@@ -205,7 +212,9 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
         app.UseAuthorization();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();
-        
+
+        app.UseMultiTenancy();
+
         // StartOrleans(context.ServiceProvider);
     }
     

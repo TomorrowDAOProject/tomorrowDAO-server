@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Orleans;
 using Orleans.Runtime;
+using Orleans.Serialization.Invocation;
 using Shouldly;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.Grain.Token;
@@ -77,10 +77,19 @@ public partial class MethodCallFilterTest : TomorrowDaoServerApplicationContract
             return Task.CompletedTask;
         }
 
+        public IInvokable Request { get; }
+        object IGrainCallContext.Grain { get; }
+        public GrainId? SourceId { get; }
+        public GrainId TargetId { get; }
+        public GrainInterfaceType InterfaceType { get; }
+        public string InterfaceName { get; }
+        public string MethodName { get; }
         public IAddressable Grain { get; set; }
         public MethodInfo Method { get; set; }
         public MethodInfo InterfaceMethod { get; set; }
         public object[] Arguments { get; set; }
         public object Result { get; set; }
+        public Response Response { get; set; }
+        public IGrainContext SourceContext { get; }
     }
 }
