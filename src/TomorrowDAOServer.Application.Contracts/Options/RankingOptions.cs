@@ -9,6 +9,7 @@ namespace TomorrowDAOServer.Options;
 public class RankingOptions
 {
     public List<string> DaoIds { get; set; } = new();
+    public List<string> CustomDaoIds { get; set; } = new();
     public string DescriptionPattern { get; set; } = string.Empty;
     public string DescriptionBegin { get; set; } = string.Empty;
     //millisecond
@@ -39,6 +40,11 @@ public class RankingOptions
     public bool ReferralActivityValid { get; set; } = true;
     public long GroupCount { get; set; } = 500;
     public string TopRankingAddress { get; set; }
+    public string TopRankingAccount { get; set; }
+    public string TopRankingTitle { get; set; }
+    public string TopRankingSchemeAddress { get; set; }
+    public string TopRankingVoteSchemeId { get; set; }
+    public string TopRankingUrl { get; set; }
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {

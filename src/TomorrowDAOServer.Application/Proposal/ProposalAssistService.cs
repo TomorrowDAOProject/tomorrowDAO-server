@@ -58,20 +58,25 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
     {
         var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+        var customRankingDaoIds = _rankingOptions.CurrentValue.CustomDaoIds;
         var rankingProposalList = new List<IndexerProposal>();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var serverProposalList = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
         var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
         foreach (var proposal in list)
         {
-            if (rankingDaoIds.Contains(proposal.DAOId))
+            var daoId = proposal.DAOId;
+            if (rankingDaoIds.Contains(daoId) || customRankingDaoIds.Contains(daoId))
             {
-                proposal.ProposalCategory = _regex.IsMatch(proposal.ProposalDescription.Trim()) ? ProposalCategory.Ranking : ProposalCategory.Normal;
+                var (proposalCategory, proposalIcon) = ParseProposalDescription(proposal.ProposalDescription);
+                proposal.RankingType = rankingDaoIds.Contains(daoId) ? RankingType.Verified : RankingType.Community;
+                proposal.ProposalCategory = proposalCategory;
+                proposal.ProposalIcon = proposalIcon;
             }
             
             if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
             {
-                if (rankingDaoIds.Contains(proposal.DAOId) && ProposalCategory.Ranking == proposal.ProposalCategory)
+                if (rankingDaoIds.Contains(daoId) && ProposalCategory.Ranking == proposal.ProposalCategory)
                 {
                     rankingProposalList.Add(proposal);
                     _logger.LogInformation("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
@@ -384,5 +389,18 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         }
 
         return enumStr[..1].ToUpper() + enumStr[1..].ToLower();
+    }
+
+    private Tuple<ProposalCategory, string> ParseProposalDescription(string proposalDescription)
+    {
+        var match = _regex.Match(proposalDescription);
+        if (match.Success)
+        {
+            return match.Groups[1].Success ? 
+                new Tuple<ProposalCategory, string>(ProposalCategory.Ranking, match.Groups[1].Value) : 
+                new Tuple<ProposalCategory, string>(ProposalCategory.Ranking, string.Empty);
+        }
+
+        return new Tuple<ProposalCategory, string>(ProposalCategory.Normal, string.Empty);
     }
 }

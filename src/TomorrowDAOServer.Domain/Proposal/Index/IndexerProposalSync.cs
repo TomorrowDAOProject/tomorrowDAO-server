@@ -92,6 +92,8 @@ public class IndexerProposal
     
     public bool IsNetworkDAO { get; set; }
     public ProposalCategory ProposalCategory { get; set; }
+    public RankingType RankingType { get; set; }
+    public string ProposalIcon { get; set; }
 }
 
 public class ExecuteTransactionDto

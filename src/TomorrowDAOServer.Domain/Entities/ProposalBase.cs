@@ -90,4 +90,5 @@ public class ProposalBase : BlockInfoBase
     public ProposalCategory ProposalCategory { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]
     public RankingType RankingType { get; set; }
+    [Keyword] public string ProposalIcon { get; set; }
 }

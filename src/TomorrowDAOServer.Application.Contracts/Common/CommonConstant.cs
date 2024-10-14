@@ -37,6 +37,7 @@ public static class CommonConstant
     public const string TokenMethodTransfer = "Transfer";
     public const string TokenMethodGetTokenInfo = "GetTokenInfo";
     public const string TokenMethodIssue = "Issue";
+    public const string GovernanceMethodCreateProposal = "CreateProposal";
     public const string ProxyAccountMethodGetProxyAccountByAddress = "GetProxyAccountByProxyAccountAddress";
     
     public const string TransactionStateMined = "MINED";
@@ -51,7 +52,8 @@ public static class CommonConstant
     public const string VoteEventVoted = "Voted";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
-    public const string DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)?$";
+    public const string DescriptionIconBegin = "##RankingIcon:";
+    public const string DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9&'’\-]+\s*(?:,\s*[a-zA-Z0-9&'’\-]+\s*)*)?(?:##RankingIcon:\s*\S+)?$";
     public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;
