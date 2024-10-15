@@ -61,7 +61,7 @@ public class FileService : ApplicationService, IFileService
         var utf8Bytes = await stream.GetAllBytesAsync();
         var url = await _awsS3Client.UpLoadFileAsync(new MemoryStream(utf8Bytes), 
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + CommonConstant.Underline + file.FileName);
-        await _fileUploadProvider.AddOrUpdateAsync(chainId, address, url);
+        // await _fileUploadProvider.AddOrUpdateAsync(chainId, address, url);
         return url;
     }
 }
