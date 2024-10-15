@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.DAO.Dtos;
@@ -20,6 +21,7 @@ using Volo.Abp.ObjectMapping;
 using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
@@ -188,47 +190,43 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
     }
 
-    private async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId,
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "get High Council member count error",
+        LogTargets = new []{"daoId"}, ReturnDefault = default)]
+    public virtual async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId,
         string governanceMechanism)
     {
         Stopwatch sw = Stopwatch.StartNew();
         var count = 0;
-        try
+        if (isNetworkDao)
         {
-            if (isNetworkDao)
-            {
-                var bpList = await _graphQlProvider.GetBPAsync(chainId);
-                count = bpList.IsNullOrEmpty() ? 0 : bpList.Count;
+            var bpList = await _graphQlProvider.GetBPAsync(chainId);
+            count = bpList.IsNullOrEmpty() ? 0 : bpList.Count;
                 
+            sw.Stop();
+            Log.Information("ProposalListDuration: GetBPA {0}", sw.ElapsedMilliseconds);
+        }
+        else
+        {
+            if (GovernanceMechanism.Organization.ToString() == governanceMechanism)
+            {
+                var result = await _DAOProvider.GetMemberListAsync(new GetMemberListInput
+                {
+                    ChainId = chainId, DAOId = daoId, SkipCount = 0, MaxResultCount = 1
+                });
+                count = (int)result.TotalCount;
+                    
                 sw.Stop();
-                Log.Information("ProposalListDuration: GetBPA {0}", sw.ElapsedMilliseconds);
+                Log.Information("ProposalListDuration: GetMemberList {0}", sw.ElapsedMilliseconds);
             }
             else
             {
-                if (GovernanceMechanism.Organization.ToString() == governanceMechanism)
-                {
-                    var result = await _DAOProvider.GetMemberListAsync(new GetMemberListInput
-                    {
-                        ChainId = chainId, DAOId = daoId, SkipCount = 0, MaxResultCount = 1
-                    });
-                    count = (int)result.TotalCount;
+                var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
+                count = hcList.IsNullOrEmpty() ? 0 : hcList.Count;
                     
-                    sw.Stop();
-                    Log.Information("ProposalListDuration: GetMemberList {0}", sw.ElapsedMilliseconds);
-                }
-                else
-                {
-                    var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
-                    count = hcList.IsNullOrEmpty() ? 0 : hcList.Count;
-                    
-                    sw.Stop();
-                    Log.Information("ProposalListDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
-                }
+                sw.Stop();
+                Log.Information("ProposalListDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
             }
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "get High Council member count error, daoId={0}", daoId);
         }
 
         return count;
@@ -256,19 +254,14 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             Convert.ToInt64(Math.Round(proposal.MinimalVoteThreshold / pow, MidpointRounding.AwayFromZero));
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGetProposalListAsync), Message = "GetProposalListAsync error",
+        LogTargets = new []{"daoId"}, ReturnDefault = default)]
     private async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
     {
-        try
-        {
-            var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input);
-            var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
-            return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "GetProposalListAsync error, input={daoId}", JsonConvert.SerializeObject(input));
-            return new Tuple<long, List<ProposalDto>>(0, new List<ProposalDto>());
-        }
+        var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input);
+        var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
+        return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
     }
 
     public async Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input)

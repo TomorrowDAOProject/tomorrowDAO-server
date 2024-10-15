@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Election.Dto;
@@ -29,6 +31,10 @@ public class ElectionService : TomorrowDAOServerAppService, IElectionService
     }
 
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, 
+        Message = "System exception occurred during querying High Council member list",
+        LogTargets = new []{"input"})]
     public async Task<List<string>> GetHighCouncilMembersAsync(HighCouncilMembersInput input)
     {
         if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
@@ -36,30 +42,22 @@ public class ElectionService : TomorrowDAOServerAppService, IElectionService
             ExceptionHelper.ThrowArgumentException();
         }
 
-        try
+        if (input.DaoId.IsNullOrWhiteSpace())
         {
-            if (input.DaoId.IsNullOrWhiteSpace())
+            var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
             {
-                var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
-                {
-                    ChainId = input.ChainId,
-                    DAOId = input.DaoId,
-                    Alias = input.Alias
-                });
-                if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
-                {
-                    throw new UserFriendlyException("No DAO information found.");
-                }
-
-                input.DaoId = daoIndex.Id;
+                ChainId = input.ChainId,
+                DAOId = input.DaoId,
+                Alias = input.Alias
+            });
+            if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
+            {
+                throw new UserFriendlyException("No DAO information found.");
             }
 
-            return await _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DaoId);
+            input.DaoId = daoIndex.Id;
         }
-        catch (Exception e)
-        {
-            Log.Error(e, "get high council members error, chainId={0},daoId={1}", input.ChainId, input.DaoId);
-            throw new UserFriendlyException($"System exception occurred during querying High Council member list. {e.Message}");
-        }
+
+        return await _electionProvider.GetHighCouncilMembersAsync(input.ChainId, input.DaoId);
     }
 }

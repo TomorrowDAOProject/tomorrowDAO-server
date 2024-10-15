@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
@@ -98,52 +100,48 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
         return blockHeight;
     }
 
-    private async Task UpdateValidRankingVote(string chainId, List<VoteRecordIndex> list)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
+        Message = "UpdateValidRankingVote error", LogTargets = new []{"chainId", "list"})]
+    public virtual async Task UpdateValidRankingVote(string chainId, List<VoteRecordIndex> list)
     {
-        try
+        var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+        var recordDiscover = _rankingOptions.CurrentValue.RecordDiscover;
+        var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId) && x.Option == VoteOption.Approved && x.Amount == 1)
+            .Select(x => x.VotingItemId).Distinct().ToList();
+        var rankingProposalIds = (await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds))
+            .Where(x => x.ProposalCategory == ProposalCategory.Ranking)
+            .Select(x => x.ProposalId).ToList();
+        var validMemoList = list.Where(x => rankingProposalIds.Contains(x.VotingItemId) && !string.IsNullOrEmpty(x.Memo) 
+                && Regex.IsMatch(x.Memo, CommonConstant.MemoPattern))
+            .Select(x => new { Record = x, Alias = Regex.Match(x.Memo, CommonConstant.MemoPattern).Groups[1].Value })
+            .ToList();
+        var aliasList = validMemoList.Select(x => x.Alias).ToList();
+        var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
+        var validAliasDic = telegramApps.Item2.ToDictionary(x => x.Alias, x => x);
+        var choices = new List<DiscoverChoiceIndex>();
+        foreach (var item in validMemoList.Where(x => validAliasDic.ContainsKey(x.Alias)))
         {
-            var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
-            var recordDiscover = _rankingOptions.CurrentValue.RecordDiscover;
-            var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId) && x.Option == VoteOption.Approved && x.Amount == 1)
-                .Select(x => x.VotingItemId).Distinct().ToList();
-            var rankingProposalIds = (await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds))
-                .Where(x => x.ProposalCategory == ProposalCategory.Ranking)
-                .Select(x => x.ProposalId).ToList();
-            var validMemoList = list.Where(x => rankingProposalIds.Contains(x.VotingItemId) && !string.IsNullOrEmpty(x.Memo) 
-                    && Regex.IsMatch(x.Memo, CommonConstant.MemoPattern))
-                .Select(x => new { Record = x, Alias = Regex.Match(x.Memo, CommonConstant.MemoPattern).Groups[1].Value })
-                .ToList();
-            var aliasList = validMemoList.Select(x => x.Alias).ToList();
-            var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
-            var validAliasDic = telegramApps.Item2.ToDictionary(x => x.Alias, x => x);
-            var choices = new List<DiscoverChoiceIndex>();
-            foreach (var item in validMemoList.Where(x => validAliasDic.ContainsKey(x.Alias)))
+            var telegramAppIndex = validAliasDic.GetValueOrDefault(item.Alias);
+            item.Record.ValidRankingVote = true;
+            item.Record.Alias = item.Alias;
+            item.Record.Title = telegramAppIndex?.Title ?? string.Empty;
+            if (recordDiscover && telegramAppIndex is { Categories: not null })
             {
-                var telegramAppIndex = validAliasDic.GetValueOrDefault(item.Alias);
-                item.Record.ValidRankingVote = true;
-                item.Record.Alias = item.Alias;
-                item.Record.Title = telegramAppIndex?.Title ?? string.Empty;
-                if (recordDiscover && telegramAppIndex is { Categories: not null })
+                var address = item.Record.Voter;
+                choices.AddRange(telegramAppIndex.Categories.Select(category => new DiscoverChoiceIndex
                 {
-                    var address = item.Record.Voter;
-                    choices.AddRange(telegramAppIndex.Categories.Select(category => new DiscoverChoiceIndex
-                    {
-                        Id = GuidHelper.GenerateGrainId(chainId, address, category.ToString(), DiscoverChoiceType.Vote.ToString()),
-                        ChainId = chainId,
-                        Address = address,
-                        TelegramAppCategory = category,
-                        DiscoverChoiceType = DiscoverChoiceType.Vote,
-                        UpdateTime = DateTime.UtcNow
-                    }));
-                }
+                    Id = GuidHelper.GenerateGrainId(chainId, address, category.ToString(), DiscoverChoiceType.Vote.ToString()),
+                    ChainId = chainId,
+                    Address = address,
+                    TelegramAppCategory = category,
+                    DiscoverChoiceType = DiscoverChoiceType.Vote,
+                    UpdateTime = DateTime.UtcNow
+                }));
             }
+        }
 
-            await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "UpdateValidRankingVoteException");
-        }
+        await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
     }
 
     public override async Task<List<string>> GetChainIdsAsync()

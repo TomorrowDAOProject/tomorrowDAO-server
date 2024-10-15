@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Referral.Dto;
@@ -57,15 +59,17 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         return new Tuple<string, string>(resp?.ShortLinkCode ?? string.Empty, resp?.InviteCode ?? string.Empty);
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "GetSyncReferralListAsync error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"methodName", "startTime", "endTime", "skipCount", "maxResultCount"})]
     public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
     {
-        try
+        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+        using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+        var request = new GraphQLRequest
         {
-            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
-            using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
-            var request = new GraphQLRequest
-            {
-                Query = @"
+            Query = @"
                     query($caHashes: [String], $methodName: String, $referralCodes: [String], $projectCode: String, $startTime: Long!, $endTime: Long!, $skipCount: Int!, $maxResultCount: Int!) {
                         referralInfoPage(dto: {
                             caHashes: $caHashes,
@@ -87,54 +91,43 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
                             }
                         }
                     }",
-                Variables = new
-                {
-                    caHashes = new List<string>(), 
-                    methodName = CommonConstant.CreateAccountMethodName, 
-                    referralCodes = new List<string>(), 
-                    projectCode = CommonConstant.ProjectCode, 
-                    startTime = startTime, 
-                    endTime = endTime,
-                    skipCount = skipCount, 
-                    maxResultCount = maxResultCount
-                }
-            };
+            Variables = new
+            {
+                caHashes = new List<string>(), 
+                methodName = CommonConstant.CreateAccountMethodName, 
+                referralCodes = new List<string>(), 
+                projectCode = CommonConstant.ProjectCode, 
+                startTime = startTime, 
+                endTime = endTime,
+                skipCount = skipCount, 
+                maxResultCount = maxResultCount
+            }
+        };
 
-            var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerReferralInfo>(request);
-            return graphQlResponse.Data.ReferralInfoPage.Data;
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "GetSyncReferralListAsyncException startTime {0} endTime {1} skipCount {2} maxResultCount {3}",
-                startTime, endTime, skipCount, maxResultCount);
-        }
-
-        return new List<IndexerReferral>();
+        var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerReferralInfo>(request);
+        return graphQlResponse.Data.ReferralInfoPage.Data;
     }
 
-    public async Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "GetReferralCodeCaHashAsync error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"referralCodes"})]
+    public virtual async Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes)
     {
-        try
-        {
-            var domain = _rankingOptions.CurrentValue.ReferralDomain;
-            var referralCodesString = string.Join("&referralCodes=", referralCodes);
-            var url = $"{domain}{ReferralApi.ReferralCode.Path}?projectCode=13027&referralCodes={referralCodesString}&skipCount=0&maxResultCount={referralCodes.Count}";
-            var resp = await _httpProvider.InvokeAsync<ReferralCodeResponse>(ReferralApi.ReferralCode.Method, url);
-            return resp.Data;
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "GetReferralCodeCaHashAsyncException count {0}", referralCodes.Count);
-        }
-
-        return new List<ReferralCodeInfo>();
+        var domain = _rankingOptions.CurrentValue.ReferralDomain;
+        var referralCodesString = string.Join("&referralCodes=", referralCodes);
+        var url = $"{domain}{ReferralApi.ReferralCode.Path}?projectCode=13027&referralCodes={referralCodesString}&skipCount=0&maxResultCount={referralCodes.Count}";
+        var resp = await _httpProvider.InvokeAsync<ReferralCodeResponse>(ReferralApi.ReferralCode.Method, url);
+        return resp.Data;
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "GetCaHolderTransactionAsync error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"chainId", "caAddress"})]
     public async Task<List<CaHolderTransactionDetail>> GetCaHolderTransactionAsync(string chainId, string caAddress)
     {
-        try
-        {
-            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
             using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
             var request = new GraphQLRequest
             {
@@ -190,42 +183,30 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 
             var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerCaHolderTransaction>(request);
             return graphQlResponse.Data.CaHolderTransaction.Data;
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "GetCaHolderTransactionAsyncException chainId {0}, caAddress {1}", chainId, caAddress);
-        }
-
-        return new List<CaHolderTransactionDetail>();
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "GetHolderInfosAsync error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"caHash"})]
     public async Task<HolderInfoIndexerDto> GetHolderInfosAsync(string caHash)
     {
-        try
+        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+        using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+        var request = new GraphQLRequest
         {
-            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
-            using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
-            var request = new GraphQLRequest
-            {
-                Query = @"
+            Query = @"
 			    query($caHash:String,$skipCount:Int!,$maxResultCount:Int!) {
                     caHolderInfo(dto: {caHash:$caHash,skipCount:$skipCount,maxResultCount:$maxResultCount}){
                             id,chainId,caHash,caAddress,originChainId,managerInfos{address,extraData}}
                 }",
-                Variables = new
-                {
-                    caHash, skipCount = 0, maxResultCount = 10
-                }
-            };
+            Variables = new
+            {
+                caHash, skipCount = 0, maxResultCount = 10
+            }
+        };
 
-            var graphQlResponse = await graphQlClient.SendQueryAsync<HolderInfoIndexerDto>(request);
-            return graphQlResponse.Data;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetHolderInfosAsyncException caHash {0}", caHash);
-        }
-
-        return new HolderInfoIndexerDto();
+        var graphQlResponse = await graphQlClient.SendQueryAsync<HolderInfoIndexerDto>(request);
+        return graphQlResponse.Data;
     }
 }

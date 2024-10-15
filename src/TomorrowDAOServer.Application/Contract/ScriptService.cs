@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Contract.Dto;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
@@ -58,19 +60,13 @@ public class ScriptService : IScriptService, ITransientDependency
         return result?.Value ?? new List<string>();
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = default,
+        LogTargets = new []{"chainId", "proposalId"})]
     public async Task<GetProposalInfoDto> GetProposalInfoAsync(string chainId, string proposalId)
     {
-        try
-        {
-            var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
-            var result = await _transactionService.CallTransactionAsync<GetProposalInfoDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.GovernanceContractAddress, ContractConstants.GetProposalInfo, Hash.LoadFromHex(proposalId));
-            return result;
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "GetProposalInfoAsync Exception chainId {chainId} proposalId {proposalId}", chainId, proposalId);
-            return null;
-        }
-        
+        var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
+        var result = await _transactionService.CallTransactionAsync<GetProposalInfoDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.GovernanceContractAddress, ContractConstants.GetProposalInfo, Hash.LoadFromHex(proposalId));
+        return result;
     }
 }

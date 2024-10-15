@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Contracts.Election;
+using AElf.ExceptionHandler;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Caching.Distributed;
@@ -16,6 +17,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.NetworkDao.Dto;
@@ -70,55 +72,45 @@ public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonD
         _networkDaoProposalProvider = networkDaoProposalProvider;
     }
 
-    /// <summary>
-    ///     
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndThrow), Message = "Failed to query the proposal list.",
+        LogTargets = new []{"request"})]
     public async Task<ExplorerProposalResponse> GetProposalListAsync(ProposalListRequest request)
     {
-        try
+        var explorerResp = await _explorerProvider.GetProposalPagerAsync(request.ChainId,
+            new ExplorerProposalListRequest
+            {
+                PageSize = request.PageSize,
+                PageNum = request.PageNum,
+                Status = request.Status,
+                IsContract = request.IsContract,
+                ProposalType = request.ProposalType,
+                Search = request.Search,
+                Address = request.Address
+            });
+
+        if (explorerResp == null || explorerResp.List.IsNullOrEmpty())
         {
-            var explorerResp = await _explorerProvider.GetProposalPagerAsync(request.ChainId,
-                new ExplorerProposalListRequest
-                {
-                    PageSize = request.PageSize,
-                    PageNum = request.PageNum,
-                    Status = request.Status,
-                    IsContract = request.IsContract,
-                    ProposalType = request.ProposalType,
-                    Search = request.Search,
-                    Address = request.Address
-                });
-
-            if (explorerResp == null || explorerResp.List.IsNullOrEmpty())
-            {
-                return explorerResp;
-            }
-
-            var proposalIds = explorerResp.List.Select(item => item.ProposalId).ToHashSet().ToList();
-            var proposalDictionary = await GetNetworkDaoProposalsDictionaryAsync(request.ChainId, proposalIds);
-            //var items = _objectMapper.Map<List<ExplorerProposalResult>, List<ProposalListResponse>>(explorerResp.List);
-
-            foreach (var item in explorerResp.List)
-            {
-                if (!proposalDictionary.ContainsKey(item.ProposalId))
-                {
-                    continue;
-                }
-
-                var networkDaoProposalDto = proposalDictionary[item.ProposalId];
-                item.Title = networkDaoProposalDto.Title;
-                item.Description = networkDaoProposalDto.Description;
-            }
-
             return explorerResp;
         }
-        catch (Exception e)
+
+        var proposalIds = explorerResp.List.Select(item => item.ProposalId).ToHashSet().ToList();
+        var proposalDictionary = await GetNetworkDaoProposalsDictionaryAsync(request.ChainId, proposalIds);
+        //var items = _objectMapper.Map<List<ExplorerProposalResult>, List<ProposalListResponse>>(explorerResp.List);
+
+        foreach (var item in explorerResp.List)
         {
-            Log.Error(e, "Get proposal list error. request={0}", JsonConvert.SerializeObject(request));
-            throw new UserFriendlyException("Failed to query the proposal list. {0}", e.Message);
+            if (!proposalDictionary.ContainsKey(item.ProposalId))
+            {
+                continue;
+            }
+
+            var networkDaoProposalDto = proposalDictionary[item.ProposalId];
+            item.Title = networkDaoProposalDto.Title;
+            item.Description = networkDaoProposalDto.Description;
         }
+
+        return explorerResp;
     }
 
     public async Task<NetworkDaoProposalDto> GetProposalInfoAsync(ProposalInfoRequest request)

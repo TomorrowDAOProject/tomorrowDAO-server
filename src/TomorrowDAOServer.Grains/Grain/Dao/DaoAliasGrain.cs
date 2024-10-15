@@ -1,7 +1,9 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Orleans;
 using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Grains.State.Dao;
 using Volo.Abp.ObjectMapping;
@@ -29,6 +31,9 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         return base.OnActivateAsync(cancellationToken);
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
+        MethodName = nameof(DaoAliasGrainExceptionHandler.HandleSaveDaoAliasInfoAsync),
+        Message = "Save dao alias info error", LogTargets = new []{"daoAliasDto"})]
     public async Task<GrainResultDto<int>> SaveDaoAliasInfoAsync(DaoAliasDto daoAliasDto)
     {
         if (daoAliasDto == null)
@@ -38,68 +43,48 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
                 Message = "The parameter is null",
             };
         }
-        try
+        if (State.DaoList.IsNullOrEmpty())
         {
-            if (State.DaoList.IsNullOrEmpty())
-            {
-                State.DaoList = new List<DaoAlias>();
-            }
+            State.DaoList = new List<DaoAlias>();
+        }
             
-            var daoAlias = State.DaoList.Find(alias => alias.DaoId == daoAliasDto.DaoId);
-            if (daoAlias != null)
-            {
-                return new GrainResultDto<int>
-                {
-                    Success = true,
-                    Data = daoAlias.Serial
-                };
-            }
-
-            var serial = State.DaoList.Count;
-            daoAlias = _objectMapper.Map<DaoAliasDto, DaoAlias>(daoAliasDto);
-            daoAlias.Serial = serial;
-            daoAlias.CreateTime = DateTime.Now;
-            
-            State.DaoList.Add(daoAlias);
-            await WriteStateAsync();
+        var daoAlias = State.DaoList.Find(alias => alias.DaoId == daoAliasDto.DaoId);
+        if (daoAlias != null)
+        {
             return new GrainResultDto<int>
             {
                 Success = true,
-                Data = serial
+                Data = daoAlias.Serial
             };
         }
-        catch (Exception e)
+
+        var serial = State.DaoList.Count;
+        daoAlias = _objectMapper.Map<DaoAliasDto, DaoAlias>(daoAliasDto);
+        daoAlias.Serial = serial;
+        daoAlias.CreateTime = DateTime.Now;
+            
+        State.DaoList.Add(daoAlias);
+        await WriteStateAsync();
+        return new GrainResultDto<int>
         {
-            Log.Error(e, "Save dao alias info error, daoAliasDto={0}",
-                JsonConvert.SerializeObject(daoAliasDto));
-            return new GrainResultDto<int>
-            {
-                Message = $"Save dao alias info error. {e.Message}",
-            };
-        }
+            Success = true,
+            Data = serial
+        };
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
+        MethodName = nameof(DaoAliasGrainExceptionHandler.HandleGetDaoAliasInfoAsync),
+        Message = "Get dao alias info error")]
     public Task<GrainResultDto<List<DaoAliasDto>>> GetDaoAliasInfoAsync()
     {
-        try
-        {
-            var daoAliasList = State.DaoList ?? new List<DaoAlias>();
+        var daoAliasList = State.DaoList ?? new List<DaoAlias>();
 
-            var daoAliasDtoList = _objectMapper.Map<List<DaoAlias>, List<DaoAliasDto>>(daoAliasList);
+        var daoAliasDtoList = _objectMapper.Map<List<DaoAlias>, List<DaoAliasDto>>(daoAliasList);
 
-            return Task.FromResult(new GrainResultDto<List<DaoAliasDto>>
-            {
-                Success = true,
-                Data = daoAliasDtoList
-            });
-        }
-        catch (Exception e)
+        return Task.FromResult(new GrainResultDto<List<DaoAliasDto>>
         {
-            Log.Error(e, "Get dao alias info error");
-            return Task.FromResult(new GrainResultDto<List<DaoAliasDto>>
-            {
-                Message = $"Get dao alias info error. {e.Message}"
-            });
-        }
+            Success = true,
+            Data = daoAliasDtoList
+        });
     }
 }

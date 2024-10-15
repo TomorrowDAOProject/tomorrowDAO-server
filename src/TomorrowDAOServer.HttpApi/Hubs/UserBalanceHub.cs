@@ -112,7 +112,7 @@ public class UserBalanceHub : AbpHub
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "PushRequestUserBalanceProduceAsyncException: chainId {chainId}", chainId);
+            Log.Error(e, "PushRequestUserBalanceProduceAsyncException: chainId {chainId}", chainId);
         }
         finally
         {

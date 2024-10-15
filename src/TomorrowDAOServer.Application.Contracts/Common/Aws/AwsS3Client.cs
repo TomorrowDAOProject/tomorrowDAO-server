@@ -42,17 +42,10 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
 
     private void InitAmazonS3Client()
     {
-        try
-        {
-            var identityPoolId = AsyncHelper.RunSync(() =>
-                _secretProvider.GetSecretWithCacheAsync(_securityServerOption.CurrentValue.KeyIds.AwsS3IdentityPool));
-            var cognitoCredentials = new CognitoAWSCredentials(identityPoolId, RegionEndpoint.APNortheast1);
-            _amazonS3Client = new AmazonS3Client(cognitoCredentials, RegionEndpoint.APNortheast1);
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Init AwsS3 client ERROR");
-        }
+        var identityPoolId = AsyncHelper.RunSync(() =>
+            _secretProvider.GetSecretWithCacheAsync(_securityServerOption.CurrentValue.KeyIds.AwsS3IdentityPool));
+        var cognitoCredentials = new CognitoAWSCredentials(identityPoolId, RegionEndpoint.APNortheast1);
+        _amazonS3Client = new AmazonS3Client(cognitoCredentials, RegionEndpoint.APNortheast1);
     }
 
 

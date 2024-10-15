@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
@@ -8,6 +9,7 @@ using Orleans;
 using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Grains.Grain.Discussion;
 using Volo.Abp.DependencyInjection;
@@ -40,18 +42,12 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         _logger = logger;
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGetCommentCountAsync))]
     public async Task<long> GetCommentCountAsync(string proposalId)
     {
-        try
-        {
-            var grain = _clusterClient.GetGrain<ICommentCountGrain>(proposalId);
-            return await grain.GetNextCount();
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "GetCommentCountAsyncException proposalId {proposalId}", proposalId);
-            return -1;
-        }
+        var grain = _clusterClient.GetGrain<ICommentCountGrain>(proposalId);
+        return await grain.GetNextCount();
     }
 
     public async Task NewCommentAsync(CommentIndex index)

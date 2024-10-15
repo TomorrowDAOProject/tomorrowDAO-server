@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
 
@@ -30,35 +32,36 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
         //handle multiple chains
         foreach (var chainId in chainIds)
         {
-            try
-            {
-                var lastEndHeight = await _graphQlProvider.GetLastEndHeightAsync(chainId, businessType);
-                if (lastEndHeight < 0)
-                {
-                    Log.Information(
-                        "Skip deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight}",
-                        businessType, chainId, lastEndHeight);
-                    continue;
-                }
-                var newIndexHeight = await _graphQlProvider.GetIndexBlockHeightAsync(chainId);
-                Log.Information(
-                    "Start deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight} newIndexHeight: {newIndexHeight}",
-                    businessType, chainId, lastEndHeight, newIndexHeight);
-                var blockHeight = await SyncIndexerRecordsAsync(chainId, lastEndHeight, newIndexHeight);
+            await DealDataAsync(chainId, businessType);
+        }
+    }
 
-                if (blockHeight > 0)
-                {
-                    await _graphQlProvider.SetLastEndHeightAsync(chainId, businessType, blockHeight);
-                    Log.Information(
-                        "End deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {BlockHeight}",
-                        businessType, chainId, blockHeight);
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "DealDataAsync error businessType:{businessType} chainId: {chainId}",
-                    businessType.ToString(), chainId);
-            }
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
+        Message = "DealDataAsync error", LogTargets = new []{"chainId", "businessType"})]
+    public virtual async Task DealDataAsync(string chainId, WorkerBusinessType businessType)
+    {
+        var lastEndHeight = await _graphQlProvider.GetLastEndHeightAsync(chainId, businessType);
+        if (lastEndHeight < 0)
+        {
+            Log.Information(
+                "Skip deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight}",
+                businessType, chainId, lastEndHeight);
+            return;
+        }
+
+        var newIndexHeight = await _graphQlProvider.GetIndexBlockHeightAsync(chainId);
+        Log.Information(
+            "Start deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {lastEndHeight} newIndexHeight: {newIndexHeight}",
+            businessType, chainId, lastEndHeight, newIndexHeight);
+        var blockHeight = await SyncIndexerRecordsAsync(chainId, lastEndHeight, newIndexHeight);
+
+        if (blockHeight > 0)
+        {
+            await _graphQlProvider.SetLastEndHeightAsync(chainId, businessType, blockHeight);
+            Log.Information(
+                "End deal data for businessType: {businessType} chainId: {chainId} lastEndHeight: {BlockHeight}",
+                businessType, chainId, blockHeight);
         }
     }
 
@@ -71,22 +74,17 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
 
     public abstract WorkerBusinessType GetBusinessType();
 
-    public async Task ResetLastEndHeightAsync(string chainId, WorkerBusinessType businessType, long blockHeight)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
+        Message = "reset last end height error", LogTargets = new []{"chainId", "businessType", "blockHeight"})]
+    public virtual async Task ResetLastEndHeightAsync(string chainId, WorkerBusinessType businessType, long blockHeight)
     {
-        try
+        if (blockHeight > 0)
         {
-            if (blockHeight > 0)
-            {
-                await _graphQlProvider.SetLastEndHeightAsync(chainId, businessType, blockHeight);
-                Log.Information(
-                    "reset last end height for businessType: {businessType} chainId: {chainId} lastEndHeight: {BlockHeight}",
-                    businessType, chainId, blockHeight);
-            }
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "reset last end height error, businessType:{businessType} chainId: {chainId}",
-                businessType.ToString(), chainId);
+            await _graphQlProvider.SetLastEndHeightAsync(chainId, businessType, blockHeight);
+            Log.Information(
+                "reset last end height for businessType: {businessType} chainId: {chainId} lastEndHeight: {BlockHeight}",
+                businessType, chainId, blockHeight);
         }
     }
 }

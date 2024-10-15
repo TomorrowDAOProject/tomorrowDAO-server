@@ -6,12 +6,14 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using AElf;
+using AElf.ExceptionHandler;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Options;
@@ -47,6 +49,10 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         _telegramAppsProvider = telegramAppsProvider;
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReThrowMethodName,
+        Message = "exec LoadTelegramAppsAsync error", 
+        LogTargets = new []{"input"})]
     public async Task<List<TelegramAppDto>> LoadTelegramAppsAsync(LoadTelegramAppsInput input)
     {
         if (input == null || input.Url.IsNullOrWhiteSpace() || input.ChainId.IsNullOrWhiteSpace())
@@ -56,20 +62,12 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
 
         await CheckAddress(input.ChainId);
 
-        try
+        return input.ContentType switch
         {
-            return input.ContentType switch
-            {
-                ContentType.Body => await AnalyzePageBodyByHtmlAgilityPackAsync(input.Url),
-                ContentType.Script => await AnalyzePageScriptByHtmlAgilityPackAsync(input.Url),
-                _ => throw new UserFriendlyException("Unsupported ContentType.")
-            };
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "exec LoadTelegramAppsAsync error, {0}", JsonConvert.SerializeObject(input));
-            throw;
-        }
+            ContentType.Body => await AnalyzePageBodyByHtmlAgilityPackAsync(input.Url),
+            ContentType.Script => await AnalyzePageScriptByHtmlAgilityPackAsync(input.Url),
+            _ => throw new UserFriendlyException("Unsupported ContentType.")
+        };
     }
 
     public async Task<List<TelegramAppDto>> LoadAllTelegramAppsAsync(LoadAllTelegramAppsInput input)
@@ -86,7 +84,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         }
         loadApps = loadApps.GroupBy(app => app.Alias).Select(group => group.First()) 
             .ToList();
-        _logger.LogInformation("LoadAllTelegramAppsAsyncEnd count {count}", loadApps.Count);
+        Log.Information("LoadAllTelegramAppsAsyncEnd count {count}", loadApps.Count);
         return loadApps;
     }
 
@@ -108,19 +106,21 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         var res = new Dictionary<string, TelegramAppDetailDto>();
         foreach (var keyValuePair in input.Apps)
         {
-            try
-            {
-                var detailDto = await AnalyzeDetailPageAsync(input.Url, input.Header, keyValuePair.Key, keyValuePair.Value);
-                res[keyValuePair.Key] = detailDto;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "LoadTelegramAppsDetailAsync error. AppName={0}", keyValuePair);
-                throw;
-            }
+            await LoadTelegramAppsDetailAsync(input, keyValuePair, res);
         }
 
         return res;
+    }
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReThrowMethodName,
+        Message = "LoadTelegramAppsDetailAsync error", 
+        LogTargets = new []{"keyValuePair"})]
+    public virtual async Task LoadTelegramAppsDetailAsync(LoadTelegramAppsDetailInput input, KeyValuePair<string, string> keyValuePair,
+        Dictionary<string, TelegramAppDetailDto> res)
+    {
+        var detailDto = await AnalyzeDetailPageAsync(input.Url, input.Header, keyValuePair.Key, keyValuePair.Value);
+        res[keyValuePair.Key] = detailDto;
     }
 
     public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(string chainId)
@@ -139,7 +139,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             ChainId = chainId, Url = url, Header = header, Apps = dic
         });
 
-        _logger.LogInformation("LoadAllTelegramAppsDetailAsyncEnd count {count}", loadRes.Count);
+        Log.Information("LoadAllTelegramAppsDetailAsyncEnd count {count}", loadRes.Count);
         return loadRes;
     }
 

@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
 using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Monitor.Common;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
@@ -14,16 +16,14 @@ namespace TomorrowDAOServer.Monitor.Orleans.Filters;
 
 public class MethodCallFilter : IOutgoingGrainCallFilter
 {
-    private readonly ILogger _logger;
     private readonly IMonitor _monitor;
     private readonly IOptionsMonitor<MethodCallFilterOptions> _methodCallFilterOption;
 
-    private readonly GrainMethodFormatter.GrainMethodFormatterDelegate _methodFormatter =
+    private static GrainMethodFormatter.GrainMethodFormatterDelegate _methodFormatter =
         GrainMethodFormatter.MethodFormatter;
 
     public MethodCallFilter(IServiceProvider serviceProvider)
     {
-        _logger = MethodFilterContext.ServiceProvider.GetService<ILogger<MethodCallFilter>>();
         _monitor = MethodFilterContext.ServiceProvider.GetService<IMonitor>();
         _methodCallFilterOption = MethodFilterContext.ServiceProvider.GetService<IOptionsMonitor<MethodCallFilterOptions>>();
         var formatterDelegate =  MethodFilterContext.ServiceProvider.GetService<GrainMethodFormatter.GrainMethodFormatterDelegate>();
@@ -48,16 +48,15 @@ public class MethodCallFilter : IOutgoingGrainCallFilter
         }
 
         var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            await context.Invoke();
-            await Track(context, stopwatch, false);
-        }
-        catch (Exception)
-        {
-            await Track(context, stopwatch, true);
-            throw;
-        }
+        await InvokeAsync(_monitor, context, stopwatch);
+    }
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleMethodCallInvokeAsync))]
+    public virtual async Task InvokeAsync(IMonitor monitor, IOutgoingGrainCallContext context, Stopwatch stopwatch)
+    {
+        await context.Invoke();
+        await Track(monitor, context, stopwatch, false);
     }
 
     private bool ShouldSkip(IOutgoingGrainCallContext context)
@@ -67,29 +66,25 @@ public class MethodCallFilter : IOutgoingGrainCallFilter
                _methodCallFilterOption.CurrentValue.SkippedMethods.Contains(_methodFormatter(context));
     }
 
-    private Task Track(IOutgoingGrainCallContext context, Stopwatch stopwatch, bool isException)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, Message = "error recording results for grain")]
+    public static Task Track(IMonitor monitor, IOutgoingGrainCallContext context, Stopwatch stopwatch, bool isException)
     {
-        if (_monitor == null)
+        if (monitor == null)
         {
             return Task.CompletedTask;
         }
 
-        try
+        stopwatch.Stop();
+        var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
+        var grainMethodName = _methodFormatter(context);
+        IDictionary<string, string>? properties = new Dictionary<string, string>()
         {
-            stopwatch.Stop();
-            var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
-            var grainMethodName = _methodFormatter(context);
-            IDictionary<string, string>? properties = new Dictionary<string, string>()
-            {
-                { MonitorConstant.LabelSuccess, (!isException).ToString() }
-            };
+            { MonitorConstant.LabelSuccess, (!isException).ToString() }
+        };
 
-            _monitor.TrackMetric(MonitorConstant.Grain, grainMethodName, elapsedMs, properties);
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "error recording results for grain");
-        }
+        monitor.TrackMetric(MonitorConstant.Grain, grainMethodName, elapsedMs, properties);
+        
         return Task.CompletedTask;
     }
 }

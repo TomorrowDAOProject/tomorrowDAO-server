@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -8,6 +9,7 @@ using OpenQA.Selenium.Chrome;
 using PuppeteerSharp;
 using Serilog;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Spider.Dto;
 using Volo.Abp;
 using Volo.Abp.Auditing;
@@ -25,27 +27,23 @@ public class ForumSpiderService : TomorrowDAOServerAppService, IForumSpiderServi
         _logger = logger;
     }
 
-    public async Task<LinkPreviewDto> LinkPreviewAsync(LinkPreviewInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.New,
+        Message = "exec LinkPreviewAsync error", 
+        LogTargets = new []{"input"})]
+    public virtual async Task<LinkPreviewDto> LinkPreviewAsync(LinkPreviewInput input)
     {
         if (input == null || input.ForumUrl.IsNullOrWhiteSpace())
         {
             ExceptionHelper.ThrowArgumentException();
         }
 
-        try
+        return input.AnalyzerType switch
         {
-            return input.AnalyzerType switch
-            {
-                AnalyzerType.SeleniumWebDriver => await AnalyzePageBySeleniumWebDriverAsync(input.ForumUrl),
-                AnalyzerType.PuppeteerSharp => await AnalyzePageByPuppeteerSharpAsync(input.ForumUrl),
-                _ => await AnalyzePageByHtmlAgilityPackAsync(input.ForumUrl)
-            };
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "exec LinkPreviewAsync error, {0}", JsonConvert.SerializeObject(input));
-            return await Task.FromResult(new LinkPreviewDto());
-        }
+            AnalyzerType.SeleniumWebDriver => await AnalyzePageBySeleniumWebDriverAsync(input.ForumUrl),
+            AnalyzerType.PuppeteerSharp => await AnalyzePageByPuppeteerSharpAsync(input.ForumUrl),
+            _ => await AnalyzePageByHtmlAgilityPackAsync(input.ForumUrl)
+        };
     }
 
     private Task<LinkPreviewDto> AnalyzePageByHtmlAgilityPackAsync(string url)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using AElf;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using TomorrowDAOServer.Common.GraphQL;
 using GraphQL;
@@ -11,6 +12,7 @@ using Nest;
 using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using Volo.Abp.DependencyInjection;
@@ -232,11 +234,13 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
             sortFunc: _ => new SortDescriptor<DAOIndex>().Descending(index => index.CreateTime));
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "GetMyParticipatedDaoListAsync error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"input"})]
     public async Task<PageResultDto<IndexerDAOInfo>> GetMyParticipatedDaoListAsync(GetParticipatedInput input)
     {
-        try
-        {
-            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<IndexerDAOInfo>>>(
+        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<IndexerDAOInfo>>>(
                 new GraphQLRequest
                 {
                     Query = @"
@@ -294,24 +298,18 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                     }
                 });
             return response?.Data ?? new PageResultDto<IndexerDAOInfo>();
-        }
-        catch (Exception e)
-        {
-            Log.Error(e,
-                "GetMyParticipatedDaoListAsyncException chainId {chainId}, address {address}, skipCount {skipCount}, maxResultCount {maxResultCount}",
-                input.ChainId, input.Address, input.SkipCount, input.MaxResultCount);
-            return new PageResultDto<IndexerDAOInfo>();
-        }
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "GetMemberListAsync error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"input"})]
     public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
     {
-        try
-        {
-            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(
-                new GraphQLRequest
-                {
-                    Query = @"
+        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(
+            new GraphQLRequest
+            {
+                Query = @"
 			        query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$dAOId:String!) {
                         data:getMemberList(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,dAOId:$dAOId})
                         {
@@ -326,32 +324,26 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                             }
                         }
                     }",
-                    Variables = new
-                    {
-                        chainId = listInput.ChainId,
-                        skipCount = listInput.SkipCount,
-                        maxResultCount = listInput.MaxResultCount,
-                        dAOId = listInput.DAOId
-                    }
-                });
-            return response?.Data ?? new PageResultDto<MemberDto>();
-        }
-        catch (Exception e)
-        {
-            Log.Error(e,
-                "GetMemberListAsync chainId {chainId}, daoId {daoId}, skipCount {skipCount}, maxResultCount {maxResultCount}",
-                listInput.ChainId, listInput.DAOId, listInput.SkipCount, listInput.MaxResultCount);
-            return new PageResultDto<MemberDto>();
-        }
+                Variables = new
+                {
+                    chainId = listInput.ChainId,
+                    skipCount = listInput.SkipCount,
+                    maxResultCount = listInput.MaxResultCount,
+                    dAOId = listInput.DAOId
+                }
+            });
+        return response?.Data ?? new PageResultDto<MemberDto>();
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "GetIsMemberAsync error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"input"})]
     public async Task<MemberDto> GetMemberAsync(GetMemberInput input)
     {
-        try
+        var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<MemberDto>>(new GraphQLRequest
         {
-            var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<MemberDto>>(new GraphQLRequest
-            {
-                Query = @"
+            Query = @"
 			        query($chainId:String!,$dAOId:String!,$address:String!) {
                         data:getMember(input: {chainId:$chainId,dAOId:$dAOId,address:$address})
                         {
@@ -363,21 +355,14 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
                             createTime
                         }
                     }",
-                Variables = new
-                {
-                    chainId = input.ChainId,
-                    dAOId = input.DAOId,
-                    address = input.Address
-                }
-            });
-            return response?.Data ?? new MemberDto();
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "GetIsMemberAsync chainId {chainId}, daoId {daoId}, address {address}",
-                input.ChainId, input.DAOId, input.Address);
-            return new MemberDto();
-        }
+            Variables = new
+            {
+                chainId = input.ChainId,
+                dAOId = input.DAOId,
+                address = input.Address
+            }
+        });
+        return response?.Data ?? new MemberDto();
     }
 
     public async Task<List<DAOIndex>> GetDaoListByDaoIds(string chainId, List<string> daoIds)

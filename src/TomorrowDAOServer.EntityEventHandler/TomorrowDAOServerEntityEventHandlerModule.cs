@@ -1,5 +1,5 @@
 using System;
-using AElf.ExceptionHandler;
+using AElf.ExceptionHandler.ABP;
 using AElf.Indexing.Elasticsearch.Options;
 using Confluent.Kafka;
 using TomorrowDAOServer.EntityEventHandler.Core;

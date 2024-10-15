@@ -66,27 +66,4 @@ public static class MapHelper
             }
         }
     }
-
-    public static string MapAlias(string memo, string alias, bool validRankingVote)
-    {
-        try
-        {
-            if (!validRankingVote)
-            {
-                return string.Empty;
-            }
-        
-            if (!string.IsNullOrEmpty(alias))
-            {
-                return alias;
-            }
-
-            return Regex.Match(memo, CommonConstant.MemoPattern).Groups[1].Value;
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
-        
-    }
 }
