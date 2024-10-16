@@ -1,6 +1,7 @@
 namespace TomorrowDAOServer.Grains.State.Referral;
 
+[GenerateSerializer]
 public class InviteCountState
 {
-    public long InviteCount { get; set; }
+    [Id(0)] public long InviteCount { get; set; }
 }

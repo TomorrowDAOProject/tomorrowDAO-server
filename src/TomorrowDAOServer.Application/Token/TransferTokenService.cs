@@ -1,12 +1,15 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Token.Dto;
 using TomorrowDAOServer.Token.Provider;
@@ -50,7 +53,11 @@ public class TransferTokenService : TomorrowDAOServerAppService, ITransferTokenS
         _senderAccount = new SenderAccount(transferTokenOptions.CurrentValue.SenderAccount);
     }
 
-    public async Task<TransferTokenResponse> TransferTokenAsync(TransferTokenInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,
+        Message = "TransferTokenAsync error", 
+        LogTargets = new []{"input"})]
+    public virtual async Task<TransferTokenResponse> TransferTokenAsync(TransferTokenInput input)
     {
         if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.Symbol.IsNullOrWhiteSpace() ||
             !_transferTokenOptions.CurrentValue.SupportedSymbol.Contains(input.Symbol))
@@ -58,82 +65,73 @@ public class TransferTokenService : TomorrowDAOServerAppService, ITransferTokenS
             ExceptionHelper.ThrowArgumentException();
         }
 
-        try
+        Log.Information("Transfer token, start...");
+
+        var userId = CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty;
+        Log.Information("TransferTokenUserId {0}", userId);
+        var address = await _userProvider.GetAndValidateUserAddressAsync(userId, input.ChainId);
+        if (address.IsNullOrWhiteSpace())
         {
-            _logger.LogInformation("Transfer token, start...");
+            throw new UserFriendlyException("User Address Not Found.");
+        }
 
-            var userId = CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty;
-            _logger.LogInformation("TransferTokenUserId {0}", userId);
-            var address = await _userProvider.GetAndValidateUserAddressAsync(userId, input.ChainId);
-            if (address.IsNullOrWhiteSpace())
-            {
-                throw new UserFriendlyException("User Address Not Found.");
-            }
+        Log.Information("Transfer token, query transfer record. {0}", address);
+        var claimRecord = await GetTokenClaimRecordAsync(input.ChainId, address, input.Symbol);
+        if (claimRecord != null)
+        {
+            Log.Information("Transfer token, has Transferred. {0}", address);
+            return BuildTransferTokenResponse(TransferTokenStatus.AlreadyClaimed);
+        }
 
-            _logger.LogInformation("Transfer token, query transfer record. {0}", address);
-            var claimRecord = await GetTokenClaimRecordAsync(input.ChainId, address, input.Symbol);
-            if (claimRecord != null)
+        Log.Information("Transfer token, Lock user. {0}", address);
+        var distributedLockKey = GenerateDistributedLockKey(input.ChainId, address, input.Symbol);
+        using (var lockHandle = _distributedLock.TryAcquireAsync(distributedLockKey,
+                   _transferTokenOptions.CurrentValue.GetLockUserTimeoutTimeSpan()))
+        {
+            if (lockHandle == null)
             {
-                _logger.LogInformation("Transfer token, has Transferred. {0}", address);
+                Log.Information("Transfer token, lock failed. {0}", address);
                 return BuildTransferTokenResponse(TransferTokenStatus.AlreadyClaimed);
             }
 
-            _logger.LogInformation("Transfer token, Lock user. {0}", address);
-            var distributedLockKey = GenerateDistributedLockKey(input.ChainId, address, input.Symbol);
-            using (var lockHandle = _distributedLock.TryAcquireAsync(distributedLockKey,
-                       _transferTokenOptions.CurrentValue.GetLockUserTimeoutTimeSpan()))
+            Log.Information("Transfer token, query transfer record again. {0}", address);
+            claimRecord = await GetTokenClaimRecordAsync(input.ChainId, address, input.Symbol);
+            if (claimRecord != null)
             {
-                if (lockHandle == null)
-                {
-                    _logger.LogInformation("Transfer token, lock failed. {0}", address);
-                    return BuildTransferTokenResponse(TransferTokenStatus.AlreadyClaimed);
-                }
-
-                _logger.LogInformation("Transfer token, query transfer record again. {0}", address);
-                claimRecord = await GetTokenClaimRecordAsync(input.ChainId, address, input.Symbol);
-                if (claimRecord != null)
-                {
-                    _logger.LogInformation("Transfer token, has Transferred. {0}", address);
-                    return BuildTransferTokenResponse(TransferTokenStatus.AlreadyClaimed);
-                }
-
-                _logger.LogInformation("Transfer token, query transfer record from chain. {0}", address);
-                var balance = await _transferTokenProvider.GetBalanceAsync(input.ChainId, input.Symbol, address);
-                if (balance.Balance > GetOneTokenAmount(input.Symbol))
-                {
-                    _logger.LogInformation("Transfer token, already holding tokens. {0}", address);
-                    await SaveTokenClaimRecordAsync(null, TransferTokenStatus.AlreadyClaimed,
-                        input.ChainId, address, input.Symbol);
-                    return BuildTransferTokenResponse(TransferTokenStatus.AlreadyClaimed);
-                }
-
-                _logger.LogInformation("Transfer token, send transfer transaction. {0}", address);
-                var result = await _transferTokenProvider.TransferTokenAsync(_senderAccount, input.ChainId,
-                    input.Symbol,
-                    address, GetOneTokenAmount(input.Symbol));
-
-                if (result.TransactionId.IsNullOrWhiteSpace())
-                {
-                    _logger.LogError("Transfer token, send transaction error, {0}",
-                        JsonConvert.SerializeObject(result));
-                    return BuildTransferTokenResponse(TransferTokenStatus.TransferFailed);
-                }
-
-                _logger.LogInformation("Transfer token, send transfer transaction success. {0}", address);
-                await SaveTokenClaimRecordAsync(result.TransactionId, TransferTokenStatus.TransferInProgress,
-                    input.ChainId, address, input.Symbol,
-                    _transferTokenOptions.CurrentValue.GetTransferTimeoutTimeSpan());
-
-                var _ = UpdateTransactionStatusAsync(input.ChainId, address, input.Symbol, result.TransactionId);
-
-                return BuildTransferTokenResponse(TransferTokenStatus.TransferInProgress);
+                Log.Information("Transfer token, has Transferred. {0}", address);
+                return BuildTransferTokenResponse(TransferTokenStatus.AlreadyClaimed);
             }
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "TransferTokenAsync error, {0}", JsonConvert.SerializeObject(input));
-            ExceptionHelper.ThrowSystemException("transferring token", e);
-            return BuildTransferTokenResponse(TransferTokenStatus.TransferFailed);
+
+            Log.Information("Transfer token, query transfer record from chain. {0}", address);
+            var balance = await _transferTokenProvider.GetBalanceAsync(input.ChainId, input.Symbol, address);
+            if (balance.Balance > GetOneTokenAmount(input.Symbol))
+            {
+                Log.Information("Transfer token, already holding tokens. {0}", address);
+                await SaveTokenClaimRecordAsync(null, TransferTokenStatus.AlreadyClaimed,
+                    input.ChainId, address, input.Symbol);
+                return BuildTransferTokenResponse(TransferTokenStatus.AlreadyClaimed);
+            }
+
+            Log.Information("Transfer token, send transfer transaction. {0}", address);
+            var result = await _transferTokenProvider.TransferTokenAsync(_senderAccount, input.ChainId,
+                input.Symbol,
+                address, GetOneTokenAmount(input.Symbol));
+
+            if (result.TransactionId.IsNullOrWhiteSpace())
+            {
+                Log.Error("Transfer token, send transaction error, {0}",
+                    JsonConvert.SerializeObject(result));
+                return BuildTransferTokenResponse(TransferTokenStatus.TransferFailed);
+            }
+
+            Log.Information("Transfer token, send transfer transaction success. {0}", address);
+            await SaveTokenClaimRecordAsync(result.TransactionId, TransferTokenStatus.TransferInProgress,
+                input.ChainId, address, input.Symbol,
+                _transferTokenOptions.CurrentValue.GetTransferTimeoutTimeSpan());
+
+            var _ = UpdateTransactionStatusAsync(input.ChainId, address, input.Symbol, result.TransactionId);
+
+            return BuildTransferTokenResponse(TransferTokenStatus.TransferInProgress);
         }
     }
 
@@ -209,35 +207,32 @@ public class TransferTokenService : TomorrowDAOServerAppService, ITransferTokenS
         return (long)Math.Pow(10, symbolDecimal);
     }
 
-    private async Task UpdateTransactionStatusAsync(string chainId, string address,
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
+        Message = "Transfer token, update transaction status error", 
+        LogTargets = new []{"chainId", "address", "symbol", "transactionId"})]
+    public virtual async Task UpdateTransactionStatusAsync(string chainId, string address,
         string symbol, string transactionId)
     {
-        try
+        Log.Information("Transfer token, update transaction status start.{0}", address);
+        var transactionResult = await _transferTokenProvider.GetTransactionResultAsync(chainId, transactionId);
+        var times = 0;
+        while ((transactionResult.Status == CommonConstant.TransactionStatePending ||
+                transactionResult.Status == CommonConstant.TransactionStateNotExisted) &&
+               times < _transferTokenOptions.CurrentValue.RetryTimes)
         {
-            _logger.LogInformation("Transfer token, update transaction status start.{0}", address);
-            var transactionResult = await _transferTokenProvider.GetTransactionResultAsync(chainId, transactionId);
-            var times = 0;
-            while ((transactionResult.Status == CommonConstant.TransactionStatePending ||
-                    transactionResult.Status == CommonConstant.TransactionStateNotExisted) &&
-                   times < _transferTokenOptions.CurrentValue.RetryTimes)
-            {
-                times++;
-                await Task.Delay(_transferTokenOptions.CurrentValue.RetryDelay);
+            times++;
+            await Task.Delay(_transferTokenOptions.CurrentValue.RetryDelay);
 
-                transactionResult = await _transferTokenProvider.GetTransactionResultAsync(chainId, transactionId);
-            }
-
-            if (transactionResult.Status == CommonConstant.TransactionStateMined)
-            {
-                _logger.LogInformation("Transfer token, save token claim success.{0}", transactionId);
-                await SaveTokenClaimRecordAsync(transactionId, TransferTokenStatus.AlreadyClaimed,
-                    chainId, address, symbol);
-            }
-            _logger.LogInformation("Transfer token, update transaction status finished.{0}", address);
+            transactionResult = await _transferTokenProvider.GetTransactionResultAsync(chainId, transactionId);
         }
-        catch (Exception e)
+
+        if (transactionResult.Status == CommonConstant.TransactionStateMined)
         {
-            _logger.LogError(e, "Transfer token, update transaction status error.{0}", transactionId);
+            Log.Information("Transfer token, save token claim success.{0}", transactionId);
+            await SaveTokenClaimRecordAsync(transactionId, TransferTokenStatus.AlreadyClaimed,
+                chainId, address, symbol);
         }
+        Log.Information("Transfer token, update transaction status finished.{0}", address);
     }
 }

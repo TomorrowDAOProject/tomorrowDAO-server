@@ -1,6 +1,7 @@
 namespace TomorrowDAOServer.Grains.State.Users;
 
+[GenerateSerializer]
 public class UserTaskState
 {
-    public DateTime CompleteTime { get; set; }
+    [Id(0)] public DateTime CompleteTime { get; set; }
 }

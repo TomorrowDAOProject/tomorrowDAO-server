@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -55,7 +56,7 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
         var cycles = await _referralCycleProvider.GetEndAndNotDistributeCyclesAsync();
         if (cycles.IsNullOrEmpty())
         {
-            _logger.LogInformation("NoCycleToGenerate chainId: {chainId}", chainId);
+            Log.Information("NoCycleToGenerate chainId: {chainId}", chainId);
             return -1L;
         }
 
@@ -68,7 +69,7 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
             await _referralCycleProvider.AddOrUpdateAsync(cycle);
             if (existed)
             {
-                _logger.LogInformation("TopInviterListAlreadyGenerated chainId: {chainId} startTime {startTime} endTime {endTime}", 
+                Log.Information("TopInviterListAlreadyGenerated chainId: {chainId} startTime {startTime} endTime {endTime}", 
                     chainId, startTime, endTime);
                 continue;
             }
@@ -78,7 +79,7 @@ public class ReferralTopInviterGenerateService : ScheduleSyncDataService
             var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
             var topList = RankHelper.GetRankedList(chainId, userList, inviterBuckets)
                 .Where(referralInvite => referralInvite.Rank is >= 1 and <= 10).ToList();
-            _logger.LogInformation("GenerateTopInviterTopList chainId: {chainId} count: {count} startTime {startTime} endTime {endTime}", 
+            Log.Information("GenerateTopInviterTopList chainId: {chainId} count: {count} startTime {startTime} endTime {endTime}", 
                 chainId, topList?.Count, startTime, endTime);
             var toAddTopInviters = new List<ReferralTopInviterIndex>();
             var now = DateTime.Now;

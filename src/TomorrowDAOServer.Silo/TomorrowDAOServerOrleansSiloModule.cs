@@ -1,6 +1,7 @@
+using AElf.ExceptionHandler;
+using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Grains;
-using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
 using TomorrowDAOServer.MongoDB;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.ThirdPart.Exchange;
@@ -14,7 +15,8 @@ namespace TomorrowDAOServer.Silo;
     typeof(TomorrowDAOServerGrainsModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(TomorrowDAOServerMongoDbModule),
-    typeof(TomorrowDAOServerApplicationModule)
+    typeof(TomorrowDAOServerApplicationModule),
+    typeof(AOPExceptionModule)
 )]
 public class TomorrowDAOServerOrleansSiloModule : AbpModule
 {

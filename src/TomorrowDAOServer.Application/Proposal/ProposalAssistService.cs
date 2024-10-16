@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
@@ -74,7 +75,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
                 if (rankingDaoIds.Contains(proposal.DAOId) && ProposalCategory.Ranking == proposal.ProposalCategory)
                 {
                     rankingProposalList.Add(proposal);
-                    _logger.LogInformation("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
+                    Log.Information("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
                         proposal.ProposalId, proposal.ProposalDescription);
                 }
             }

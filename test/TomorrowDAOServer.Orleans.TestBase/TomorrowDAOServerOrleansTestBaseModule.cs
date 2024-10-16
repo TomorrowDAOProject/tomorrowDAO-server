@@ -19,8 +19,6 @@ namespace TomorrowDAOServer;
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule)
-    // typeof(TomorrowDAOServerApplicationModule),
-    // typeof(TomorrowDAOServerApplicationContractsModule)
 )]
 public class TomorrowDAOServerOrleansTestBaseModule : AbpModule
 {

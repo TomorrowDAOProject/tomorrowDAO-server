@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
@@ -62,7 +63,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
         {
             queryList = await _proposalProvider.GetSyncProposalDataAsync(skipCount, chainId, lastEndHeight, 0,
                 MaxResultCount);
-            _logger.LogInformation(
+            Log.Information(
                 "SyncProposalData queryList skipCount {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
                 skipCount, lastEndHeight, newIndexHeight, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())

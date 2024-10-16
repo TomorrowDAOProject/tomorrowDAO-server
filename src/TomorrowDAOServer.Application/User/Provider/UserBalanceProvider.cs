@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Users.Indexer;
 using Volo.Abp.DependencyInjection;
@@ -35,13 +37,14 @@ public class UserBalanceProvider : IUserBalanceProvider, ISingletonDependency
         _userBalanceRepository = userBalanceRepository;
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.New,
+        Message = "GetSyncUserBalanceList error", LogTargets = new []{"input"})]
     public async Task<List<UserBalance>> GetSyncUserBalanceListAsync(GetChainBlockHeightInput input)
     {
-        try
+        var response = await _graphQlHelper.QueryAsync<IndexerUserBalance>(new GraphQLRequest
         {
-            var response = await _graphQlHelper.QueryAsync<IndexerUserBalance>(new GraphQLRequest
-            {
-                Query = @"
+            Query = @"
 			    query($chainId:String!,$skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!) {
                     getSyncUserBalanceInfos(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight}){
                         id,
@@ -54,24 +57,16 @@ public class UserBalanceProvider : IUserBalanceProvider, ISingletonDependency
                         
                     }
                 }",
-                Variables = new
-                {
-                    chainId = input.ChainId,
-                    skipCount = input.SkipCount,
-                    maxResultCount = input.MaxResultCount,
-                    startBlockHeight = input.StartBlockHeight,
-                    endBlockHeight = input.EndBlockHeight
-                }
-            });
-            return response?.GetSyncUserBalanceInfos ?? new List<UserBalance>();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetSyncUserBalanceListAsyncException chainId {chainId} skip {skip} max {max} start {start} end {end}",
-                input.ChainId, input.SkipCount, input.MaxResultCount, input.SkipCount, input.EndBlockHeight);
-        }
-
-        return new List<UserBalance>();
+            Variables = new
+            {
+                chainId = input.ChainId,
+                skipCount = input.SkipCount,
+                maxResultCount = input.MaxResultCount,
+                startBlockHeight = input.StartBlockHeight,
+                endBlockHeight = input.EndBlockHeight
+            }
+        });
+        return response?.GetSyncUserBalanceInfos ?? new List<UserBalance>();
     }
 
     public async Task BulkAddOrUpdateAsync(List<UserBalanceIndex> list)

@@ -1,7 +1,9 @@
+using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Monitor;
 using TomorrowDAOServer.Monitor.Http;
 using TomorrowDAOServer.Monitor.Logging;
+using TomorrowDAOServer.Monitor.Orleans.Filters;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Authorization;
@@ -22,7 +24,8 @@ namespace TomorrowDAOServer.Application.Contracts.Tests;
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
-    typeof(TomorrowDAOServerApplicationContractsModule)
+    typeof(TomorrowDAOServerApplicationContractsModule),
+    typeof(AOPExceptionModule)
 )]
 public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
 {
@@ -37,6 +40,7 @@ public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDaoServerApplicationContractsTestsModule>(); });
         
         context.Services.AddSingleton<PerformanceMonitorMiddleware>();
+        context.Services.AddSingleton<MethodCallFilter>();
         context.Services.AddSingleton<IMonitor, MonitorForLogging>();
 
         context.Services.AddMemoryCache();

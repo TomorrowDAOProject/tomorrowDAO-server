@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver.Linq;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
-using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.User.Dtos;
@@ -231,16 +231,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         }
     }
 
-    private string GetIndexString(string str, int index, string splitSymbol)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"str", "index", "splitSymbol"})]
+    public async Task<string> GetIndexStringAsync(string str, int index, string splitSymbol)
     {
-        try
-        { 
-            return str.Split(splitSymbol)[index];
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
+        return str.Split(splitSymbol)[index];
     }
     
     private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string address, List<UserPointsIndex> dailyTaskList, UserTask userTask)

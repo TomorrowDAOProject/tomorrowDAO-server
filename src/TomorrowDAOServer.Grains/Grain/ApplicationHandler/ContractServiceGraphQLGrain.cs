@@ -5,10 +5,10 @@ namespace TomorrowDAOServer.Grains.Grain.ApplicationHandler;
 
 public class ContractServiceGraphQLGrain : Grain<GraphQlState>, IContractServiceGraphQLGrain
 {
-    public override Task OnActivateAsync()
+    public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         ReadStateAsync();
-        return base.OnActivateAsync();
+        return base.OnActivateAsync(cancellationToken);
     }
 
     public async Task SetStateAsync(long height)
