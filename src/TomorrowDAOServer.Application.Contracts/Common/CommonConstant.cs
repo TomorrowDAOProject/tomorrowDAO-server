@@ -53,7 +53,7 @@ public static class CommonConstant
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
     public const string DescriptionIconBegin = "##RankingIcon:";
-    public const string DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9&'’\-]+\s*(?:,\s*[a-zA-Z0-9&'’\-]+\s*)*)?(?:##RankingIcon:\s*\S+)?$";
+    public const string DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9&'’\-]+\s*(?:,\s*[a-zA-Z0-9&'’\-]+\s*)*)?(?:#B:\s*\S+)?$";
     public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;
@@ -117,4 +117,7 @@ public static class CommonConstant
     // App
     public const string System = "System";
     public const string ConnectionProposalIdMap = "ConnectionProposalIdMap";
+    
+    //GrainId
+    public const string GrainIdTelegramAppSequence = "TelegramAppSequence";
 }

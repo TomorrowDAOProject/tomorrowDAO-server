@@ -76,7 +76,8 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
             
             if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
             {
-                if (rankingDaoIds.Contains(daoId) && ProposalCategory.Ranking == proposal.ProposalCategory)
+                //need to generate a ranking list
+                if (proposal.ProposalCategory == ProposalCategory.Ranking)
                 {
                     rankingProposalList.Add(proposal);
                     _logger.LogInformation("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 

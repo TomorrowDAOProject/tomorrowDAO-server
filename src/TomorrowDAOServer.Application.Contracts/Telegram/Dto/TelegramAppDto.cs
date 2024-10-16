@@ -22,20 +22,26 @@ public class TelegramAppDto
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]
-    public AppType AppType { get; set; }
+    public SourceType SourceType { get; set; }
     public string Creator { get; set; }
+}
+
+public class BatchSaveAppsInput
+{
+    [Required] public string ChainId { get; set; }
+    public List<SaveTelegramAppsInput> Apps { get; set; } = new();
 }
 
 public class SaveTelegramAppsInput
 {
-    [Required] public string ChainId { get; set; }
     [Required] public string Title { get; set; }
     public string Icon { get; set; }
     public string Description { get; set; }
     public string Url { get; set; }
-    public string longDescription { get; set; }
+    public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
-    [Required] List<string> Categories { get; set; }
+    private List<string> Categories { get; set; } = new();
+    public SourceType SourceType { get; set; } = SourceType.Telegram;
 }
 
 public class SetCategoryInput
@@ -61,6 +67,8 @@ public class QueryTelegramAppsInput
     public List<string> Names { get; set; }
     public List<string> Aliases { get; set; }
     public List<string> Ids { get; set; }
+
+    public SourceType? SourceType { get; set; } = null;
 }
 
 public enum ContentType

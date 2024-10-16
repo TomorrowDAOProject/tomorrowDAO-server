@@ -39,6 +39,7 @@ public class RankingOptions
     public bool RecordDiscover { get; set; } = false;
     public bool ReferralActivityValid { get; set; } = true;
     public long GroupCount { get; set; } = 500;
+    public List<string> TopRankingIds { get; set; } = new();
     public string TopRankingAddress { get; set; }
     public string TopRankingAccount { get; set; }
     public string TopRankingTitle { get; set; }

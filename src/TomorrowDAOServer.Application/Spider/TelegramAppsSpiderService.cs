@@ -181,7 +181,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             telegramAppDto.Id = HashHelper.ComputeFrom(telegramAppDto.Title).ToHex();
             telegramAppDto.CreateTime = DateTime.UtcNow;
             telegramAppDto.UpdateTime = DateTime.UtcNow;
-            telegramAppDto.AppType = AppType.Telegram;
+            telegramAppDto.SourceType = SourceType.Telegram;
             telegramAppDto.Creator = CommonConstant.System;
             dtos.Add(telegramAppDto);
         }

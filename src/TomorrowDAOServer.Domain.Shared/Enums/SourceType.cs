@@ -1,7 +1,7 @@
 namespace TomorrowDAOServer.Enums;
 
-public enum AppType
+public enum SourceType
 {
     Telegram = 0,
-    Custom = 1
+    TomorrowDao = 1
 }

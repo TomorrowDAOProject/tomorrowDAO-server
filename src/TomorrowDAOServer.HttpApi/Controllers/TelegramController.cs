@@ -73,7 +73,7 @@ public class TelegramController : AbpController
 
     [HttpPost("save")]
     [Authorize]
-    public async Task<bool> SaveAppAsync(SaveTelegramAppsInput input)
+    public async Task<bool> BatchSaveAppAsync(BatchSaveAppsInput input)
     {
         return await _telegramService.SaveTelegramAppAsync(input);
     }
@@ -83,14 +83,7 @@ public class TelegramController : AbpController
     {
         return await _telegramService.GetTelegramAppAsync(input);
     }
-    
-    [HttpGet("app-list")]
-    [Authorize]
-    public async Task<PageResultDto<AppDetailDto>> GetAppListAsync(GetAppListInput input)
-    {
-        return await _telegramService.GetAppListAsync(input);
-    }
-    
+
     [HttpGet("search-app")]
     [Authorize]
     public async Task<PageResultDto<AppDetailDto>> GetAppListAsync(string title)

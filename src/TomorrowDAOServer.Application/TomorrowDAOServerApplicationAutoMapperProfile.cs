@@ -61,7 +61,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Categories, opt
                 => opt.MapFrom(source => MapCategories(source.Categories)))
             .ForMember(des => des.AppType, opt
-                => opt.MapFrom(source => source.AppType.ToString()));
+                => opt.MapFrom(source => source.SourceType.ToString()));
         CreateMap<IndexerUserToken, UserTokenDto>();
         CreateMap<IndexerProposal, ProposalIndex>();
         CreateMap<ExecuteTransactionDto, ExecuteTransaction>()
@@ -286,6 +286,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Categories, opt
                 => opt.MapFrom(source => MapCategories(source.Categories)))
             .ForMember(des => des.AppType, opt
-                => opt.MapFrom(source => source.AppType.ToString()));
+                => opt.MapFrom(source => source.SourceType.ToString()));
     }
 }

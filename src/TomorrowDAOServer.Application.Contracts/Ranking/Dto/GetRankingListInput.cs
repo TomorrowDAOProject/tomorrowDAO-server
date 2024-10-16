@@ -1,12 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using TomorrowDAOServer.Enums;
+using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.Ranking.Dto;
 
-public class GetRankingListInput
+public class GetRankingListInput : PagedResultRequestDto
 {
     [Required] public string ChainId { get; set; }
-    public string Type { get; set; } = RankingType.Verified.ToString();
-    public int SkipCount { get; set; } = 0;
-    public int MaxResultCount { get; set; } = 6;
+    public RankingType Type { get; set; } = RankingType.All;
 }

@@ -23,6 +23,6 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]
-    public AppType AppType { get; set; }
+    public SourceType SourceType { get; set; }
     [Keyword] public string Creator { get; set; }
 }

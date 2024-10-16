@@ -137,6 +137,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         if (!toUpdate.IsNullOrEmpty())
         {
             await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
+            
+            //TODO Useless code
             var defaultRankingProposal = proposalList
                 .Where(p => p.ActiveStartTime <= DateTime.UtcNow) 
                 .MaxBy(p => p.DeployTime);
@@ -161,41 +163,60 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var chainId = input.ChainId;
         var userAddress = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        var rankingType = CheckRankingType(input.Type);
-        var excludeProposalId = string.Empty;
-        var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
+        
+        var rankingType = input.Type;
+        var (goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         var res = new List<ProposalIndex>();
-        if (rankingType == RankingType.Verified)
+        if (input.SkipCount < topRankingIds.Count)
         {
-            if (input.SkipCount == 0)
-            {
-                var topProposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress);
-                excludeProposalId = topProposal.ProposalId;
-                input.MaxResultCount -= 1;
-                res.Add(topProposal);
-            }
-            else
-            {
-                input.SkipCount -= 1;
-            }
+            var subRankingIds = topRankingIds.GetRange(input.SkipCount, topRankingIds.Count - input.SkipCount);
+            var topRanking = await _proposalProvider.GetProposalByIdsAsync(chainId, subRankingIds);
+            res.AddRange(topRanking);
+
+            input.MaxResultCount -= topRanking.Count;
+            input.SkipCount = 0;
         }
-        var result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, excludeProposalId);
+        else
+        {
+            input.SkipCount -= topRankingIds.Count;
+        }
+        var result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingIds);
         res.AddRange(result.Item2);
         var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res);
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
-        var pointsDic = pointsList.ToDictionary(x => x.ProposalId, x => x.Points);
+        var pointsDic = pointsList.ToDictionary(x => x.ProposalId, x => x);
         foreach (var detail in list)
         {
-            detail.Type = input.Type;
-            var points = pointsDic.GetValueOrDefault(detail.ProposalId, 0);
-            detail.TotalVoteAmount = _rankingAppPointsCalcProvider.CalculateVotesFromPoints(points);
+            var pointsIndex = pointsDic.GetValueOrDefault(detail.ProposalId, null);
+            //var points = pointsIndex?.Points ?? 0;
+            //detail.TotalVoteAmount = _rankingAppPointsCalcProvider.CalculateVotesFromPoints(points);
+            detail.TotalVoteAmount = pointsIndex?.Amount ?? 0;
+            if (detail.RankingType == RankingType.Verified)
+            {
+                detail.LabelType = detail.ProposalId == goldRankingId ? LabelTypeEnum.Gold : LabelTypeEnum.Blue;
+            }
         }
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         return new RankingListPageResultDto<RankingListDto>
         {
             TotalCount = result.Item1, Data = list, UserTotalPoints = userAllPoints
         };
+    }
+
+    private async Task<Tuple<string, List<string>>> GetTopRankingIdsAsync()
+    {
+        var topRankingIds = new List<string>(_rankingOptions.CurrentValue.TopRankingIds);
+        
+        var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
+        var topProposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress);
+
+        if (!topRankingIds.Contains(topProposal.ProposalId))
+        {
+            topRankingIds.Insert(0, topProposal.ProposalId);
+        }
+        
+        return new Tuple<string, List<string>>(topProposal.ProposalId, topRankingIds);
     }
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)

@@ -248,6 +248,12 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         {
             q => q.Terms(i => i.Field(f => f.ProposalId).Terms(proposalIds))
         };
+
+        if (pointsType != PointsType.All)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.PointsType).Value(pointsType)));
+        }
+        
         QueryContainer Filter(QueryContainerDescriptor<RankingAppPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
         
         return (await _appPointsIndexRepository.GetListAsync(Filter)).Item2;

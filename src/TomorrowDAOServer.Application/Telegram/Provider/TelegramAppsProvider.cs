@@ -21,7 +21,6 @@ public interface ITelegramAppsProvider
     Task<List<TelegramAppIndex>> GetAllAsync();
     Task<List<TelegramAppIndex>> GetAllDisplayAsync(List<string> aliases);
     Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount);
-    Task<Tuple<long, List<TelegramAppIndex>>> GetAppListAsync(GetAppListInput input);
     Task<List<TelegramAppIndex>> SearchAppAsync(string title);
 }
 
@@ -74,6 +73,11 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         {
             mustQuery.Add(q => q.Terms(i => i.Field(f => f.Alias).Terms(input.Aliases)));
         }
+
+        if (input.SourceType != null)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.SourceType).Value(input.SourceType)));
+        }
         
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
@@ -105,7 +109,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         var shouldQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {
             q => q.Bool(b => b.Must(mustQuery)), 
-            q => q.Term(i => i.Field(f => f.AppType).Value(AppType.Custom))  
+            q => q.Term(i => i.Field(f => f.SourceType).Value(SourceType.Custom))  
         };
 
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b
@@ -126,14 +130,6 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         };
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _telegramAppIndexRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount);
-    }
-
-    public async Task<Tuple<long, List<TelegramAppIndex>>> GetAppListAsync(GetAppListInput input)
-    {
-        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>();
-        QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await _telegramAppIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount, 
-            sortFunc: _ => new SortDescriptor<TelegramAppIndex>().Descending(index => index.CreateTime));
     }
 
     public async Task<List<TelegramAppIndex>> SearchAppAsync(string title)

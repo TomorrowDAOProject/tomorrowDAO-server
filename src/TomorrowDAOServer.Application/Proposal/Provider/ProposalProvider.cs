@@ -43,7 +43,7 @@ public interface IProposalProvider
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
     public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
     public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
-        RankingType rankingType, string excludeProposalId);
+        RankingType rankingType, List<string> excludeProposalIds);
     public Task<ProposalIndex> GetTopProposalAsync(string proposer);
 }
 
@@ -215,17 +215,21 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             sortExp: o => o.DeployTime);
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, string excludeProposalId)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, List<string> excludeProposalIds)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)), 
-            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
-            q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType))
+            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking))
         };
-        if (!excludeProposalId.IsNullOrEmpty())
+        if (!excludeProposalIds.IsNullOrEmpty())
         {
-            mustQuery.Add(q => !q.Term(i => i.Field(f => f.ProposalId).Value(excludeProposalId)));
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+        }
+
+        if (rankingType != RankingType.All)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
@@ -237,8 +241,11 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
-            q => q.Term(i => i.Field(f => f.Proposer).Value(proposer))
+            q => q.Term(i => i.Field(f => f.Proposer).Value(proposer)),
+            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
+            q => q.Term(i => i.Field(f => f.RankingType).Value(RankingType.Verified))
         };
+        
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _proposalIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending,
             sortExp: o => o.DeployTime);

@@ -2,6 +2,7 @@ namespace TomorrowDAOServer.Enums;
 
 public enum RankingType
 {
-    Verified = 0,
-    Community = 1
+    All = 0,
+    Verified = 1,
+    Community = 2
 }
