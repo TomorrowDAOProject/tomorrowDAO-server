@@ -519,8 +519,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         try
         {
             var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
-            var now = DateTime.UtcNow.Millisecond;
-            if (proposalIndex == null || now < proposalIndex.ActiveStartTime.Millisecond || now > proposalIndex.ActiveEndTime.Millisecond)
+            var now = DateTime.UtcNow;
+            if (proposalIndex == null || now < proposalIndex.ActiveStartTime || now > proposalIndex.ActiveEndTime)
             {
                 throw new UserFriendlyException($"Cannot be liked.{input.ProposalId}");
             }
