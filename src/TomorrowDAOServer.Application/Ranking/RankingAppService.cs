@@ -518,11 +518,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
         try
         {
-            var defaultProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(input.ChainId);
-            if (input.ProposalId != defaultProposalId)
+            var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
+            var now = DateTime.UtcNow.Millisecond;
+            if (proposalIndex == null || now < proposalIndex.ActiveStartTime.Millisecond || now > proposalIndex.ActiveEndTime.Millisecond)
             {
-                throw new UserFriendlyException($"Cannot be liked.{defaultProposalId}");
+                throw new UserFriendlyException($"Cannot be liked.{input.ProposalId}");
             }
+            // var defaultProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(input.ChainId);
+            // if (input.ProposalId != defaultProposalId)
+            // {
+            //     throw new UserFriendlyException($"Cannot be liked.{defaultProposalId}");
+            // }
             
             await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
             
