@@ -392,6 +392,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
 
     private ProposalCategory ParseProposalDescription(string proposalDescription)
     {
+        _logger.LogDebug("description:{0}", proposalDescription);
         return RankHelper.IsRanking(proposalDescription, TempPattern) ? ProposalCategory.Ranking : ProposalCategory.Normal;
     }
 }
