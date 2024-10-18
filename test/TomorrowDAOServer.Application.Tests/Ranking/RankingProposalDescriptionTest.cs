@@ -90,7 +90,7 @@ public class RankingProposalDescriptionTest : TomorrowDaoServerApplicationTestBa
     [Fact]
     public async Task TestOldPattern()
     {
-        //var pattern = @"^##GameRanking\s*:\s*([a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)+$";
+        //var pattern = @"^##GameRanking\s*:\s*([a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)\s*$";
         //var regex = new Regex(pattern, RegexOptions.Compiled);
         var regex = new Regex(CommonConstant.OldDescriptionPattern, RegexOptions.Compiled);
         
@@ -119,6 +119,11 @@ public class RankingProposalDescriptionTest : TomorrowDaoServerApplicationTestBa
         description = @"##GameRanking:aliasA#";
         match = regex.Match(description);
         match.Success.ShouldBeFalse();
+
+        description = @"##GameRanking:crypto-bot,xrocket,favorite-stickers-bot,wallet,community,pocketfi,catizen,gamee\n\n".Trim();
+        match = regex.Match(description);
+        match.Success.ShouldBeFalse();
+        //match.Groups[1].Value.ShouldBe(@"crypto-bot,xrocket,favorite-stickers-bot,wallet,community,pocketfi,catizen,gamee\n\n");
     }
     
     [Fact]

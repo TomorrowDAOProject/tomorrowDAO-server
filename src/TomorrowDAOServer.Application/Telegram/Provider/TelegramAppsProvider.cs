@@ -104,7 +104,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
             q => q.Exists(i => i.Field(f => f.LongDescription)),
             q => q.Exists(i => i.Field(f => f.Screenshots)),
             q => q.Exists(i => i.Field(f => f.Categories)),
-            q => q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)) 
+            q => q.Term(i => i.Field(f => f.SourceType).Value(SourceType.Telegram)) 
         };
         
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b
