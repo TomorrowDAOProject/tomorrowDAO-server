@@ -56,7 +56,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
     {
         var skipCount = 0;
         var blockHeight = -1L;
-        // lastEndHeight = 0;
+         lastEndHeight = 144455326; //TODO Test
         List<IndexerProposal> queryList;
         do
         {

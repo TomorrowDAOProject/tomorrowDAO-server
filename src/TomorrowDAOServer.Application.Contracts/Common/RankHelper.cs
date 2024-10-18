@@ -77,8 +77,8 @@ public class RankHelper
             {
                 aList.Add(aliasMatch.Groups[1].Value.Trim());
             }
-
-            aList = aList.Distinct().ToList();
+            
+            return aList.Distinct().ToList();
         }
         else
         {
