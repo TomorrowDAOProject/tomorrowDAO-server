@@ -44,7 +44,7 @@ public interface IProposalProvider
     public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
     public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
         RankingType rankingType, List<string> excludeProposalIds);
-    public Task<ProposalIndex> GetTopProposalAsync(string proposer);
+    public Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive);
 }
 
 public class ProposalProvider : IProposalProvider, ISingletonDependency
@@ -237,7 +237,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             skip: skipCount, limit: maxResultCount);
     }
 
-    public async Task<ProposalIndex> GetTopProposalAsync(string proposer)
+    public async Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
@@ -245,6 +245,14 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
             q => q.Term(i => i.Field(f => f.RankingType).Value(RankingType.Verified))
         };
+
+        if (isActive)
+        {
+            mustQuery.Add(q => q.DateRange(r => r
+                .Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow)));
+            mustQuery.Add(q => q.DateRange(r => r
+                .Field(f => f.ActiveEndTime).GreaterThan(DateTime.UtcNow)));
+        }
         
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _proposalIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending,

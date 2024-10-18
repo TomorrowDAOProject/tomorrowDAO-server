@@ -75,6 +75,7 @@ public class DaoHub : AbpHub
         var currentPoints = await GetAllAppPointsAsync(chainId, proposalId);
         await Clients.Caller.SendAsync(CommonConstant.RequestPointsProduce, new PointsProduceDto { PointsList = currentPoints });
         _logger.LogInformation("RequestPointsProduceEnd, chainId {chainId}, proposalId {proposalId}", chainId, proposalId);
+        await AddToConnectionProposalIdMap(connectionId, proposalId);
         await PushRequestPointsProduceAsync(chainId);
     }
 
@@ -132,7 +133,7 @@ public class DaoHub : AbpHub
         var proposalList = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
         var aliasListDic = proposalList.ToDictionary(
             proposal => proposal.ProposalId,
-            proposal => RankHelper.GetAliasList(proposal.ProposalDescription));
+            proposal => RankHelper.GetAliases(proposal.ProposalDescription));
         var allAppPointsDict = new Dictionary<string, List<RankingAppPointsBaseDto>>();
         foreach (var proposalId in proposalIds)
         {
@@ -150,7 +151,7 @@ public class DaoHub : AbpHub
     private async Task<List<RankingAppPointsBaseDto>> GetAllAppPointsAsync(string chainId, string proposalId)
     {
         var proposal = await _proposalProvider.GetProposalByIdAsync(chainId, proposalId);
-        var aliasList = RankHelper.GetAliasList(proposal.ProposalDescription);
+        var aliasList = RankHelper.GetAliases(proposal.ProposalDescription);
         return RankingAppPointsDto
             .ConvertToBaseList(await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId, aliasList))
             .OrderByDescending(x => x.Points).ToList();

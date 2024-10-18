@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Telegram.Dto;
 using Volo.Abp;
 using Xunit;
@@ -47,15 +48,20 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task SaveTelegramAppAsyncTest()
     {
-        await _telegramService.SaveTelegramAppAsync(new SaveTelegramAppsInput());
+        await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput());
         
         Login(Guid.NewGuid(),Address2);
-        await _telegramService.SaveTelegramAppAsync(new SaveTelegramAppsInput
+        await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput
         {
             ChainId = ChainIdAELF,
-            Title = "Title",
-            Icon = "Icon",
-            Description = "Description"
+            Apps = new List<SaveTelegramAppsInput>() {new SaveTelegramAppsInput
+                {
+                    Title = "Title",
+                    Icon = "Icon",
+                    Description = "Description",
+                    SourceType = SourceType.Telegram
+                }
+            },
         });
     }
     
@@ -67,11 +73,17 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
 
         var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            await _telegramService.SaveTelegramAppAsync(new SaveTelegramAppsInput
+            await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput()
             {
-                Title = "Title",
-                Icon = "Icon",
-                Description = "Description",
+                ChainId = ChainIdAELF,
+                Apps = new List<SaveTelegramAppsInput>() {new SaveTelegramAppsInput
+                    {
+                        Title = "Title",
+                        Icon = "Icon",
+                        Description = "Description",
+                        SourceType = SourceType.Telegram
+                    }
+                },
             });
         });
         exception.ShouldNotBeNull();

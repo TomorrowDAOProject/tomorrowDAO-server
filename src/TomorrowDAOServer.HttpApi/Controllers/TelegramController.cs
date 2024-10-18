@@ -73,7 +73,7 @@ public class TelegramController : AbpController
 
     [HttpPost("save")]
     [Authorize]
-    public async Task<bool> BatchSaveAppAsync(BatchSaveAppsInput input)
+    public async Task<List<string>> BatchSaveAppAsync(BatchSaveAppsInput input)
     {
         return await _telegramService.SaveTelegramAppAsync(input);
     }

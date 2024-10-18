@@ -103,17 +103,12 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
             q => q.Exists(i => i.Field(f => f.Url)),
             q => q.Exists(i => i.Field(f => f.LongDescription)),
             q => q.Exists(i => i.Field(f => f.Screenshots)),
-            q => q.Exists(i => i.Field(f => f.Categories))
+            q => q.Exists(i => i.Field(f => f.Categories)),
+            q => q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)) 
         };
-
-        var shouldQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
-        {
-            q => q.Bool(b => b.Must(mustQuery)), 
-            q => q.Term(i => i.Field(f => f.SourceType).Value(SourceType.Custom))  
-        };
-
+        
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b
-                .MustNot(mustNotQuery).Should(shouldQuery).MinimumShouldMatch(1) 
+                .MustNot(mustNotQuery).Must(mustQuery)
         );
 
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);

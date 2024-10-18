@@ -45,7 +45,7 @@ public class RankingOptions
     public string TopRankingTitle { get; set; }
     public string TopRankingSchemeAddress { get; set; }
     public string TopRankingVoteSchemeId { get; set; }
-    public string TopRankingUrl { get; set; }
+    public string TopRankingBanner { get; set; }
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {

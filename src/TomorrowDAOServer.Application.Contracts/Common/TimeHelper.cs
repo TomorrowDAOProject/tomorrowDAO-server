@@ -147,5 +147,11 @@ public static class TimeHelper
             return string.Empty;
         }
     }
+    
+    public static DateTime GetNextWeekday(this DateTime startDate, DayOfWeek targetDayOfWeek)  
+    {  
+        var daysToAdd = (7 + (targetDayOfWeek - startDate.DayOfWeek)) % 7;  
+        return startDate.AddDays(daysToAdd);  
+    }  
 
 }

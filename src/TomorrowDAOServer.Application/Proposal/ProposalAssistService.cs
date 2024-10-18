@@ -39,7 +39,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IScriptService _scriptService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
-    private Regex _regex;
+    private string TempPattern { get; set; }
 
     public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
         IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService, 
@@ -52,7 +52,6 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
         _rankingOptions = rankingOptions;
-        _regex = new Regex(CommonConstant.DescriptionPattern, RegexOptions.Compiled);
     }
 
     public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
@@ -68,10 +67,9 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
             var daoId = proposal.DAOId;
             if (rankingDaoIds.Contains(daoId) || customRankingDaoIds.Contains(daoId))
             {
-                var (proposalCategory, proposalIcon) = ParseProposalDescription(proposal.ProposalDescription);
+                var proposalCategory = ParseProposalDescription(proposal.ProposalDescription);
                 proposal.RankingType = rankingDaoIds.Contains(daoId) ? RankingType.Verified : RankingType.Community;
                 proposal.ProposalCategory = proposalCategory;
-                proposal.ProposalIcon = proposalIcon;
             }
             
             if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
@@ -276,7 +274,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
 
     public Task ChangeRegex(string pattern)
     {
-        _regex = new Regex(pattern, RegexOptions.Compiled);
+        TempPattern = pattern;
         return Task.CompletedTask;
     }
 
@@ -392,16 +390,8 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         return enumStr[..1].ToUpper() + enumStr[1..].ToLower();
     }
 
-    private Tuple<ProposalCategory, string> ParseProposalDescription(string proposalDescription)
+    private ProposalCategory ParseProposalDescription(string proposalDescription)
     {
-        var match = _regex.Match(proposalDescription);
-        if (match.Success)
-        {
-            return match.Groups[1].Success ? 
-                new Tuple<ProposalCategory, string>(ProposalCategory.Ranking, match.Groups[1].Value) : 
-                new Tuple<ProposalCategory, string>(ProposalCategory.Ranking, string.Empty);
-        }
-
-        return new Tuple<ProposalCategory, string>(ProposalCategory.Normal, string.Empty);
+        return RankHelper.IsRanking(proposalDescription, TempPattern) ? ProposalCategory.Ranking : ProposalCategory.Normal;
     }
 }

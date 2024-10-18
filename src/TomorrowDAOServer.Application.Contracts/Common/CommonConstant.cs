@@ -16,6 +16,8 @@ public static class CommonConstant
     public const string Space = " ";
     public const char SpaceChar = ' ';
     public const string EmptyString = "";
+    public const string LeftParenthesis = "{";
+    public const string RightParenthesis = "}";
     public const string ELF = "ELF";
     public const string USDT = "USDT";
     public const string USD = "USD";
@@ -52,8 +54,10 @@ public static class CommonConstant
     public const string VoteEventVoted = "Voted";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
-    public const string DescriptionIconBegin = "##RankingIcon:";
-    public const string DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9&'’\-]+\s*(?:,\s*[a-zA-Z0-9&'’\-]+\s*)*)?(?:#B:\s*\S+)?$";
+    public const string DescriptionIconBegin = "#B:";
+    public const string OldDescriptionPattern = @"^##GameRanking\s*:\s*([a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)+$";
+    public const string NewDescriptionPattern = @"^##GameRanking[\s]*:[\s]*((?:\{[^{}]+\}[,]?)+)(?:#B[\s]*:[\s]*(?:\{([^{}]*)?\})?)?$";
+    public const string NewDescriptionAliasPattern =  @"\{([^{}]+)\}";
     public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;

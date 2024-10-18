@@ -22,7 +22,8 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public List<TelegramAppCategory> Categories { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
+
     [JsonConverter(typeof(StringEnumConverter))]
-    public SourceType SourceType { get; set; }
+    public SourceType SourceType { get; set; } = SourceType.Telegram;
     [Keyword] public string Creator { get; set; }
 }

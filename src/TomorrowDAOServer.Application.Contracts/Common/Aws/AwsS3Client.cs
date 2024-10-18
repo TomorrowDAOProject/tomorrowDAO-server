@@ -33,7 +33,7 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
 
     private void InitAmazonS3Client()
     {
-        var accessKeyId = _awsS3Option.CurrentValue.AccessKeyID;
+        var accessKeyId = _awsS3Option.CurrentValue.AccessKey;
         var secretKey = _awsS3Option.CurrentValue.SecretKey;
         var serviceUrl = _awsS3Option.CurrentValue.ServiceURL;
         var config = new AmazonS3Config

@@ -118,7 +118,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var toUpdate = new List<RankingAppIndex>();
         foreach (var proposal in proposalList)
         {
-            var aliases = RankHelper.GetAliasList(proposal.ProposalDescription);
+            var aliases = RankHelper.GetAliases(proposal.ProposalDescription);
             var telegramApps = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
             {
                 Aliases = aliases
@@ -161,6 +161,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task<RankingListPageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
     {
         var chainId = input.ChainId;
+
         var userAddress = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         
@@ -192,6 +193,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             //var points = pointsIndex?.Points ?? 0;
             //detail.TotalVoteAmount = _rankingAppPointsCalcProvider.CalculateVotesFromPoints(points);
             detail.TotalVoteAmount = pointsIndex?.Amount ?? 0;
+            detail.RankingType = detail.RankingType == RankingType.All ? RankingType.Verified : detail.RankingType;
             if (detail.RankingType == RankingType.Verified)
             {
                 detail.LabelType = detail.ProposalId == goldRankingId ? LabelTypeEnum.Gold : LabelTypeEnum.Blue;
@@ -209,14 +211,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var topRankingIds = new List<string>(_rankingOptions.CurrentValue.TopRankingIds);
         
         var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
-        var topProposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress);
+        var topProposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress, true);
 
-        if (!topRankingIds.Contains(topProposal.ProposalId))
+        if (topProposal != null && !topRankingIds.Contains(topProposal.ProposalId))
         {
             topRankingIds.Insert(0, topProposal.ProposalId);
         }
-        
-        return new Tuple<string, List<string>>(topProposal.ProposalId, topRankingIds);
+
+        return new Tuple<string, List<string>>(topProposal?.ProposalId, topRankingIds);
     }
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
@@ -613,6 +615,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var rankingApp = rankingAppList[0];
         var canVoteAmount = 0;
         var proposalDescription = rankingApp.ProposalDescription;
+        var getBannerUrlTask = GetBannerUrlAsync(chainId, proposalDescription);
         if (DateTime.UtcNow < rankingApp.ActiveEndTime)
         {
             var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
@@ -632,7 +635,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
             }
         }
-        var aliasList = RankHelper.GetAliasList(proposalDescription);
+        var aliasList = RankHelper.GetAliases(proposalDescription);
         var appPointsList = await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(chainId, proposalId, aliasList);
         var appVoteAmountDic = appPointsList
             .Where(x => x.PointsType == PointsType.Vote)
@@ -660,9 +663,30 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
             UserTotalPoints = userAllPoints,
+            BannerUrl = await getBannerUrlTask,
             RankingList = rankingList.OrderByDescending(r => r.PointsAmount)
                 .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList()
         };
+    }
+
+    private async Task<string> GetBannerUrlAsync(string chainId, string proposalDescription)
+    {
+        var banner = RankHelper.GetBanner(proposalDescription);
+        if (banner.IsNullOrWhiteSpace())
+        {
+            return string.Empty;
+        }
+
+        var (count, telegramAppIndices) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = new List<string>() {banner},
+        });
+        if (telegramAppIndices.IsNullOrEmpty())
+        {
+            return string.Empty;
+        }
+
+        return telegramAppIndices.First().Icon ?? string.Empty;
     }
 
     public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)

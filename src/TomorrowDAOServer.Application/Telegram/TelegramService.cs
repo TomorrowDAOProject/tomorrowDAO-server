@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf;
+using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -76,7 +77,8 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var aliases = typesDic.Keys.ToList();
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
-            Aliases = aliases
+            Aliases = aliases,
+            SourceType = SourceType.Telegram
         })).Item2;
         foreach (var app in exists)
         {
@@ -153,7 +155,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
                 }
                 var alias = sequenceList[0];
                 sequenceList.RemoveAt(0);
-                telegramAppIndex.Id = HashHelper.ComputeFrom($"{telegramAppIndex.Title}--{alias}").ToHex();
+                telegramAppIndex.Id = HashHelper.ComputeFrom(IdGeneratorHelper.GenerateId(telegramAppIndex.SourceType, telegramAppIndex.Title, alias)).ToHex();
                 telegramAppIndex.Alias = alias;
                 telegramAppIndex.CreateTime = telegramAppIndex.UpdateTime = DateTime.UtcNow;
                 telegramAppIndex.Creator = address;
@@ -212,9 +214,23 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
             Aliases = aliases
+            //TODO After initialization, this condition needs to be opened
+            //,SourceType = SourceType.Telegram
         })).Item2;
-        var toUpdate = telegramAppIndices.Where(x => exists.All(y => x.Id != y.Id)).ToList();
-        await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
+
+        var existAppDictionary = exists.ToDictionary(t => t.Title);
+        foreach (var telegramAppIndex in telegramAppIndices)
+        {
+            var existApp = existAppDictionary.GetValueOrDefault(telegramAppIndex.Title, new TelegramAppIndex());
+            
+            telegramAppIndex.Url = existApp.Url;
+            telegramAppIndex.LongDescription = existApp.LongDescription;
+            telegramAppIndex.Screenshots = existApp.Screenshots;
+            telegramAppIndex.Categories = existApp.Categories;
+            telegramAppIndex.UpdateTime = DateTime.UtcNow;
+        }
+        
+        await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);
     }
 
     public async Task<List<TelegramAppDto>> GetTelegramAppAsync(QueryTelegramAppsInput input)
@@ -252,6 +268,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var telegramAppDtos = await GetTelegramAppAsync(new QueryTelegramAppsInput
         {
             Names = telegramAppDetailDtos.Keys.ToList(),
+            SourceType = SourceType.Telegram
         });
         if (telegramAppDtos.IsNullOrEmpty())
         {

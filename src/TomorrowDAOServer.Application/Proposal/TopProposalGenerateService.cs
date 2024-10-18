@@ -51,23 +51,23 @@ public class TopProposalGenerateService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var currentDate = DateTime.UtcNow;
+        if (!CheckDate(out var nextWeekStartTime, out var nextWeekEndTime))
+        {
+            return newIndexHeight;
+        }
+        
         var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
         var proposalTitle = _rankingOptions.CurrentValue.TopRankingTitle;
         var schemeAddress = _rankingOptions.CurrentValue.TopRankingSchemeAddress;
         var voteSchemeId = _rankingOptions.CurrentValue.TopRankingVoteSchemeId;
-        var proposalIcon = _rankingOptions.CurrentValue.TopRankingUrl;
+        var banner = _rankingOptions.CurrentValue.TopRankingBanner;
         var daoId = _rankingOptions.CurrentValue.DaoIds[0];
         var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
         var governanceContractAddress = queryContractInfo.GovernanceContractAddress;
-        if (currentDate.DayOfWeek != DayOfWeek.Monday)
-        {
-            return -1L;
-        }
 
-        var proposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress);
+        var proposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress, false);
         var deployTime = proposal.DeployTime;
-        if (deployTime.Date <= currentDate.Date)
+        if (proposal.ActiveStartTime != nextWeekStartTime)
         {
             var rankingList = await _rankingAppProvider.GetAllPeriodListAsync();
             var excludeAliasList = rankingList.Select(x => x.Alias).Distinct().ToList();
@@ -79,21 +79,37 @@ public class TopProposalGenerateService : ScheduleSyncDataService
             var random = new Random();
             var randomList = appList.OrderBy(x => random.Next()).Take(15).ToList();
             var aliasList = randomList.Select(x => x.Alias).ToList();
-            var aliasString = string.Join(",", aliasList);
-            var proposalDescription = $"{CommonConstant.DescriptionBegin}{aliasString}{CommonConstant.DescriptionIconBegin}{proposalIcon}";
-            await _contractProvider.CreateTransactionAsync(chainId, _senderAccount.PublicKey.ToHex(), governanceContractAddress, 
+            var proposalDescription = RankHelper.BuildProposalDescription(aliasList, banner);
+            var (transactionId, transaction) = await _contractProvider.CreateTransactionAsync(chainId, _senderAccount.PublicKey.ToHex(), governanceContractAddress, 
                 CommonConstant.GovernanceMethodCreateProposal, new CreateProposalInput
                 {
                     ProposalType = 2,
                     ProposalBasicInfo = new ProposalBasicInfo
                     {
                         ProposalTitle = proposalTitle, ProposalDescription = proposalDescription, SchemeAddress = Address.FromBase58(schemeAddress), 
-                        ActiveStartTime = 0, ActiveEndTime = 0, ActiveTimePeriod = 604800, DaoId = Hash.LoadFromHex(daoId),
+                        ActiveStartTime = nextWeekStartTime.Millisecond, ActiveEndTime = nextWeekEndTime.Millisecond, DaoId = Hash.LoadFromHex(daoId),
                         VoteSchemeId = Hash.LoadFromHex(voteSchemeId)
                     }
                 });
+            transaction.Signature = _senderAccount.GetSignatureWith(transaction.GetHash().ToByteArray());
+            await _contractProvider.SendTransactionAsync(chainId, transaction);
         }
-        return -1L;
+        return newIndexHeight;
+    }
+
+    private bool CheckDate(out DateTime nextWeekStartTime, out DateTime nextWeekEndTime)
+    {
+        nextWeekStartTime = default;
+        nextWeekEndTime = default;
+        var utcNow = DateTime.UtcNow;
+        if (utcNow.DayOfWeek != DayOfWeek.Sunday)
+        {
+            return false;
+        }
+
+        nextWeekStartTime = utcNow.GetNextWeekday(DayOfWeek.Monday).Date;
+        nextWeekEndTime = utcNow.GetNextWeekday(DayOfWeek.Sunday).AddDays(1).AddTicks(-1);
+        return true;
     }
 
     public override async Task<List<string>> GetChainIdsAsync()
