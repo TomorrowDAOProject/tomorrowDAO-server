@@ -2,11 +2,9 @@ namespace TomorrowDAOServer.Options;
 
 public class AwsS3Option
 {
-    
-    public string SecurityKeyId { get; set; }
+    public string AccessKey { get; set; }
+    public string SecretKey { get; set; }
     public string BucketName { get; set; }
-    public string Path { get; set; }
-
-    public string RegionEndpoint { get; set; } = "ap-northeast-1";
-
+    public string S3Key { get; set; } = "DAO";
+    public string ServiceURL { get; set; }
 }

@@ -10,5 +10,6 @@ public class RankingDetailDto
     public long CanVoteAmount { get; set; }
     public long TotalVoteAmount { get; set; }
     public long UserTotalPoints { get; set; }
+    public string BannerUrl { get; set; }
     public List<RankingAppDetailDto> RankingList { get; set; } = new();
 }

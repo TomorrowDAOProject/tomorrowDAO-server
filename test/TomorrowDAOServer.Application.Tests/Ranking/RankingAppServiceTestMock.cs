@@ -8,6 +8,7 @@ using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Dto;
@@ -108,7 +109,8 @@ public partial class RankingAppServiceTest
         var mock = new Mock<IProposalProvider>();
         mock.Setup(o => o.GetProposalByIdAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new ProposalIndex{ActiveStartTime = DateTime.UtcNow, ActiveEndTime = DateTime.UtcNow.AddDays(1)});
-        mock.Setup(o => o.GetRankingProposalListAsync(It.IsAny<GetRankingListInput>()))
+        mock.Setup(o => o.GetRankingProposalListAsync(It.IsAny<string>(), It.IsAny<int>(), 
+                It.IsAny<int>(), It.IsAny<RankingType>(), It.IsAny<List<string>>()))
             .ReturnsAsync(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() { ProposalId = ProposalId1 } }));
         return mock.Object;
     }
