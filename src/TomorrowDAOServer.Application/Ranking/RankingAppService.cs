@@ -166,11 +166,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         
         var rankingType = input.Type;
         var (goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
+        _logger.LogInformation("[GetRankingProposalListAsync]: goldRankingId:{0}", goldRankingId);
+        _logger.LogInformation("[GetRankingProposalListAsync]: topRankingIds:{0}", JsonConvert.SerializeObject(topRankingIds));
         var res = new List<ProposalIndex>();
         if (input.SkipCount < topRankingIds.Count)
         {
             var subRankingIds = topRankingIds.GetRange(input.SkipCount, topRankingIds.Count - input.SkipCount);
             var topRanking = await _proposalProvider.GetProposalByIdsAsync(chainId, subRankingIds);
+            _logger.LogInformation("[GetRankingProposalListAsync]: GetProposalByIdsAsync:{0}", JsonConvert.SerializeObject(topRanking));
             res.AddRange(topRanking);
 
             input.MaxResultCount -= topRanking.Count;
@@ -180,6 +183,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             input.SkipCount -= topRankingIds.Count;
         }
+        _logger.LogInformation("[GetRankingProposalListAsync]: SkipCount:{0},MaxResultCount={1},topRankingIds={2}", input.SkipCount, input.MaxResultCount, JsonConvert.SerializeObject(topRankingIds));
         var result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingIds);
         res.AddRange(result.Item2);
         var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res);
