@@ -186,13 +186,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res);
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
-        var pointsDic = pointsList.ToDictionary(x => x.ProposalId, x => x);
+        var pointsDic = pointsList.GroupBy(p => p.ProposalId).ToDictionary(t => t.Key, t => t.ToList());
         foreach (var detail in list)
         {
-            var pointsIndex = pointsDic.GetValueOrDefault(detail.ProposalId, null);
-            //var points = pointsIndex?.Points ?? 0;
-            //detail.TotalVoteAmount = _rankingAppPointsCalcProvider.CalculateVotesFromPoints(points);
-            detail.TotalVoteAmount = pointsIndex?.Amount ?? 0;
+            var pointsIndex = pointsDic.GetValueOrDefault(detail.ProposalId, new List<RankingAppPointsIndex>());
+            detail.TotalVoteAmount = pointsIndex.Sum(t => t.Amount);
             detail.RankingType = detail.RankingType == RankingType.All ? RankingType.Verified : detail.RankingType;
             if (detail.RankingType == RankingType.Verified)
             {
