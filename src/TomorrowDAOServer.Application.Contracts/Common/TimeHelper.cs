@@ -150,7 +150,11 @@ public static class TimeHelper
     
     public static DateTime GetNextWeekday(this DateTime startDate, DayOfWeek targetDayOfWeek)  
     {  
-        var daysToAdd = (7 + (targetDayOfWeek - startDate.DayOfWeek)) % 7;  
+        var currentDay = startDate.DayOfWeek == 0 ? 7 : (int)startDate.DayOfWeek;
+        var targetDay = targetDayOfWeek == 0 ? 7 : (int)targetDayOfWeek;
+        
+        var daysToAdd = (7 + (targetDay - currentDay)) % 7;
+        daysToAdd += currentDay <= targetDay ? 7 : 0;
         return startDate.AddDays(daysToAdd);  
     }  
 
