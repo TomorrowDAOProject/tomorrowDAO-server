@@ -221,13 +221,14 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)), 
-            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking))
+            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
+            q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
         if (!excludeProposalIds.IsNullOrEmpty())
         {
             mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
         }
-
+        
         if (rankingType != RankingType.All)
         {
             mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));

@@ -188,6 +188,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
         var pointsDic = pointsList.GroupBy(p => p.ProposalId).ToDictionary(t => t.Key, t => t.ToList());
+        var utcNow = DateTime.UtcNow;
         foreach (var detail in list)
         {
             var pointsIndex = pointsDic.GetValueOrDefault(detail.ProposalId, new List<RankingAppPointsIndex>());
@@ -197,6 +198,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 detail.LabelType = detail.ProposalId == goldRankingId ? LabelTypeEnum.Gold : LabelTypeEnum.Blue;
             }
+
+            detail.Active = utcNow >= detail.ActiveStartTime && utcNow <= detail.ActiveEndTime;
         }
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         return new RankingListPageResultDto<RankingListDto>
@@ -621,7 +624,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var canVoteAmount = 0;
         var proposalDescription = rankingApp.ProposalDescription;
         var getBannerUrlTask = GetBannerUrlAsync(chainId, proposalDescription);
-        if (DateTime.UtcNow < rankingApp.ActiveEndTime)
+        var utcNow = DateTime.UtcNow;
+        if (utcNow >= rankingApp.ActiveStartTime && utcNow <= rankingApp.ActiveEndTime)
         {
             var voteRecordRedis = await GetRankingVoteRecordAsync(chainId, userAddress, proposalId);
             if (voteRecordRedis is { Status: RankingVoteStatusEnum.Voted or RankingVoteStatusEnum.Voting })
