@@ -186,7 +186,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     private async Task<List<string>> GetSequenceAsync(int count)
     {
         var sequenceGrain = _clusterClient.GetGrain<ISequenceGrain>(CommonConstant.GrainIdTelegramAppSequence);
-        return await sequenceGrain.GetNextValAsync(CommonConstant.GrainIdTelegramAppSequence, count);
+        return await sequenceGrain.GetNextValAsync(count);
     }
 
     public async Task SaveTelegramAppsAsync(List<TelegramAppDto> telegramAppDtos)
