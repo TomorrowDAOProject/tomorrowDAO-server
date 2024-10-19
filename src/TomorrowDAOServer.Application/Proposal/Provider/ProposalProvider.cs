@@ -44,6 +44,7 @@ public interface IProposalProvider
     public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
         RankingType rankingType, List<string> excludeProposalIds);
     public Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive);
+    Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds);
 }
 
 public class ProposalProvider : IProposalProvider, ISingletonDependency
@@ -256,6 +257,24 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _proposalIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending,
             sortExp: o => o.DeployTime);
+    }
+
+    public async Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds)
+    {
+        var currentDate = DateTime.UtcNow;
+        var threeWeeksAgoDate = currentDate.AddDays(-21);
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.DateRange(r => r
+                .Field(f => f.ActiveStartTime).GreaterThanOrEquals(threeWeeksAgoDate)),
+            q => q.DateRange(r => r
+                .Field(f => f.ActiveEndTime).LessThanOrEquals(currentDate)),
+            q => q.Terms(r => r
+                .Field(f => f.DAOId).Terms(rankingDaoIds)),
+        };
+        
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _proposalIndexRepository.GetListAsync(Filter)).Item2 ?? new List<ProposalIndex>();
     }
 
     public async Task<long> GetProposalCountByDAOId(string chainId, string DAOId)

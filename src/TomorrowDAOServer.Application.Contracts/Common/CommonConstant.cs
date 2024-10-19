@@ -29,6 +29,7 @@ public static class CommonConstant
 
     public const string CaContractAddressName = "CaAddress";
     public const string VoteContractAddressName = "VoteContractAddress";
+    public const string GovernanceContractAddress = "GovernanceContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
     public const string ProxyAccountContractAddressName = "AElf.Contracts.ProxyAccountContract";
         

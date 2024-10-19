@@ -18,7 +18,6 @@ public interface IRankingAppProvider
     Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias);
     Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1);
     Task<List<RankingAppIndex>> GetNeedMoveRankingAppListAsync();
-    Task<List<RankingAppIndex>> GetAllPeriodListAsync();
 }
 
 public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
@@ -99,21 +98,5 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return (await _rankingAppIndexRepository.GetListAsync(Filter)).Item2;
-    }
-
-    public async Task<List<RankingAppIndex>> GetAllPeriodListAsync()
-    {
-        var currentDate = DateTime.UtcNow;
-        var threeWeeksAgoDate = currentDate.AddDays(-21);
-        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppIndex>, QueryContainer>>
-        {
-            q => q.DateRange(r => r
-                .Field(f => f.ActiveStartTime).GreaterThanOrEquals(threeWeeksAgoDate)),
-            q => q.DateRange(r => r
-                .Field(f => f.ActiveEndTime).LessThanOrEquals(currentDate))
-        };
-
-        QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await IndexHelper.GetAllIndex(Filter, _rankingAppIndexRepository);
     }
 }
