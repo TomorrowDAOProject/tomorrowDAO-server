@@ -66,8 +66,7 @@ public class TopProposalGenerateService : ScheduleSyncDataService
         var governanceContractAddress = queryContractInfo.GovernanceContractAddress;
 
         var proposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress, false);
-        var deployTime = proposal.DeployTime;
-        if (proposal.ActiveStartTime != nextWeekStartTime)
+        if (proposal == null || proposal.ActiveStartTime != nextWeekStartTime)
         {
             var rankingList = await _rankingAppProvider.GetAllPeriodListAsync();
             var excludeAliasList = rankingList.Select(x => x.Alias).Distinct().ToList();
@@ -102,13 +101,13 @@ public class TopProposalGenerateService : ScheduleSyncDataService
         nextWeekStartTime = default;
         nextWeekEndTime = default;
         var utcNow = DateTime.UtcNow;
-        if (utcNow.DayOfWeek != DayOfWeek.Sunday)
+        if (utcNow.DayOfWeek != _rankingOptions.CurrentValue.TopRankingGenerateTime)
         {
             return false;
         }
 
         nextWeekStartTime = utcNow.GetNextWeekday(DayOfWeek.Monday).Date;
-        nextWeekEndTime = utcNow.GetNextWeekday(DayOfWeek.Sunday).AddDays(1).AddTicks(-1);
+        nextWeekEndTime = utcNow.GetNextWeekday(DayOfWeek.Sunday).Date.AddDays(1).AddMilliseconds(-1);
         return true;
     }
 

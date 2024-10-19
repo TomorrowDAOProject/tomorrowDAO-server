@@ -131,8 +131,9 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             throw new UserFriendlyException("Access denied.");
         }
         
+        _logger.LogInformation("SaveTelegramAppAsync, telegramApp={0}", JsonConvert.SerializeObject(telegramApps));
         var dictionary = await GetLocalTelegramAppIndicesAsync(telegramApps);
-
+        _logger.LogInformation("SaveTelegramAppAsync, IdCount={0}", input.Apps.Count - dictionary.Count);
         var sequenceList = await GetSequenceAsync(input.Apps.Count - dictionary.Count);
         var aliases = new List<string>();
         var telegramAppIndices = _objectMapper.Map<List<SaveTelegramAppsInput>, List<TelegramAppIndex>>(input.Apps);
@@ -174,8 +175,12 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         }
         var titleList = telegramApps.Select(t => t.Title).ToList();
         var (count, list) = await _telegramAppsProvider.GetTelegramAppsAsync(new
-            QueryTelegramAppsInput { Names = titleList });
-        return list?.ToDictionary(t => t.Title) ?? new Dictionary<string, TelegramAppIndex>();
+            QueryTelegramAppsInput
+            {
+                Names = titleList,
+                SourceType = SourceType.Telegram
+            });
+        return list?.DistinctBy(t => t.Title).ToDictionary(t => t.Title) ?? new Dictionary<string, TelegramAppIndex>();
     }
 
     private async Task<List<string>> GetSequenceAsync(int count)

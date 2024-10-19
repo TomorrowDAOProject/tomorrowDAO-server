@@ -63,7 +63,7 @@ public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
         
         var dictionary = State.CurrentValue ?? new Dictionary<string, long>();
         var currentValue = dictionary.GetValueOrDefault(key, 0);
-        Log.Information("CurrentValue: {0}", currentValue);
+        Log.Information("CurrentValue: {0}, batchSize={1}", currentValue, batchSize);
         var res = new List<string>();
         for (var i = 0; i < batchSize; i++)
         {
