@@ -24,10 +24,10 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         _objectMapper = objectMapper;
     }
 
-    public override Task OnActivateAsync()
+    public override async Task OnActivateAsync()
     {
-        ReadStateAsync();
-        return base.OnActivateAsync();
+        await ReadStateAsync();
+        await base.OnActivateAsync();
     }
 
     public async Task<GrainResultDto<int>> SaveDaoAliasInfoAsync(DaoAliasDto daoAliasDto)
