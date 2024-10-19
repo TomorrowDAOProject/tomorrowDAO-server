@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
+using AElf.Client.Dto;
 using AElf.Types;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -279,7 +280,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
 
                 _logger.LogInformation("Ranking vote, send transaction. {0}", address);
-                var sendTransactionOutput = await _contractProvider.SendTransactionAsync(input.ChainId, transaction);
+                _logger.LogInformation("Ranking vote, _contractProvider={0}", _contractProvider == null);
+                var sendTransactionOutput = new SendTransactionOutput();
+                try
+                {
+                    sendTransactionOutput = await _contractProvider.SendTransactionAsync(input.ChainId, transaction);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("Ranking vote, send transaction error. {0}", JsonConvert.SerializeObject(e));
+                    throw;
+                }
                 if (sendTransactionOutput.TransactionId.IsNullOrWhiteSpace())
                 {
                     _logger.LogError("Ranking vote, send transaction error, {0}",
