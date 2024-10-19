@@ -172,6 +172,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             var subRankingIds = topRankingIds.GetRange(input.SkipCount, topRankingIds.Count - input.SkipCount);
             var topRanking = await _proposalProvider.GetProposalByIdsAsync(chainId, subRankingIds);
+            topRanking = topRanking.OrderBy(t => subRankingIds.IndexOf(t.ProposalId)).ToList();
             res.AddRange(topRanking);
 
             input.MaxResultCount -= topRanking.Count;
