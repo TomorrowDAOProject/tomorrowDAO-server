@@ -7,8 +7,8 @@ namespace TomorrowDAOServer.Grains.Grain.Sequence;
 
 public interface ISequenceGrain : IGrainWithStringKey
 {
-    Task<string> GetNextValAsync(string key);
-    Task<List<string>> GetNextValAsync(string key, int batchSize);
+    Task<string> GetNextValAsync();
+    Task<List<string>> GetNextValAsync(int batchSize);
 }
 
 public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
@@ -32,12 +32,10 @@ public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
         await base.OnDeactivateAsync();
     }
 
-    public async Task<string> GetNextValAsync(string key)
+    public async Task<string> GetNextValAsync()
     {
-        var dictionary = State.CurrentValue ?? new Dictionary<string, long>();
-        var currentValue = dictionary.GetValueOrDefault(key, 0);
+        var currentValue = State.Sequence;
         currentValue++;
-
         var value = currentValue;
         var sb = new StringBuilder();
         while (value > 0)
@@ -46,29 +44,26 @@ public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
             sb.Insert(0, Characters[index].ToString());
             value /= Characters.Length;
         }
-
-        dictionary[key] = currentValue;
-        State.CurrentValue = dictionary;
+        State.Sequence = currentValue;
         await WriteStateAsync();
 
         return new string(sb.ToString().Reverse().ToArray());
     }
 
-    public async Task<List<string>> GetNextValAsync(string key, int batchSize)
+    public async Task<List<string>> GetNextValAsync(int batchSize)
     {
         if (batchSize <= 0)
         {
             return new List<string>();
         }
-        
-        var dictionary = State.CurrentValue ?? new Dictionary<string, long>();
-        var currentValue = dictionary.GetValueOrDefault(key, 0);
+
+        var currentValue = State.Sequence;
         Log.Information("CurrentValue: {0}, batchSize={1}", currentValue, batchSize);
         var res = new List<string>();
         for (var i = 0; i < batchSize; i++)
         {
             ++currentValue;
-            
+
             var value = currentValue;
             var sb = new StringBuilder();
             while (value > 0)
@@ -80,8 +75,7 @@ public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
             res.Add(new string(sb.ToString().Reverse().ToArray()));
         }
         
-        dictionary[key] = currentValue;
-        State.CurrentValue = dictionary;
+        State.Sequence = currentValue;
         await WriteStateAsync();
 
         return res;
