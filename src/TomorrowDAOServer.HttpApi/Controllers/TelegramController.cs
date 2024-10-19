@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Spider;
 using TomorrowDAOServer.Telegram;
 using TomorrowDAOServer.Telegram.Dto;
@@ -50,7 +51,6 @@ public class TelegramController : AbpController
     public async Task<List<TelegramAppDto>> LoadTelegramAppsAsync(LoadTelegramAppsInput input)
     {
         var telegramAppDtos = await _telegramAppsSpiderService.LoadTelegramAppsAsync(input);
-
         await _telegramService.SaveNewTelegramAppsAsync(telegramAppDtos);
         return telegramAppDtos;
     }
@@ -60,7 +60,6 @@ public class TelegramController : AbpController
     public async Task<IDictionary<string, TelegramAppDetailDto>> LoadTelegramAppsDetailAsync(LoadTelegramAppsDetailInput input)
     {
         var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadTelegramAppsDetailAsync(input);
-        
         return await _telegramService.SaveTelegramAppDetailAsync(telegramAppDetailDtos);
     }
     
@@ -74,15 +73,21 @@ public class TelegramController : AbpController
 
     [HttpPost("save")]
     [Authorize]
-    public async Task<bool> LoadTelegramAppsAsync(SaveTelegramAppsInput input)
+    public async Task<List<string>> BatchSaveAppAsync(BatchSaveAppsInput input)
     {
-        await _telegramService.SaveTelegramAppAsync(input.TelegramAppDto, input.ChainId);
-        return true;
+        return await _telegramService.SaveTelegramAppAsync(input);
     }
 
     [HttpPost("apps")]
     public async Task<List<TelegramAppDto>> GetTelegramAppsAsync(QueryTelegramAppsInput input)
     {
         return await _telegramService.GetTelegramAppAsync(input);
+    }
+
+    [HttpGet("search-app")]
+    [Authorize]
+    public async Task<PageResultDto<AppDetailDto>> GetAppListAsync(string title)
+    {
+        return await _telegramService.SearchAppAsync(title);
     }
 }

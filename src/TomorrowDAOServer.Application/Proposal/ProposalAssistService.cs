@@ -39,7 +39,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IScriptService _scriptService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
-    private Regex _regex;
+    private string TempPattern { get; set; }
 
     public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
         IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService, 
@@ -52,26 +52,30 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
         _rankingOptions = rankingOptions;
-        _regex = new Regex(CommonConstant.DescriptionPattern, RegexOptions.Compiled);
     }
 
     public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
     {
         var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+        var customRankingDaoIds = _rankingOptions.CurrentValue.CustomDaoIds;
         var rankingProposalList = new List<IndexerProposal>();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var serverProposalList = await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds);
         var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
         foreach (var proposal in list)
         {
-            if (rankingDaoIds.Contains(proposal.DAOId))
+            var daoId = proposal.DAOId;
+            if (rankingDaoIds.Contains(daoId) || customRankingDaoIds.Contains(daoId))
             {
-                proposal.ProposalCategory = _regex.IsMatch(proposal.ProposalDescription.Trim()) ? ProposalCategory.Ranking : ProposalCategory.Normal;
+                var proposalCategory = ParseProposalDescription(proposal.ProposalDescription);
+                proposal.RankingType = rankingDaoIds.Contains(daoId) ? RankingType.Verified : RankingType.Community;
+                proposal.ProposalCategory = proposalCategory;
             }
             
             if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
             {
-                if (rankingDaoIds.Contains(proposal.DAOId) && ProposalCategory.Ranking == proposal.ProposalCategory)
+                //need to generate a ranking list
+                if (proposal.ProposalCategory == ProposalCategory.Ranking)
                 {
                     rankingProposalList.Add(proposal);
                     _logger.LogInformation("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
@@ -270,7 +274,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
 
     public Task ChangeRegex(string pattern)
     {
-        _regex = new Regex(pattern, RegexOptions.Compiled);
+        TempPattern = pattern;
         return Task.CompletedTask;
     }
 
@@ -384,5 +388,11 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         }
 
         return enumStr[..1].ToUpper() + enumStr[1..].ToLower();
+    }
+
+    private ProposalCategory ParseProposalDescription(string proposalDescription)
+    {
+        _logger.LogDebug("description:{0}", proposalDescription);
+        return RankHelper.IsRanking(proposalDescription, TempPattern) ? ProposalCategory.Ranking : ProposalCategory.Normal;
     }
 }

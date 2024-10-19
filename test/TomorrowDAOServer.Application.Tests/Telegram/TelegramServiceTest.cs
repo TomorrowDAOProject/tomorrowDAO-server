@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Telegram.Dto;
 using Volo.Abp;
 using Xunit;
@@ -47,18 +48,21 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task SaveTelegramAppAsyncTest()
     {
-        await _telegramService.SaveTelegramAppAsync(new TelegramAppDto(), null);
+        await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput());
         
         Login(Guid.NewGuid(),Address2);
-        await _telegramService.SaveTelegramAppAsync(new TelegramAppDto
+        await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput
         {
-            Id = Guid.NewGuid().ToString(),
-            Alias = "Alias",
-            Title = "Title",
-            Icon = "Icon",
-            Description = "Description",
-            EditorChoice = false
-        }, ChainIdAELF);
+            ChainId = ChainIdAELF,
+            Apps = new List<SaveTelegramAppsInput>() {new SaveTelegramAppsInput
+                {
+                    Title = "Title",
+                    Icon = "Icon",
+                    Description = "Description",
+                    SourceType = SourceType.Telegram
+                }
+            },
+        });
     }
     
     [Fact]
@@ -69,15 +73,18 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
 
         var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            await _telegramService.SaveTelegramAppAsync(new TelegramAppDto
+            await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput()
             {
-                Id = Guid.NewGuid().ToString(),
-                Alias = "Alias",
-                Title = "Title",
-                Icon = "Icon",
-                Description = "Description",
-                EditorChoice = false
-            }, ChainIdAELF);
+                ChainId = ChainIdAELF,
+                Apps = new List<SaveTelegramAppsInput>() {new SaveTelegramAppsInput
+                    {
+                        Title = "Title",
+                        Icon = "Icon",
+                        Description = "Description",
+                        SourceType = SourceType.Telegram
+                    }
+                },
+            });
         });
         exception.ShouldNotBeNull();
         exception.Message.ShouldNotBeNull();
