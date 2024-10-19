@@ -1,5 +1,6 @@
 using System.Text;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Grains.State.Sequence;
 
 namespace TomorrowDAOServer.Grains.Grain.Sequence;
@@ -62,11 +63,11 @@ public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
         
         var dictionary = State.CurrentValue ?? new Dictionary<string, long>();
         var currentValue = dictionary.GetValueOrDefault(key, 0);
-
+        Log.Information("CurrentValue: {0}", currentValue);
         var res = new List<string>();
         for (var i = 0; i < batchSize; i++)
         {
-            currentValue++;
+            ++currentValue;
             
             var value = currentValue;
             var sb = new StringBuilder();
