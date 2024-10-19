@@ -93,10 +93,11 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
     public async Task<List<TelegramAppIndex>> GetAllDisplayAsync(List<string> aliases)
     {
-        var mustNotQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
+        var mustNotQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>();
+        if (!aliases.IsNullOrEmpty())
         {
-            q => q.Terms(t => t.Field(f => f.Alias).Terms(aliases))
-        };
+            mustNotQuery.Add(q => q.Terms(t => t.Field(f => f.Alias).Terms(aliases)));
+        }
 
         var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {

@@ -20,10 +20,10 @@ public class HighCouncilMembersGrain : Grain<HighCouncilMembersState>, IHighCoun
         _logger = logger;
     }
 
-    public override Task OnActivateAsync()
+    public override async Task OnActivateAsync()
     {
-        ReadStateAsync();
-        return base.OnActivateAsync();
+        await ReadStateAsync();
+        await base.OnActivateAsync();
     }
 
     public async Task SaveHighCouncilMembersAsync(List<string> addressList)

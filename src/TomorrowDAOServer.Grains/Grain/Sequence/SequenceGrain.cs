@@ -20,10 +20,10 @@ public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
         'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
     };
 
-    public override Task OnActivateAsync()
+    public override async Task OnActivateAsync()
     {
-        ReadStateAsync();
-        return base.OnActivateAsync();
+        await ReadStateAsync();
+        await base.OnActivateAsync();
     }
 
     public override async Task OnDeactivateAsync()
@@ -52,6 +52,8 @@ public class SequenceGrain : Grain<SequenceState>, ISequenceGrain
 
     public async Task<List<string>> GetNextValAsync(int batchSize)
     {
+        await ReadStateAsync();
+        
         if (batchSize <= 0)
         {
             return new List<string>();
