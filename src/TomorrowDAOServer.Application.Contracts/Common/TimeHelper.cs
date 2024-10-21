@@ -139,5 +139,15 @@ public static class TimeHelper
         DateTime dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
         return dateTime.ToString(DatePattern);
     }
+    
+    public static DateTime GetNextWeekday(this DateTime startDate, DayOfWeek targetDayOfWeek)  
+    {  
+        var currentDay = startDate.DayOfWeek == 0 ? 7 : (int)startDate.DayOfWeek;
+        var targetDay = targetDayOfWeek == 0 ? 7 : (int)targetDayOfWeek;
+        
+        var daysToAdd = (7 + (targetDay - currentDay)) % 7;
+        daysToAdd += currentDay <= targetDay ? 7 : 0;
+        return startDate.AddDays(daysToAdd);  
+    }  
 
 }

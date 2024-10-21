@@ -39,8 +39,7 @@ namespace TomorrowDAOServer
                 await builder.AddApplicationAsync<TomorrowDAOServerHttpApiHostModule>();
                 builder.Services.AddSignalR();
                 var app = builder.Build();
-                app.MapHub<PointsHub>("api/app/ranking/points");
-                app.MapHub<UserBalanceHub>("api/app/user/balance");
+                app.MapHub<DaoHub>("api/app/push/dao");
                 await app.InitializeApplicationAsync();
                 await app.RunAsync();
                 return 0;

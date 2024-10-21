@@ -36,6 +36,7 @@ public class VoteService : TomorrowDAOServerAppService, IVoteService
     public async Task<VoteSchemeDetailDto> GetVoteSchemeAsync(GetVoteSchemeInput input)
     {
         var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+        var customDaoIds = _rankingOptions.CurrentValue.CustomDaoIds;
         var result = await _voteProvider.GetVoteSchemeAsync(input);
         List<IndexerVoteSchemeInfo> filterResult;
         if (string.IsNullOrEmpty(input.DAOId))
@@ -44,7 +45,7 @@ public class VoteService : TomorrowDAOServerAppService, IVoteService
         }
         else
         {
-            if (rankingDaoIds.Contains(input.DAOId))
+            if (rankingDaoIds.Contains(input.DAOId) || customDaoIds.Contains(input.DAOId))
             {
                 filterResult = result.Where(x => x.VoteStrategy == VoteStrategy.DAY_DISTINCT && x.WithoutLockToken).ToList();
             }

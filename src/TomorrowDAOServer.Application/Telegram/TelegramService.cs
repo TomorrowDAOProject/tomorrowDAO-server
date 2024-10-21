@@ -4,15 +4,19 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf;
 using AElf.ExceptionHandler;
+using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Serilog;
+using Orleans;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Grains.Grain.Sequence;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
@@ -34,10 +38,12 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
     private readonly IUserProvider _userProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
     private readonly IDaoAliasProvider _daoAliasProvider;
+    private readonly IUserBalanceProvider _userBalanceProvider;
+    private readonly IClusterClient _clusterClient;
 
-    public TelegramService(ILogger<TelegramService> logger, IObjectMapper objectMapper,
-        ITelegramAppsProvider telegramAppsProvider, IUserProvider userProvider,
-        IOptionsMonitor<TelegramOptions> telegramOptions, IDaoAliasProvider daoAliasProvider)
+    public TelegramService(ILogger<TelegramService> logger, IObjectMapper objectMapper,  IUserProvider userProvider,
+        ITelegramAppsProvider telegramAppsProvider, IOptionsMonitor<TelegramOptions> telegramOptions,
+        IDaoAliasProvider daoAliasProvider, IUserBalanceProvider userBalanceProvider, IClusterClient clusterClient)
     {
         _logger = logger;
         _objectMapper = objectMapper;
@@ -45,6 +51,8 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         _userProvider = userProvider;
         _telegramOptions = telegramOptions;
         _daoAliasProvider = daoAliasProvider;
+        _userBalanceProvider = userBalanceProvider;
+        _clusterClient = clusterClient;
     }
 
     public async Task SetCategoryAsync(string chainId)
@@ -72,7 +80,8 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var aliases = typesDic.Keys.ToList();
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
-            Aliases = aliases
+            Aliases = aliases,
+            SourceType = SourceType.Telegram
         })).Item2;
         foreach (var app in exists)
         {
@@ -120,25 +129,71 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         LogTargets = new []{"telegramAppDto", "chainId"})]
     public virtual async Task SaveTelegramAppAsync(TelegramAppDto telegramAppDto, string chainId)
     {
-        if (telegramAppDto == null || telegramAppDto.Title.IsNullOrWhiteSpace() || chainId.IsNullOrWhiteSpace())
+        var chainId = input.ChainId;
+        var address = await CheckUserPermission(chainId);
+        
+        var telegramApps = input.Apps.Where(t => t.SourceType == SourceType.Telegram).ToList();
+        if (!telegramApps.IsNullOrEmpty() && !_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
-            return;
+            throw new UserFriendlyException("Access denied.");
         }
-
-        await CheckAddress(chainId);
-
-        var telegramAppIndex = _objectMapper.Map<TelegramAppDto, TelegramAppIndex>(telegramAppDto);
-        if (telegramAppIndex.Alias.IsNullOrWhiteSpace())
+        
+        _logger.LogInformation("SaveTelegramAppAsync, telegramApp={0}", JsonConvert.SerializeObject(telegramApps));
+        var dictionary = await GetLocalTelegramAppIndicesAsync(telegramApps);
+        _logger.LogInformation("SaveTelegramAppAsync, IdCount={0}", input.Apps.Count - dictionary.Count);
+        var sequenceList = await GetSequenceAsync(input.Apps.Count - dictionary.Count);
+        var aliases = new List<string>();
+        var telegramAppIndices = _objectMapper.Map<List<SaveTelegramAppsInput>, List<TelegramAppIndex>>(input.Apps);
+        foreach (var telegramAppIndex in telegramAppIndices)
         {
-            telegramAppIndex.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(telegramAppDto.Title);
+            if (telegramAppIndex.SourceType == SourceType.Telegram 
+                && dictionary.ContainsKey(telegramAppIndex.Title))
+            {
+                telegramAppIndex.Id = dictionary[telegramAppIndex.Title].Id;
+                telegramAppIndex.Alias = dictionary[telegramAppIndex.Title].Alias;
+                telegramAppIndex.CreateTime = dictionary[telegramAppIndex.Title].CreateTime;
+                telegramAppIndex.UpdateTime = DateTime.UtcNow;
+                telegramAppIndex.Creator = address;
+            }
+            else
+            {
+                if (sequenceList.IsNullOrEmpty())
+                {
+                    throw new UserFriendlyException("Failed to create the APP alias");
+                }
+                var alias = sequenceList[0];
+                sequenceList.RemoveAt(0);
+                telegramAppIndex.Id = HashHelper.ComputeFrom(IdGeneratorHelper.GenerateId(telegramAppIndex.SourceType, telegramAppIndex.Title, alias)).ToHex();
+                telegramAppIndex.Alias = alias;
+                telegramAppIndex.CreateTime = telegramAppIndex.UpdateTime = DateTime.UtcNow;
+                telegramAppIndex.Creator = address;
+            }
+            aliases.Add(telegramAppIndex.Alias);
         }
+        await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);
+        return aliases;
+    }
 
-        if (telegramAppIndex.Id.IsNullOrWhiteSpace())
+    private async Task<Dictionary<string, TelegramAppIndex>> GetLocalTelegramAppIndicesAsync(List<SaveTelegramAppsInput> telegramApps)
+    {
+        if (telegramApps.IsNullOrEmpty())
         {
-            telegramAppIndex.Id = HashHelper.ComputeFrom(telegramAppDto.Title).ToHex();
+            return new Dictionary<string, TelegramAppIndex>();
         }
-            
-        await _telegramAppsProvider.AddOrUpdateAsync(telegramAppIndex);
+        var titleList = telegramApps.Select(t => t.Title).ToList();
+        var (count, list) = await _telegramAppsProvider.GetTelegramAppsAsync(new
+            QueryTelegramAppsInput
+            {
+                Names = titleList,
+                SourceType = SourceType.Telegram
+            });
+        return list?.DistinctBy(t => t.Title).ToDictionary(t => t.Title) ?? new Dictionary<string, TelegramAppIndex>();
+    }
+
+    private async Task<List<string>> GetSequenceAsync(int count)
+    {
+        var sequenceGrain = _clusterClient.GetGrain<ISequenceGrain>(CommonConstant.GrainIdTelegramAppSequence);
+        return await sequenceGrain.GetNextValAsync(count);
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
@@ -167,9 +222,23 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
             Aliases = aliases
+            //TODO After initialization, this condition needs to be opened
+            //,SourceType = SourceType.Telegram
         })).Item2;
-        var toUpdate = telegramAppIndices.Where(x => exists.All(y => x.Id != y.Id)).ToList();
-        await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
+
+        var existAppDictionary = exists.ToDictionary(t => t.Title);
+        foreach (var telegramAppIndex in telegramAppIndices)
+        {
+            var existApp = existAppDictionary.GetValueOrDefault(telegramAppIndex.Title, new TelegramAppIndex());
+            
+            telegramAppIndex.Url = existApp.Url;
+            telegramAppIndex.LongDescription = existApp.LongDescription;
+            telegramAppIndex.Screenshots = existApp.Screenshots;
+            telegramAppIndex.Categories = existApp.Categories;
+            telegramAppIndex.UpdateTime = DateTime.UtcNow;
+        }
+        
+        await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
@@ -203,6 +272,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var telegramAppDtos = await GetTelegramAppAsync(new QueryTelegramAppsInput
         {
             Names = telegramAppDetailDtos.Keys.ToList(),
+            SourceType = SourceType.Telegram
         });
         if (telegramAppDtos.IsNullOrEmpty())
         {
@@ -227,6 +297,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             telegramAppDto.Url = url;
             telegramAppDto.LongDescription = longDescription;
             telegramAppDto.Screenshots = screenshotList;
+            telegramAppDto.UpdateTime = DateTime.UtcNow;
             res[telegramAppDto.Title] = telegramAppDetailDto;
         }
 
@@ -234,8 +305,17 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
 
         return res;
     }
-    
-    private async Task CheckAddress(string chainId)
+
+    public async Task<PageResultDto<AppDetailDto>> SearchAppAsync(string title)
+    {
+        var list = await _telegramAppsProvider.SearchAppAsync(title);
+        return new PageResultDto<AppDetailDto>
+        {
+            TotalCount = list.Count, Data = _objectMapper.Map<List<TelegramAppIndex>, List<AppDetailDto>>(list)
+        };
+    }
+
+    private async Task<string> CheckAddress(string chainId)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
@@ -243,5 +323,23 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         {
             throw new UserFriendlyException("Access denied.");
         }
+
+        return address;
+    }
+    
+    private async Task<string> CheckUserPermission(string chainId)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+
+        var symbol = CommonConstant.GetVotigramSymbol(chainId);
+        var userBalance = await _userBalanceProvider.GetByIdAsync(GuidHelper.GenerateGrainId(address, chainId, symbol));
+
+        if (_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address) || userBalance is { Amount: >= 1 })
+        {
+            return address;
+        }
+        
+        throw new UserFriendlyException("Nft Not enough.");
     }
 }

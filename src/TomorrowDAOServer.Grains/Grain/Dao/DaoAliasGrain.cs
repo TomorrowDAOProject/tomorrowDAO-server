@@ -25,10 +25,10 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         _objectMapper = objectMapper;
     }
 
-    public override Task OnActivateAsync(CancellationToken cancellationToken)
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
-        ReadStateAsync();
-        return base.OnActivateAsync(cancellationToken);
+        await ReadStateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),

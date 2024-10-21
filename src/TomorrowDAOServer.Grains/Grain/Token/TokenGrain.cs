@@ -12,10 +12,10 @@ public interface ITokenGrain : IGrainWithStringKey
 
 public class TokenGrain : Grain<ExplorerTokenState>, ITokenGrain
 {
-    public override Task OnActivateAsync(CancellationToken cancellationToken)
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
-        ReadStateAsync();
-        return base.OnActivateAsync(cancellationToken);
+        await ReadStateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
     
 
