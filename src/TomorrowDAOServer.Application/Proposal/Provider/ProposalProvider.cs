@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
@@ -40,7 +41,10 @@ public interface IProposalProvider
 
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
     public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
-    public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(GetRankingListInput input);
+    public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
+        RankingType rankingType, List<string> excludeProposalIds);
+    public Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive);
+    Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds);
 }
 
 public class ProposalProvider : IProposalProvider, ISingletonDependency
@@ -211,25 +215,67 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             sortExp: o => o.DeployTime);
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(GetRankingListInput input)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, List<string> excludeProposalIds)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
-            q => q.Terms(i =>
-                i.Field(f => f.ChainId).Terms(input.ChainId)), 
-            q => q.Terms(i =>
-                i.Field(f => f.ProposalCategory).Terms(ProposalCategory.Ranking))
+            q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)), 
+            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
+            q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
-        if (!string.IsNullOrEmpty(input.DAOId))
+        if (!excludeProposalIds.IsNullOrEmpty())
         {
-            mustQuery.Add(q => q.Terms(i =>
-                i.Field(f => f.DAOId).Terms(input.DAOId)));
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+        }
+        
+        if (rankingType != RankingType.All)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: GetDescendingDeployTimeSortDescriptor(),
-            skip: input.SkipCount,
-            limit: input.MaxResultCount);
+            skip: skipCount, limit: maxResultCount);
+    }
+
+    public async Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.Proposer).Value(proposer)),
+            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
+            q => q.Term(i => i.Field(f => f.RankingType).Value(RankingType.Verified))
+        };
+
+        if (isActive)
+        {
+            mustQuery.Add(q => q.DateRange(r => r
+                .Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow)));
+            mustQuery.Add(q => q.DateRange(r => r
+                .Field(f => f.ActiveEndTime).GreaterThan(DateTime.UtcNow)));
+        }
+        
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _proposalIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending,
+            sortExp: o => o.DeployTime);
+    }
+
+    public async Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds)
+    {
+        var currentDate = DateTime.UtcNow;
+        var threeWeeksAgoDate = currentDate.AddDays(-21);
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.DateRange(r => r
+                .Field(f => f.ActiveStartTime).GreaterThanOrEquals(threeWeeksAgoDate)),
+            q => q.DateRange(r => r
+                .Field(f => f.ActiveEndTime).LessThanOrEquals(currentDate)),
+            q => q.Terms(r => r
+                .Field(f => f.DAOId).Terms(rankingDaoIds)),
+        };
+        
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _proposalIndexRepository.GetListAsync(Filter)).Item2 ?? new List<ProposalIndex>();
     }
 
     public async Task<long> GetProposalCountByDAOId(string chainId, string DAOId)

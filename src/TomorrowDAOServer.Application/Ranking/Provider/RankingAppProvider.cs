@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
 using Volo.Abp.DependencyInjection;
 

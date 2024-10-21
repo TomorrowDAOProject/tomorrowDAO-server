@@ -78,8 +78,7 @@ public class ReferralCycleProvider : IReferralCycleProvider, ISingletonDependenc
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralCycleIndex>, QueryContainer>>();
         QueryContainer Filter(QueryContainerDescriptor<ReferralCycleIndex> f) => f.Bool(b => b.Must(mustQuery));
-        var (_, list) = await _referralCycleRepository.GetSortListAsync(Filter, skip: 0, limit: 1,
-            sortFunc: _ => new SortDescriptor<ReferralCycleIndex>().Descending(index => index.EndTime));
-        return list.IsNullOrEmpty() ? new ReferralCycleIndex() : list[0];
+        return await _referralCycleRepository.GetAsync(Filter, sortType: SortOrder.Descending,
+            sortExp: o => o.EndTime);
     }
 }
