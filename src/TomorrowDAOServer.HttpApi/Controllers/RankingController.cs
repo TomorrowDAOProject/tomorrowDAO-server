@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Ranking;
 using TomorrowDAOServer.Ranking.Dto;
 using Volo.Abp;
