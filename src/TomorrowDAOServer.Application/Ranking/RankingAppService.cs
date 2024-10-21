@@ -161,12 +161,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task<RankingListPageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
     {
         var chainId = input.ChainId;
-
         var userAddress = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        
+        var excludeIds = _rankingOptions.CurrentValue.RankingExcludeIds;
+
         var rankingType = input.Type;
         var (goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
+        excludeIds.AddRange(topRankingIds);
         _logger.LogInformation("[GetRankingProposalListAsync]: goldRankingId:{0}", goldRankingId);
         _logger.LogInformation("[GetRankingProposalListAsync]: topRankingIds:{0}", JsonConvert.SerializeObject(topRankingIds));
         var res = new List<ProposalIndex>();
@@ -186,7 +187,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             input.SkipCount -= topRankingIds.Count;
         }
         _logger.LogInformation("[GetRankingProposalListAsync]: SkipCount:{0},MaxResultCount={1},topRankingIds={2}", input.SkipCount, input.MaxResultCount, JsonConvert.SerializeObject(topRankingIds));
-        var result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingIds);
+        var result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, excludeIds);
         res.AddRange(result.Item2);
         var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res);
         var proposalIds = list.Select(x => x.ProposalId).ToList();
@@ -537,7 +538,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         try
         {
             var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
-            var now = DateTime.UtcNow;
             if (proposalIndex == null)
             {
                 throw new UserFriendlyException($"Cannot be liked.{input.ProposalId}");
