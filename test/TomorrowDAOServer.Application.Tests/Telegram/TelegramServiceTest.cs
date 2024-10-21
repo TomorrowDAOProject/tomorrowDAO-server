@@ -94,6 +94,6 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
         });
         exception.ShouldNotBeNull();
         exception.Message.ShouldNotBeNull();
-        exception.Message.ShouldBe("Access denied.");
+        exception.Message.ShouldBe("Nft Not enough.");
     }
 }
