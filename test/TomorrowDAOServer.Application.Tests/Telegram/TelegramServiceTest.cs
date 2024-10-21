@@ -6,6 +6,7 @@ using Shouldly;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Telegram.Dto;
 using Volo.Abp;
+using Volo.Abp.Validation;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -48,7 +49,12 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task SaveTelegramAppAsyncTest()
     {
-        await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput());
+        var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+        {
+            await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput());
+        });
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldNotBeNull();
         
         Login(Guid.NewGuid(),Address2);
         await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput
