@@ -9,6 +9,7 @@ namespace TomorrowDAOServer.Options;
 public class RankingOptions
 {
     public List<string> DaoIds { get; set; } = new();
+    public List<string> CustomDaoIds { get; set; } = new();
     public string DescriptionPattern { get; set; } = string.Empty;
     public string DescriptionBegin { get; set; } = string.Empty;
     //millisecond
@@ -35,6 +36,17 @@ public class RankingOptions
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
     public List<string> ReferralPointsAddressList { get; set; } = new();
+    public bool RecordDiscover { get; set; } = false;
+    public bool ReferralActivityValid { get; set; } = true;
+    public long GroupCount { get; set; } = 500;
+    public List<string> TopRankingIds { get; set; } = new();
+    public string TopRankingAddress { get; set; }
+    public string TopRankingAccount { get; set; }
+    public string TopRankingTitle { get; set; }
+    public string TopRankingSchemeAddress { get; set; }
+    public string TopRankingVoteSchemeId { get; set; }
+    public string TopRankingBanner { get; set; }
+    public DayOfWeek TopRankingGenerateTime { get; set; } = DayOfWeek.Sunday;
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {
@@ -61,30 +73,30 @@ public class RankingOptions
         return configDto;
     }
 
-    public bool IsReferralActive(DateTime time)
-    {
-        var utcMilliSeconds = time.ToUtcMilliSeconds();
-        var config = ParseReferralActiveTimes();
-        var latest = config.Config.FirstOrDefault();
-        if (latest != null)
-        {
-            return utcMilliSeconds >= latest.StartTime && utcMilliSeconds <= latest.EndTime;
-        }
-
-        return false;
-    }
-    
-    public Tuple<bool, ReferralActiveDto> IsLatestReferralActiveEnd()
-    {
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var latest = ParseReferralActiveTimes().Config.FirstOrDefault();
-        if (latest != null)
-        {
-            return new Tuple<bool, ReferralActiveDto>(currentTime > latest.EndTime, latest) ;
-        }
-
-        return new Tuple<bool,ReferralActiveDto>(false, null);
-    }
+    // public bool IsReferralActive(DateTime time)
+    // {
+    //     var utcMilliSeconds = time.ToUtcMilliSeconds();
+    //     var config = ParseReferralActiveTimes();
+    //     var latest = config.Config.FirstOrDefault();
+    //     if (latest != null)
+    //     {
+    //         return utcMilliSeconds >= latest.StartTime && utcMilliSeconds <= latest.EndTime;
+    //     }
+    //
+    //     return false;
+    // }
+    //
+    // public Tuple<bool, ReferralActiveDto> IsLatestReferralActiveEnd()
+    // {
+    //     var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    //     var latest = ParseReferralActiveTimes().Config.FirstOrDefault();
+    //     if (latest != null)
+    //     {
+    //         return new Tuple<bool, ReferralActiveDto>(currentTime > latest.EndTime, latest) ;
+    //     }
+    //
+    //     return new Tuple<bool,ReferralActiveDto>(false, null);
+    // }
 
     public TimeSpan GetLockUserTimeoutTimeSpan()
     {

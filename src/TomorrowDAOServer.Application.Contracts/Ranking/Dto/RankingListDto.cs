@@ -1,4 +1,5 @@
 using System;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Ranking.Dto;
 
@@ -13,4 +14,6 @@ public class RankingListDto
     public DateTime ActiveStartTime { get; set; }
     public DateTime ActiveEndTime { get; set; }
     public bool Active { get; set; } 
+    public RankingType RankingType { get; set; } 
+    public LabelTypeEnum LabelType { get; set; }
 }

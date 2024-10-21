@@ -25,6 +25,9 @@ public interface IRankingAppPointsProvider
 
     Task<RankingAppUserPointsIndex> GetRankingUserPointsIndexByAliasAsync(string chainId, string proposalId,
         string address, string alias = null, PointsType type = PointsType.All);
+
+    Task<Dictionary<string, long>>  GetTotalPointsByAliasAsync(string chainId, List<string> aliases);
+    Task<List<RankingAppPointsIndex>> GetByProposalIdsAndPointsType(List<string> proposalIds, PointsType pointsType);
 }
 
 public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDependency
@@ -194,5 +197,65 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         QueryContainer Filter(QueryContainerDescriptor<RankingAppUserPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _userPointsIndexRepository.GetAsync(Filter);
+    }
+
+    public async Task<Dictionary<string, long>> GetTotalPointsByAliasAsync(string chainId, List<string> aliases)
+    {
+        var query = new QueryContainerDescriptor<RankingAppIndex>();
+        if (aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, long>();
+        }
+
+        var mustQuery = query.Bool(b => b.Must(
+                m => m.Term(t => t.Field(f => f.ChainId).Value(chainId)) 
+                     && m.Terms(t => t.Field(f => f.Alias).Terms(aliases))    
+            )
+        );
+
+        var searchQuery = new SearchDescriptor<RankingAppUserPointsIndex>()
+            .Query(_ => mustQuery)
+            .Aggregations(a => a
+                .Terms("alias_agg", t => t
+                    .Field(f => f.Alias)  
+                    .Size(aliases.Count)  
+                    .Aggregations(aa => aa
+                        .Sum("points_sum", sum => sum 
+                            .Field(f => f.Points)
+                        )
+                    )
+                )
+            );
+
+        var response = await _userPointsIndexRepository.SearchAsync(searchQuery, 0, int.MaxValue);
+
+        var aliasTotalPoints = new Dictionary<string, long>();
+        var aliasAgg = response.Aggregations.Terms("alias_agg");
+
+        foreach (var bucket in aliasAgg.Buckets)
+        {
+            var alias = bucket.Key;
+            var totalPoints = bucket.Sum("points_sum")?.Value ?? 0;
+            aliasTotalPoints[alias] = (long)totalPoints;
+        }
+
+        return aliasTotalPoints;
+    }
+
+    public async Task<List<RankingAppPointsIndex>> GetByProposalIdsAndPointsType(List<string> proposalIds, PointsType pointsType)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppPointsIndex>, QueryContainer>>
+        {
+            q => q.Terms(i => i.Field(f => f.ProposalId).Terms(proposalIds))
+        };
+
+        if (pointsType != PointsType.All)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.PointsType).Value(pointsType)));
+        }
+        
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
+        
+        return (await _appPointsIndexRepository.GetListAsync(Filter)).Item2;
     }
 }

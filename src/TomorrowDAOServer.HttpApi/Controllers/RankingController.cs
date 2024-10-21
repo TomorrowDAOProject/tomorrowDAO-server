@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,17 +29,19 @@ public class RankingController : AbpController
         return await _rankingAppService.GetDefaultRankingProposalAsync(chainId);
     }
     
-    // [HttpGet("list")]
-    // public async Task<PageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
-    // {
-    //     return await _rankingAppService.GetRankingProposalListAsync(input);
-    // }
-    //
-    // [HttpGet("detail")]
-    // public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)
-    // {
-    //     return await _rankingAppService.GetRankingProposalDetailAsync(chainId, proposalId, string.Empty);
-    // }
+    [HttpGet("list")]
+    [Authorize]
+    public async Task<RankingListPageResultDto<RankingListDto>> GetRankingProposalListAsync(GetRankingListInput input)
+    {
+        return await _rankingAppService.GetRankingProposalListAsync(input);
+    }
+    
+    [HttpGet("detail")]
+    [Authorize]
+    public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)
+    {
+        return await _rankingAppService.GetRankingProposalDetailAsync(chainId, proposalId);
+    }
 
     [HttpPost("vote")]
     [Authorize]
@@ -68,5 +69,12 @@ public class RankingController : AbpController
     public async Task<long> LikeAsync(RankingAppLikeInput input)
     {
         return await _rankingAppService.LikeAsync(input);
+    }
+    
+    [HttpGet("activity-result")]
+    [Authorize]
+    public async Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId, int count)
+    {
+        return await _rankingAppService.GetRankingActivityResultAsync(chainId, proposalId, count);
     }
 }

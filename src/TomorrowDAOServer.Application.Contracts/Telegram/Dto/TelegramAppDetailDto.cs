@@ -91,3 +91,8 @@ public class LoadTelegramAppsDetailInput
     //<name, alias>
     public Dictionary<string, string> Apps { get; set; }
 }
+
+public class LoadAllTelegramAppsDetailInput
+{
+    public string ChainId { get; set; }
+}
