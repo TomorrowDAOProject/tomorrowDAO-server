@@ -48,7 +48,12 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task SaveTelegramAppAsyncTest()
     {
-        await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput());
+        var exception = await Assert.ThrowsAsync<Volo.Abp.Validation.AbpValidationException>(async () =>
+        {
+            await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput());
+        });
+        exception.Message.ShouldContain("Method arguments are not valid");
+        
         
         Login(Guid.NewGuid(),Address2);
         await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput
@@ -88,6 +93,6 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
         });
         exception.ShouldNotBeNull();
         exception.Message.ShouldNotBeNull();
-        exception.Message.ShouldBe("Access denied.");
+        exception.Message.ShouldBe("Nft Not enough.");
     }
 }

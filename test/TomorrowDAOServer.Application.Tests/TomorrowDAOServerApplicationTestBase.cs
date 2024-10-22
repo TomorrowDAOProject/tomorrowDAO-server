@@ -57,12 +57,14 @@ public abstract partial class
         services.AddSingleton(MockGraphQlOptions());
         services.AddSingleton(MockExplorerOptions());
         services.AddSingleton(MockQueryContractOption());
+        services.AddSingleton(MockContractInfoOptions());
         services.AddSingleton(MockChainOptions());
+        services.AddSingleton(MockApiOption());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
+        services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
         services.AddSingleton(UserProviderMock.Object);
         services.AddSingleton(CurrentUser);
-        services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
@@ -106,6 +108,42 @@ public abstract partial class
                     ConsensusContractAddress = "ConsensusContractAddress",
                     ElectionContractAddress = "ElectionContractAddress",
                     GovernanceContractAddress = "GovernanceContractAddress"
+                }
+            }
+        });
+        return mock.Object;
+    }
+
+    private static IOptionsMonitor<ContractInfoOptions> MockContractInfoOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<ContractInfoOptions>>();
+        mock.Setup(m => m.CurrentValue).Returns(new ContractInfoOptions
+        {
+            ContractInfos = new Dictionary<string, Dictionary<string, ContractInfo>>()
+            {
+                {
+                    "tDVW", new Dictionary<string, ContractInfo>()
+                    {
+                        {"2sJ8MDufVDR3V8fDhBPUKMdP84CUf1oJroi9p8Er1yRvMp3fq7", new ContractInfo
+                            {
+                                ContractAddress = "2sJ8MDufVDR3V8fDhBPUKMdP84CUf1oJroi9p8Er1yRvMp3fq7",
+                                ContractName = "TreasuryContract",
+                                FunctionList = new List<string>() { "CreateTreasury", "Donate" }
+                            }
+                        },
+                        {
+                            "RRF7deQbmicUh6CZ1R2y7U9M8n2eHPyCgXVHwiSkmNETLbL4D", new ContractInfo
+                            {
+                                ContractAddress = "RRF7deQbmicUh6CZ1R2y7U9M8n2eHPyCgXVHwiSkmNETLbL4D",
+                                ContractName = "DAOContract",
+                                FunctionList = new List<string>() {"EnableHighCouncil","UpdateGovernanceSchemeThreshold",
+                                    "RemoveGovernanceScheme","SetGovernanceToken",
+                                    "SetProposalTimePeriod","SetSubsistStatus",
+                                    "AddHighCouncilMembers","RemoveHighCouncilMembers"},
+                                MultiSigDaoMethodBlacklist = new List<string>() {"EnableHighCouncil","SetGovernanceToken","AddHighCouncilMembers","RemoveHighCouncilMembers"}
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -177,6 +215,19 @@ public abstract partial class
                 }
             },
             TokenImageRefreshDelaySeconds = 300
+        });
+        return mock.Object;
+    }
+
+    private IOptionsSnapshot<ApiOption> MockApiOption()
+    {
+        var mock = new Mock<IOptionsSnapshot<ApiOption>>();
+        mock.Setup(m => m.Value).Returns(new ApiOption
+        {
+            ChainNodeApis = new Dictionary<string, string>()
+            {
+                {ChainIdAELF, "https://node.chain.io"}
+            }
         });
         return mock.Object;
     }

@@ -32,7 +32,7 @@ using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.DAO;
 
-public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
+public partial class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
 {
     private readonly ILogger<DAOAppService> _logger = Substitute.For<ILogger<DAOAppService>>();
     private readonly IDAOProvider _daoProvider = Substitute.For<IDAOProvider>();
@@ -46,20 +46,14 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
     private readonly IOptionsMonitor<DaoOptions> _testDaoOptions = Substitute.For<IOptionsMonitor<DaoOptions>>();
     private readonly IGovernanceProvider _governanceProvider = Substitute.For<IGovernanceProvider>();
     private readonly IContractProvider _contractProvider = Substitute.For<IContractProvider>();
-    private readonly IObjectMapper _objectMapper = Substitute.For<IObjectMapper>();
-    private readonly IDAOAppService _service;
-    private readonly IUserProvider _userProvider = Substitute.For<IUserProvider>();
-    private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
+    private readonly IDAOAppService _daoAppService;
     private readonly ITokenService _tokenService = Substitute.For<ITokenService>();
 
     private readonly Guid userId = Guid.Parse("158ff364-3264-4234-ab20-02aaada2aaad");
 
     public DaoAppServiceTest(ITestOutputHelper output) : base(output)
     {
-        _service = ServiceProvider.GetRequiredService<IDAOAppService>();
-        // _service = new DAOAppService(_daoProvider, _electionProvider, _governanceProvider, _proposalProvider,
-        //     _explorerProvider, _graphQlProvider, _objectMapper, _testDaoOptions, _contractProvider, _userProvider,
-        //     _logger, _tokenService);
+        _daoAppService = ServiceProvider.GetRequiredService<IDAOAppService>();
     }
 
     protected override void AfterAddApplication(IServiceCollection services)
@@ -70,11 +64,8 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
         services.AddSingleton(_governanceProvider);
         services.AddSingleton(_proposalProvider);
         services.AddSingleton(_explorerProvider);
-        services.AddSingleton(_graphQlProvider);
-        services.AddSingleton(_objectMapper);
         services.AddSingleton(_testDaoOptions);
         services.AddSingleton(_contractProvider);
-        services.AddSingleton(_userProvider);
         services.AddSingleton(_logger);
         services.AddSingleton(_tokenService);
     }
@@ -83,7 +74,7 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
     public async Task GetMemberListAsyncTest()
     {
         _daoProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>());
-        var result = await _service.GetMemberListAsync(new GetMemberListInput
+        var result = await _daoAppService.GetMemberListAsync(new GetMemberListInput
         {
             ChainId = ChainIdAELF,
             DAOId = DaoId,
@@ -102,7 +93,7 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
         {
             Id = DaoId
         });
-        var result = await _service.GetMemberListAsync(new GetMemberListInput
+        var result = await _daoAppService.GetMemberListAsync(new GetMemberListInput
         {
             ChainId = ChainIdAELF,
             Alias = "DaoId",
@@ -116,7 +107,7 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
     {
         var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            await _service.GetMemberListAsync(new GetMemberListInput
+            await _daoAppService.GetMemberListAsync(new GetMemberListInput
             {
                 ChainId = ChainIdtDVW,
                 SkipCount = 0,
@@ -131,47 +122,29 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetMyDAOListAsyncTest()
     {
-        Guid userId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
         Login(userId);
-
-        _daoProvider.GetMyOwneredDAOListAsync(Arg.Any<QueryMyDAOListInput>(), Arg.Any<string>())
-            .Returns(new Tuple<long, List<DAOIndex>>(1, new List<DAOIndex>() { new DAOIndex
-                {
-                    Id = DAOId,
-                    ChainId = ChainIdtDVW,
-                    Alias = DAOId,
-                    AliasHexString = null,
-                    BlockHeight = 0,
-                    Creator = null,
-                    Metadata = null,
-                    GovernanceToken = null,
-                    IsHighCouncilEnabled = false,
-                    HighCouncilAddress = null,
-                    HighCouncilConfig = null,
-                    HighCouncilTermNumber = 0,
-                    FileInfoList = null,
-                    IsTreasuryContractNeeded = false,
-                    SubsistStatus = false,
-                    TreasuryContractAddress = null,
-                    TreasuryAccountAddress = null,
-                    IsTreasuryPause = false,
-                    TreasuryPauseExecutor = null,
-                    VoteContractAddress = null,
-                    ElectionContractAddress = null,
-                    GovernanceContractAddress = null,
-                    TimelockContractAddress = null,
-                    ActiveTimePeriod = 0,
-                    VetoActiveTimePeriod = 0,
-                    PendingTimePeriod = 0,
-                    ExecuteTimePeriod = 0,
-                    VetoExecuteTimePeriod = 0,
-                    CreateTime = default,
-                    IsNetworkDAO = false,
-                    VoterCount = 0,
-                    GovernanceMechanism = GovernanceMechanism.Referendum
-                }
-            }));
-        var daoList = await _service.GetMyDAOListAsync(new QueryMyDAOListInput
+        
+        MockGetMyOwneredDAOListAsync(_daoProvider);
+        MockGetMyParticipatedDaoListAsync(_daoProvider);
+        MockGetManagedDAOAsync(_daoProvider);
+        MockGetDaoListByDaoIds(_daoProvider);
+        MockGetTokenInfoAsync(_tokenService);
+        MockGetHighCouncilManagedDaoIndexAsync(_electionProvider);
+        
+        //All
+        var daoList = await _daoAppService.GetMyDAOListAsync(new QueryMyDAOListInput
+        {
+            ChainId = ChainIdtDVW,
+            SkipCount = 0,
+            MaxResultCount = 10,
+            Type = MyDAOType.All
+        });
+        daoList.ShouldNotBeNull();
+        daoList.Count.ShouldBe(3);
+        
+        //Owneer
+        daoList = await _daoAppService.GetMyDAOListAsync(new QueryMyDAOListInput
         {
             ChainId = ChainIdtDVW,
             SkipCount = 0,
@@ -179,13 +152,39 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
             Type = MyDAOType.Owned
         });
         daoList.ShouldNotBeNull();
+        daoList.Count.ShouldBe(1);
+        daoList[0].Type.ShouldBe(MyDAOType.Owned);
+        
+        //Managed
+        daoList = await _daoAppService.GetMyDAOListAsync(new QueryMyDAOListInput
+        {
+            ChainId = ChainIdtDVW,
+            SkipCount = 0,
+            MaxResultCount = 10,
+            Type = MyDAOType.Managed
+        });
+        daoList.ShouldNotBeNull();
+        daoList.Count.ShouldBe(1);
+        daoList[0].Type.ShouldBe(MyDAOType.Managed);
+        
+        //Participated
+        daoList = await _daoAppService.GetMyDAOListAsync(new QueryMyDAOListInput
+        {
+            ChainId = ChainIdtDVW,
+            SkipCount = 0,
+            MaxResultCount = 10,
+            Type = MyDAOType.Participated
+        });
+        daoList.ShouldNotBeNull();
+        daoList.Count.ShouldBe(1);
+        daoList[0].Type.ShouldBe(MyDAOType.Participated);
     }
 
     [Fact]
     public async Task GetMyDAOListAsyncTest_NotLoggedIn()
     {
         Login(Guid.Empty);
-        var daoList = await _service.GetMyDAOListAsync(new QueryMyDAOListInput
+        var daoList = await _daoAppService.GetMyDAOListAsync(new QueryMyDAOListInput
         {
             ChainId = ChainIdtDVW,
             SkipCount = 0,
@@ -195,12 +194,16 @@ public class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
         daoList.ShouldBeEmpty();
     }
 
-    //Login example
-    private void Login(Guid userId)
+    [Fact]
+    public async Task IsDaoMemberAsync()
     {
-        _currentUser.Id.Returns(userId);
-        _currentUser.IsAuthenticated.Returns(userId != Guid.Empty);
-        var address = userId != Guid.Empty ? "address" : null;
-        _userProvider.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()).Returns(address);
+        MockGetMemberAsync(_daoProvider);
+        var isDaoMember = await _daoAppService.IsDaoMemberAsync(new IsDaoMemberInput
+        {
+            ChainId = ChainIdAELF,
+            DAOId = DaoId,
+            MemberAddress = Address1
+        });
+        isDaoMember.ShouldBe(true);
     }
 }
