@@ -629,11 +629,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(chainId, proposalId);
-        if (rankingAppList.IsNullOrEmpty())
+        var proposal = await _proposalProvider.GetProposalByIdAsync(chainId, proposalId);
+        if (rankingAppList.IsNullOrEmpty() || proposal == null)
         {
             return new RankingDetailDto { UserTotalPoints = userAllPoints };
         }
 
+        var labelType = LabelTypeEnum.None;
+        var (goldRankingId, _) = await GetTopRankingIdsAsync();
         var rankingApp = rankingAppList[0];
         var canVoteAmount = 0;
         var proposalDescription = rankingApp.ProposalDescription;
@@ -671,6 +674,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             .ConvertToBaseList(appPointsList)
             .ToDictionary(x => x.Alias, x => x.Points);
         var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
+        var rankingType = proposal.RankingType == RankingType.All ? RankingType.Verified : proposal.RankingType;
+        if (rankingType == RankingType.Verified)
+        {
+            labelType = proposal.ProposalId == goldRankingId ? LabelTypeEnum.Gold : LabelTypeEnum.Blue;
+        }
         foreach (var app in rankingList)
         {
             app.PointsAmount = appPointsDic.GetValueOrDefault(app.Alias, 0);
@@ -687,6 +695,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             TotalVoteAmount = totalVoteAmount,
             UserTotalPoints = userAllPoints,
             BannerUrl = await getBannerUrlTask,
+            RankingType = rankingType,
+            LabelType = labelType,
+            ProposalTitle = proposal.ProposalTitle,
             RankingList = rankingList.OrderByDescending(r => r.PointsAmount)
                 .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList()
         };
