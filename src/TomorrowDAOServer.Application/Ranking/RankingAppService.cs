@@ -703,7 +703,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = nameof(TmrwDaoExceptionHandler.HandleParseRawTransaction),
         Message = "VoteAsync error", LogTargets = new []{"chainId", "rawTransaction"})]
-    public virtual Tuple<VoteInput, Transaction> ParseRawTransaction(string chainId, string rawTransaction)
+    public virtual async Task<Tuple<VoteInput, Transaction>> ParseRawTransaction(string chainId, string rawTransaction)
     {
         var bytes = ByteArrayHelper.HexStringToByteArray(rawTransaction);
         var transaction = Transaction.Parser.ParseFrom(bytes);

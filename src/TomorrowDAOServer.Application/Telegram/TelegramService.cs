@@ -127,7 +127,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,
         Message = "SaveTelegramAppAsync error", 
         LogTargets = new []{"telegramAppDto", "chainId"})]
-    public virtual async Task SaveTelegramAppAsync(TelegramAppDto telegramAppDto, string chainId)
+    public virtual async Task<List<string>> SaveTelegramAppAsync(BatchSaveAppsInput input)
     {
         var chainId = input.ChainId;
         var address = await CheckUserPermission(chainId);
