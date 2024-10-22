@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -57,7 +58,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
         do
         {
             queryList = await _portkeyProvider.GetSyncReferralListAsync(CommonConstant.CreateAccountMethodName, lastEndTime, 0, skipCount, MaxResultCount);
-            _logger.LogInformation("SyncReferralData queryList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
+            Log.Information("SyncReferralData queryList skipCount {skipCount} startTime: {lastEndHeight} endTime: {newIndexHeight} count: {count}",
                 skipCount, lastEndTime, 0, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())
             {

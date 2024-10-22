@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Eto;
@@ -29,7 +30,7 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
 
     public async Task HandleEventAsync(VoteAndLikeMessageEto eventData)
     {
-        _logger.LogInformation("[RankingAppPoints] process messages: {0}", JsonConvert.SerializeObject(eventData));
+        Log.Information("[RankingAppPoints] process messages: {0}", JsonConvert.SerializeObject(eventData));
         if (eventData == null)
         {
             return;
@@ -63,7 +64,7 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
                     eventData.Alias);
             if (rankingAppIndex == null || rankingAppIndex.Id.IsNullOrWhiteSpace())
             {
-                _logger.LogError("[RankingAppPoints] app not found. proposalId={0},alias={1}", eventData.ProposalId,
+                Log.Error("[RankingAppPoints] app not found. proposalId={0},alias={1}", eventData.ProposalId,
                     eventData.Alias);
                 return;
             }
@@ -71,16 +72,16 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
             eventData.DaoId = rankingAppIndex.DAOId;
             eventData.AppId = rankingAppIndex.AppId;
             eventData.Title = rankingAppIndex.Title;
-            _logger.LogInformation("[RankingAppPoints] update app points. proposalId={0},alias={1}",
+            Log.Information("[RankingAppPoints] update app points. proposalId={0},alias={1}",
                 eventData.ProposalId, eventData.Alias);
             await _appPointsProvider.AddOrUpdateAppPointsIndexAsync(eventData);
-            _logger.LogInformation("[RankingAppPoints] update user points. proposalId={0},alias={1}",
+            Log.Information("[RankingAppPoints] update user points. proposalId={0},alias={1}",
                 eventData.ProposalId, eventData.Alias);
             await _appPointsProvider.AddOrUpdateUserPointsIndexAsync(eventData);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "[RankingAppPoints] process messages error. proposalId={0},alias={1}",
+            Log.Error(e, "[RankingAppPoints] process messages error. proposalId={0},alias={1}",
                 eventData.ProposalId, eventData.Alias);
             throw;
         }
@@ -88,7 +89,7 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
 
     private async Task HandleReferralVoteAsync(VoteAndLikeMessageEto eventData)
     {
-        _logger.LogInformation("[RankingAppPoints] updateUserReferralPoints. address={0},pointsType={1}",
+        Log.Information("[RankingAppPoints] updateUserReferralPoints. address={0},pointsType={1}",
             eventData.Address, eventData.PointsType.ToString());
         await _appPointsProvider.AddOrUpdateUserPointsIndexAsync(eventData);
     }

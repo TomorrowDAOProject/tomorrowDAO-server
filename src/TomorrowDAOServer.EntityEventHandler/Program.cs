@@ -47,6 +47,7 @@ namespace TomorrowDAOServer.EntityEventHandler
                 })
                 .ConfigureAppConfiguration((h, c) => c.AddJsonFile("apollo.appsettings.json"))
                 .UseApollo()
+                .UseOrleansClient()
                 .UseAutofac()
                 .UseSerilog();
     }

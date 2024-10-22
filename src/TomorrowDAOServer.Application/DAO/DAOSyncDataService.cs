@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -57,7 +58,7 @@ public class DAOSyncDataService : ScheduleSyncDataService
                 EndBlockHeight = newIndexHeight
             };
             queryList = await _daoProvider.GetSyncDAOListAsync(input);
-            _logger.LogInformation("SyncDAOInfos queryList chainId: {chainId} skipCount: {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
+            Log.Information("SyncDAOInfos queryList chainId: {chainId} skipCount: {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
                 chainId, skipCount, lastEndHeight, newIndexHeight, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())
             {

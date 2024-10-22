@@ -1,7 +1,9 @@
 using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using JetBrains.Annotations;
+using System.Threading.Tasks;
+using AElf.ExceptionHandler;
+using TomorrowDAOServer.Common.Handler;
 
 namespace TomorrowDAOServer.Common;
 
@@ -72,17 +74,12 @@ public static class TimeHelper
         return utcZoneTime.ToString(pattern, CultureInfo.InvariantCulture);
     }
 
-    public static DateTime? ParseFromUtc8(string dateTimeString, string pattern = DefaultPattern,
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleParseFromUtc8))]
+    public static async Task<DateTime?> ParseFromUtc8(string dateTimeString, string pattern = DefaultPattern,
         DateTime? defaultDateTime = null)
     {
-        try
-        {
-            return ParseFromZone(dateTimeString, 8, pattern);
-        }
-        catch (Exception)
-        {
-            return defaultDateTime;
-        }
+        return ParseFromZone(dateTimeString, 8, pattern);
     }
 
     public static bool IsEmpty(this DateTime dateTime)
@@ -129,23 +126,18 @@ public static class TimeHelper
         return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
     }
     
-    public static string ConvertStrTimeToDate(string strTimeStamp)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleConvertStrTimeToDate))]
+    public static async Task<string> ConvertStrTimeToDate(string strTimeStamp)
     {
         if (string.IsNullOrWhiteSpace(strTimeStamp))
         {
             return string.Empty;
         }
 
-        try
-        {
-            long timestamp = long.Parse(strTimeStamp);
-            DateTime dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
-            return dateTime.ToString(DatePattern);
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
+        long timestamp = long.Parse(strTimeStamp);
+        DateTime dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
+        return dateTime.ToString(DatePattern);
     }
     
     public static DateTime GetNextWeekday(this DateTime startDate, DayOfWeek targetDayOfWeek)  

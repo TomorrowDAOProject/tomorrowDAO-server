@@ -7,6 +7,7 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common.Provider;
 using Volo.Abp.DependencyInjection;
 
@@ -61,14 +62,14 @@ public class TransactionService : ITransactionService, ITransientDependency
 
     public async Task<string> SendTransactionAsync(string chainId, string privateKey, string toAddress, string methodName, IMessage txParam)
     {
-        _logger.LogInformation("SendTransactionAsyncBegin ToAddress={toAddress} chainId={chainId} MethodName={methodName}", toAddress, chainId, methodName);
+        Log.Information("SendTransactionAsyncBegin ToAddress={toAddress} chainId={chainId} MethodName={methodName}", toAddress, chainId, methodName);
         var (client,transaction) = await GetTransaction(chainId, privateKey, toAddress, methodName, txParam);
 
         var result = await client.SendTransactionAsync(new SendTransactionInput
         {
             RawTransaction = transaction.ToByteArray().ToHex()
         });
-        _logger.LogInformation("SendTransactionAsyncEnd ToAddress={toAddress} chainId={chainId} MethodName={methodName}, TransactionId={transactionId}", toAddress, chainId, methodName, result?.TransactionId ?? string.Empty);
+        Log.Information("SendTransactionAsyncEnd ToAddress={toAddress} chainId={chainId} MethodName={methodName}, TransactionId={transactionId}", toAddress, chainId, methodName, result?.TransactionId ?? string.Empty);
         return result?.TransactionId ?? string.Empty;
     }
 

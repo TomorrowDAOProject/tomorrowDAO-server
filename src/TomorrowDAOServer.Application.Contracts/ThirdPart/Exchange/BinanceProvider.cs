@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Serilog;
 using Volo.Abp.Caching;
 
 namespace TomorrowDAOServer.ThirdPart.Exchange;
@@ -118,13 +119,13 @@ public class BinanceProvider : AbstractExchangeProvider
         {
             if (e.StatusCode != HttpStatusCode.TooManyRequests)
             {
-                _logger.LogError(e, "Query Binance Exchange price error");
+                Log.Error(e, "Query Binance Exchange price error");
                 throw;
             }
 
             // After receiving the 429, you continue to violate the access restriction,
             // and the IP will be banned and you will receive the 418 error code.
-            _logger.LogWarning(e, "Binance got 429 TooManyRequests, blocked");
+            Log.Warning(e, "Binance got 429 TooManyRequests, blocked");
             await _blockedCache.SetAsync(blockCacheKey, "1", new DistributedCacheEntryOptions()
             {
                 AbsoluteExpiration = DateTime.Now.AddSeconds(BinanceOptions().Block429Seconds)

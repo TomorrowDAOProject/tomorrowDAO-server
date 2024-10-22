@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Work;
@@ -33,20 +34,20 @@ public class ProposalNewUpdateWorker : TomorrowDAOServerWorkBase
                 var reRunProposalIds = newOptions.ReRunProposalIds;
                 if (string.IsNullOrEmpty(chainId) || reRunProposalIds.IsNullOrEmpty())
                 {
-                    _logger.LogInformation(
+                    Log.Information(
                         "WorkerProposalIdsOptionsChange noNeedToReRun chainId {chainId} count {count}", chainId,
                         reRunProposalIds.Count);
                 }
                 else
                 {
                     _proposalAssistService.ReRunProposalList(chainId, reRunProposalIds);
-                    _logger.LogInformation("WorkerProposalIdsOptionsChange ReRunEnd chainId {chainId} count {count}",
+                    Log.Information("WorkerProposalIdsOptionsChange ReRunEnd chainId {chainId} count {count}",
                         chainId, reRunProposalIds.Count);
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "WorkerProposalIdsOptionsWrongChange Exception chainId {chainId} count {count}",
+                Log.Error(e, "WorkerProposalIdsOptionsWrongChange Exception chainId {chainId} count {count}",
                     newOptions.ChainId, newOptions.ReRunProposalIds.Count);
             }
         });

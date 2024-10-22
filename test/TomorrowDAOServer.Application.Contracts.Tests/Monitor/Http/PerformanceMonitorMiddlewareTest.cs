@@ -21,7 +21,6 @@ public partial class PerformanceMonitorMiddlewareTest : TomorrowDaoServerApplica
         services.AddSingleton(MockPerformanceMonitorMiddlewareOptions());
     }
 
-
     [Fact]
     public async Task InvokeAsyncTest()
     {

@@ -1,16 +1,18 @@
 namespace TomorrowDAOServer.Grains.State.Dao;
 
+[GenerateSerializer]
 public class DaoAliasState
 {
-    public List<DaoAlias> DaoList { get; set; }
+    [Id(0)] public List<DaoAlias> DaoList { get; set; }
 }
 
+[GenerateSerializer]
 public class DaoAlias
 {
-    public string DaoId { get; set; }
-    public string DaoName { get; set; }
-    public string CharReplacements { get; set; }
-    public string FilteredChars { get; set; }
-    public int Serial { get; set; }
-    public DateTime CreateTime { get; set; }
+    [Id(0)] public string DaoId { get; set; }
+    [Id(1)] public string DaoName { get; set; }
+    [Id(2)] public string CharReplacements { get; set; }
+    [Id(3)] public string FilteredChars { get; set; }
+    [Id(4)] public int Serial { get; set; }
+    [Id(5)] public DateTime CreateTime { get; set; }
 }

@@ -1,7 +1,8 @@
 namespace TomorrowDAOServer.Grains.State.ApplicationHandler;
 
+[GenerateSerializer]
 public class BPState
 {
-    public List<string> AddressList { get; set; }
-    public long Round { get; set; }
+    [Id(0)] public List<string> AddressList { get; set; }
+    [Id(1)] public long Round { get; set; }
 }

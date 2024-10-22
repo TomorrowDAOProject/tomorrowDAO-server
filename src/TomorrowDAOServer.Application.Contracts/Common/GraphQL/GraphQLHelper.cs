@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Client.Abstractions;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Monitor;
 using TomorrowDAOServer.Monitor.Common;
 using Volo.Abp.DependencyInjection;
@@ -47,7 +48,7 @@ public class GraphQlHelper : IGraphQlHelper, ISingletonDependency
         
         if (sw.ElapsedMilliseconds > MonitorConstant.MaxDuration)
         {
-            _logger.LogInformation("Slow GraphQL Query, {0}, {1}", sw.ElapsedMilliseconds, request.Query);
+            Log.Information("Slow GraphQL Query, {0}, {1}", sw.ElapsedMilliseconds, request.Query);
         }
         
         if (isSuccess)
@@ -55,13 +56,13 @@ public class GraphQlHelper : IGraphQlHelper, ISingletonDependency
             return graphQlResponse.Data;
         }
 
-        _logger.LogError("query graphQL err, errors = {Errors}",
+        Log.Error("query graphQL err, errors = {Errors}",
             string.Join(",", graphQlResponse.Errors.Select(e => e.Message).ToList()));
         return default;
     }
 }
 
-public class GraphQlResponseException : Exception
+public class GraphQlResponseException : System.Exception
 {
     public GraphQlResponseException(string message) : base(message)
     {

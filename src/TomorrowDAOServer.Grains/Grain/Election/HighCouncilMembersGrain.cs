@@ -13,10 +13,10 @@ public interface IHighCouncilMembersGrain : IGrainWithStringKey
 
 public class HighCouncilMembersGrain : Grain<HighCouncilMembersState>, IHighCouncilMembersGrain
 {
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
 
     public async Task SaveHighCouncilMembersAsync(List<string> addressList)

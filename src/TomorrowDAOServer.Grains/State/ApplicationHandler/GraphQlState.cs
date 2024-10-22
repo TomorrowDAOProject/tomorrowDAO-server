@@ -1,6 +1,7 @@
 namespace TomorrowDAOServer.Grains.State.ApplicationHandler;
 
+[GenerateSerializer]
 public class GraphQlState
 {
-    public long EndHeight { get; set; }
+    [Id(0)] public long EndHeight { get; set; }
 }

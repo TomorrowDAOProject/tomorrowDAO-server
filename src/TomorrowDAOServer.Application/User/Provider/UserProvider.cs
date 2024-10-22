@@ -1,7 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Grains.Grain.Users;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -28,29 +31,24 @@ public class UserProvider : IUserProvider, ISingletonDependency
         _clusterClient = clusterClient;
     }
 
-    public async Task<UserGrainDto> GetUserAsync(Guid userId)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.Default,
+        Message = "get user info error", LogTargets = new []{"userId"})]
+    public virtual async Task<UserGrainDto> GetUserAsync(Guid userId)
     {
         if (userId == Guid.Empty)
         {
             return null;
         }
 
-        try
+        var userGrain = _clusterClient.GetGrain<IUserGrain>(userId);
+        var user = await userGrain.GetUser();
+        if (user.Success)
         {
-            var userGrain = _clusterClient.GetGrain<IUserGrain>(userId);
-            var user = await userGrain.GetUser();
-            if (user.Success)
-            {
-                return user.Data;
-            }
+            return user.Data;
+        }
 
-            return null;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "get user info error, userId={0}", userId.ToString());
-            return null;
-        }
+        return null;
     }
 
     public async Task<string> GetUserAddressAsync(Guid userId, string chainId)
@@ -97,7 +95,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
             return userAddress;
         }
 
-        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        Log.Error("query user address fail, userId={0}, chainId={1}", userId, chainId);
         throw new UserFriendlyException("No user address found");
     }
 
@@ -108,7 +106,7 @@ public class UserProvider : IUserProvider, ISingletonDependency
         {
             return new Tuple<string, string>(address, addressCaHash);
         }
-        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        Log.Error("query user address fail, userId={0}, chainId={1}", userId, chainId);
         throw new UserFriendlyException("No user address and caHash found");
     }
 }
