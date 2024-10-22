@@ -10,7 +10,7 @@ namespace TomorrowDAOServer.DAO;
 public partial class DAOSyncDataServiceTest : TomorrowDaoServerApplicationTestBase
 {
     private readonly DAOSyncDataService _daoSyncDataService;
-    
+
     public DAOSyncDataServiceTest(ITestOutputHelper output) : base(output)
     {
         _daoSyncDataService = Application.ServiceProvider.GetRequiredService<DAOSyncDataService>();
@@ -19,7 +19,8 @@ public partial class DAOSyncDataServiceTest : TomorrowDaoServerApplicationTestBa
     [Fact]
     public async Task SyncIndexerRecordsAsyncTest()
     {
-        
+        var hight = await _daoSyncDataService.SyncIndexerRecordsAsync(ChainIdAELF, 0, 10000);
+        hight.ShouldBe(10000);
     }
 
     [Fact]
