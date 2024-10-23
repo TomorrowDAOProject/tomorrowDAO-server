@@ -223,10 +223,10 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
             // q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
-        // if (!excludeProposalIds.IsNullOrEmpty())
-        // {
-        //     mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
-        // }
+        if (!excludeProposalIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+        }
         
         if (rankingType != RankingType.All)
         {
