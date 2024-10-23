@@ -221,7 +221,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         {
             q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)), 
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
-            // q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
+            q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
         if (!excludeProposalIds.IsNullOrEmpty())
         {
