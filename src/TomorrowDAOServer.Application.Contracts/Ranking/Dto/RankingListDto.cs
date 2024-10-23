@@ -13,6 +13,8 @@ public class RankingListDto
     public long TotalVoteAmount { get; set; }
     public DateTime ActiveStartTime { get; set; }
     public DateTime ActiveEndTime { get; set; }
+    public long ActiveStartEpochTime { get; set; }
+    public long ActiveEndEpochTime { get; set; }
     public bool Active { get; set; } 
     public RankingType RankingType { get; set; } 
     public LabelTypeEnum LabelType { get; set; }
