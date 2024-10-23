@@ -168,7 +168,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         excludeIds.AddRange(topRankingIds);
         var rankingType = input.Type;
         var result = new Tuple<long, List<ProposalIndex>>(0, new List<ProposalIndex>());
-        var bannerDic = new Dictionary<string, string>();
         switch (rankingType)
         {
             case RankingType.Verified:
@@ -178,14 +177,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 break;
             case RankingType.Top:
                 var topProposals = await _proposalProvider.GetProposalByIdsAsync(chainId, topRankingIds);
-                var descList = topProposals.Select(x => x.ProposalDescription).ToList();
-                bannerDic = await GetBannerUrlsAsync(descList);
                 result = new Tuple<long, List<ProposalIndex>>(topProposals.Count, topProposals);
                 break;
         }
         
         var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(result.Item2);
+        var descList = list.Select(x => x.ProposalDescription).ToList();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
+        var bannerDic = await GetBannerUrlsAsync(descList);
         var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
         var pointsDic = pointsList.GroupBy(p => p.ProposalId).ToDictionary(t => t.Key, t => t.ToList());
         var utcNow = DateTime.UtcNow;
