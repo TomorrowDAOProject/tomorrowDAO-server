@@ -197,7 +197,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 detail.LabelType = detail.ProposalId == goldRankingId ? LabelTypeEnum.Gold : LabelTypeEnum.Blue;
             }
-
+            if (topRankingIds.Contains(detail.ProposalId))
+            {
+                detail.RankingType = RankingType.Top;
+            }
             detail.Active = utcNow >= detail.ActiveStartTime && utcNow <= detail.ActiveEndTime;
             detail.BannerUrl = bannerDic.GetValueOrDefault(detail.ProposalDescription, string.Empty);
         }
@@ -631,7 +634,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         var labelType = LabelTypeEnum.None;
-        var (goldRankingId, _) = await GetTopRankingIdsAsync();
+        var (goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         var rankingApp = rankingAppList[0];
         var canVoteAmount = 0;
         var proposalDescription = rankingApp.ProposalDescription;
@@ -673,6 +676,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         if (rankingType == RankingType.Verified)
         {
             labelType = proposal.ProposalId == goldRankingId ? LabelTypeEnum.Gold : LabelTypeEnum.Blue;
+        }
+        if (topRankingIds.Contains(proposal.ProposalId))
+        {
+            rankingType = RankingType.Top;
         }
         foreach (var app in rankingList)
         {
