@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TomorrowDAOServer.ResourceToken;
@@ -26,7 +27,7 @@ public class ResourceTokenController
     }
     
     [HttpGet("turnover")]
-    public async Task<TurnoverDto> GetTurnoverAsync(GetTurnoverInput input)
+    public async Task<List<TurnoverDto>> GetTurnoverAsync(GetTurnoverInput input)
     {
         return await _resourceTokenService.GetTurnoverAsync(input);
     }

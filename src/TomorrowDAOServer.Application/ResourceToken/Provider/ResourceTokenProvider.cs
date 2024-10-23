@@ -22,6 +22,7 @@ public interface IResourceTokenProvider
     Task<List<ResourceTokenIndex>> GetNeedParseAsync(int skipCount);
     Task<List<ResourceTokenIndex>> GetLatestAsync(int limit, string type, string method);
     Task<Tuple<long, List<ResourceTokenIndex>>> GetPageListAsync(int skipCount, int maxResultCount, string order, string address);
+    Task<List<ResourceTokenIndex>> GetAllByPeriodAsync(DateTime startTime, DateTime endTime, string type);
 }
 
 public class ResourceTokenProvider : IResourceTokenProvider, ISingletonDependency
@@ -130,5 +131,17 @@ public class ResourceTokenProvider : IResourceTokenProvider, ISingletonDependenc
             sortType: string.Equals(order, CommonConstant.Desc, StringComparison.OrdinalIgnoreCase) ? SortOrder.Descending : SortOrder.Ascending,
             sortExp: o => o.BlockHeight
         );
+    }
+
+    public async Task<List<ResourceTokenIndex>> GetAllByPeriodAsync(DateTime startTime, DateTime endTime, string type)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ResourceTokenIndex>, QueryContainer>>
+        {
+            q => q.DateRange(
+                r => r.Field(f => f.OperateTime).GreaterThanOrEquals(startTime).LessThan(endTime)),
+            q => q.Term(i => i.Field(f => f.Symbol).Value(type))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<ResourceTokenIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await IndexHelper.GetAllIndex(Filter, _resourceTokenRepository);
     }
 }
