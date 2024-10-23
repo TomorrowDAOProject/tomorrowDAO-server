@@ -19,7 +19,7 @@ public interface IResourceTokenProvider
         long endBlockHeight, int maxResultCount);
     Task<List<ResourceTokenIndex>> GetByIdsAsync(List<string> ids);
     Task<List<ResourceTokenIndex>> GetNeedParseAsync(int skipCount);
-
+    Task<List<ResourceTokenIndex>> GetLatestAsync(int limit, string type, string method);
 }
 
 public class ResourceTokenProvider : IResourceTokenProvider, ISingletonDependency
@@ -94,6 +94,23 @@ public class ResourceTokenProvider : IResourceTokenProvider, ISingletonDependenc
         QueryContainer Filter(QueryContainerDescriptor<ResourceTokenIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         var tuple = await _resourceTokenRepository.GetListAsync(Filter, skip: skipCount, sortType: SortOrder.Ascending,
+            sortExp: o => o.BlockHeight);
+        return tuple.Item2;
+    }
+
+    public async Task<List<ResourceTokenIndex>> GetLatestAsync(int limit, string type, string method)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ResourceTokenIndex>, QueryContainer>>();
+        if (!string.IsNullOrEmpty(method))
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.Method).Value(method)));
+        }
+        if (!string.IsNullOrEmpty(type))
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.Symbol).Value(type)));
+        }
+        QueryContainer Filter(QueryContainerDescriptor<ResourceTokenIndex> f) => f.Bool(b => b.Must(mustQuery));
+        var tuple = await _resourceTokenRepository.GetListAsync(Filter, limit: limit, sortType: SortOrder.Descending,
             sortExp: o => o.BlockHeight);
         return tuple.Item2;
     }

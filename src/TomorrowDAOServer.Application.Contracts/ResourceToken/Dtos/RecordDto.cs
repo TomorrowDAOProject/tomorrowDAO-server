@@ -4,6 +4,7 @@ namespace TomorrowDAOServer.ResourceToken.Dtos;
 
 public class RecordDto
 {
+    public string Id { get; set; }
     public string Tx_id { get; set; }
     public string Address { get; set; }
     public string Method { get; set; }

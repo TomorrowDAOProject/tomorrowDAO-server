@@ -126,4 +126,8 @@ public static class CommonConstant
     
     //GrainId
     public const string GrainIdTelegramAppSequence = "TelegramAppSequence";
+    
+    //Resource token
+    public const string BuyMethod = "Buy";
+    public const string SellMethod = "Sell";
 }
