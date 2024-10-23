@@ -46,6 +46,7 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
         context.Services.AddSingleton<HighCouncilMemberSyncService, HighCouncilMemberSyncService>();
 
         context.Services.AddSingleton<DAOSyncDataService>();
+        context.Services.AddSingleton<BPInfoUpdateService>();
         
         context.Services.AddMemoryCache();
         

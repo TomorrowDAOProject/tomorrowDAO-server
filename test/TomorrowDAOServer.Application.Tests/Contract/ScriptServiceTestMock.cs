@@ -9,7 +9,7 @@ namespace TomorrowDAOServer.Contract;
 
 public partial class ScriptServiceTest
 {
-    private ITransactionService MockTransactionService()
+    public static ITransactionService MockTransactionService()
     {
         var mock = new Mock<ITransactionService>();
 

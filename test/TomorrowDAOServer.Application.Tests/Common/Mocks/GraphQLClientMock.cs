@@ -31,7 +31,8 @@ public class GraphQLClientMock
         MockGetDAOList(mock);
         MockGetMyParticipated(mock);
         MockGetMember(mock);
-        
+        MockGetElectionCandidateElected(mock);
+        MockGetElectionHighCouncilConfig(mock);
         
 
         return mock.Object;
@@ -416,6 +417,76 @@ public class GraphQLClientMock
                     DAOId = DaoId,
                     Address = Address1,
                     CreateTime = DateTime.Now
+                }
+            };
+        });
+    }
+    
+    private static void MockGetElectionCandidateElected(Mock<IGraphQLClient> mock)
+    {
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerCommonResult<ElectionPageResultDto<ElectionCandidateElectedDto>>
+            {
+                Data = new ElectionPageResultDto<ElectionCandidateElectedDto>
+                {
+                    TotalCount = 1,
+                    Items = new []{new ElectionCandidateElectedDto
+                        {
+                            Id = "Id",
+                            DaoId = DaoId,
+                            PreTermNumber = 0,
+                            NewNumber = 1,
+                            CandidateElectedTime = default,
+                            ChainId = ChainIdAELF,
+                            BlockHash = TransactionHash.ToString(),
+                            BlockHeight = 100,
+                            PreviousBlockHash = null,
+                            IsDeleted = false
+                        }
+                    },
+                }
+            };
+        });
+    }
+    
+    private static void MockGetElectionHighCouncilConfig(Mock<IGraphQLClient> mock)
+    {
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerCommonResult<ElectionPageResultDto<ElectionHighCouncilConfigDto>>
+            {
+                Data = new ElectionPageResultDto<ElectionHighCouncilConfigDto>
+                {
+                    TotalCount = 1,
+                    Items = new []{new ElectionHighCouncilConfigDto
+                        {
+                            Id = "Id",
+                            DaoId = DaoId,
+                            MaxHighCouncilMemberCount = 0,
+                            MaxHighCouncilCandidateCount = 0,
+                            ElectionPeriod = 0,
+                            IsRequireHighCouncilForExecution = false,
+                            GovernanceToken = null,
+                            StakeThreshold = 0,
+                            InitialHighCouncilMembers = null,
+                            ChainId = ChainIdAELF,
+                            BlockHash = TransactionHash.ToString(),
+                            BlockHeight = 100,
+                            PreviousBlockHash = null,
+                            IsDeleted = false
+                        }
+                    },
                 }
             };
         });

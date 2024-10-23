@@ -9,6 +9,7 @@ using NSubstitute;
 using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.User.Provider;
+using Volo.Abp;
 using Volo.Abp.DistributedLocking;
 using Volo.Abp.Users;
 using Xunit.Abstractions;
@@ -17,7 +18,7 @@ using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer;
 
-public abstract partial class
+public abstract class
     TomorrowDaoServerApplicationTestBase : TomorrowDAOServerTestBase<TomorrowDAOServerApplicationTestModule>
 {
     protected const string ChainIdTDVV = "tDVV";
@@ -238,10 +239,24 @@ public abstract partial class
         CurrentUser.Id.Returns(userId);
         CurrentUser.IsAuthenticated.Returns(userId != Guid.Empty);
         var address = userId != Guid.Empty ? (userAddress ?? Address1) : string.Empty;
-        var addressCahash = userId != Guid.Empty ? Address1CaHash : string.Empty;
+        var addressCaHash = userId != Guid.Empty ? Address1CaHash : string.Empty;
         UserProviderMock.Setup(o => o.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
-            .ReturnsAsync(address);
+            .ReturnsAsync((Guid userId, string chainId) =>
+            {
+                if (address.IsNullOrWhiteSpace())
+                {
+                    throw new UserFriendlyException("No user address found");
+                }
+                return address;
+            });
         UserProviderMock.Setup(o => o.GetAndValidateUserAddressAndCaHashAsync(It.IsAny<Guid>(), It.IsAny<string>()))
-            .ReturnsAsync(new Tuple<string, string>(address, addressCahash));
+            .ReturnsAsync((Guid userId, string chainId) =>
+            {
+                if (!address.IsNullOrWhiteSpace() && !addressCaHash.IsNullOrWhiteSpace())
+                {
+                    return new Tuple<string, string>(address, addressCaHash);
+                }
+                throw new UserFriendlyException("No user address and caHash found");
+            });
     }
 }
