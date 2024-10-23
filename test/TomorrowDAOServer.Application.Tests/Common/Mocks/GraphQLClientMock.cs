@@ -296,6 +296,12 @@ public class GraphQLClientMock
                 throw new UserFriendlyException("GraphQL query exception.");
             }
 
+            var skipCount = (int) GetVariableValue(request.Variables, "skipCount");
+            if (skipCount > 0)
+            {
+                return new IndexerDAOInfos();
+            }
+
             return new IndexerDAOInfos
             {
                 DAOInfos = new List<IndexerDAOInfo>() { new IndexerDAOInfo
@@ -413,5 +419,16 @@ public class GraphQLClientMock
                 }
             };
         });
+    }
+
+    private static object GetVariableValue(object variablesObj, string variableName)
+    {
+        var propertyInfo = variablesObj.GetType().GetProperty(variableName);
+        return propertyInfo?.GetValue(variablesObj);
+    }
+
+    protected static string GraphQlMethodPattern(string methodName)
+    {
+        return @"(?<![.\w])" + methodName + @"\s*(?=\()";
     }
 }
