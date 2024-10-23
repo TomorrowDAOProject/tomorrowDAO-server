@@ -164,32 +164,27 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var userAddress = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         var excludeIds = _rankingOptions.CurrentValue.RankingExcludeIds;
-
-        var rankingType = input.Type;
         var (goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         excludeIds.AddRange(topRankingIds);
-        _logger.LogInformation("[GetRankingProposalListAsync]: goldRankingId:{0}", goldRankingId);
-        _logger.LogInformation("[GetRankingProposalListAsync]: topRankingIds:{0}", JsonConvert.SerializeObject(topRankingIds));
-        var res = new List<ProposalIndex>();
-        if (input.SkipCount < topRankingIds.Count)
+        var rankingType = input.Type;
+        var result = new Tuple<long, List<ProposalIndex>>(0, new List<ProposalIndex>());
+        var bannerDic = new Dictionary<string, string>();
+        switch (rankingType)
         {
-            var subRankingIds = topRankingIds.GetRange(input.SkipCount, topRankingIds.Count - input.SkipCount);
-            var topRanking = await _proposalProvider.GetProposalByIdsAsync(chainId, subRankingIds);
-            topRanking = topRanking.OrderBy(t => subRankingIds.IndexOf(t.ProposalId)).ToList();
-            _logger.LogInformation("[GetRankingProposalListAsync]: GetProposalByIdsAsync:{0}", JsonConvert.SerializeObject(topRanking));
-            res.AddRange(topRanking);
-
-            input.MaxResultCount -= topRanking.Count;
-            input.SkipCount = 0;
+            case RankingType.Verified:
+            case RankingType.All:
+            case RankingType.Community:
+                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, excludeIds);
+                break;
+            case RankingType.Top:
+                var topProposals = await _proposalProvider.GetProposalByIdsAsync(chainId, topRankingIds);
+                var descList = topProposals.Select(x => x.ProposalDescription).ToList();
+                bannerDic = await GetBannerUrlsAsync(descList);
+                result = new Tuple<long, List<ProposalIndex>>(topProposals.Count, topProposals);
+                break;
         }
-        else
-        {
-            input.SkipCount -= topRankingIds.Count;
-        }
-        _logger.LogInformation("[GetRankingProposalListAsync]: SkipCount:{0},MaxResultCount={1},topRankingIds={2}", input.SkipCount, input.MaxResultCount, JsonConvert.SerializeObject(topRankingIds));
-        var result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, excludeIds);
-        res.AddRange(result.Item2);
-        var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(res);
+        
+        var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(result.Item2);
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
         var pointsDic = pointsList.GroupBy(p => p.ProposalId).ToDictionary(t => t.Key, t => t.ToList());
@@ -205,6 +200,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
 
             detail.Active = utcNow >= detail.ActiveStartTime && utcNow <= detail.ActiveEndTime;
+            detail.BannerUrl = bannerDic.GetValueOrDefault(detail.ProposalDescription, string.Empty);
         }
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         return new RankingListPageResultDto<RankingListDto>
@@ -721,6 +717,31 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         return telegramAppIndices.First().Icon ?? string.Empty;
+    }
+    
+    private async Task<Dictionary<string, string>> GetBannerUrlsAsync(List<string> proposalDescriptions)
+    {
+        var dic = proposalDescriptions
+            .GroupBy(desc => desc)
+            .Select(group => new { group.Key, Banner = RankHelper.GetBanner(group.First()) })
+            .Where(item => item.Banner != null && !string.IsNullOrEmpty(item.Banner))
+            .ToDictionary(item => item.Key, item => item.Banner);
+        var banners = dic.Values.ToList();
+
+        var (_, telegramAppIndices) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = banners,
+        });
+        
+        if (telegramAppIndices.IsNullOrEmpty())
+        {
+            return new Dictionary<string, string>();
+        }
+
+        return dic.ToDictionary(
+            pair => pair.Key,
+            pair => telegramAppIndices.FirstOrDefault(t => t.Alias == pair.Value)?.Icon ?? string.Empty
+        );
     }
 
     public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string chainId, string proposalId)

@@ -16,4 +16,5 @@ public class RankingListDto
     public bool Active { get; set; } 
     public RankingType RankingType { get; set; } 
     public LabelTypeEnum LabelType { get; set; }
+    public string BannerUrl { get; set; }
 }
