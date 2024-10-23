@@ -182,7 +182,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         
         var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(result.Item2);
-        var descList = list.Select(x => x.ProposalDescription).ToList();
+        var descList = list.Where(x => !string.IsNullOrEmpty(x.ProposalDescription)).Select(x => x.ProposalDescription).ToList();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var bannerDic = await GetBannerUrlsAsync(descList);
         var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
@@ -202,7 +202,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 detail.RankingType = RankingType.Top;
             }
             detail.Active = utcNow >= detail.ActiveStartTime && utcNow <= detail.ActiveEndTime;
-            detail.BannerUrl = bannerDic.GetValueOrDefault(detail.ProposalDescription, string.Empty);
+            detail.BannerUrl = string.IsNullOrEmpty(detail.ProposalDescription) ? string.Empty : bannerDic.GetValueOrDefault(detail.ProposalDescription, string.Empty);
         }
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         return new RankingListPageResultDto<RankingListDto>
