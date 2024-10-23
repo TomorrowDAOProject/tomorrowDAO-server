@@ -92,6 +92,7 @@ public class RankingAppPointsProviderTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetRankingAppPointsIndexByAliasAsyncTest()
     {
+        await AddOrUpdateAppPointsIndexAsyncTest();
         var pointsIndex = await _rankingAppPointsProvider.GetRankingAppPointsIndexByAliasAsync(ChainIdAELF, ProposalId1);
         pointsIndex.ShouldNotBeNull();
         pointsIndex.Points.ShouldBeGreaterThan(10);
@@ -100,6 +101,7 @@ public class RankingAppPointsProviderTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetRankingUserPointsIndexByAliasAsyncTest()
     {
+        await AddOrUpdateUserPointsIndexAsyncTest();
         var pointsIndex = await _rankingAppPointsProvider.GetRankingUserPointsIndexByAliasAsync(ChainIdAELF, ProposalId1, Address1);
         pointsIndex.ShouldNotBeNull();
         pointsIndex.Points.ShouldBeGreaterThanOrEqualTo(10);
@@ -108,6 +110,8 @@ public class RankingAppPointsProviderTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetTotalPointsByAliasAsyncTest()
     {
+        await AddOrUpdateUserPointsIndexAsyncTest();
+        await AddOrUpdateAppPointsIndexAsyncTest();
         var points = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(ChainIdAELF, new List<string>() { "Alias", "Tests" });
         points.ShouldNotBeNull();
         points.Keys.ShouldContain("Alias");
