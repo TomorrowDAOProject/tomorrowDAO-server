@@ -61,6 +61,7 @@ public abstract class
         services.AddSingleton(MockContractInfoOptions());
         services.AddSingleton(MockChainOptions());
         services.AddSingleton(MockApiOption());
+        services.AddSingleton(MockRankingOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
         services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
@@ -230,6 +231,15 @@ public abstract class
                 {ChainIdAELF, "https://node.chain.io"}
             }
         });
+        return mock.Object;
+    }
+
+    private IOptionsMonitor<RankingOptions> MockRankingOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<RankingOptions>>();
+
+        mock.Setup(m => m.CurrentValue).Returns(new RankingOptions());
+
         return mock.Object;
     }
 
