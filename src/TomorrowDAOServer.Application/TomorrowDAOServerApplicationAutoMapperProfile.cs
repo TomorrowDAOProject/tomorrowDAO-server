@@ -256,6 +256,10 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Active, opt
                 => opt.MapFrom(source =>
                     DateTime.UtcNow <= source.ActiveEndTime && DateTime.UtcNow >= source.ActiveStartTime))
+            .ForMember(des => des.ActiveStartEpochTime, opt
+                => opt.MapFrom(source => source.ActiveStartTime.ToUniversalTime()))
+            .ForMember(des => des.ActiveEndEpochTime, opt
+                => opt.MapFrom(source => source.ActiveEndTime.ToUniversalTime()))
             ;
         CreateMap<VoteAndLikeMessageEto, RankingAppUserPointsIndex>()
             .ForMember(des => des.DAOId, opt
