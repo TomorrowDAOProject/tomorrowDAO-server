@@ -184,14 +184,19 @@ public partial class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
     public async Task GetMyDAOListAsyncTest_NotLoggedIn()
     {
         Login(Guid.Empty);
-        var daoList = await _daoAppService.GetMyDAOListAsync(new QueryMyDAOListInput
+        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            ChainId = ChainIdtDVW,
-            SkipCount = 0,
-            MaxResultCount = 10,
-            Type = MyDAOType.Owned
+            var daoList = await _daoAppService.GetMyDAOListAsync(new QueryMyDAOListInput
+            {
+                ChainId = ChainIdtDVW,
+                SkipCount = 0,
+                MaxResultCount = 10,
+                Type = MyDAOType.Owned
+            });
+            daoList.ShouldBeEmpty();
         });
-        daoList.ShouldBeEmpty();
+        exception.Message.ShouldContain("No user address found");
+        
     }
 
     [Fact]

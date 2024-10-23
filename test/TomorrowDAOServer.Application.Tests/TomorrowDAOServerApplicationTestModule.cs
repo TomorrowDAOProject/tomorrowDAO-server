@@ -8,6 +8,7 @@ using Moq;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election;
 using TomorrowDAOServer.EntityEventHandler.Core;
+using TomorrowDAOServer.File;
 using TomorrowDAOServer.Options;
 using Volo.Abp.Auditing;
 using Volo.Abp.AuditLogging;
@@ -47,6 +48,8 @@ public class TomorrowDAOServerApplicationTestModule : AbpModule
 
         context.Services.AddSingleton<DAOSyncDataService>();
         context.Services.AddSingleton<BPInfoUpdateService>();
+
+        context.Services.AddSingleton<IFileService, FileService>();
         
         context.Services.AddMemoryCache();
         

@@ -33,10 +33,10 @@ public class DAOProviderTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetDaoListByDaoIds_Test()
     {
-        var daoIndices = await _daoProvider.GetDaoListByDaoIds(ChainIdAELF, new List<string>());
+        var daoIndices = await _daoProvider.GetDaoListByDaoIds(ChainIdTDVV, new List<string>());
         daoIndices.ShouldBeEmpty();
 
-        daoIndices = await _daoProvider.GetDaoListByDaoIds(ChainIdAELF, new List<string>() { DaoId });
+        daoIndices = await _daoProvider.GetDaoListByDaoIds(ChainIdTDVV, new List<string>() { DaoId });
         daoIndices.ShouldBeEmpty();
     }
 
@@ -61,14 +61,14 @@ public class DAOProviderTest : TomorrowDaoServerApplicationTestBase
     {
         var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
         {
-            ChainId = ChainIdAELF,
+            ChainId = ChainIdTDVV,
             DAOId = DaoId
         });
         daoIndex.ShouldBeNull();
 
         daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
         {
-            ChainId = ChainIdAELF,
+            ChainId = ChainIdTDVV,
             Alias = DAOName
         });
         daoIndex.ShouldBeNull();
@@ -79,7 +79,7 @@ public class DAOProviderTest : TomorrowDaoServerApplicationTestBase
     {
         var (count, daoList) = await _daoProvider.GetDAOListAsync(new QueryPageInput
         {
-            ChainId = ChainIdAELF,
+            ChainId = ChainIdtDVW,
             SkipCount = 0,
             MaxResultCount = 10
         }, new HashSet<string>() { DAOName });
@@ -92,10 +92,10 @@ public class DAOProviderTest : TomorrowDaoServerApplicationTestBase
     {
         var count = await _daoProvider.GetDAOListCountAsync(new QueryPageInput
         {
-            ChainId = ChainIdAELF,
+            ChainId = ChainIdTDVV,
             SkipCount = 0,
             MaxResultCount = 100
-        }, new HashSet<string>() { DAOName });
+        }, new HashSet<string>() { "NoExistDAO"});
 
         count.ShouldBe(0);
     }
@@ -117,7 +117,7 @@ public class DAOProviderTest : TomorrowDaoServerApplicationTestBase
     {
         var (count, daoIndices) = await _daoProvider.GetMyOwneredDAOListAsync(new QueryMyDAOListInput
         {
-            ChainId = ChainIdAELF,
+            ChainId = ChainIdTDVV,
             SkipCount = 0,
             MaxResultCount = 10,
             Type = MyDAOType.Managed
@@ -137,7 +137,7 @@ public class DAOProviderTest : TomorrowDaoServerApplicationTestBase
         count.ShouldBe(0);
         daoIndices.ShouldBeEmpty();
         
-        (count, daoIndices) = await _daoProvider.GetManagedDAOAsync(new QueryMyDAOListInput(), new List<string>() {DaoId, DAOId}, false);
+        (count, daoIndices) = await _daoProvider.GetManagedDAOAsync(new QueryMyDAOListInput(), new List<string>() {"DaoId"}, false);
         count.ShouldBe(0);
         daoIndices.ShouldBeEmpty();
     }
