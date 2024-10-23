@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Common;
@@ -39,8 +40,13 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
         throw new System.NotImplementedException();
     }
 
-    public Task<RecordPageDto> GetRecordsAsync(GetRecordsInput input)
+    public async Task<RecordPageDto> GetRecordsAsync(GetRecordsInput input)
     {
-        throw new System.NotImplementedException();
+        var skipCount = input.Page * input.Limit;
+        var (count, list) = await _resourceTokenProvider.GetPageListAsync(skipCount, input.Limit, input.Order, input.Address);
+        return new RecordPageDto
+        {
+            Total = count, Records = _objectMapper.Map<List<ResourceTokenIndex>, List<RecordDto>>(list)
+        };
     }
 }
