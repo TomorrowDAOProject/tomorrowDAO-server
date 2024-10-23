@@ -130,4 +130,8 @@ public static class CommonConstant
     //Resource token
     public const string BuyMethod = "Buy";
     public const string SellMethod = "Sell";
+    
+    //Order
+    public const string Desc = "desc";
+    public const string Asc = "asc";
 }

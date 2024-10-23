@@ -5,6 +5,7 @@ using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.ResourceToken.Indexer;
@@ -20,6 +21,7 @@ public interface IResourceTokenProvider
     Task<List<ResourceTokenIndex>> GetByIdsAsync(List<string> ids);
     Task<List<ResourceTokenIndex>> GetNeedParseAsync(int skipCount);
     Task<List<ResourceTokenIndex>> GetLatestAsync(int limit, string type, string method);
+    Task<Tuple<long, List<ResourceTokenIndex>>> GetPageListAsync(int skipCount, int maxResultCount, string order, string address);
 }
 
 public class ResourceTokenProvider : IResourceTokenProvider, ISingletonDependency
@@ -113,5 +115,20 @@ public class ResourceTokenProvider : IResourceTokenProvider, ISingletonDependenc
         var tuple = await _resourceTokenRepository.GetListAsync(Filter, limit: limit, sortType: SortOrder.Descending,
             sortExp: o => o.BlockHeight);
         return tuple.Item2;
+    }
+
+    public async Task<Tuple<long, List<ResourceTokenIndex>>> GetPageListAsync(int skipCount, int maxResultCount, string order, string address)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<ResourceTokenIndex>, QueryContainer>>();
+        if (!string.IsNullOrEmpty(address))
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.Address).Value(address)));
+        }
+        
+        QueryContainer Filter(QueryContainerDescriptor<ResourceTokenIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _resourceTokenRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount, 
+            sortType: string.Equals(order, CommonConstant.Desc, StringComparison.OrdinalIgnoreCase) ? SortOrder.Descending : SortOrder.Ascending,
+            sortExp: o => o.BlockHeight
+        );
     }
 }
