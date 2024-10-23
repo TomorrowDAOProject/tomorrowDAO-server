@@ -22,6 +22,7 @@ using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Eto;
 using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Indexer;
+using TomorrowDAOServer.ResourceToken.Indexer;
 using TomorrowDAOServer.Spider.Dto;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Token;
@@ -287,5 +288,9 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => MapCategories(source.Categories)))
             .ForMember(des => des.AppType, opt
                 => opt.MapFrom(source => source.SourceType.ToString()));
+        CreateMap<IndexerResourceTokenDto, ResourceTokenIndex>()
+            .ForMember(des => des.Address, opt
+                => opt.MapFrom(source => MapResourceTokenAddress(source.TransactionInfo)))
+            ;
     }
 }
