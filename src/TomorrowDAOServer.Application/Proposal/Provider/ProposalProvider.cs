@@ -21,7 +21,7 @@ public interface IProposalProvider
     Task<List<IndexerProposal>> GetSyncProposalDataAsync(int skipCount, string chainId, long startBlockHeight,
         long endBlockHeight, int maxResultCount);
 
-    public Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input);
+    public Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input, List<string> excludeIds = null);
 
     public Task<ProposalIndex> GetProposalByIdAsync(string chainId, string proposalId);
 
@@ -93,12 +93,12 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         return graphQlResponse?.DataList ?? new List<IndexerProposal>();
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input, List<string> excludeIds = null)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         var contentShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         var proposalShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
-        AssemblyBaseQuery(input, mustQuery);
+        AssemblyBaseQuery(input, mustQuery, excludeIds);
         AssemblyContentQuery(input.Content, contentShouldQuery);
         AssemblyProposalStatusQuery(input.ProposalStatus, mustQuery, proposalShouldQuery);
 
@@ -381,8 +381,13 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     }
 
     private static void AssemblyBaseQuery(QueryProposalListInput input,
-        List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> mustQuery)
+        List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> mustQuery, List<string> excludeIds)
     {
+        if (excludeIds != null && !excludeIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => !q.Terms(i =>
+                i.Field(f => f.ProposalId).Terms(excludeIds)));
+        }
         if (!input.ChainId.IsNullOrEmpty())
         {
             mustQuery.Add(q => q.Term(i =>
