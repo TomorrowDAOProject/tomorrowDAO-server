@@ -20,7 +20,6 @@ using Volo.Abp.ObjectMapping;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
-using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Ranking.Provider;
