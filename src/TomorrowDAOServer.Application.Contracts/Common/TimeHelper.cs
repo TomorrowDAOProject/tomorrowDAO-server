@@ -128,4 +128,34 @@ public static class TimeHelper
     {
         return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
     }
+    
+    public static string ConvertStrTimeToDate(string strTimeStamp)
+    {
+        if (string.IsNullOrWhiteSpace(strTimeStamp))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            long timestamp = long.Parse(strTimeStamp);
+            DateTime dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
+            return dateTime.ToString(DatePattern);
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+    }
+    
+    public static DateTime GetNextWeekday(this DateTime startDate, DayOfWeek targetDayOfWeek)  
+    {  
+        var currentDay = startDate.DayOfWeek == 0 ? 7 : (int)startDate.DayOfWeek;
+        var targetDay = targetDayOfWeek == 0 ? 7 : (int)targetDayOfWeek;
+        
+        var daysToAdd = (7 + (targetDay - currentDay)) % 7;
+        daysToAdd += currentDay <= targetDay ? 7 : 0;
+        return startDate.AddDays(daysToAdd);  
+    }  
+
 }

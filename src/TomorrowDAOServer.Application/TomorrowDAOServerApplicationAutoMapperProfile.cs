@@ -5,6 +5,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Contract.Dto;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
+using TomorrowDAOServer.Discover.Dto;
 using TomorrowDAOServer.Discussion;
 using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Dtos;
@@ -61,6 +62,12 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<UserIndex, UserDto>().ReverseMap();
         CreateMap<AddressInfo, UserAddressInfo>().ReverseMap();
         CreateMap<TelegramAppDto, TelegramAppIndex>().ReverseMap();
+        CreateMap<SaveTelegramAppsInput, TelegramAppIndex>();
+        CreateMap<TelegramAppIndex, AppDetailDto>()
+            .ForMember(des => des.Categories, opt
+                => opt.MapFrom(source => MapCategories(source.Categories)))
+            .ForMember(des => des.AppType, opt
+                => opt.MapFrom(source => source.SourceType.ToString()));
         CreateMap<IndexerUserToken, UserTokenDto>();
         CreateMap<IndexerProposal, ProposalIndex>();
         CreateMap<ExecuteTransactionDto, ExecuteTransaction>()
@@ -138,7 +145,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<GovernanceSchemeThreshold, GovernanceSchemeThresholdDto>().ReverseMap();
         CreateMap<HighCouncilConfig, HighCouncilConfigDto>().ReverseMap();
         CreateMap<FileInfo, FileInfoDto>().ReverseMap();
-        CreateMap<File, FileDto>().ReverseMap();
+        CreateMap<DAO.File, FileDto>().ReverseMap();
         CreateMap<PermissionInfo, PermissionInfoDto>().ReverseMap();
 
         CreateMap<TreasuryFundDto, TreasuryAssetsDto>()
@@ -275,5 +282,10 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.InviteCode))
             ;
         CreateMap<UserBalance, UserBalanceIndex>();
+        CreateMap<TelegramAppIndex, DiscoverAppDto>()
+            .ForMember(des => des.Categories, opt
+                => opt.MapFrom(source => MapCategories(source.Categories)))
+            .ForMember(des => des.AppType, opt
+                => opt.MapFrom(source => source.SourceType.ToString()));
     }
 }

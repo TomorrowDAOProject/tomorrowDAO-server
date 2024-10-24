@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
+using Microsoft.Extensions.Logging;
 using Nest;
+using Orleans;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
-using TomorrowDAOServer.Referral.Dto;
+using TomorrowDAOServer.Grains.Grain.Referral;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Referral.Provider;
@@ -17,18 +19,25 @@ public interface IReferralInviteProvider
     Task<List<ReferralInviteRelationIndex>> GetByIdsAsync(List<string> ids);
     Task BulkAddOrUpdateAsync(List<ReferralInviteRelationIndex> list);
     Task AddOrUpdateAsync(ReferralInviteRelationIndex relationIndex);
-    Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
-    Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(InviteLeaderBoardInput input);
+    Task<long> GetAccountCreationAsync(long startTime, long endTime, string chainId, string inviterCaHash);
+    Task<long> GetInvitedCountByInviterCaHashAsync(long startTime, long endTime, string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false);
+    Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(long startTime, long endTime);
     Task<List<ReferralInviteRelationIndex>> GetByTimeRangeAsync(long startTime, long endTime);
+    Task<long> IncrementInviteCountAsync(string chainId, string address, long delta);
+    Task<long> GetInviteCountAsync(string chainId, string address);
 }
 
 public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDependency
 {
     private readonly INESTRepository<ReferralInviteRelationIndex, string> _referralInviteRepository;
+    private readonly IClusterClient _clusterClient;
+    private readonly ILogger<ReferralInviteProvider> _logger;
 
-    public ReferralInviteProvider(INESTRepository<ReferralInviteRelationIndex, string> referralInviteRepository)
+    public ReferralInviteProvider(INESTRepository<ReferralInviteRelationIndex, string> referralInviteRepository, IClusterClient clusterClient, ILogger<ReferralInviteProvider> logger)
     {
         _referralInviteRepository = referralInviteRepository;
+        _clusterClient = clusterClient;
+        _logger = logger;
     }
 
     public async Task<ReferralInviteRelationIndex> GetByNotVoteInviteeCaHashAsync(string chainId, string inviteeCaHash)
@@ -92,13 +101,40 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         await _referralInviteRepository.AddOrUpdateAsync(relationIndex);
     }
 
-    public async Task<long> GetInvitedCountByInviterCaHashAsync(string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false)
+    public async Task<long> GetAccountCreationAsync(long startTime, long endTime, string chainId, string inviterCaHash)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
-            q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash))
+            q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash)),
         };
+        if (startTime != 0 && endTime != 0)
+        {
+            var startTimeInSeconds = startTime / 1000;
+            var endTimeInSeconds = endTime / 1000;
+
+            mustQuery.Add(q => q.Range(r => r
+                .Field(f => f.Timestamp).GreaterThanOrEquals(startTimeInSeconds).LessThanOrEquals(endTimeInSeconds)
+            ));
+        }
+        QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _referralInviteRepository.CountAsync(Filter)).Count;
+    }
+
+    public async Task<long> GetInvitedCountByInviterCaHashAsync(long startTime, long endTime, string chainId, string inviterCaHash, bool isVoted, bool isActivityVote = false)
+    {
+        
+        var mustQuery = new List<Func<QueryContainerDescriptor<ReferralInviteRelationIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(t => t.InviterCaHash).Value(inviterCaHash)),
+        };
+        if (startTime != 0 && endTime != 0)
+        {
+            var starTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(startTime).DateTime;
+            var endTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(endTime).DateTime;
+            mustQuery.Add(q => q.DateRange(r => r.Field(f => f.FirstVoteTime).GreaterThanOrEquals(starTimeDate).LessThanOrEquals(endTimeDate)));
+        }
         if (isVoted)
         {
             mustQuery.Add(q => q.Exists(e => e.Field(f => f.FirstVoteTime)));
@@ -113,28 +149,25 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         return (await _referralInviteRepository.CountAsync(Filter)).Count;
     }
 
-    public async Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
+    public async Task<IReadOnlyCollection<KeyedBucket<string>>> InviteLeaderBoardAsync(long startTime, long endTime)
     {
-        DateTime starTime = DateTimeOffset.FromUnixTimeMilliseconds(input.StartTime).DateTime;
-        DateTime endTime = DateTimeOffset.FromUnixTimeMilliseconds(input.EndTime).DateTime;
-
         var query = new SearchDescriptor<ReferralInviteRelationIndex>()
             .Query(q => q.Bool(b => b
                 .Must(
-                    m => m.Exists(e => e.Field(f => f.FirstVoteTime))
-                )
-                .Filter(
+                    m => m.Exists(e => e.Field(f => f.FirstVoteTime)),
                     f => f.Term(t => t.Field(f => f.IsReferralActivity).Value(true)),
                     f => f.Wildcard(w => w.Field(f => f.ReferralCode).Value("*?*")),
                     f => f.Wildcard(w => w.Field(f => f.InviterCaHash).Value("*?*"))
                 )));
 
-        if (input.StartTime != 0 && input.EndTime != 0)
+        if (startTime != 0 && endTime != 0)
         {
+            DateTime starTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(startTime).DateTime;
+            DateTime endTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(endTime).DateTime;
             query = query.Query(q => q.DateRange(r => r
                 .Field(f => f.FirstVoteTime)
-                .GreaterThanOrEquals(starTime)
-                .LessThanOrEquals(endTime)));
+                .GreaterThanOrEquals(starTimeDate)
+                .LessThanOrEquals(endTimeDate)));
         }
 
         query = query.Aggregations(a => a
@@ -163,5 +196,34 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
         QueryContainer Filter(QueryContainerDescriptor<ReferralInviteRelationIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await IndexHelper.GetAllIndex(Filter, _referralInviteRepository);
+    }
+
+    public async Task<long> IncrementInviteCountAsync(string chainId, string address, long delta)
+    {
+        try
+        {
+            var grain = _clusterClient.GetGrain<IReferralInviteCountGrain>(GuidHelper.GenerateGrainId(chainId, address));
+            return await grain.IncrementInviteCountAsync(delta);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "IncrementInviteCountAsyncException chainId {chainId} address {address} delta {delta}", 
+                chainId, address, delta);
+            return -1;
+        }
+    }
+
+    public async Task<long> GetInviteCountAsync(string chainId, string address)
+    {
+        try
+        {
+            var grain = _clusterClient.GetGrain<IReferralInviteCountGrain>(GuidHelper.GenerateGrainId(chainId, address));
+            return await grain.GetInviteCountAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetInviteCountAsyncException chainId {chainId} address {address}", chainId, address);
+            return 0;
+        }
     }
 }

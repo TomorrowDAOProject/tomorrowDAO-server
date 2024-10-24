@@ -91,7 +91,7 @@ public class ReferralSyncDataService : ScheduleSyncDataService
                     link.ChainId = chainId;
                 }
 
-                await _referralLinkProvider.BulkAddOrUpdate(newLinks);
+                await _referralLinkProvider.BulkAddOrUpdateAsync(newLinks);
                 currentLinks.AddRange(newLinks);
             }
             var currentLinksDict = currentLinks

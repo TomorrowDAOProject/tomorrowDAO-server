@@ -9,11 +9,15 @@ public static class CommonConstant
     
     public const long LongError = -1;
     public const string Comma = ",";
+    public const string Add = "+";
     public const string Underline = "_";
     public const string Middleline = "-";
     public const string Colon = ":";
-
+    public const string Space = " ";
+    public const char SpaceChar = ' ';
     public const string EmptyString = "";
+    public const string LeftParenthesis = "{";
+    public const string RightParenthesis = "}";
     public const string ELF = "ELF";
     public const string USDT = "USDT";
     public const string USD = "USD";
@@ -25,6 +29,7 @@ public static class CommonConstant
 
     public const string CaContractAddressName = "CaAddress";
     public const string VoteContractAddressName = "VoteContractAddress";
+    public const string GovernanceContractAddress = "GovernanceContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
     public const string ProxyAccountContractAddressName = "AElf.Contracts.ProxyAccountContract";
 
@@ -36,6 +41,7 @@ public static class CommonConstant
     public const string TokenMethodTransfer = "Transfer";
     public const string TokenMethodGetTokenInfo = "GetTokenInfo";
     public const string TokenMethodIssue = "Issue";
+    public const string GovernanceMethodCreateProposal = "CreateProposal";
     public const string ProxyAccountMethodGetProxyAccountByAddress = "GetProxyAccountByProxyAccountAddress";
     public const string Acs3MethodGetProposal = "GetProposal";
     public const string OrganizationMethodGetOrganization = "GetOrganization";
@@ -52,7 +58,11 @@ public static class CommonConstant
     public const string VoteEventVoted = "Voted";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
-    public const string DescriptionPattern = @"^##GameRanking:(?:\s*[a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)?$";
+    public const string DescriptionIconBegin = "#B:";
+
+    public const string OldDescriptionPattern = @"^##GameRanking\s*:\s*([a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)\s*$";
+    public const string NewDescriptionPattern = @"^##GameRanking[\s]*:[\s]*((?:\{[^{}]+\}[,]?)+)(?:#B[\s]*:[\s]*(?:\{([^{}]*)?\})?)?$";
+    public const string NewDescriptionAliasPattern =  @"\{([^{}]+)\}";
     public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;
@@ -97,4 +107,26 @@ public static class CommonConstant
             _ => string.Empty
         };
     }
+    
+    // Information
+    public const string ProposalId = "ProposalId";
+    public const string ProposalTitle = "ProposalTitle";
+    public const string Alias = "Alias";
+    public const string CycleStartTime = "CycleStartTime";
+    public const string CycleEndTime = "CycleEndTime";
+    public const string InviteCount = "InviteCount";
+    public const string Rank = "Rank";
+    public const string Inviter = "Inviter";
+    public const string Invitee = "Invitee";
+    
+    // Discover
+    public const string Recommend = "Recommend";
+    public const double InterestedPercent = 0.75;
+    
+    // App
+    public const string System = "System";
+    public const string ConnectionProposalIdMap = "ConnectionProposalIdMap";
+    
+    //GrainId
+    public const string GrainIdTelegramAppSequence = "TelegramAppSequence";
 }

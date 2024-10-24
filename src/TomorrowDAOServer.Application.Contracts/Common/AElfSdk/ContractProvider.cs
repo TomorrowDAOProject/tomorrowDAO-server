@@ -167,8 +167,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
             return string.Empty;
         }
     }
-
-
+    
     public async Task<(Hash transactionId, Transaction transaction)> CreateCallTransactionAsync(string chainId,
         string contractName, string methodName, IMessage param, string contractAddress = null)
     {

@@ -41,7 +41,7 @@ public class TokenController
 
     [HttpGet]
     [Route("tvl")]
-    public async Task<double> GetTokenPriceAsync(string chainId)
+    public async Task<TvlDetail> GetTokenPriceAsync(string chainId)
     {
         return await _tokenService.GetTvlAsync(chainId);
     }

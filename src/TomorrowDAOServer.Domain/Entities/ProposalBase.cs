@@ -88,4 +88,7 @@ public class ProposalBase : BlockInfoBase
     public bool IsNetworkDAO { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]
     public ProposalCategory ProposalCategory { get; set; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public RankingType RankingType { get; set; }
+    [Keyword] public string ProposalIcon { get; set; }
 }

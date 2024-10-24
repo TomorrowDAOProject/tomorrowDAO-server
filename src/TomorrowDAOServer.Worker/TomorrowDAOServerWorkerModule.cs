@@ -26,6 +26,9 @@ namespace TomorrowDAOServer.Worker
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalNumUpdateWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ReferralSyncWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<UserBalanceSyncWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ReferralTopInviterGenerateWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalRedisUpdateWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<TopProposalGenerateWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<NetworkDaoMainChainProposalSyncWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<NetworkDaoSideChainProposalSyncWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<NetworkDaoMainChainOrgDataSyncWorker>());

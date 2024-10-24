@@ -15,7 +15,6 @@ public interface IUserProvider
     Task<Tuple<string, string>> GetUserAddressAndCaHashAsync(Guid userId, string chainId);
     Task<string> GetAndValidateUserAddressAsync(Guid userId, string chainId);
     Task<Tuple<string, string>> GetAndValidateUserAddressAndCaHashAsync(Guid userId, string chainId);
-
 }
 
 public class UserProvider : IUserProvider, ISingletonDependency

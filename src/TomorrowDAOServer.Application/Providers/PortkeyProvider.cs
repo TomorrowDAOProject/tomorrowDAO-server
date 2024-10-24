@@ -222,7 +222,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            _logger.LogError(e, "GetHolderInfosAsyncException caHash {0}", caHash);
         }
 
         return new HolderInfoIndexerDto();
