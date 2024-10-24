@@ -49,12 +49,12 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task SaveTelegramAppAsyncTest()
     {
-        var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+        var exception = await Assert.ThrowsAsync<Volo.Abp.Validation.AbpValidationException>(async () =>
         {
             await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput());
         });
-        exception.ShouldNotBeNull();
-        exception.Message.ShouldNotBeNull();
+        exception.Message.ShouldContain("Method arguments are not valid");
+        
         
         Login(Guid.NewGuid(),Address2);
         await _telegramService.SaveTelegramAppAsync(new BatchSaveAppsInput
