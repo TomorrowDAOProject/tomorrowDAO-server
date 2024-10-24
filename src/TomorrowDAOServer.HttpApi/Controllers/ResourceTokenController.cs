@@ -9,7 +9,7 @@ namespace TomorrowDAOServer.Controllers;
 
 [RemoteService]
 [Area("app")]
-[ControllerName("Dao")]
+[ControllerName("Resource")]
 [Route("api/app/resource")]
 public class ResourceTokenController
 {
