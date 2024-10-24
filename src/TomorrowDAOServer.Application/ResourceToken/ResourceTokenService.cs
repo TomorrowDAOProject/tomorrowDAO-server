@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Common;
@@ -57,7 +58,7 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
 
         var results = new List<TurnoverDto>();
         var latestList = await _resourceTokenProvider.GetLatestAsync(1, input.Type, string.Empty);
-        var lastPrice =latestList.IsNullOrEmpty() ? "0" : latestList[0].BaseAmount.ToString();
+        var lastPrice = latestList.IsNullOrEmpty() ? "0" : (latestList[0].BaseAmount / Math.Pow(10, 8)).ToString(CultureInfo.InvariantCulture);
         for (var i = 0; i < intervals.Count - 1; i++)
         {
             var volume = groupedResults[i].Sum(item => item.BaseAmount);
@@ -96,13 +97,11 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
         var currentTime = DateTime.UtcNow;
         var intervalSpan = TimeSpan.FromMilliseconds(interval);
         var nearestEndTime = AdjustToNearestInterval(currentTime, interval);
-        var intervals = new List<DateTime>();
-        for (var i = 0; i < range; i++)
-        {
-            intervals.Add(nearestEndTime);
-            nearestEndTime -= intervalSpan;
-        }
-
+        var intervals = Enumerable.Range(0, range)
+            .Select(i => nearestEndTime - i * intervalSpan)
+            .Reverse()
+            .Concat(new[] { currentTime })
+            .ToList();
         return intervals;
     }
 
@@ -118,7 +117,7 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
                     currentTime.Month,
                     currentTime.Day,
                     currentTime.Hour,
-                    (currentTime.Minute / (interval / 60000)) * (interval / 60000),
+                    currentTime.Minute / (interval / 60000) * (interval / 60000),
                     0, DateTimeKind.Utc);
             
             case 14400000:
@@ -126,7 +125,7 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
                     currentTime.Year,
                     currentTime.Month,
                     currentTime.Day,
-                    (currentTime.Hour / 4) * 4,
+                    currentTime.Hour / 4 * 4,
                     0, 0, DateTimeKind.Utc);
 
             case 86400000:
@@ -137,16 +136,15 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
                     0, 0, 0, DateTimeKind.Utc);
 
             case 604800000:
-                int daysToSubtract = (int)currentTime.DayOfWeek;
+                var daysToSubtract = (int)currentTime.DayOfWeek;
                 var startOfWeek = currentTime.AddDays(-daysToSubtract);
                 return new DateTime(
                     startOfWeek.Year,
                     startOfWeek.Month,
                     startOfWeek.Day,
                     0, 0, 0, DateTimeKind.Utc);
-
             default:
-                throw new UserFriendlyException($"Unsupported interval : {interval}");
+                throw new UserFriendlyException($"Invalid interval : {interval}");
         }
     }
 }
