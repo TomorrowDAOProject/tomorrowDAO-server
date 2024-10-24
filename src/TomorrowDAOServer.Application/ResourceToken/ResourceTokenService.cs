@@ -46,13 +46,13 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
         {
             for (var i = 0; i < intervals.Count - 1; i++)
             {
-                if (record.OperateTime < intervals[i + 1] || record.OperateTime >= intervals[i])
+                var end = intervals[i + 1];
+                var start = intervals[i];
+                if (record.OperateTime < end && record.OperateTime >= start)
                 {
-                    continue;
+                    groupedResults[i].Add(record);
+                    break;
                 }
-
-                groupedResults[i].Add(record);
-                break;
             }
         }
 
