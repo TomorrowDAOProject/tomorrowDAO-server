@@ -23,14 +23,18 @@ public class NetworkDaoController
     private readonly INetworkDaoProposalService _networkDaoProposalService;
     private readonly INetworkDaoTreasuryService _networkDaoTreasuryService;
     private readonly INetworkDaoElectionService _networkDaoElectionService;
+    private readonly INetworkDaoVoteService _networkDaoVoteService;
 
-    public NetworkDaoController(INetworkDaoProposalService networkDaoProposalService, ILogger<NetworkDaoController> logger,
-        INetworkDaoTreasuryService networkDaoTreasuryService, INetworkDaoElectionService networkDaoElectionService)
+    public NetworkDaoController(INetworkDaoProposalService networkDaoProposalService,
+        ILogger<NetworkDaoController> logger,
+        INetworkDaoTreasuryService networkDaoTreasuryService, INetworkDaoElectionService networkDaoElectionService,
+        INetworkDaoVoteService networkDaoVoteService)
     {
         _networkDaoProposalService = networkDaoProposalService;
         _logger = logger;
         _networkDaoTreasuryService = networkDaoTreasuryService;
         _networkDaoElectionService = networkDaoElectionService;
+        _networkDaoVoteService = networkDaoVoteService;
     }
 
     [HttpGet("proposal")]
@@ -45,6 +49,12 @@ public class NetworkDaoController
         return await _networkDaoProposalService.GetProposalInfoAsync(input);
     }
 
+    [HttpGet("proposal/votedList")]
+    public async Task<GetVotedListPageResult> GetVotedListAsync(GetVotedListInput input)
+    {
+        return await _networkDaoVoteService.GetVotedListAsync(input);
+    }
+
     [Obsolete]
     [HttpGet("proposal/list")]
     public async Task<ExplorerProposalResponse> GetProposalListAsync(ProposalListRequest request)
@@ -52,6 +62,7 @@ public class NetworkDaoController
         return await _networkDaoProposalService.GetProposalListAsync(request);
     }
 
+    [Obsolete]
     [HttpGet("proposal/detail")]
     public async Task<NetworkDaoProposalDto> GetProposalInfoAsync(ProposalInfoRequest request)
     {
@@ -63,7 +74,7 @@ public class NetworkDaoController
     {
         return await _networkDaoProposalService.GetHomePageAsync(homePageRequest);
     }
-    
+
     [HttpGet("treasury/balance")]
     public async Task<TreasuryBalanceResponse> TreasuryBalanceAsync(TreasuryBalanceRequest request)
     {

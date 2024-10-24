@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using JetBrains.Annotations;
@@ -21,17 +22,19 @@ public interface INetworkDaoEsDataProvider
     Task BulkAddOrUpdateOrgIndexAsync(List<NetworkDaoOrgIndex> orgIndices);
     Task BulkAddOrUpdateOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberIndices);
     Task BulkAddOrUpdateOrgProposerIndexAsync(List<NetworkDaoOrgProposerIndex> orgProposerIndices);
+    Task BulkDeleteOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberList);
+    Task BulkDeleteOrgProposerIndexAsync(List<NetworkDaoOrgProposerIndex> orgProposerList);
     Task<Tuple<long, List<NetworkDaoProposalListIndex>>> GetProposalListListAsync(GetProposalListInput request);
     Task<Tuple<long, List<NetworkDaoProposalIndex>>> GetProposalListAsync(GetProposalListInput getProposalListInput);
     Task<NetworkDaoProposalIndex> GetProposalIndexAsync(GetProposalInfoInput input);
-    Task<List<NetworkDaoOrgMemberIndex>> GetOrgMemberIndexByOrgAddressAsync(string chainId,
-        [ItemCanBeNull] List<string> orgAddressList);
+
+    Task<List<NetworkDaoOrgMemberIndex>>
+        GetOrgMemberIndexByOrgAddressAsync(string chainId, List<string> orgAddressList);
 
     Task<Tuple<long, List<NetworkDaoOrgProposerIndex>>> GetOrgProposerIndexByOrgAddressAsync(
         GetOrgProposerListInput input);
 
-    Task BulkDeleteOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberList);
-    Task BulkDeleteOrgProposerIndexAsync(List<NetworkDaoOrgProposerIndex> orgProposerList);
+    Task<Tuple<long, List<NetworkDaoProposalVoteIndex>>> GetProposalVotedListAsync(GetVotedListInput input);
 }
 
 public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDependency
@@ -43,7 +46,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
     private readonly INESTRepository<NetworkDaoOrgIndex, string> _orgIndexRepository;
     private readonly INESTRepository<NetworkDaoOrgMemberIndex, string> _orgMemberIndexRepository;
     private readonly INESTRepository<NetworkDaoOrgProposerIndex, string> _orgProposerIndexRepository;
-    
+
     public NetworkDaoEsDataProvider(ILogger<NetworkDaoEsDataProvider> logger,
         INESTRepository<NetworkDaoProposalIndex, string> proposalIndexRepository,
         INESTRepository<NetworkDaoProposalListIndex, string> proposalListIndexRepository,
@@ -67,6 +70,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             return;
         }
+
         await _proposalIndexRepository.BulkAddOrUpdateAsync(proposalList);
     }
 
@@ -76,6 +80,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             return;
         }
+
         await _proposalListIndexRepository.BulkAddOrUpdateAsync(proposalListList);
     }
 
@@ -85,6 +90,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             return;
         }
+
         await _proposalVoteIndexRepository.BulkAddOrUpdateAsync(voteIndices);
     }
 
@@ -94,6 +100,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             return;
         }
+
         await _orgIndexRepository.BulkAddOrUpdateAsync(orgIndices);
     }
 
@@ -103,6 +110,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             return;
         }
+
         await _orgMemberIndexRepository.BulkAddOrUpdateAsync(orgMemberIndices);
     }
 
@@ -112,6 +120,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             return;
         }
+
         await _orgProposerIndexRepository.BulkAddOrUpdateAsync(orgProposerIndices);
     }
 
@@ -148,8 +157,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
 
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalIndex> f) =>
             f.Bool(b => contentShouldQuery.Any()
-                ? b.Must(mustQuery)
-                    .Should(s => s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)))
+                ? b.Must(mustQuery).Should(contentShouldQuery).MinimumShouldMatch(1)
                 : b.Must(mustQuery)
             );
 
@@ -179,37 +187,92 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _proposalIndexRepository.GetAsync(Filter);
     }
-    
-    public async Task<List<NetworkDaoOrgMemberIndex>> GetOrgMemberIndexByOrgAddressAsync(string chainId, [ItemCanBeNull] List<string> orgAddressList)
+
+    public async Task<List<NetworkDaoOrgMemberIndex>> GetOrgMemberIndexByOrgAddressAsync(string chainId,
+        [ItemCanBeNull] List<string> orgAddressList)
     {
         if (chainId.IsNullOrWhiteSpace() || orgAddressList.IsNullOrEmpty())
         {
             return new List<NetworkDaoOrgMemberIndex>();
         }
+
         var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoOrgMemberIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
             q => q.Terms(i => i.Field(t => t.OrgAddress).Terms(orgAddressList))
         };
-        
+
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoOrgMemberIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _orgMemberIndexRepository.GetListAsync(Filter)).Item2 ?? new List<NetworkDaoOrgMemberIndex>();
     }
-    
-    public async Task<Tuple<long, List<NetworkDaoOrgProposerIndex>>> GetOrgProposerIndexByOrgAddressAsync(GetOrgProposerListInput input)
+
+    public async Task<Tuple<long, List<NetworkDaoOrgProposerIndex>>> GetOrgProposerIndexByOrgAddressAsync(
+        GetOrgProposerListInput input)
     {
         if (input.ChainId.IsNullOrWhiteSpace() || input.OrgAddressList.IsNullOrEmpty())
         {
             return new Tuple<long, List<NetworkDaoOrgProposerIndex>>(0, new List<NetworkDaoOrgProposerIndex>());
         }
+
         var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoOrgProposerIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)),
             q => q.Terms(i => i.Field(t => t.OrgAddress).Terms(input.OrgAddressList))
         };
-        
+
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoOrgProposerIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await _orgProposerIndexRepository.GetListAsync(Filter) ?? new Tuple<long, List<NetworkDaoOrgProposerIndex>>(0, new List<NetworkDaoOrgProposerIndex>());
+        return await _orgProposerIndexRepository.GetListAsync(Filter) ??
+               new Tuple<long, List<NetworkDaoOrgProposerIndex>>(0, new List<NetworkDaoOrgProposerIndex>());
+    }
+
+    public async Task<Tuple<long, List<NetworkDaoProposalVoteIndex>>> GetProposalVotedListAsync(GetVotedListInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalVoteIndex>, QueryContainer>>()
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId))
+        };
+
+        if (!input.ProposalId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.ProposalId).Value(input.ProposalId)));
+        }
+
+        if (!input.ProposalIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Terms(i => i.Field(t => t.ProposalId).Terms(input.ProposalIds)));
+        }
+
+        var shouldQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalVoteIndex>, QueryContainer>>();
+        if (!input.Search.IsNullOrWhiteSpace())
+        {
+            shouldQuery.Add(q => q.Term(i => i.Field(t => t.Address).Value(input.Search)));
+            shouldQuery.Add(q => q.Term(i => i.Field(t => t.TransactionInfo.TransactionId).Value(input.Search)));
+        }
+        //
+        // QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalVoteIndex> f) =>
+        //     f.Bool(b => shouldQuery.Any()
+        //         ? b.Must(mustQuery).Should(s => s.Bool(sb => sb.Should(shouldQuery).MinimumShouldMatch(1)))
+        //         : b.Must(mustQuery)
+        //     );
+        QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalVoteIndex> f) =>
+            f.Bool(b => shouldQuery.Any()
+                ? b.Must(mustQuery).Should(shouldQuery).MinimumShouldMatch(1)
+                : b.Must(mustQuery)
+            );
+
+        Func<SortDescriptor<NetworkDaoProposalVoteIndex>, IPromise<IList<ISort>>> sortDescriptor = null;
+        if (input.Sorting.IsNullOrWhiteSpace())
+        {
+            sortDescriptor =
+                _ => new SortDescriptor<NetworkDaoProposalVoteIndex>().Descending(a => a.Time);
+        }
+        else
+        {
+            sortDescriptor = CreateSortDescriptor<NetworkDaoProposalVoteIndex>(input.Sorting);
+        }
+
+        return await _proposalVoteIndexRepository.GetSortListAsync(Filter, sortFunc: sortDescriptor,
+            skip: input.SkipCount, limit: input.MaxResultCount);
     }
 
     public async Task BulkDeleteOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberList)
@@ -218,6 +281,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             return;
         }
+
         await _orgMemberIndexRepository.BulkDeleteAsync(orgMemberList);
     }
 
@@ -329,5 +393,28 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.ProposalId).Query(request.Search)));
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.ContractAddress).Query(request.Search)));
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.Proposer).Query(request.Search)));
+    }
+
+    private static Func<SortDescriptor<T>, IPromise<IList<ISort>>> CreateSortDescriptor<T>(string sortString)
+        where T : class
+    {
+        var sorting = sortString.Trim().Split(' ');
+        var fieldName = sorting[0];
+        var ascending = true;
+        if (sorting.Length >= 2)
+        {
+            ascending = !sorting[1].Equals("DESC", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return sortDesc => ascending
+            ? sortDesc.Ascending(CreateSortExpression<T>(fieldName))
+            : sortDesc.Descending(CreateSortExpression<T>(fieldName));
+    }
+
+    private static Expression<Func<T, object>> CreateSortExpression<T>(string fieldName)
+    {
+        var param = Expression.Parameter(typeof(T), "x");
+        var body = Expression.Convert(Expression.PropertyOrField(param, fieldName), typeof(object));
+        return Expression.Lambda<Func<T, object>>(body, param);
     }
 }

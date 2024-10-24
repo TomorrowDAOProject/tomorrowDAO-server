@@ -208,6 +208,10 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<TomorrowDAOServer.NetworkDao.Index.IndexerOrgChanged, TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex>()
             .ForMember(des => des.OrgAddress, opt => opt.MapFrom(src => src.OrganizationAddress))
             .ForMember(des => des.TxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId));
+        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoProposalVoteIndex, TomorrowDAOServer.NetworkDao.Migrator.ES.GetVotedListResultDto>()
+            .ForMember(des => des.Voter, opt => opt.MapFrom(src => src.Address))
+            .ForMember(des => des.TxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId))
+            .ForMember(des => des.Action, opt => opt.MapFrom(src => src.ReceiptType));
 
         CreateMap<IndexerVoteRecord, IndexerVoteHistoryDto>()
             .ForMember(des => des.TimeStamp, opt

@@ -176,6 +176,11 @@ public class ClusterFixture : IDisposable, ISingletonDependency
             return instance;
         }
 
+        public Task<T> CallTransactionWithMessageAsync<T>(string chainId, Transaction transaction) where T : class, IMessage<T>, new()
+        {
+            return default;
+        }
+
         public Task<TransactionResultDto> QueryTransactionResultAsync(string transactionId, string chainId)
         {
             throw new NotImplementedException();
