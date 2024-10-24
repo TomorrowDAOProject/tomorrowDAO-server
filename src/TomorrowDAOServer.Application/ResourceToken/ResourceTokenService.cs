@@ -61,7 +61,7 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
         var lastPrice = latestList.IsNullOrEmpty() ? "0" : (latestList[0].BaseAmount / Math.Pow(10, 8)).ToString(CultureInfo.InvariantCulture);
         for (var i = 0; i < intervals.Count - 1; i++)
         {
-            var volume = groupedResults[i].Sum(item => item.BaseAmount);
+            var volume = groupedResults[i].Sum(item => item.ResourceAmount) / Math.Pow(10, 8);
             var prices = groupedResults[i]
                 .OrderByDescending(item => item.OperateTime)
                 .Select(item => item.BaseAmount.ToString())
@@ -133,7 +133,10 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
                     currentTime.Year,
                     currentTime.Month,
                     currentTime.Day,
-                    0, 0, 0, DateTimeKind.Utc);
+                    currentTime.Hour,
+                    0, 
+                    0, 
+                    DateTimeKind.Utc);
 
             case 604800000:
                 var daysToSubtract = (int)currentTime.DayOfWeek;
@@ -142,7 +145,7 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
                     startOfWeek.Year,
                     startOfWeek.Month,
                     startOfWeek.Day,
-                    0, 0, 0, DateTimeKind.Utc);
+                    currentTime.Hour, 0, 0, DateTimeKind.Utc);
             default:
                 throw new UserFriendlyException($"Invalid interval : {interval}");
         }
