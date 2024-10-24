@@ -27,10 +27,20 @@ public partial class ElectionServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetHighCouncilMembersAsyncTest()
     {
+        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
+        {
+            await _electionService.GetHighCouncilMembersAsync(new HighCouncilMembersInput
+            {
+                ChainId = ChainIdAELF,
+                Alias = "DaoAlias"
+            });
+        });
+        exception.Message.ShouldContain("No DAO information found.");
+        
         var result = await _electionService.GetHighCouncilMembersAsync(new HighCouncilMembersInput
         {
             ChainId = ChainIdAELF,
-            DaoId = "DaoId"
+            DaoId = DAOId
         });
         result.ShouldNotBeNull();
         result.Count.ShouldBe(2);

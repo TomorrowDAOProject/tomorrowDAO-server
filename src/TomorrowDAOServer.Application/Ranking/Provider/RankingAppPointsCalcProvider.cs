@@ -22,6 +22,7 @@ namespace TomorrowDAOServer.Ranking.Provider
         public long CalculatePointsFromExploreCumulateFiveInvite();
         public long CalculatePointsFromExploreCumulateTenInvite();
         public long CalculatePointsFromExploreCumulateTwentyInvite();
+        public long CalculatePointsFromPointsExploreForwardX();
     }
 
     public class RankingAppPointsCalcProvider : IRankingAppPointsCalcProvider, ISingletonDependency

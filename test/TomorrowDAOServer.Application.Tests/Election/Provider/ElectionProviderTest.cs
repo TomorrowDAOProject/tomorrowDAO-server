@@ -1,8 +1,10 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
-using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Election.Dto;
+using TomorrowDAOServer.Election.Index;
 using Volo.Abp;
 using Xunit;
 using Xunit.Abstractions;
@@ -53,5 +55,57 @@ public partial class ElectionProviderTest : TomorrowDaoServerApplicationTestBase
                 EndBlockHeight = 0
             });
         });
+    }
+
+    [Fact]
+    public async Task GetHighCouncilManagedDaoIndexAsyncTest()
+    {
+        await _electionProvider.SaveOrUpdateHighCouncilManagedDaoIndexAsync(new List<HighCouncilManagedDaoIndex>()
+        {
+            new HighCouncilManagedDaoIndex
+            {
+                Id = "Id",
+                MemberAddress = Address1,
+                DaoId = DAOId,
+                ChainId = ChainIdAELF,
+                CreateTime = DateTime.Now
+            }
+        });
+        
+        var councilManagedDaoIndices =
+            await _electionProvider.GetHighCouncilManagedDaoIndexAsync(new GetHighCouncilMemberManagedDaoInput
+            {
+                MaxResultCount = 10,
+                SkipCount = 0,
+                ChainId = ChainIdAELF,
+                DaoId = DAOId,
+                MemberAddress = Address1
+            });
+        councilManagedDaoIndices.ShouldNotBeNull();
+        councilManagedDaoIndices[0].MemberAddress.ShouldBe(Address1);
+
+        await _electionProvider.DeleteHighCouncilManagedDaoIndexAsync(new List<HighCouncilManagedDaoIndex>()
+        {
+            new HighCouncilManagedDaoIndex
+            {
+                Id = "Id",
+                MemberAddress = Address1,
+                DaoId = DAOId,
+                ChainId = ChainIdAELF,
+                CreateTime = DateTime.Now
+            }
+        });
+        
+        councilManagedDaoIndices =
+            await _electionProvider.GetHighCouncilManagedDaoIndexAsync(new GetHighCouncilMemberManagedDaoInput
+            {
+                MaxResultCount = 10,
+                SkipCount = 0,
+                ChainId = ChainIdAELF,
+                DaoId = DAOId,
+                MemberAddress = Address1
+            });
+        councilManagedDaoIndices.ShouldBeEmpty();
+
     }
 }

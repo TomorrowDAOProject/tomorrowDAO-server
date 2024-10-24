@@ -1,8 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
-using TomorrowDAOServer.Election;
-using TomorrowDAOServer.Enums;
 using Xunit;
 using Xunit.Abstractions;
 

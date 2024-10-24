@@ -9,6 +9,7 @@ using NSubstitute;
 using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.User.Provider;
+using Volo.Abp;
 using Volo.Abp.DistributedLocking;
 using Volo.Abp.Users;
 using Xunit.Abstractions;
@@ -17,7 +18,7 @@ using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer;
 
-public abstract partial class
+public abstract class
     TomorrowDaoServerApplicationTestBase : TomorrowDAOServerTestBase<TomorrowDAOServerApplicationTestModule>
 {
     protected const string ChainIdTDVV = "tDVV";
@@ -57,12 +58,15 @@ public abstract partial class
         services.AddSingleton(MockGraphQlOptions());
         services.AddSingleton(MockExplorerOptions());
         services.AddSingleton(MockQueryContractOption());
+        services.AddSingleton(MockContractInfoOptions());
         services.AddSingleton(MockChainOptions());
+        services.AddSingleton(MockApiOption());
+        services.AddSingleton(MockRankingOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
+        services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
         services.AddSingleton(UserProviderMock.Object);
         services.AddSingleton(CurrentUser);
-        services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
@@ -106,6 +110,42 @@ public abstract partial class
                     ConsensusContractAddress = "ConsensusContractAddress",
                     ElectionContractAddress = "ElectionContractAddress",
                     GovernanceContractAddress = "GovernanceContractAddress"
+                }
+            }
+        });
+        return mock.Object;
+    }
+
+    private static IOptionsMonitor<ContractInfoOptions> MockContractInfoOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<ContractInfoOptions>>();
+        mock.Setup(m => m.CurrentValue).Returns(new ContractInfoOptions
+        {
+            ContractInfos = new Dictionary<string, Dictionary<string, ContractInfo>>()
+            {
+                {
+                    "tDVW", new Dictionary<string, ContractInfo>()
+                    {
+                        {"2sJ8MDufVDR3V8fDhBPUKMdP84CUf1oJroi9p8Er1yRvMp3fq7", new ContractInfo
+                            {
+                                ContractAddress = "2sJ8MDufVDR3V8fDhBPUKMdP84CUf1oJroi9p8Er1yRvMp3fq7",
+                                ContractName = "TreasuryContract",
+                                FunctionList = new List<string>() { "CreateTreasury", "Donate" }
+                            }
+                        },
+                        {
+                            "RRF7deQbmicUh6CZ1R2y7U9M8n2eHPyCgXVHwiSkmNETLbL4D", new ContractInfo
+                            {
+                                ContractAddress = "RRF7deQbmicUh6CZ1R2y7U9M8n2eHPyCgXVHwiSkmNETLbL4D",
+                                ContractName = "DAOContract",
+                                FunctionList = new List<string>() {"EnableHighCouncil","UpdateGovernanceSchemeThreshold",
+                                    "RemoveGovernanceScheme","SetGovernanceToken",
+                                    "SetProposalTimePeriod","SetSubsistStatus",
+                                    "AddHighCouncilMembers","RemoveHighCouncilMembers"},
+                                MultiSigDaoMethodBlacklist = new List<string>() {"EnableHighCouncil","SetGovernanceToken","AddHighCouncilMembers","RemoveHighCouncilMembers"}
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -181,16 +221,52 @@ public abstract partial class
         return mock.Object;
     }
 
+    private IOptionsSnapshot<ApiOption> MockApiOption()
+    {
+        var mock = new Mock<IOptionsSnapshot<ApiOption>>();
+        mock.Setup(m => m.Value).Returns(new ApiOption
+        {
+            ChainNodeApis = new Dictionary<string, string>()
+            {
+                {ChainIdAELF, "https://node.chain.io"}
+            }
+        });
+        return mock.Object;
+    }
+
+    private IOptionsMonitor<RankingOptions> MockRankingOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<RankingOptions>>();
+
+        mock.Setup(m => m.CurrentValue).Returns(new RankingOptions());
+
+        return mock.Object;
+    }
+
     //Login example
     protected void Login(Guid userId, string userAddress = null)
     {
         CurrentUser.Id.Returns(userId);
         CurrentUser.IsAuthenticated.Returns(userId != Guid.Empty);
         var address = userId != Guid.Empty ? (userAddress ?? Address1) : string.Empty;
-        var addressCahash = userId != Guid.Empty ? Address1CaHash : string.Empty;
+        var addressCaHash = userId != Guid.Empty ? Address1CaHash : string.Empty;
         UserProviderMock.Setup(o => o.GetAndValidateUserAddressAsync(It.IsAny<Guid>(), It.IsAny<string>()))
-            .ReturnsAsync(address);
+            .ReturnsAsync((Guid userId, string chainId) =>
+            {
+                if (address.IsNullOrWhiteSpace())
+                {
+                    throw new UserFriendlyException("No user address found");
+                }
+                return address;
+            });
         UserProviderMock.Setup(o => o.GetAndValidateUserAddressAndCaHashAsync(It.IsAny<Guid>(), It.IsAny<string>()))
-            .ReturnsAsync(new Tuple<string, string>(address, addressCahash));
+            .ReturnsAsync((Guid userId, string chainId) =>
+            {
+                if (!address.IsNullOrWhiteSpace() && !addressCaHash.IsNullOrWhiteSpace())
+                {
+                    return new Tuple<string, string>(address, addressCaHash);
+                }
+                throw new UserFriendlyException("No user address and caHash found");
+            });
     }
 }

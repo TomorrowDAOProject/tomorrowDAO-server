@@ -1,44 +1,56 @@
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using NSubstitute;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using TomorrowDAOServer.Contract.Dto;
-using TomorrowDAOServer.Contract.Provider;
-using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Enums;
-using TomorrowDAOServer.Options;
-using Volo.Abp.ObjectMapping;
 using Xunit;
+using Xunit.Abstractions;
+using static TomorrowDAOServer.Common.TestConstant;
 
 namespace TomorrowDAOServer.Contract;
 
-public class ContractServiceTest
+public partial class ContractServiceTest : TomorrowDaoServerApplicationTestBase
 {
-    private static readonly IContractProvider ContractProvider = Substitute.For<IContractProvider>();
-
-    private readonly ContractService _contractService = new(Substitute.For<IObjectMapper>(), ContractProvider,
-        Substitute.For<IDAOProvider>(),
-        Substitute.For<ILogger<ContractService>>());
+    private readonly IContractService _contractService;
+    
+    public ContractServiceTest(ITestOutputHelper output) : base(output)
+    {
+        _contractService = Application.ServiceProvider.GetRequiredService<IContractService>();
+    }
+    
+    protected override void AfterAddApplication(IServiceCollection services)
+    {
+        base.AfterAddApplication(services);
+        services.AddSingleton(MockDaoProvider());
+    }
 
     [Fact]
-    public void GetContractInfo_Test()
+    public async Task GetContractInfo_Test()
     {
-        var result = _contractService.GetContractInfoAsync(new QueryContractsInfoInput
+        var result = await _contractService.GetContractInfoAsync(new QueryContractsInfoInput
         {
-            ChainId = "AELF",
+            ChainId = ChainIdAELF,
             DaoId = "DaoId",
             GovernanceMechanism = GovernanceMechanism.Organization
         });
         result.ShouldNotBeNull();
+        result.ContractInfoList.ShouldBeEmpty();
+        
+        result = await _contractService.GetContractInfoAsync(new QueryContractsInfoInput
+        {
+            ChainId = ChainIdtDVW,
+            DaoId = "DaoId",
+            GovernanceMechanism = null
+        });
+        result.ShouldNotBeNull();
+        result.ContractInfoList.ShouldNotBeNull();
+        result.ContractInfoList.Count.ShouldBe(2);
     }
 
     [Fact]
     public void GetFunctionList_Test()
     {
-        ContractProvider.GetContractInfo(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new List<ContractInfo>());
-
-        var result = _contractService.GetFunctionList("AELF", "contractAddress");
+        var result = _contractService.GetFunctionList(ChainIdAELF, "contractAddress");
         result.ShouldNotBeNull();
     }
 }
