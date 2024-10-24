@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
@@ -13,7 +12,6 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
-using TomorrowDAOServer.Ranking.Dto;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Proposal.Provider;
