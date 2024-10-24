@@ -1,36 +1,32 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Common.Provider;
-using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
+using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.ResourceToken.Provider;
-using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.ResourceToken;
 
 public class ResourceTokenParseService : ScheduleSyncDataService
 {
     private readonly ILogger<ScheduleSyncDataService> _logger;
-    private readonly IObjectMapper _objectMapper;
-    private readonly IChainAppService _chainAppService;
     private readonly IResourceTokenProvider _resourceTokenProvider;
-    private readonly ITransactionService _transactionService;
+    private readonly IExplorerProvider _explorerProvider;
     
-    public ResourceTokenParseService(ILogger<DAOSyncDataService> logger, IObjectMapper objectMapper,
-        IGraphQLProvider graphQlProvider, IChainAppService chainAppService, IResourceTokenProvider resourceTokenProvider, 
-        ITransactionService transactionService)
+    public ResourceTokenParseService(ILogger<DAOSyncDataService> logger, IGraphQLProvider graphQlProvider,
+        IResourceTokenProvider resourceTokenProvider, IExplorerProvider explorerProvider)
         : base(logger, graphQlProvider)
     {
         _logger = logger;
-        _objectMapper = objectMapper;
-        _chainAppService = chainAppService;
         _resourceTokenProvider = resourceTokenProvider;
-        _transactionService = transactionService;
+        _explorerProvider = explorerProvider;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
@@ -48,8 +44,15 @@ public class ResourceTokenParseService : ScheduleSyncDataService
             foreach (var index in queryList)
             {
                 var txId = index.TransactionId;
-                var transaction = await _transactionService.GetTransactionById(chainId, txId);
-                index.Address = transaction?.Transaction?.From ?? string.Empty;
+                var transaction = await _explorerProvider.GetTransactionDetailAsync(
+                    CommonConstant.MainChainId, new ExplorerTransactionDetailRequest { ChainId = CommonConstant.MainChainId, TransactionId = txId });
+                if (transaction?.List == null || transaction.List.IsNullOrEmpty())
+                {
+                    continue;
+                }
+                var transferDetail = transaction.List[0].TokenTransferreds
+                    .FirstOrDefault(x => x.To.Name == SystemContractName.TokenConverterContract);
+                index.Address = transferDetail?.From?.Address ?? string.Empty;
             }
             
             await _resourceTokenProvider.BulkAddOrUpdateAsync(queryList);

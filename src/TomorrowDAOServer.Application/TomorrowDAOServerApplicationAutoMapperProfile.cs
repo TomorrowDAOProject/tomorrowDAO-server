@@ -291,7 +291,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.SourceType.ToString()));
         CreateMap<IndexerResourceTokenDto, ResourceTokenIndex>()
             .ForMember(des => des.Address, opt
-                => opt.MapFrom(source => MapResourceTokenAddress(source.TransactionInfo)))
+                => opt.MapFrom(source => CommonConstant.NeedParse))
             ;
         CreateMap<ResourceTokenIndex, RecordDto>()
             .ForMember(des => des.Tx_id, opt

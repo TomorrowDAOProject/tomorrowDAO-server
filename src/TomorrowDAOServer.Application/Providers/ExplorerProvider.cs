@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -24,9 +23,9 @@ public interface IExplorerProvider
     Task<ExplorerTokenInfoResponse> GetTokenInfoAsync(string chainId, ExplorerTokenInfoRequest request);
     Task<ExplorerPagerResult<ExplorerTransactionResponse>> GetTransactionPagerAsync(string chainId,
         ExplorerTransactionRequest request);
-
     Task<ExplorerPagerResult<ExplorerTransferResult>> GetTransferListAsync(string chainId,
         ExplorerTransferRequest request);
+    Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request);
 }
 
 public static class ExplorerApi
@@ -38,6 +37,7 @@ public static class ExplorerApi
     public static readonly ApiInfo TokenInfo = new(HttpMethod.Get, "/api/viewer/tokenInfo");
     public static readonly ApiInfo Transactions = new(HttpMethod.Get, "/api/all/transaction");
     public static readonly ApiInfo TransferList = new(HttpMethod.Get, "/api/viewer/transferList");
+    public static readonly ApiInfo TransactionDetail = new(HttpMethod.Get, "/api/app/blockchain/transactionDetail");
 }
 
 public class ExplorerProvider : IExplorerProvider, ISingletonDependency
@@ -66,11 +66,18 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         _logger = logger;
     }
 
-    public string BaseUrl(string chainId)
+    private string BaseUrl(string chainId)
     {
         var urlExists = _explorerOptions.CurrentValue.BaseUrl.TryGetValue(chainId, out var baseUrl);
         AssertHelper.IsTrue(urlExists && baseUrl.NotNullOrEmpty(), "Explorer url not found of chainId {}", chainId);
         return baseUrl!.TrimEnd('/');
+    }
+    
+    private string BaseUrlV2()
+    {
+        var baseUrlV2 = _explorerOptions.CurrentValue.BaseUrlV2;
+        AssertHelper.IsTrue(baseUrlV2.NotNullOrEmpty(), "ExplorerV2urlNotFound");
+        return baseUrlV2!.TrimEnd('/');
     }
 
     /// <summary>
@@ -171,6 +178,14 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerPagerResult<ExplorerTransferResult>>>(
             BaseUrl(chainId), ExplorerApi.TransferList, param: ToDictionary(request), settings: DefaultJsonSettings);
+        AssertHelper.IsTrue(resp.Success, resp.Msg);
+        return resp.Data;
+    }
+
+    public async Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request)
+    {
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerPagerResult<ExplorerTransactionDetailResult>>>(
+            BaseUrlV2(), ExplorerApi.TransactionDetail, param: ToDictionary(request), settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;
     }

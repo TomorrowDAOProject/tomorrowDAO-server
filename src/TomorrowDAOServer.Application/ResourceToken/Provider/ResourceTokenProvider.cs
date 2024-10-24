@@ -92,7 +92,7 @@ public class ResourceTokenProvider : IResourceTokenProvider, ISingletonDependenc
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ResourceTokenIndex>, QueryContainer>>
         {
-            q => q.Term(i => i.Field(f => f.Address).Value(string.Empty))
+            q => q.Term(i => i.Field(f => f.Address).Value(CommonConstant.NeedParse))
         };
         QueryContainer Filter(QueryContainerDescriptor<ResourceTokenIndex> f) => f.Bool(b => b.Must(mustQuery));
 
