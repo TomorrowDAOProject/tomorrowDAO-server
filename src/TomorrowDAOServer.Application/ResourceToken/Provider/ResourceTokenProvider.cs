@@ -20,7 +20,7 @@ public interface IResourceTokenProvider
         long endBlockHeight, int maxResultCount);
     Task<List<ResourceTokenIndex>> GetByIdsAsync(List<string> ids);
     Task<List<ResourceTokenIndex>> GetNeedParseAsync(int skipCount);
-    Task<List<ResourceTokenIndex>> GetLatestAsync(int limit, string type, string method);
+    Task<List<ResourceTokenIndex>> GetLatestAsync(int limit, string type, string method = null);
     Task<Tuple<long, List<ResourceTokenIndex>>> GetPageListAsync(int skipCount, int maxResultCount, string order, string address);
     Task<List<ResourceTokenIndex>> GetAllByPeriodAsync(DateTime startTime, DateTime endTime, string type);
 }

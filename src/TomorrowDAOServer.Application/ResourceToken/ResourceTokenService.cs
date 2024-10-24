@@ -41,41 +41,20 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
     {
         var intervals = GetIntervals(input.Interval, input.Range);
         var allRecords = await _resourceTokenProvider.GetAllByPeriodAsync(intervals.Min(), intervals.Max(), input.Type);
-        var groupedResults = intervals.Select(_ => new List<ResourceTokenIndex>()).ToList();
-        foreach (var record in allRecords)
-        {
-            for (var i = 0; i < intervals.Count - 1; i++)
-            {
-                var end = intervals[i + 1];
-                var start = intervals[i];
-                if (record.OperateTime < end && record.OperateTime >= start)
-                {
-                    groupedResults[i].Add(record);
-                    break;
-                }
-            }
-        }
-
-        var results = new List<TurnoverDto>();
-        var latestList = await _resourceTokenProvider.GetLatestAsync(1, input.Type, string.Empty);
+        var groupedResults = GroupRecords(allRecords, intervals);
+        var latestList = await _resourceTokenProvider.GetLatestAsync(1, input.Type);
         var lastPrice = latestList.IsNullOrEmpty() ? "0" : (latestList[0].BaseAmount / Math.Pow(10, 8)).ToString(CultureInfo.InvariantCulture);
+        var results = new List<TurnoverDto>();
         for (var i = 0; i < intervals.Count - 1; i++)
         {
             var volume = groupedResults[i].Sum(item => item.ResourceAmount) / Math.Pow(10, 8);
-            var prices = groupedResults[i]
-                .OrderByDescending(item => item.OperateTime)
-                .Select(item => item.BaseAmount.ToString())
-                .ToList();
-
-            if (!prices.Any())
-            {
-                prices.Add(lastPrice);
-            }
+            var prices = groupedResults[i].OrderByDescending(item => item.OperateTime)
+                .Select(item => item.BaseAmount.ToString()).ToList();
+            prices.Insert(0, lastPrice);
             lastPrice = prices.Last();
-
             results.Add(new TurnoverDto
             {
-                Date = intervals[i], Volume = volume.ToString(), Prices = prices
+                Date = intervals[i], Volume = volume.ToString(CultureInfo.InvariantCulture), Prices = prices
             });
         }
 
@@ -149,5 +128,28 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
             default:
                 throw new UserFriendlyException($"Invalid interval : {interval}");
         }
+    }
+
+    private List<List<ResourceTokenIndex>> GroupRecords(List<ResourceTokenIndex> allRecords, List<DateTime> intervals)
+    {
+        var groupedResults = intervals.Select(_ => new List<ResourceTokenIndex>()).ToList();
+        var currentIntervalIndex = 0; 
+        foreach (var record in allRecords)
+        {
+            while (currentIntervalIndex < intervals.Count - 1 &&
+                   record.OperateTime >= intervals[currentIntervalIndex + 1])
+            {
+                currentIntervalIndex++;
+            }
+
+            if (currentIntervalIndex < intervals.Count - 1 &&
+                record.OperateTime >= intervals[currentIntervalIndex] &&
+                record.OperateTime < intervals[currentIntervalIndex + 1])
+            {
+                groupedResults[currentIntervalIndex].Add(record);
+            }
+        }
+
+        return groupedResults;
     }
 }
