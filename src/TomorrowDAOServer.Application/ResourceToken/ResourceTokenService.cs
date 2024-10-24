@@ -32,7 +32,7 @@ public class ResourceTokenService : TomorrowDAOServerAppService, IResourceTokenS
         return new RealtimeRecordsDto
         {
             BuyRecords = _objectMapper.Map<List<ResourceTokenIndex>, List<RecordDto>>(buyList),
-            SellRecords = _objectMapper.Map<List<ResourceTokenIndex>, List<RecordDto>>(sellList)
+            SoldRecords = _objectMapper.Map<List<ResourceTokenIndex>, List<RecordDto>>(sellList)
         };
     }
 

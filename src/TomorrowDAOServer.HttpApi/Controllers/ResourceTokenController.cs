@@ -21,9 +21,9 @@ public class ResourceTokenController
     }
     
     [HttpGet("realtime-records")]
-    public async Task<RealtimeRecordsDto> GetRealtimeRecordsAsync(int limit, string type)
+    public async Task<RealtimeRecordsDto> GetRealtimeRecordsAsync(GetRealtimeRecordsInput input)
     {
-        return await _resourceTokenService.GetRealtimeRecordsAsync(limit, type);
+        return await _resourceTokenService.GetRealtimeRecordsAsync(input.Limit, input.Type);
     }
     
     [HttpGet("turnover")]
