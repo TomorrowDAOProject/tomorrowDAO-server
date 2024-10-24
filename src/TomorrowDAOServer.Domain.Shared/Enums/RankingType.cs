@@ -4,5 +4,6 @@ public enum RankingType
 {
     All = 0,
     Verified = 1,
-    Community = 2
+    Community = 2,
+    Top = 3
 }

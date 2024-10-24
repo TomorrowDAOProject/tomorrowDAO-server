@@ -115,10 +115,6 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
             _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
             _contractOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ContractOptions>>();
-            _distributedLock = context.HttpContext.RequestServices.GetRequiredService<IAbpDistributedLock>();
-            _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
-            _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
-
             _logger.LogInformation(
                 "publicKeyVal:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
                 publicKeyVal, signatureVal, address, caHash, chainId, timestamp);

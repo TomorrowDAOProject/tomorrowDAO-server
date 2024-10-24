@@ -259,7 +259,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     {
         try
         {
-            var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input);
+            var excludeIds = _rankingOptions.CurrentValue.RankingExcludeIds;
+            var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input, excludeIds);
             var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
             return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
         }
