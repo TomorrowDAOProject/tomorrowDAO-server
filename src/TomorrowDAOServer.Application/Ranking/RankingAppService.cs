@@ -164,16 +164,32 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var userAddress = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         var excludeIds = _rankingOptions.CurrentValue.RankingExcludeIds;
-        var (goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
+        var (topRankingAddress, goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         excludeIds.AddRange(topRankingIds);
         var rankingType = input.Type;
         var result = new Tuple<long, List<ProposalIndex>>(0, new List<ProposalIndex>());
         switch (rankingType)
         {
             case RankingType.Verified:
+                if (input.SkipCount == 0)
+                {
+                    input.MaxResultCount -= 1;
+                }
+                else
+                {
+                    input.SkipCount -= 1;
+                }
+                var goldProposal = await _proposalProvider.GetProposalByIdAsync(chainId, goldRankingId);
+                var officialProposals = result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
+                var res = new List<ProposalIndex> { goldProposal };
+                res.AddRange(officialProposals.Item2);
+                result = new Tuple<long, List<ProposalIndex>>(officialProposals.Item1 + 1, res);
+                break;
             case RankingType.All:
+                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty);
+                break;
             case RankingType.Community:
-                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, excludeIds);
+                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty, excludeIds);
                 break;
             case RankingType.Top:
                 var topProposals = await _proposalProvider.GetProposalByIdsAsync(chainId, topRankingIds);
@@ -211,19 +227,19 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         };
     }
 
-    private async Task<Tuple<string, List<string>>> GetTopRankingIdsAsync()
+    private async Task<Tuple<string, string, List<string>>> GetTopRankingIdsAsync()
     {
         var topRankingIds = new List<string>(_rankingOptions.CurrentValue.TopRankingIds);
         
         var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
         var topProposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress, true);
 
-        if (topProposal != null && !topRankingIds.Contains(topProposal.ProposalId))
-        {
-            topRankingIds.Insert(0, topProposal.ProposalId);
-        }
+        // if (topProposal != null && !topRankingIds.Contains(topProposal.ProposalId))
+        // {
+        //     topRankingIds.Insert(0, topProposal.ProposalId);
+        // }
 
-        return new Tuple<string, List<string>>(topProposal?.ProposalId, topRankingIds);
+        return new Tuple<string, string, List<string>>(topRankingAddress, topProposal?.ProposalId, topRankingIds);
     }
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
@@ -634,7 +650,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         var labelType = LabelTypeEnum.None;
-        var (goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
+        var (_, goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         var rankingApp = rankingAppList[0];
         var canVoteAmount = 0;
         var proposalDescription = rankingApp.ProposalDescription;
