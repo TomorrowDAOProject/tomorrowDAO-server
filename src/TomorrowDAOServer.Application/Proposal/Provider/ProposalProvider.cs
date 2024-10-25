@@ -99,10 +99,6 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     public async Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input, List<string> excludeIds = null)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
-        if (excludeIds != null && !excludeIds.IsNullOrEmpty())
-        {
-            mustQuery.Add(q => q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeIds)));
-        }
         var contentShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         var proposalShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         AssemblyBaseQuery(input, mustQuery, excludeIds);
@@ -229,26 +225,21 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
 
-        var mustNotQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
-        {
-            q => q.Terms(i => i.Field(f => f.ProposalId).Terms(chainId)), 
-            q => q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)), 
-        };
         if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
         {
-            mustQuery.Add(q => q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
         }
         
         if (!string.IsNullOrWhiteSpace(excludeAddress))
         {
-            mustQuery.Add(q => q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)));
+            mustQuery.Add(q => !q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)));
         }
         
         if (rankingType != RankingType.All)
         {
             mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));
         }
-        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery).MustNot(mustNotQuery));
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: GetDescendingDeployTimeSortDescriptor(),
             skip: skipCount, limit: maxResultCount);
@@ -403,8 +394,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     {
         if (excludeIds != null && !excludeIds.IsNullOrEmpty())
         {
-            mustQuery.Add(q => q.Bool(b =>
-                b.MustNot(mn => mn.Terms(i => i.Field(f => f.ProposalId).Terms(excludeIds)))));
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeIds)));
         }
         if (!input.ChainId.IsNullOrEmpty())
         {
