@@ -110,7 +110,7 @@ public partial class RankingAppServiceTest
         mock.Setup(o => o.GetProposalByIdAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new ProposalIndex{ActiveStartTime = DateTime.UtcNow, ActiveEndTime = DateTime.UtcNow.AddDays(1)});
         mock.Setup(o => o.GetRankingProposalListAsync(It.IsAny<string>(), It.IsAny<int>(), 
-                It.IsAny<int>(), It.IsAny<RankingType>(), It.IsAny<List<string>>()))
+                It.IsAny<int>(), It.IsAny<RankingType>(), It.IsAny<string>(), It.IsAny<List<string>>()))
             .ReturnsAsync(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex> { new() { ProposalId = ProposalId1, ActiveStartTime = DateTime.Now, ActiveEndTime = DateTime.Now.AddDays(1)} }));
         return mock.Object;
     }

@@ -43,7 +43,7 @@ public interface IProposalProvider
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
     public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
     public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
-        RankingType rankingType, List<string> excludeProposalIds);
+        RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null);
     public Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive);
     Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds);
 }
@@ -216,7 +216,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             sortExp: o => o.DeployTime);
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, List<string> excludeProposalIds)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
@@ -224,9 +224,14 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
             q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
-        if (!excludeProposalIds.IsNullOrEmpty())
+        if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
         {
             mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(excludeAddress))
+        {
+            mustQuery.Add(q => !q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)));
         }
         
         if (rankingType != RankingType.All)
