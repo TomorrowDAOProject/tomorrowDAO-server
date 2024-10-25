@@ -237,6 +237,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         // {
         //     mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));
         // }
+        
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: GetDescendingDeployTimeSortDescriptor(),
