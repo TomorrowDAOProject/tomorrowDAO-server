@@ -163,7 +163,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var chainId = input.ChainId;
         var userAddress = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        var excludeIds = _rankingOptions.CurrentValue.RankingExcludeIds;
+        var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
         var (topRankingAddress, goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         excludeIds.AddRange(topRankingIds);
         var rankingType = input.Type;
