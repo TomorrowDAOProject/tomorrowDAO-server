@@ -395,8 +395,8 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     {
         if (excludeIds != null && !excludeIds.IsNullOrEmpty())
         {
-            mustQuery.Add(q => !q.Terms(i =>
-                i.Field(f => f.ProposalId).Terms(excludeIds)));
+            mustQuery.Add(q => q.Bool(b =>
+                b.MustNot(mn => mn.Terms(i => i.Field(f => f.ProposalId).Terms(excludeIds)))));
         }
         if (!input.ChainId.IsNullOrEmpty())
         {
