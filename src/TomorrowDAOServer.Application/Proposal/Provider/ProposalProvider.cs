@@ -229,7 +229,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
         var mustNotQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
-            q => q.Terms(i => i.Field(f => f.ProposalId).Terms(chainId)), 
+            q => q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)), 
             q => q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)), 
         };
         // if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
