@@ -171,17 +171,18 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         switch (rankingType)
         {
             case RankingType.Verified:
+                var res = new List<ProposalIndex>();
                 if (input.SkipCount == 0)
                 {
+                    var goldProposal = await _proposalProvider.GetProposalByIdAsync(chainId, goldRankingId);
+                    res.Add(goldProposal);
                     input.MaxResultCount -= 1;
                 }
                 else
                 {
                     input.SkipCount -= 1;
                 }
-                var goldProposal = await _proposalProvider.GetProposalByIdAsync(chainId, goldRankingId);
                 var officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
-                var res = new List<ProposalIndex> { goldProposal };
                 res.AddRange(officialProposals.Item2);
                 result = new Tuple<long, List<ProposalIndex>>(officialProposals.Item1 + 1, res);
                 break;
