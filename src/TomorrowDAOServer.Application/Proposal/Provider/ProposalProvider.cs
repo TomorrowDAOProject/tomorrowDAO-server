@@ -96,11 +96,10 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     public async Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input, List<string> excludeIds = null)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
-        var mustNotQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>()
+        if (excludeIds != null && !excludeIds.IsNullOrEmpty())
         {
-            q => q.Terms(i =>
-                i.Field(f => f.ProposalId).Terms(excludeIds))
-        };
+            mustQuery.Add(q => q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeIds)));
+        }
         var contentShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         var proposalShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         AssemblyBaseQuery(input, mustQuery, excludeIds);
@@ -109,7 +108,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) =>
             f.Bool(b => proposalShouldQuery.Any() || contentShouldQuery.Any()
-                ? b.Must(mustQuery).MustNot(mustNotQuery)
+                ? b.Must(mustQuery)
                     .Should(s => contentShouldQuery.Any() && proposalShouldQuery.Any()
                         ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1))
                           && s.Bool(sb => sb.Should(proposalShouldQuery).MinimumShouldMatch(1))
@@ -117,7 +116,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                             ? s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1))
                             : s.Bool(sb => sb.Should(proposalShouldQuery).MinimumShouldMatch(1)))
                     .MinimumShouldMatch(1)
-                : b.Must(mustQuery).MustNot(mustNotQuery)
+                : b.Must(mustQuery)
             );
 
         //add sorting
@@ -232,17 +231,15 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)), 
             q => q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)), 
         };
-        // if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
-        // {
-        //     mustQuery.Add(q => q.Bool(b =>
-        //         b.MustNot(mn => mn.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)))));
-        // }
-        //
-        // if (!string.IsNullOrWhiteSpace(excludeAddress))
-        // {
-        //     mustQuery.Add(q => q.Bool(b => 
-        //         b.MustNot(mn => mn.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)))));
-        // }
+        if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(excludeAddress))
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)));
+        }
         
         if (rankingType != RankingType.All)
         {
