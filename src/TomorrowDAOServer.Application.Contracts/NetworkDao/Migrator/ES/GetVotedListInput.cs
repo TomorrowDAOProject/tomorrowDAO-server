@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using TomorrowDAOServer.Enums;
 using Volo.Abp.Application.Dtos;
 
@@ -7,6 +8,7 @@ namespace TomorrowDAOServer.NetworkDao.Migrator.ES;
 
 public class GetVotedListInput : PagedAndSortedResultRequestDto
 {
+    [Required]
     public string ChainId { get; set; }
     public string ProposalId { get; set; }
     
@@ -14,7 +16,7 @@ public class GetVotedListInput : PagedAndSortedResultRequestDto
     public string Search { get; set; }
 }
 
-public class GetVotedListPageResult : PagedResultDto<GetVotedListResultDto>
+public class GetVotedListPagedResult : PagedResultDto<GetVotedListResultDto>
 {
 }
 

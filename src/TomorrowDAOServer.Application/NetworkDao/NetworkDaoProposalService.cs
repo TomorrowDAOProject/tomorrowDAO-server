@@ -20,13 +20,14 @@ using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.NetworkDao.Dto;
-using TomorrowDAOServer.NetworkDao.Migrator;
+using TomorrowDAOServer.NetworkDao.Dtos;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.NetworkDao.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Auditing;
 using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
@@ -35,7 +36,9 @@ using ProposalType = TomorrowDAOServer.Common.Enum.ProposalType;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonDependency
+[RemoteService(IsEnabled = false)]
+[DisableAuditing]
+public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDaoProposalService
 {
     private readonly ILogger<NetworkDaoProposalService> _logger;
     private readonly IExplorerProvider _explorerProvider;
@@ -259,6 +262,34 @@ public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonD
             _logger.LogError(e, "Get proposal info error. request={0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException("Failed to query the proposal info. {0}", e.Message);
         }
+    }
+
+    public async Task<GetAppliedListPagedResult> GetAppliedProposalListAsync(GetAppliedListInput input)
+    {
+        var (totalCount, networkDaoProposalIndices) = await _networkDaoEsDataProvider.GetProposalListAsync(new GetProposalListInput
+        {
+            MaxResultCount = input.MaxResultCount,
+            SkipCount = input.SkipCount,
+            ChainId = input.ChainId,
+            Proposer = input.Address,
+            ProposalType = input.ProposalType,
+            ProposalId = input.Search
+        });
+        if (networkDaoProposalIndices.IsNullOrEmpty())
+        {
+            return new GetAppliedListPagedResult
+            {
+                Items = new List<GetAppliedListResultDto>(),
+                TotalCount = totalCount
+            };
+        }
+
+        var resultDtos = _objectMapper.Map<List<NetworkDaoProposalIndex>, List<GetAppliedListResultDto>>(networkDaoProposalIndices);
+        return new GetAppliedListPagedResult
+        {
+            Items = resultDtos,
+            TotalCount = totalCount
+        };
     }
 
     /// <summary>

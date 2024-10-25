@@ -16,7 +16,6 @@ namespace TomorrowDAOServer.NetworkDao.Provider;
 public interface INetworkDaoEsDataProvider
 {
     Task BulkAddOrUpdateProposalIndexAsync(List<NetworkDaoProposalIndex> proposalList);
-
     Task BulkAddOrUpdateProposalListIndexAsync(List<NetworkDaoProposalListIndex> proposalListList);
     Task BulkAddOrUpdateProposalVoteIndexAsync(List<NetworkDaoProposalVoteIndex> voteIndices);
     Task BulkAddOrUpdateOrgIndexAsync(List<NetworkDaoOrgIndex> orgIndices);
@@ -27,6 +26,8 @@ public interface INetworkDaoEsDataProvider
     Task<Tuple<long, List<NetworkDaoProposalListIndex>>> GetProposalListListAsync(GetProposalListInput request);
     Task<Tuple<long, List<NetworkDaoProposalIndex>>> GetProposalListAsync(GetProposalListInput getProposalListInput);
     Task<NetworkDaoProposalIndex> GetProposalIndexAsync(GetProposalInfoInput input);
+    Task<Tuple<long, List<NetworkDaoOrgIndex>>> GetOrgIndexAsync(GetOrgListInput input);
+    Task<Tuple<long, List<NetworkDaoOrgMemberIndex>>> GetOrgMemberListAsync(GetOrgMemberListInput input);
 
     Task<List<NetworkDaoOrgMemberIndex>>
         GetOrgMemberIndexByOrgAddressAsync(string chainId, List<string> orgAddressList);
@@ -188,6 +189,87 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         return await _proposalIndexRepository.GetAsync(Filter);
     }
 
+    public async Task<Tuple<long, List<NetworkDaoOrgIndex>>> GetOrgIndexAsync(GetOrgListInput input)
+    {
+        if (input.ChainId.IsNullOrWhiteSpace())
+        {
+            return new Tuple<long, List<NetworkDaoOrgIndex>>(0, new List<NetworkDaoOrgIndex>());
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoOrgIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId))
+        };
+        if (input.OrgType != NetworkDaoOrgType.All)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.OrgType).Value(input.OrgType)));
+        }
+
+        if (!input.OrgAddress.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.OrgAddress).Value(input.OrgAddress)));
+        }
+        if (!input.OrgAddresses.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Terms(i => i.Field(t => t.OrgAddress).Terms(input.OrgAddresses)));
+        }
+
+        QueryContainer Filter(QueryContainerDescriptor<NetworkDaoOrgIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        Func<SortDescriptor<NetworkDaoOrgIndex>, IPromise<IList<ISort>>> sortDescriptor = null;
+        if (input.Sorting.IsNullOrWhiteSpace())
+        {
+            sortDescriptor =
+                _ => new SortDescriptor<NetworkDaoOrgIndex>().Descending(a => a.CreatedAt);
+        }
+        else
+        {
+            sortDescriptor = CreateSortDescriptor<NetworkDaoOrgIndex>(input.Sorting);
+        }
+
+        return await _orgIndexRepository.GetSortListAsync(Filter, sortFunc: sortDescriptor,
+            skip: input.SkipCount, limit: input.MaxResultCount);
+    }
+
+    public async Task<Tuple<long, List<NetworkDaoOrgMemberIndex>>> GetOrgMemberListAsync(GetOrgMemberListInput input)
+    {
+        if (input.ChainId.IsNullOrWhiteSpace())
+        {
+            return new Tuple<long, List<NetworkDaoOrgMemberIndex>>(0, new List<NetworkDaoOrgMemberIndex>());
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoOrgMemberIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId))
+        };
+
+        if (!input.OrgAddress.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.OrgAddress).Value(input.OrgAddress)));
+        }
+
+        if (!input.MemberAddress.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.Member).Value(input.MemberAddress)));
+        }
+
+        QueryContainer Filter(QueryContainerDescriptor<NetworkDaoOrgMemberIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        Func<SortDescriptor<NetworkDaoOrgMemberIndex>, IPromise<IList<ISort>>> sortDescriptor = null;
+        if (input.Sorting.IsNullOrWhiteSpace())
+        {
+            sortDescriptor =
+                _ => new SortDescriptor<NetworkDaoOrgMemberIndex>().Descending(a => a.CreatedAt);
+        }
+        else
+        {
+            sortDescriptor = CreateSortDescriptor<NetworkDaoOrgMemberIndex>(input.Sorting);
+        }
+
+        return await _orgMemberIndexRepository.GetSortListAsync(Filter, sortFunc: sortDescriptor, skip: input.SkipCount,
+            limit: input.MaxResultCount);
+    }
+
     public async Task<List<NetworkDaoOrgMemberIndex>> GetOrgMemberIndexByOrgAddressAsync(string chainId,
         [ItemCanBeNull] List<string> orgAddressList)
     {
@@ -248,6 +330,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
             shouldQuery.Add(q => q.Term(i => i.Field(t => t.Address).Value(input.Search)));
             shouldQuery.Add(q => q.Term(i => i.Field(t => t.TransactionInfo.TransactionId).Value(input.Search)));
         }
+
         //
         // QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalVoteIndex> f) =>
         //     f.Bool(b => shouldQuery.Any()
@@ -379,6 +462,18 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             mustQuery.Add(q => q.Terms(i =>
                 i.Field(f => f.ProposalId).Terms(input.ProposalIds)));
+        }
+
+        if (!input.ProposalId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.ProposalId).Value(input.ProposalId)));
+        }
+
+        if (input.Proposer.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.Proposer).Value(input.Proposer)));
         }
     }
 

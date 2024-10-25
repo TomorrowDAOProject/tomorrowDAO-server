@@ -17,6 +17,8 @@ public class GetProposalListInput : PagedResultRequestDto
     public NetworkDaoOrgType ProposalType { get; set; } = NetworkDaoOrgType.Parliament;
 
     public List<string> ProposalIds { get; set; } = new List<string>();
+    public string ProposalId { get; set; }
+    public string Proposer { get; set; }
 }
 
 public class GetProposalListPageResult : PagedResultDto<GetProposalListResultDto>

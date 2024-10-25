@@ -18,7 +18,7 @@ namespace TomorrowDAOServer.NetworkDao;
 
 [RemoteService(IsEnabled = false)]
 [DisableAuditing]
-public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonDependency
+public class NetworkDaoElectionService : TomorrowDAOServerAppService, INetworkDaoElectionService
 {
     private readonly ILogger<NetworkDaoElectionService> _logger;
     private readonly IContractProvider _contractProvider;

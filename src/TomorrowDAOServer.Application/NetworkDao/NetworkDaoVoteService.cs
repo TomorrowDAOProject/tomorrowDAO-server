@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.NetworkDao.Provider;
-using Volo.Abp.DependencyInjection;
+using Volo.Abp;
+using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public class NetworkDaoVoteService : INetworkDaoVoteService, ISingletonDependency
+[RemoteService(IsEnabled = false)]
+[DisableAuditing]
+public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVoteService
 {
     private readonly INetworkDaoEsDataProvider _networkDaoEsDataProvider;
     private readonly IObjectMapper _objectMapper;
@@ -19,17 +22,17 @@ public class NetworkDaoVoteService : INetworkDaoVoteService, ISingletonDependenc
         _objectMapper = objectMapper;
     }
 
-    public async Task<GetVotedListPageResult> GetVotedListAsync(GetVotedListInput input)
+    public async Task<GetVotedListPagedResult> GetVotedListAsync(GetVotedListInput input)
     {
         if (input.ChainId.IsNullOrWhiteSpace())
         {
-            return new GetVotedListPageResult();
+            return new GetVotedListPagedResult();
         }
 
         var (count, voteIndices) = await _networkDaoEsDataProvider.GetProposalVotedListAsync(input);
         if (voteIndices.IsNullOrEmpty())
         {
-            return new GetVotedListPageResult
+            return new GetVotedListPagedResult
             {
                 Items = new List<GetVotedListResultDto>(),
                 TotalCount = count
@@ -37,7 +40,7 @@ public class NetworkDaoVoteService : INetworkDaoVoteService, ISingletonDependenc
         }
 
         var resultDtos = _objectMapper.Map<List<NetworkDaoProposalVoteIndex>, List<GetVotedListResultDto>>(voteIndices);
-        return new GetVotedListPageResult
+        return new GetVotedListPagedResult
         {
             Items = resultDtos,
             TotalCount = count

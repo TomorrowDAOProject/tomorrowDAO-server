@@ -5,5 +5,5 @@ namespace TomorrowDAOServer.NetworkDao;
 
 public interface INetworkDaoVoteService
 {
-    Task<GetVotedListPageResult> GetVotedListAsync(GetVotedListInput input);
+    Task<GetVotedListPagedResult> GetVotedListAsync(GetVotedListInput input);
 }

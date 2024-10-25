@@ -58,4 +58,21 @@ public class MapperBase : Profile
             ? NetworkDaoCreatedByEnum.USER
             : NetworkDaoCreatedByEnum.SYSTEM_CONTRACT;
     }
+
+    protected static NetworkDaoProposalStatusEnum MapNetworkDaoProposalStatus(DateTime? expiredTime, NetworkDaoProposalStatusEnum status)
+    {
+        if (expiredTime == null)
+        {
+            return status;
+        }
+
+        if (status is not (NetworkDaoProposalStatusEnum.Approved or NetworkDaoProposalStatusEnum.Pending))
+        {
+            return status;
+        }
+
+        var now = DateTime.UtcNow;
+        return now > expiredTime ? NetworkDaoProposalStatusEnum.Expired : status;
+
+    }
 }

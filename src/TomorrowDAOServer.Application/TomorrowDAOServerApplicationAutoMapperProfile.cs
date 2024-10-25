@@ -212,6 +212,16 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Voter, opt => opt.MapFrom(src => src.Address))
             .ForMember(des => des.TxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId))
             .ForMember(des => des.Action, opt => opt.MapFrom(src => src.ReceiptType));
+        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoProposalIndex, TomorrowDAOServer.NetworkDao.Dtos.GetAppliedListResultDto>()
+            .ForMember(des => des.CreateAt, opt => opt.MapFrom(src => src.BlockTime))
+            .ForMember(des => des.CreateTxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId))
+            .ForMember(des => des.Status, opt => opt.MapFrom(src => MapNetworkDaoProposalStatus(src.ExpiredTime, src.Status)));
+        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex, TomorrowDAOServer.NetworkDao.Dtos.GetOrgOfOwnerListResultDto>()
+            .ForMember(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
+            .ForMember(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
+            .ForMember(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
+            .ForMember(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
+            .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType));
 
         CreateMap<IndexerVoteRecord, IndexerVoteHistoryDto>()
             .ForMember(des => des.TimeStamp, opt
