@@ -61,5 +61,4 @@ public class IndexerProvider : IIndexerProvider, ISingletonDependency
         });
         return graphQlResponse.Data.SyncState.ConfirmedBlockHeight;
     }
-    
 }
