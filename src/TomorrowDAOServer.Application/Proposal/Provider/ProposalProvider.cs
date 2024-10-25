@@ -223,12 +223,14 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         };
         if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
         {
-            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+            mustQuery.Add(q => q.Bool(b =>
+                b.MustNot(mn => mn.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)))));
         }
 
         if (!string.IsNullOrWhiteSpace(excludeAddress))
         {
-            mustQuery.Add(q => !q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)));
+            mustQuery.Add(q => q.Bool(b => 
+                b.MustNot(mn => mn.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)))));
         }
         
         if (rankingType != RankingType.All)
