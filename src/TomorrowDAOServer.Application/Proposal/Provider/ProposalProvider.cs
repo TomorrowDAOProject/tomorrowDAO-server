@@ -221,22 +221,22 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
             q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
-        if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
-        {
-            mustQuery.Add(q => q.Bool(b =>
-                b.MustNot(mn => mn.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)))));
-        }
-
-        if (!string.IsNullOrWhiteSpace(excludeAddress))
-        {
-            mustQuery.Add(q => q.Bool(b => 
-                b.MustNot(mn => mn.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)))));
-        }
-        
-        if (rankingType != RankingType.All)
-        {
-            mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));
-        }
+        // if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
+        // {
+        //     mustQuery.Add(q => q.Bool(b =>
+        //         b.MustNot(mn => mn.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)))));
+        // }
+        //
+        // if (!string.IsNullOrWhiteSpace(excludeAddress))
+        // {
+        //     mustQuery.Add(q => q.Bool(b => 
+        //         b.MustNot(mn => mn.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)))));
+        // }
+        //
+        // if (rankingType != RankingType.All)
+        // {
+        //     mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));
+        // }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: GetDescendingDeployTimeSortDescriptor(),
