@@ -180,7 +180,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     input.SkipCount -= 1;
                 }
                 var goldProposal = await _proposalProvider.GetProposalByIdAsync(chainId, goldRankingId);
-                var officialProposals = result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
+                var officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
                 var res = new List<ProposalIndex> { goldProposal };
                 res.AddRange(officialProposals.Item2);
                 result = new Tuple<long, List<ProposalIndex>>(officialProposals.Item1 + 1, res);
