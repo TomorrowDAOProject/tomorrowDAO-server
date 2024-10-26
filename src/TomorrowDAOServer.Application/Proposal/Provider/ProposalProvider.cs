@@ -24,7 +24,7 @@ public interface IProposalProvider
     Task<List<IndexerProposal>> GetSyncProposalDataAsync(int skipCount, string chainId, long startBlockHeight,
         long endBlockHeight, int maxResultCount);
 
-    public Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input);
+    public Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input, List<string> excludeIds = null);
 
     public Task<ProposalIndex> GetProposalByIdAsync(string chainId, string proposalId);
 
@@ -43,7 +43,7 @@ public interface IProposalProvider
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
     public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
     public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
-        RankingType rankingType, List<string> excludeProposalIds);
+        RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null);
     public Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive);
     Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds);
 }
@@ -96,12 +96,12 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         return graphQlResponse?.DataList ?? new List<IndexerProposal>();
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetProposalListAsync(QueryProposalListInput input, List<string> excludeIds = null)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         var contentShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
         var proposalShouldQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>();
-        AssemblyBaseQuery(input, mustQuery);
+        AssemblyBaseQuery(input, mustQuery, excludeIds);
         AssemblyContentQuery(input.Content, contentShouldQuery);
         AssemblyProposalStatusQuery(input.ProposalStatus, mustQuery, proposalShouldQuery);
 
@@ -216,7 +216,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             sortExp: o => o.DeployTime);
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, List<string> excludeProposalIds)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
@@ -224,9 +224,15 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
             q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
         };
-        if (!excludeProposalIds.IsNullOrEmpty())
+
+        if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
         {
             mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(excludeAddress))
+        {
+            mustQuery.Add(q => !q.Term(i => i.Field(f => f.Proposer).Value(excludeAddress)));
         }
         
         if (rankingType != RankingType.All)
@@ -384,8 +390,12 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
     }
 
     private static void AssemblyBaseQuery(QueryProposalListInput input,
-        List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> mustQuery)
+        List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>> mustQuery, List<string> excludeIds)
     {
+        if (excludeIds != null && !excludeIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeIds)));
+        }
         if (!input.ChainId.IsNullOrEmpty())
         {
             mustQuery.Add(q => q.Term(i =>
