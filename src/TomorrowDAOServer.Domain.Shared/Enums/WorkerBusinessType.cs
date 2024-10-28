@@ -18,5 +18,5 @@ public enum WorkerBusinessType
     ProposalRedisUpdate,
     TopProposalGenerate,
     TelegramAppsSync,
-    FindminiAppsSync,
+    FindminiAppsSync
 }

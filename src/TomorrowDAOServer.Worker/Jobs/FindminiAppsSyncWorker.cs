@@ -7,11 +7,11 @@ using Volo.Abp.Threading;
 
 namespace TomorrowDAOServer.Worker.Jobs;
 
-public class TelegramAppsSyncWorker : TomorrowDAOServerWorkBase
+public class FindminiAppsSyncWorker : TomorrowDAOServerWorkBase
 {
-    protected override WorkerBusinessType BusinessType => WorkerBusinessType.TelegramAppsSync;
+    protected override WorkerBusinessType BusinessType => WorkerBusinessType.FindminiAppsSync;
 
-    public TelegramAppsSyncWorker(ILogger<ScheduleSyncDataContext> logger,
+    public FindminiAppsSyncWorker(ILogger<ScheduleSyncDataContext> logger,
         AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
         IScheduleSyncDataContext scheduleSyncDataContext,
         IOptionsMonitor<WorkerOptions> optionsMonitor,
