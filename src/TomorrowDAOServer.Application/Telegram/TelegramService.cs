@@ -227,7 +227,6 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         foreach (var telegramAppIndex in telegramAppIndices)
         {
             var exist = existAppDictionary.TryGetValue(telegramAppIndex.Title, out var existApp);
-            
             telegramAppIndex.Url = exist ? existApp.Url : string.Empty;
             telegramAppIndex.LongDescription = exist ? existApp.LongDescription : string.Empty;
             telegramAppIndex.Screenshots = exist ? existApp.Screenshots : new List<string>();
