@@ -9,5 +9,5 @@ public class MyPointsDto
     public string Description { get; set; }
     public long Points { get; set; }
     public string PointsType { get; set; }
-    public DateTime PointsTime { get; set; }
+    public long PointsTime { get; set; }
 }

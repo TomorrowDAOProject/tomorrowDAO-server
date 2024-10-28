@@ -9,6 +9,7 @@ using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Ranking.Provider;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
@@ -78,36 +79,35 @@ public class DiscoverService : ApplicationService, IDiscoverService
         };
     }
 
-    public async Task<long> ViewAppAsync(ViewAppInput input)
+    public async Task<bool> ViewAppAsync(ViewAppInput input)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
-        if (latest == null)
+        if (input.Aliases.IsNullOrEmpty())
         {
-            return 0;
+            return true;
         }
-        var createTime = latest.CreateTime;
-        var monthStart = new DateTime(createTime.Year, createTime.Month, 1);
-        var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
-        var newApps = await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd);
-        var newAppAliases = newApps.Select(x => x.Alias).ToList();
-        var intersection = newAppAliases.Intersect(input.Aliases).ToList();
-        
-        var viewApp = await _userViewNewAppProvider.GetByAddressAndTime(address);
+        var (count, apps) = await _telegramAppsProvider
+            .GetTelegramAppsAsync(new QueryTelegramAppsInput { Aliases = input.Aliases });
+        if (count == 0)
+        {
+            return true;
+        }
+        var viewApp = await _userViewNewAppProvider.GetByAddress(address);
         var aliasesList = viewApp?.AliasesList ?? new List<string>();
-        aliasesList.AddRange(intersection);
+        aliasesList.AddRange(apps.Select(x => x.Alias).ToList());
         await _userViewNewAppProvider.AddOrUpdateAsync(new UserViewNewAppIndex
         {
             Id = GuidHelper.GenerateGrainId(input.ChainId, address), ChainId = input.ChainId, Address = address,
             AliasesList = aliasesList.Distinct().ToList()
         });
-        
-        return newAppAliases.Except(aliasesList).Count();
+        return true;
     }
 
     private async Task<PageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input)
     {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
         if (latest == null)
         {
@@ -119,6 +119,12 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
         var (count, appList) = await _telegramAppsProvider.GetByTimePeriodAsync(monthStart, monthEnd, input.SkipCount, input.MaxResultCount);
         var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(appList);
+        var viewApp = await _userViewNewAppProvider.GetByAddress(address);
+        var viewAliases = viewApp?.AliasesList ?? new List<string>();
+        foreach (var app in newApps)
+        {
+            app.Viewd = viewAliases.Contains(app.Alias);
+        }
         await FillTotalPoints(input.ChainId, newApps);
         return new PageResultDto<DiscoverAppDto>
         {

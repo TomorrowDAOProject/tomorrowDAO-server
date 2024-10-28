@@ -11,7 +11,7 @@ namespace TomorrowDAOServer.User.Provider;
 public interface IUserViewNewAppProvider
 {
     Task AddOrUpdateAsync(UserViewNewAppIndex index);
-    Task<UserViewNewAppIndex> GetByAddressAndTime(string address);
+    Task<UserViewNewAppIndex> GetByAddress(string address);
 }
 
 public class UserViewNewAppProvider : IUserViewNewAppProvider, ISingletonDependency
@@ -32,7 +32,7 @@ public class UserViewNewAppProvider : IUserViewNewAppProvider, ISingletonDepende
         await _userViewNewAppRepository.AddOrUpdateAsync(index);
     }
 
-    public async Task<UserViewNewAppIndex> GetByAddressAndTime(string address)
+    public async Task<UserViewNewAppIndex> GetByAddress(string address)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<UserViewNewAppIndex>, QueryContainer>>
         {
