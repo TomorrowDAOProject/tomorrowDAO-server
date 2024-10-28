@@ -72,9 +72,12 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         }
     }
 
-    public async Task<List<TelegramAppDto>> LoadAllTelegramAppsAsync(LoadAllTelegramAppsInput input)
+    public async Task<List<TelegramAppDto>> LoadAllTelegramAppsAsync(LoadAllTelegramAppsInput input, bool needAuth = true)
     {
-        await CheckAddress(input.ChainId);
+        if (needAuth)
+        {
+            await CheckAddress(input.ChainId);
+        }
         var loadUrlList = _telegramOptions.CurrentValue.LoadUrlList;
         var loadApps = new List<TelegramAppDto>();
         foreach (var url in loadUrlList)
