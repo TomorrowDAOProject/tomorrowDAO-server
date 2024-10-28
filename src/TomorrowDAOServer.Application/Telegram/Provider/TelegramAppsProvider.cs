@@ -24,7 +24,6 @@ public interface ITelegramAppsProvider
     Task<List<TelegramAppIndex>> SearchAppAsync(string title);
     Task<TelegramAppIndex> GetLatestCreatedAsync();
     Task<Tuple<long, List<TelegramAppIndex>>> GetByTimePeriodAsync(DateTime start, DateTime end, int skipCount, int maxResultCount);
-    Task<List<TelegramAppIndex>> GetAllByTimePeriodAsync(DateTime start, DateTime end);
 }
 
 public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
@@ -195,12 +194,6 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         var (count, list) = await _telegramAppIndexRepository.GetListAsync(Filter, sortType: SortOrder.Descending, 
             sortExp: o => o.CreateTime, skip: skipCount, limit: maxResultCount);
         return new Tuple<long, List<TelegramAppIndex>>(count, list);
-    }
-
-    public async Task<List<TelegramAppIndex>> GetAllByTimePeriodAsync(DateTime start, DateTime end)
-    {
-        QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(TimePeriodQuery(start, end)));
-        return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
     }
 
     private List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>> TimePeriodQuery(DateTime start, DateTime end)
