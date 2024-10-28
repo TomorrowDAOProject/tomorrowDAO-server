@@ -42,4 +42,11 @@ public class DiscoverController
     {
         return await _discoverService.GetDiscoverAppListAsync(input);
     }
+    
+    [HttpPost("view-app")]
+    [Authorize]
+    public async Task<long> ViewAppAsync(ViewAppInput input)
+    {
+        return await _discoverService.ViewAppAsync(input);
+    }
 }

@@ -23,14 +23,17 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private readonly IUserProvider _userProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
+    private readonly IUserViewNewAppProvider _userViewNewAppProvider;
 
     public DiscoverService(IDiscoverChoiceProvider discoverChoiceProvider, IUserProvider userProvider,
-        ITelegramAppsProvider telegramAppsProvider, IRankingAppPointsProvider rankingAppPointsProvider)
+        ITelegramAppsProvider telegramAppsProvider, IRankingAppPointsProvider rankingAppPointsProvider, 
+        IUserViewNewAppProvider userViewNewAppProvider)
     {
         _discoverChoiceProvider = discoverChoiceProvider;
         _userProvider = userProvider;
         _telegramAppsProvider = telegramAppsProvider;
         _rankingAppPointsProvider = rankingAppPointsProvider;
+        _userViewNewAppProvider = userViewNewAppProvider;
     }
 
     public async Task<bool> DiscoverViewedAsync(string chainId)
@@ -67,12 +70,60 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     public async Task<PageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
-        if (input.Category == CommonConstant.Recommend)
+        return input.Category switch
         {
-            return await GetRecommendAppListAsync(input);
+            CommonConstant.Recommend => await GetRecommendAppListAsync(input),
+            CommonConstant.New => await GetNewAppListAsync(input),
+            _ => await GetCategoryAppListAsync(input)
+        };
+    }
+
+    public async Task<long> ViewAppAsync(ViewAppInput input)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
+        if (latest == null)
+        {
+            return 0;
+        }
+        var createTime = latest.CreateTime;
+        var monthStart = new DateTime(createTime.Year, createTime.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+        var newApps = await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd);
+        var newAppAliases = newApps.Select(x => x.Alias).ToList();
+        var intersection = newAppAliases.Intersect(input.Aliases).ToList();
+        
+        var viewApp = await _userViewNewAppProvider.GetByAddressAndTime(address);
+        var aliasesList = viewApp?.AliasesList ?? new List<string>();
+        aliasesList.AddRange(intersection);
+        await _userViewNewAppProvider.AddOrUpdateAsync(new UserViewNewAppIndex
+        {
+            Id = GuidHelper.GenerateGrainId(input.ChainId, address), ChainId = input.ChainId, Address = address,
+            AliasesList = aliasesList.Distinct().ToList()
+        });
+        
+        return newAppAliases.Except(aliasesList).Count();
+    }
+
+    private async Task<PageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input)
+    {
+        var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
+        if (latest == null)
+        {
+            return new PageResultDto<DiscoverAppDto>();
         }
 
-        return await GetCategoryAppListAsync(input);
+        var createTime = latest.CreateTime;
+        var monthStart = new DateTime(createTime.Year, createTime.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+        var (count, appList) = await _telegramAppsProvider.GetByTimePeriodAsync(monthStart, monthEnd, input.SkipCount, input.MaxResultCount);
+        var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(appList);
+        await FillTotalPoints(input.ChainId, newApps);
+        return new PageResultDto<DiscoverAppDto>
+        {
+            TotalCount = count, Data = newApps
+        };
     }
 
     private async Task<PageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input)

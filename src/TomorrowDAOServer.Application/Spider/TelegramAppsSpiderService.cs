@@ -179,8 +179,6 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             telegramAppDto.EditorChoice = AnalyzeEditorChoice(tabDivNode);
             telegramAppDto.Alias = await _daoAliasProvider.GenerateDaoAliasAsync(telegramAppDto.Title);
             telegramAppDto.Id = HashHelper.ComputeFrom(telegramAppDto.Title).ToHex();
-            telegramAppDto.CreateTime = DateTime.UtcNow;
-            telegramAppDto.UpdateTime = DateTime.UtcNow;
             telegramAppDto.SourceType = SourceType.Telegram;
             telegramAppDto.Creator = CommonConstant.System;
             dtos.Add(telegramAppDto);
