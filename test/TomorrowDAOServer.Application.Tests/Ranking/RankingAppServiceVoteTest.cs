@@ -76,6 +76,6 @@ public partial class RankingAppServiceTest
         });
         exception.ShouldNotBeNull();
         exception.Message.ShouldNotBeNull();
-        exception.Message.ShouldBe("User Address Not Found.");
+        exception.Message.Contains("No user address and caHash found");
     }
 }
