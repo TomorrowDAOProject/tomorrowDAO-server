@@ -6,6 +6,7 @@ using Shouldly;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Telegram.Dto;
 using Volo.Abp;
+using Volo.Abp.Validation;
 using Xunit;
 using Xunit.Abstractions;
 
