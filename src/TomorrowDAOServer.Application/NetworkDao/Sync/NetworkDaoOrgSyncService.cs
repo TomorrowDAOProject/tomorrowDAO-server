@@ -28,18 +28,16 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
     private readonly INetworkDaoContractProvider _networkDaoContractProvider;
     private readonly INetworkDaoEsDataProvider _networkDaoEsDataProvider;
     private readonly IObjectMapper _objectMapper;
-    private readonly IContractProvider _contractProvider;
 
     private static readonly int MaxResultCount = 20; //LimitedResultRequestDto.MaxMaxResultCount;
 
     public NetworkDaoOrgSyncService(ILogger<NetworkDaoOrgSyncService> logger,
-        INetworkDaoGraphQlDataProvider networkDaoGraphQlDataProvider, IContractProvider contractProvider,
+        INetworkDaoGraphQlDataProvider networkDaoGraphQlDataProvider,
         INetworkDaoContractProvider networkDaoContractProvider, IObjectMapper objectMapper,
         INetworkDaoEsDataProvider networkDaoEsDataProvider)
     {
         _logger = logger;
         _networkDaoGraphQlDataProvider = networkDaoGraphQlDataProvider;
-        _contractProvider = contractProvider;
         _networkDaoContractProvider = networkDaoContractProvider;
         _objectMapper = objectMapper;
         _networkDaoEsDataProvider = networkDaoEsDataProvider;
@@ -122,7 +120,7 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
     {
         var stopwatch = Stopwatch.StartNew();
         var orgAddressList = queryList.Select(t => t.OrganizationAddress).ToList();
-        var orgMemberList = await _networkDaoEsDataProvider.GetOrgMemberIndexByOrgAddressAsync(chainId, orgAddressList);
+        var orgMemberList = await _networkDaoEsDataProvider.GetOrgMemberListByOrgAddressAsync(chainId, orgAddressList);
         await _networkDaoEsDataProvider.BulkDeleteOrgMemberIndexAsync(orgMemberList);
         stopwatch.Stop();
         _logger.LogInformation("[NetworkDaoOrgMigrator]delete org member, count={0}, duration={1}", orgMemberList.Count,
@@ -133,8 +131,8 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
     {
         var stopwatch = Stopwatch.StartNew();
         var orgAddressList = queryList.Select(t => t.OrganizationAddress).ToList();
-        var orgProposerList = await _networkDaoEsDataProvider.GetOrgProposerIndexByOrgAddressAsync(
-            new GetOrgProposerListInput
+        var orgProposerList = await _networkDaoEsDataProvider.GetOrgProposerListByOrgAddressAsync(
+            new GetOrgProposerByOrgAddressInput
             {
                 ChainId = chainId,
                 OrgAddressList = orgAddressList
@@ -181,9 +179,28 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
         orgIndex.MaximalAbstentionThreshold = organization.ProposalReleaseThreshold?.MaximalAbstentionThreshold ?? 0;
         orgIndex.MinimalVoteThreshold = organization.ProposalReleaseThreshold?.MinimalVoteThreshold ?? 0;
         orgIndex.ParliamentMemberProposingAllowed = organization.ParliamentMemberProposingAllowed;
+        orgIndex.CreationToken = organization.CreationToken?.ToHex() ?? string.Empty;
+        orgIndex.ProposerAuthorityRequired = organization.ProposerAuthorityRequired;
+
+        //Only DefaultOrganizationAddress can change the whitelist. The Parliament whitelist can be queried by OrgType
+        var proposerWhiteList = await _networkDaoContractProvider.GetParliamentOrgProposerWhiteListAsync(chainId);
+        var orgProposerIndices = new List<NetworkDaoOrgProposerIndex>();
+        if (proposerWhiteList.IsNullOrEmpty())
+        {
+            orgProposerIndices.AddRange(proposerWhiteList.Select(proposer =>
+                new NetworkDaoOrgProposerIndex
+                {
+                    Id = IdGeneratorHelper.GenerateId(chainId, orgChanged.OrganizationAddress, proposer),
+                    ChainId = chainId,
+                    OrgAddress = orgChanged.OrganizationAddress,
+                    RelatedTxId = orgChanged.TransactionInfo.TransactionId ?? string.Empty,
+                    Proposer = proposer,
+                    OrgType = orgChanged.OrgType
+                }));
+        }
 
         return new Tuple<NetworkDaoOrgIndex, List<NetworkDaoOrgMemberIndex>, List<NetworkDaoOrgProposerIndex>>(orgIndex,
-            new List<NetworkDaoOrgMemberIndex>(), new List<NetworkDaoOrgProposerIndex>());
+            new List<NetworkDaoOrgMemberIndex>(), orgProposerIndices);
     }
 
     private async Task<Tuple<NetworkDaoOrgIndex, List<NetworkDaoOrgMemberIndex>, List<NetworkDaoOrgProposerIndex>>>
@@ -200,6 +217,7 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
         orgIndex.MaximalRejectionThreshold = organization.ProposalReleaseThreshold?.MaximalRejectionThreshold ?? 0;
         orgIndex.MaximalAbstentionThreshold = organization.ProposalReleaseThreshold?.MaximalAbstentionThreshold ?? 0;
         orgIndex.MinimalVoteThreshold = organization.ProposalReleaseThreshold?.MinimalVoteThreshold ?? 0;
+        orgIndex.CreationToken = organization.CreationToken?.ToHex() ?? string.Empty;
 
         var orgMemberIndices = new List<NetworkDaoOrgMemberIndex>();
         if (organization.OrganizationMemberList != null &&
@@ -253,6 +271,8 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
         orgIndex.MaximalRejectionThreshold = organization.ProposalReleaseThreshold?.MaximalRejectionThreshold ?? 0;
         orgIndex.MaximalAbstentionThreshold = organization.ProposalReleaseThreshold?.MaximalAbstentionThreshold ?? 0;
         orgIndex.MinimalVoteThreshold = organization.ProposalReleaseThreshold?.MinimalVoteThreshold ?? 0;
+        orgIndex.CreationToken = organization.CreationToken?.ToHex() ?? string.Empty;
+        orgIndex.TokenSymbol = organization.TokenSymbol;
 
         var orgMemberIndices = new List<NetworkDaoOrgMemberIndex>();
         var orgProposerIndices = new List<NetworkDaoOrgProposerIndex>();

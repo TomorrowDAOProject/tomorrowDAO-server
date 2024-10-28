@@ -64,10 +64,28 @@ public class NetworkDaoController
         return await _networkDaoVoteService.GetVotedListAsync(input);
     }
 
+    [HttpGet("vote/personal")]
+    public async Task<GetAllPersonalVotesPagedResult> GetAllPersonalVotesAsync(GetAllPersonalVotesInput input)
+    {
+        return await _networkDaoVoteService.GetAllPersonalVotesAsync(input);
+    }
+
+    [HttpGet("org")]
+    public async Task<GetOrganizationsPagedResult> GetOrganizationsAsync(GetOrganizationsInput input)
+    {
+        return await _networkDaoOrgService.GetOrganizationsAsync(input);
+    }
+
     [HttpGet("org/owner")]
     public async Task<GetOrgOfOwnerListPagedResult> GetOrgOfOwnerListAsync(GetOrgOfOwnerListInput input)
     {
         return await _networkDaoOrgService.GetOrgOfOwnerListAsync(input);
+    }
+
+    [HttpGet("org/proposer")]
+    public async Task<GetOrgOfProposerListPagedResult> GetOrgOfProposerListAsync(GetOrgOfProposerListInput input)
+    {
+        return await _networkDaoOrgService.GetOrgOfProposerListAsync(input);
     }
 
     [Obsolete]

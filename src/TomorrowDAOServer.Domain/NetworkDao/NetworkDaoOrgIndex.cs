@@ -18,13 +18,13 @@ public class NetworkDaoOrgIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public NetworkDaoOrgType OrgType { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-
     public long MinimalApprovalThreshold { get; set; }
     public long MaximalRejectionThreshold { get; set; }
     public long MaximalAbstentionThreshold { get; set; }
     public long MinimalVoteThreshold { get; set; }
-
     public bool ParliamentMemberProposingAllowed { get; set; } = false;
-    
+    public string CreationToken { get; set; }
+    public bool ProposerAuthorityRequired { get; set; }
+    public string TokenSymbol { get; set; }
     public TransactionInfoDto TransactionInfo { get; set; }
 }

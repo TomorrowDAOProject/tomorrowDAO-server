@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AElf.Standards.ACS3;
 using AElf.Types;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Portkey.Contracts.CA;
 using TomorrowDAOServer.Common;
@@ -22,9 +25,9 @@ public interface INetworkDaoContractProvider
 
     Task<AElf.Contracts.Association.Organization> GetAssociationOrganizationAsync(string chainId,
         string organizationAddress);
-
     Task<AElf.Contracts.Referendum.Organization> GetReferendumOrganizationAsync(string chainId,
         string organizationAddress);
+    Task<List<string>> GetParliamentOrgProposerWhiteListAsync(string chainId);
 }
 
 public class NetworkDaoContractProvider : INetworkDaoContractProvider, ISingletonDependency
@@ -106,6 +109,20 @@ public class NetworkDaoContractProvider : INetworkDaoContractProvider, ISingleto
             Address.FromBase58(organizationAddress));
         return await _contractProvider.CallTransactionAsync<AElf.Contracts.Referendum.Organization>(chainId,
             transaction);
+    }
+
+    public async Task<List<string>> GetParliamentOrgProposerWhiteListAsync(string chainId)
+    {
+        if (chainId.IsNullOrWhiteSpace())
+        {
+            return new List<string>();
+        }
+
+        var (_, transaction) = await _contractProvider.CreateCallTransactionAsync(chainId,
+            SystemContractName.ParliamentContract, CommonConstant.OrganizationMethodGetProposerWhiteList,
+            new Empty());
+        var proposerWhiteList = await _contractProvider.CallTransactionAsync<AElf.Standards.ACS3.ProposerWhiteList>(chainId, transaction);
+        return proposerWhiteList.Proposers?.Select(t => t.ToBase58()).ToList() ?? new List<string>();
     }
 
     private string GetOrgContractName(string chainId, NetworkDaoOrgType orgType)

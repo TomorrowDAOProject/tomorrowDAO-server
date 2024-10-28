@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Google.Type;
 using TomorrowDAOServer.Enums;
@@ -7,7 +6,7 @@ using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.NetworkDao.Dtos;
 
-public class GetOrgOfOwnerListInput : PagedAndSortedResultRequestDto
+public class GetOrgOfProposerListInput : PagedAndSortedResultRequestDto
 {
     [Required]
     public string ChainId { get; set; }
@@ -20,13 +19,13 @@ public class GetOrgOfOwnerListInput : PagedAndSortedResultRequestDto
     public string Search { get; set; }
 }
 
-public class GetOrgOfOwnerListPagedResult : PagedResultDto<GetOrgOfOwnerListResultDto>
+public class GetOrgOfProposerListPagedResult : PagedResultDto<GetOrgOfProposerListResultDto>
 {
+    
 }
 
-public class GetOrgOfOwnerListResultDto
+public class GetOrgOfProposerListResultDto
 {
-    public string Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public GetProposalListResultDto.ReleaseThresholdDto ReleaseThreshold { get; set; }
@@ -36,24 +35,4 @@ public class GetOrgOfOwnerListResultDto
     public string TxId { get; set; }
     public string Creator { get; set; }
     public NetworkDaoOrgType ProposalType { get; set; }
-}
-
-public class LeftOrgInfo
-{
-    public string TokenSymbol { get; set; }
-    public bool ProposerAuthorityRequired { get; set; }
-    public bool ParliamentMemberProposingAllowed { get; set; }
-    public OrganizationMemberList OrganizationMemberList { get; set; }
-    public ProposerWhiteList ProposerWhiteList { get; set; }
-    public string CreationToken { get; set; }
-}
-
-public class OrganizationMemberList
-{
-    public List<string> OrganizationMembers { get; set; }
-}
-
-public class ProposerWhiteList
-{
-    public List<string> Proposers { get; set; }
 }

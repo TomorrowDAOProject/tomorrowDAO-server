@@ -45,6 +45,7 @@ public static class CommonConstant
     public const string ProxyAccountMethodGetProxyAccountByAddress = "GetProxyAccountByProxyAccountAddress";
     public const string Acs3MethodGetProposal = "GetProposal";
     public const string OrganizationMethodGetOrganization = "GetOrganization";
+    public const string OrganizationMethodGetProposerWhiteList = "GetProposerWhiteList";
     
     public const string TransactionStateMined = "MINED";
     public const string TransactionStatePending = "PENDING";

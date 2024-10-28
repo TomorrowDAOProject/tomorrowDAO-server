@@ -11,9 +11,11 @@ public class GetVotedListInput : PagedAndSortedResultRequestDto
     [Required]
     public string ChainId { get; set; }
     public string ProposalId { get; set; }
-    
     public List<string> ProposalIds { get; set; }
     public string Search { get; set; }
+    public NetworkDaoOrgType ProposalType { get; set; }
+    public string Address { get; set; }
+    
 }
 
 public class GetVotedListPagedResult : PagedResultDto<GetVotedListResultDto>
