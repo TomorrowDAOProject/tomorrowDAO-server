@@ -137,7 +137,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 Id = pointsRecord.Id, Points = pointsRecord.Points,
                 Title = title, Description = desc,
                 PointsType = pointsRecord.PointsType.ToString(),
-                PointsTime = pointsRecord.PointsTime
+                PointsTime = pointsRecord.PointsTime.ToUtcMilliSeconds()
             });
         }
 
