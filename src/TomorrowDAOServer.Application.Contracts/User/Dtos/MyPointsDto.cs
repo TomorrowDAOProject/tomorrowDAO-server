@@ -1,3 +1,5 @@
+using System;
+
 namespace TomorrowDAOServer.User.Dtos;
 
 public class MyPointsDto
@@ -7,4 +9,5 @@ public class MyPointsDto
     public string Description { get; set; }
     public long Points { get; set; }
     public string PointsType { get; set; }
+    public DateTime PointsTime { get; set; }
 }
