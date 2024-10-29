@@ -77,8 +77,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var aliases = typesDic.Keys.ToList();
         var exists = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
-            Aliases = aliases,
-            SourceType = SourceType.Telegram
+            Aliases = aliases
         })).Item2;
         foreach (var app in exists)
         {
@@ -231,8 +230,8 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             telegramAppIndex.Categories = existApp.Categories;
             if (SourceType.FindMini == telegramAppIndex.SourceType)
             {
-                telegramAppIndex.CreateTime = existApp.CreateTime != default ? existApp.LoadTime : DateTime.UtcNow;
-                telegramAppIndex.UpdateTime = existApp.UpdateTime != default ? existApp.LoadTime : DateTime.UtcNow;
+                telegramAppIndex.CreateTime = existApp.CreateTime != default ? existApp.CreateTime : DateTime.UtcNow;
+                telegramAppIndex.UpdateTime = existApp.UpdateTime != default ? existApp.UpdateTime : DateTime.UtcNow;
             }
             else
             {
