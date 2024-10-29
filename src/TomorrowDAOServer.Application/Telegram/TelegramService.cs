@@ -226,12 +226,17 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         var existAppDictionary = exists.ToDictionary(t => t.Title);
         foreach (var telegramAppIndex in telegramAppIndices)
         {
-            var exist = existAppDictionary.TryGetValue(telegramAppIndex.Title, out var existApp);
-            telegramAppIndex.Url = exist ? existApp.Url : string.Empty;
-            telegramAppIndex.LongDescription = exist ? existApp.LongDescription : string.Empty;
-            telegramAppIndex.Screenshots = exist ? existApp.Screenshots : new List<string>();
-            telegramAppIndex.Categories = exist ? existApp.Categories : new List<TelegramAppCategory>();
-            telegramAppIndex.LoadTime = exist ? existApp.LoadTime : DateTime.Now;
+            var existApp = existAppDictionary.GetValueOrDefault(telegramAppIndex.Title, new TelegramAppIndex());
+            telegramAppIndex.Url = existApp.Url;
+            telegramAppIndex.LongDescription = existApp.LongDescription;
+            telegramAppIndex.Screenshots = existApp.Screenshots;
+            telegramAppIndex.Categories = existApp.Categories;
+            telegramAppIndex.LoadTime = existApp.CreateTime != default ? existApp.LoadTime : DateTime.UtcNow;
+            if (SourceType.FindMini == telegramAppIndex.SourceType)
+            {
+                telegramAppIndex.CreateTime = existApp.CreateTime != default ? existApp.LoadTime : DateTime.UtcNow;
+                telegramAppIndex.UpdateTime = existApp.UpdateTime != default ? existApp.LoadTime : DateTime.UtcNow;
+            }
         }
         
         await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);
@@ -341,5 +346,12 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         }
         
         throw new UserFriendlyException("Nft Not enough.");
+    }
+
+    private DateTime GetTime(TelegramAppIndex existApp)
+    {
+        return existApp != null && existApp.LoadTime != default && existApp.LoadTime != null
+            ? existApp.LoadTime
+            : DateTime.Now;
     }
 }
