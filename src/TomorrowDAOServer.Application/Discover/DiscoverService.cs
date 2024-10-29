@@ -72,12 +72,14 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     public async Task<AppPageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
-        return input.Category switch
+        var res =  input.Category switch
         {
             CommonConstant.Recommend => await GetRecommendAppListAsync(input),
             CommonConstant.New => await GetNewAppListAsync(input),
             _ => await GetCategoryAppListAsync(input)
         };
+        await FillTotalPoints(input.ChainId, res.Data);
+        return res;
     }
 
     public async Task<bool> ViewAppAsync(ViewAppInput input)
@@ -157,7 +159,6 @@ public class DiscoverService : ApplicationService, IDiscoverService
             var remainingApps = appList.Where(app => !recommendApps.Select(r => r.Alias).Contains(app.Alias)).ToList();
             AddRandomApps(remainingApps, remainingCount, recommendApps);
         }
-        await FillTotalPoints(input.ChainId, recommendApps);
         return new AppPageResultDto<DiscoverAppDto>
         {
             TotalCount = appList.Count + input.Aliases?.Count ?? 0, Data = recommendApps.ToList()
@@ -169,7 +170,6 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var category = CheckCategory(input.Category);
         var (totalCount, appList) = await _telegramAppsProvider.GetByCategoryAsync(category, input.SkipCount, input.MaxResultCount);
         var categoryApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(appList);
-        await FillTotalPoints(input.ChainId, categoryApps);
         return new AppPageResultDto<DiscoverAppDto>
         {
             TotalCount = totalCount, Data = categoryApps
