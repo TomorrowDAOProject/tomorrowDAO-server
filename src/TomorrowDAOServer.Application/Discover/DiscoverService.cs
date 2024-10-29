@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Discover.Dto;
@@ -94,12 +95,13 @@ public class DiscoverService : ApplicationService, IDiscoverService
             return true;
         }
         var viewApp = await _userViewAppProvider.GetByAddress(address);
-        var aliasesList = viewApp?.AliasesList ?? new List<string>();
-        aliasesList.AddRange(apps.Select(x => x.Alias).Distinct().ToList());
+        var aliasesList = new List<string>((viewApp?.AliasesString ?? string.Empty).Split(CommonConstant.Comma));
+        aliasesList.AddRange(apps.Select(x => x.Alias).ToList());
+        aliasesList = aliasesList.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
         await _userViewAppProvider.AddOrUpdateAsync(new UserViewAppIndex
         {
             Id = GuidHelper.GenerateGrainId(input.ChainId, address), ChainId = input.ChainId, Address = address,
-            AliasesList = aliasesList.Distinct().ToList()
+            AliasesString = JsonConvert.SerializeObject(aliasesList)
         });
         return true;
     }
@@ -115,15 +117,14 @@ public class DiscoverService : ApplicationService, IDiscoverService
         }
 
         var viewApp = await _userViewAppProvider.GetByAddress(address);
-        var viewAliases = new HashSet<string>(viewApp?.AliasesList ?? new List<string>());
+        var viewAliases = new HashSet<string>(JsonConvert.DeserializeObject<List<string>>(viewApp?.AliasesString ?? string.Empty));
         var createTime = latest.CreateTime;
         var monthStart = new DateTime(createTime.Year, createTime.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
-        var newAppList = await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd);
+        var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd)).OrderByDescending(app => app.CreateTime).ToList();
+        var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(
+            newAppList.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
         var notViewedNewAppCount = input.SkipCount == 0 ? newAppList.Count(app => !viewAliases.Contains(app.Alias)) : (int?)null;
-        var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(newAppList
-            .OrderByDescending(app => app.CreateTime).Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
-        
         foreach (var app in newApps)
         {
             app.Viewed = viewAliases.Contains(app.Alias);
