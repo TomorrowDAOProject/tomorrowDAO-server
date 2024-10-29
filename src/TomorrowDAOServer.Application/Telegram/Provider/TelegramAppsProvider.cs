@@ -18,7 +18,8 @@ public interface ITelegramAppsProvider
     Task BulkAddOrUpdateAsync(List<TelegramAppIndex> telegramAppIndices);
     Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input);
     Task< List<TelegramAppIndex>> GetAllTelegramAppsAsync(QueryTelegramAppsInput input);
-    Task<List<TelegramAppIndex>> GetAllAsync();
+    Task<List<TelegramAppIndex>> GetNeedLoadDetailAsync();
+    Task<List<TelegramAppIndex>> GetNeedSetCategoryAsync();
     Task<List<TelegramAppIndex>> GetAllDisplayAsync(List<string> aliases);
     Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount);
     Task<List<TelegramAppIndex>> SearchAppAsync(string title);
@@ -119,9 +120,23 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
     }
 
-    public async Task<List<TelegramAppIndex>> GetAllAsync()
+    public async Task<List<TelegramAppIndex>> GetNeedLoadDetailAsync()
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>();
+        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
+        {
+            q => !q.Exists(i => i.Field(f => f.Url)),
+            q => q.Term(i => i.Field(f => f.SourceType).Value(SourceType.Telegram))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
+    }
+
+    public async Task<List<TelegramAppIndex>> GetNeedSetCategoryAsync()
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
+        {
+            q => !q.Exists(i => i.Field(f => f.Categories))
+        };
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
     }

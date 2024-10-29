@@ -61,7 +61,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             var allCategories = Enum.GetValues(typeof(TelegramAppCategory)).Cast<TelegramAppCategory>().ToList();
             var random = new Random();
 
-            var all = await _telegramAppsProvider.GetAllAsync();
+            var all = await _telegramAppsProvider.GetNeedSetCategoryAsync();
 
             foreach (var app in all)
             {

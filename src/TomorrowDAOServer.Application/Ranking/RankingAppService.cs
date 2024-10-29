@@ -467,38 +467,38 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     private async Task VoteToCategory(string chainId)
     {
-        _logger.LogInformation("VoteToCategoryBegin chainId {chainId}", chainId);
-        var appList = await _telegramAppsProvider.GetAllAsync();
-        var voteRecordList = await _voteProvider.GetNeedMoveVoteRecordListAsync();
-        var appDictionary = appList.ToDictionary(app => app.Alias, app => app.Categories);
-        var voterCategoryDic = voteRecordList
-            .Where(record => !string.IsNullOrEmpty(record.Alias))
-            .GroupBy(record => record.Voter)
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .SelectMany(record => appDictionary.TryGetValue(record.Alias, out var categories) 
-                        ? categories 
-                        : Enumerable.Empty<TelegramAppCategory>())
-                    .Distinct()
-                    .ToList()
-            );
-        var toAdd = new List<DiscoverChoiceIndex>();
-        foreach (var (voter, categories) in voterCategoryDic)
-        {
-            toAdd.AddRange(categories.Select(category => new DiscoverChoiceIndex
-            {
-                Id = GuidHelper.GenerateGrainId(chainId, voter, category.ToString(), DiscoverChoiceType.Vote.ToString()),
-                ChainId = chainId,
-                Address = voter,
-                TelegramAppCategory = category,
-                DiscoverChoiceType = DiscoverChoiceType.Vote,
-                UpdateTime = DateTime.UtcNow
-            }));
-        }
-
-        await _discoverChoiceProvider.BulkAddOrUpdateAsync(toAdd);
-        _logger.LogInformation("VoteToCategoryEnd chainId {chainId} count {count}", chainId, toAdd.Count);
+        // _logger.LogInformation("VoteToCategoryBegin chainId {chainId}", chainId);
+        // var appList = await _telegramAppsProvider.GetAllAsync();
+        // var voteRecordList = await _voteProvider.GetNeedMoveVoteRecordListAsync();
+        // var appDictionary = appList.ToDictionary(app => app.Alias, app => app.Categories);
+        // var voterCategoryDic = voteRecordList
+        //     .Where(record => !string.IsNullOrEmpty(record.Alias))
+        //     .GroupBy(record => record.Voter)
+        //     .ToDictionary(
+        //         group => group.Key,
+        //         group => group
+        //             .SelectMany(record => appDictionary.TryGetValue(record.Alias, out var categories) 
+        //                 ? categories 
+        //                 : Enumerable.Empty<TelegramAppCategory>())
+        //             .Distinct()
+        //             .ToList()
+        //     );
+        // var toAdd = new List<DiscoverChoiceIndex>();
+        // foreach (var (voter, categories) in voterCategoryDic)
+        // {
+        //     toAdd.AddRange(categories.Select(category => new DiscoverChoiceIndex
+        //     {
+        //         Id = GuidHelper.GenerateGrainId(chainId, voter, category.ToString(), DiscoverChoiceType.Vote.ToString()),
+        //         ChainId = chainId,
+        //         Address = voter,
+        //         TelegramAppCategory = category,
+        //         DiscoverChoiceType = DiscoverChoiceType.Vote,
+        //         UpdateTime = DateTime.UtcNow
+        //     }));
+        // }
+        //
+        // await _discoverChoiceProvider.BulkAddOrUpdateAsync(toAdd);
+        // _logger.LogInformation("VoteToCategoryEnd chainId {chainId} count {count}", chainId, toAdd.Count);
     }
 
     private async Task UpdateRankingAppInfo()
