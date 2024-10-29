@@ -47,14 +47,18 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         _telegramAppsProvider = telegramAppsProvider;
     }
 
-    public async Task<List<TelegramAppDto>> LoadTelegramAppsAsync(LoadTelegramAppsInput input)
+    public async Task<List<TelegramAppDto>> LoadTelegramAppsAsync(LoadTelegramAppsInput input, bool needAuth = true)
     {
         if (input == null || input.Url.IsNullOrWhiteSpace() || input.ChainId.IsNullOrWhiteSpace())
         {
             throw new UserFriendlyException("Invalid input.");
         }
 
-        await CheckAddress(input.ChainId);
+        if (needAuth)
+        {
+            await CheckAddress(input.ChainId);
+        }
+        
 
         try
         {
