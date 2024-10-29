@@ -30,6 +30,7 @@ namespace TomorrowDAOServer.Worker
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<ProposalRedisUpdateWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<TopProposalGenerateWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<TelegramAppsSyncWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<FindminiAppsSyncWorker>());
         }
     }
 }
