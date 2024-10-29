@@ -8,37 +8,37 @@ using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.User.Provider;
 
-public interface IUserViewNewAppProvider
+public interface IUserViewAppProvider
 {
-    Task AddOrUpdateAsync(UserViewNewAppIndex index);
-    Task<UserViewNewAppIndex> GetByAddress(string address);
+    Task AddOrUpdateAsync(UserViewAppIndex index);
+    Task<UserViewAppIndex> GetByAddress(string address);
 }
 
-public class UserViewNewAppProvider : IUserViewNewAppProvider, ISingletonDependency
+public class UserViewAppProvider : IUserViewAppProvider, ISingletonDependency
 {
-    private readonly INESTRepository<UserViewNewAppIndex, string> _userViewNewAppRepository;
+    private readonly INESTRepository<UserViewAppIndex, string> _userViewAppRepository;
 
-    public UserViewNewAppProvider(INESTRepository<UserViewNewAppIndex, string> userViewNewAppRepository)
+    public UserViewAppProvider(INESTRepository<UserViewAppIndex, string> userViewAppRepository)
     {
-        _userViewNewAppRepository = userViewNewAppRepository;
+        _userViewAppRepository = userViewAppRepository;
     }
 
-    public async Task AddOrUpdateAsync(UserViewNewAppIndex index)
+    public async Task AddOrUpdateAsync(UserViewAppIndex index)
     {
         if (index == null)
         {
             return;
         }
-        await _userViewNewAppRepository.AddOrUpdateAsync(index);
+        await _userViewAppRepository.AddOrUpdateAsync(index);
     }
 
-    public async Task<UserViewNewAppIndex> GetByAddress(string address)
+    public async Task<UserViewAppIndex> GetByAddress(string address)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<UserViewNewAppIndex>, QueryContainer>>
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserViewAppIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.Address).Value(address)),
         };
-        QueryContainer Filter(QueryContainerDescriptor<UserViewNewAppIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return await _userViewNewAppRepository.GetAsync(Filter);
+        QueryContainer Filter(QueryContainerDescriptor<UserViewAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _userViewAppRepository.GetAsync(Filter);
     }
 }

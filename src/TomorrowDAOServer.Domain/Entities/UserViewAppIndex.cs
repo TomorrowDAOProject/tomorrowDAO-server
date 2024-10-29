@@ -4,7 +4,7 @@ using Nest;
 
 namespace TomorrowDAOServer.Entities;
 
-public class UserViewNewAppIndex : AbstractEntity<string>, IIndexBuild
+public class UserViewAppIndex : AbstractEntity<string>, IIndexBuild
 {
     [Keyword] public override string Id { get; set; }
     [Keyword] public string ChainId { get; set; }
