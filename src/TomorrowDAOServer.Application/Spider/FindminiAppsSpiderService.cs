@@ -47,7 +47,8 @@ public class FindminiAppsSpiderService : TomorrowDAOServerAppService, IFindminiA
                 Id = HashHelper.ComputeFrom(title).ToHex(),
                 Alias = await _daoAliasProvider.GenerateDaoAliasAsync(title), Title = title,
                 Icon = CommonConstant.FindminiUrlPrefix + imgNode?.GetAttributeValue("src", string.Empty),
-                Description = descNode?.InnerText.Trim(), SourceType = SourceType.FindMini
+                Description = descNode?.InnerText.Trim(), SourceType = SourceType.FindMini,
+                Creator = CommonConstant.System
             };
             dtos.Add(telegramAppDto);
             if (string.IsNullOrEmpty(descUrl))
