@@ -32,19 +32,19 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        if (TimeHelper.IsTimestampToday(newIndexHeight))
+        if (TimeHelper.IsTimestampToday(lastEndHeight))
         {
-            return newIndexHeight;
+            return lastEndHeight;
         }
         var categoryList = _telegramOptions.CurrentValue.FindMiniCategoryList;
         foreach (var url in categoryList.Select(category => "https://www.findmini.app/category/" + category))
         {
             var apps = await _findminiAppsSpiderService.LoadAsync(url);
             await _telegramService.SaveNewTelegramAppsAsync(apps);
-            for (var i = 2; i < 100; i++)
+            for (var i = 2; i < 40; i++)
             {
                 var pageUrl = url + "/" + i + "/";
-                apps = await _findminiAppsSpiderService.LoadAsync(url);
+                apps = await _findminiAppsSpiderService.LoadAsync(pageUrl);
                 if (apps.IsNullOrEmpty())
                 {
                     break;

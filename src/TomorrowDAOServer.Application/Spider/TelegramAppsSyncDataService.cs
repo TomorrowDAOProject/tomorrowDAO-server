@@ -29,9 +29,9 @@ public class TelegramAppsSyncDataService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        if (TimeHelper.IsTimestampToday(newIndexHeight))
+        if (TimeHelper.IsTimestampToday(lastEndHeight))
         {
-            return newIndexHeight;
+            return lastEndHeight;
         }
         var telegramAppDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsAsync(new LoadAllTelegramAppsInput { ChainId = chainId }, false);
         await _telegramService.SaveNewTelegramAppsAsync(telegramAppDtos);

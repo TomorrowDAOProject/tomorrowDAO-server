@@ -160,7 +160,7 @@ public static class TimeHelper
     
     public static bool IsTimestampToday(long timestamp)
     {
-        var dateTime = DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime;
+        var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime;
         var today = DateTime.UtcNow.Date;
         return dateTime.Date == today;
     }
