@@ -126,9 +126,12 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         return res;
     }
 
-    public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(string chainId)
+    public async Task<IDictionary<string, TelegramAppDetailDto>> LoadAllTelegramAppsDetailAsync(string chainId, bool needAuth = true)
     {
-        await CheckAddress(chainId);
+        if (needAuth)
+        {
+            await CheckAddress(chainId);
+        }
         var url = _telegramOptions.CurrentValue.DetailUrl;
         var header = _telegramOptions.CurrentValue.TgHeader;
         var appList = await _telegramAppsProvider.GetAllAsync();

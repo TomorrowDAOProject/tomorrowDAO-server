@@ -35,7 +35,7 @@ public class TelegramAppsSyncDataService : ScheduleSyncDataService
         }
         var telegramAppDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsAsync(new LoadAllTelegramAppsInput { ChainId = chainId }, false);
         await _telegramService.SaveNewTelegramAppsAsync(telegramAppDtos);
-        var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsDetailAsync(chainId);
+        var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsDetailAsync(chainId, false);
         await _telegramService.SaveTelegramAppDetailAsync(telegramAppDetailDtos);
         return DateTime.UtcNow.ToUtcMilliSeconds();
     }
