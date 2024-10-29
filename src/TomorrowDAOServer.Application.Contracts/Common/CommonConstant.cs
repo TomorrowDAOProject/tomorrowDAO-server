@@ -127,4 +127,7 @@ public static class CommonConstant
     
     //GrainId
     public const string GrainIdTelegramAppSequence = "TelegramAppSequence";
+    
+    //Findmini
+    public const string FindminiUrlPrefix = "https://www.findmini.app/";
 }

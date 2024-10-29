@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf;
 using HtmlAgilityPack;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Telegram.Dto;
@@ -25,7 +26,6 @@ public class FindminiAppsSpiderService : TomorrowDAOServerAppService, IFindminiA
         var doc = web.Load(url);
         var dtos = new List<TelegramAppDto>();
         var appNodes = doc.DocumentNode.SelectNodes("//div[contains(@class, 'flex') and contains(@class, 'items-center') and contains(@class, 'rounded-2xl')]");
-
         if (appNodes == null)
         {
             return dtos;
@@ -46,7 +46,7 @@ public class FindminiAppsSpiderService : TomorrowDAOServerAppService, IFindminiA
             {
                 Id = HashHelper.ComputeFrom(title).ToHex(),
                 Alias = await _daoAliasProvider.GenerateDaoAliasAsync(title), Title = title,
-                Icon = imgNode?.GetAttributeValue("src", string.Empty) ?? string.Empty,
+                Icon = CommonConstant.FindminiUrlPrefix + imgNode?.GetAttributeValue("src", string.Empty),
                 Description = descNode?.InnerText.Trim(), SourceType = SourceType.FindMini
             };
             dtos.Add(telegramAppDto);
@@ -55,7 +55,7 @@ public class FindminiAppsSpiderService : TomorrowDAOServerAppService, IFindminiA
                 continue;
             }
 
-            descUrl = "https://www.findmini.app/" + descUrl;
+            descUrl = CommonConstant.FindminiUrlPrefix + descUrl;
             var descWeb = new HtmlWeb();
             var descDoc = descWeb.Load(descUrl);
             var screenImgNodes = descDoc.DocumentNode.SelectNodes("//div[contains(@class, 'flex') and contains(@class, 'snap-x') and contains(@class, 'overflow-x-auto')]//img");
