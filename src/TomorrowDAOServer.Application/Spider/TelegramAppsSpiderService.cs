@@ -89,7 +89,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             loadApps.AddRange(await LoadTelegramAppsAsync(new LoadTelegramAppsInput
             {
                 ChainId = input.ChainId, Url = url, ContentType = input.ContentType
-            }));
+            }, needAuth));
         }
         loadApps = loadApps.GroupBy(app => app.Alias).Select(group => group.First()) 
             .ToList();
