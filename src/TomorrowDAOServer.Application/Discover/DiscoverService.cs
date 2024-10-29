@@ -131,7 +131,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await FillTotalPoints(input.ChainId, newApps);
         return new AppPageResultDto<DiscoverAppDto>
         {
-            TotalCount = newApps.Count, Data = newApps, NotViewedNewAppCount = notViewedNewAppCount
+            TotalCount = newAppList.Count, Data = newApps, NotViewedNewAppCount = notViewedNewAppCount
         };
     }
 
