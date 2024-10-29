@@ -120,7 +120,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var (count, appList) = await _telegramAppsProvider.GetByTimePeriodAsync(monthStart, monthEnd, input.SkipCount, input.MaxResultCount);
         var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(appList);
         var viewApp = await _userViewNewAppProvider.GetByAddress(address);
-        var viewAliases = viewApp?.AliasesList ?? new List<string>();
+        var viewAliases = new HashSet<string>(viewApp?.AliasesList ?? new List<string>());
         foreach (var app in newApps)
         {
             app.Viewd = viewAliases.Contains(app.Alias);
