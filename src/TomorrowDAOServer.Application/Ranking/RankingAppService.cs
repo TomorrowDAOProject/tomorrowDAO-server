@@ -165,7 +165,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
         var (topRankingAddress, goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
-        excludeIds.AddRange(topRankingIds);
         var rankingType = input.Type;
         var result = new Tuple<long, List<ProposalIndex>>(0, new List<ProposalIndex>());
         switch (rankingType)
@@ -214,7 +213,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 detail.LabelType = detail.ProposalId == goldRankingId ? LabelTypeEnum.Gold : LabelTypeEnum.Blue;
             }
-            if (topRankingIds.Contains(detail.ProposalId))
+            if (input.Type == RankingType.Top)
             {
                 detail.RankingType = RankingType.Top;
             }
