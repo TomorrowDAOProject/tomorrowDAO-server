@@ -37,11 +37,11 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
             return lastEndHeight;
         }
         var categoryList = _telegramOptions.CurrentValue.FindMiniCategoryList;
-        foreach (var url in categoryList.Select(category => CommonConstant.FindminiUrlPrefix + category))
+        foreach (var url in categoryList.Select(category => CommonConstant.FindminiCategoryPrefix + category + "/"))
         {
             for (var i = 1; i < 50; i++)
             {
-                var pageUrl = i == 1 ? url : url + "/" + i + "/";
+                var pageUrl = i == 1 ? url : url + i;
                 var apps = await _findminiAppsSpiderService.LoadAsync(pageUrl);
                 if (apps.IsNullOrEmpty())
                 {
