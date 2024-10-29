@@ -94,7 +94,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
     }
 
     public async Task<IDictionary<string, TelegramAppDetailDto>> LoadTelegramAppsDetailAsync(
-        LoadTelegramAppsDetailInput input)
+        LoadTelegramAppsDetailInput input, bool needAuth = true)
     {
         if (input == null || input.Url.IsNullOrWhiteSpace() || input.ChainId.IsNullOrWhiteSpace())
         {
@@ -106,7 +106,10 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             return new Dictionary<string, TelegramAppDetailDto>();
         }
 
-        await CheckAddress(input.ChainId);
+        if (needAuth)
+        {
+            await CheckAddress(input.ChainId);
+        }
 
         var res = new Dictionary<string, TelegramAppDetailDto>();
         foreach (var keyValuePair in input.Apps)
@@ -143,7 +146,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         var loadRes = await LoadTelegramAppsDetailAsync(new LoadTelegramAppsDetailInput
         {
             ChainId = chainId, Url = url, Header = header, Apps = dic
-        });
+        }, needAuth);
 
         _logger.LogInformation("LoadAllTelegramAppsDetailAsyncEnd count {count}", loadRes.Count);
         return loadRes;

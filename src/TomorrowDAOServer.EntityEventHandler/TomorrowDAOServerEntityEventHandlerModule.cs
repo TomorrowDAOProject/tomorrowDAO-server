@@ -74,6 +74,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         Configure<ExplorerOptions>(configuration.GetSection("Explorer"));
         Configure<RankingOptions>(configuration.GetSection("Ranking"));
         Configure<GraphQLOptions>(configuration.GetSection("GraphQL"));
+        Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         ConfigureHangfire(context, configuration);
         // Configure<AbpRabbitMqBackgroundJobOptions>(configuration.GetSection("AbpRabbitMqBackgroundJob"));
         context.Services.AddHostedService<TomorrowDAOServerHostedService>();
