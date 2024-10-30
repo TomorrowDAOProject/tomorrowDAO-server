@@ -33,12 +33,14 @@ public class TelegramAppsSyncDataService : ScheduleSyncDataService
     {
         if (TimeHelper.IsTimestampToday(lastEndHeight))
         {
-            _logger.LogInformation("FindminiNoNeedToSync");
+            _logger.LogInformation("TelegramNoNeedToSync");
             return lastEndHeight;
         }
         var telegramAppDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsAsync(new LoadAllTelegramAppsInput { ChainId = chainId }, false);
+        _logger.LogInformation("TelegramSyncBasicEnd count={0}", telegramAppDtos.Count);
         await _telegramService.SaveNewTelegramAppsAsync(telegramAppDtos);
         var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsDetailAsync(chainId, false);
+        _logger.LogInformation("TelegramSyncDetailEnd count={0}", telegramAppDetailDtos.Count);
         await _telegramService.SaveTelegramAppDetailAsync(telegramAppDetailDtos);
         return DateTime.UtcNow.ToUtcMilliSeconds();
     }
