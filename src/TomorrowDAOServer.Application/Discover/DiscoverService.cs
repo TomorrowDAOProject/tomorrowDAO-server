@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Discover.Dto;
@@ -104,15 +103,29 @@ public class DiscoverService : ApplicationService, IDiscoverService
         {
             return true;
         }
-        var viewApp = await _userViewAppProvider.GetByAddress(address);
-        var aliasesList = GetAliasList(viewApp);
-        aliasesList.AddRange(apps.Select(x => x.Alias).ToList());
-        aliasesList = aliasesList.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
-        await _userViewAppProvider.AddOrUpdateAsync(new UserViewAppIndex
+
+        var aliases = apps.Select(x => x.Alias).Distinct().ToList();
+        var existed = await _userViewAppProvider.GetByAliasList(aliases);
+        var dic = existed.ToDictionary(x => x.Alias, x => x);
+        var toAdd = new List<UserViewedAppIndex>();
+        foreach (var alias in aliases)
         {
-            Id = GuidHelper.GenerateGrainId(input.ChainId, address), ChainId = input.ChainId, Address = address,
-            AliasesString = string.Join(",", aliasesList)
-        });
+            if (dic.TryGetValue(alias, out var view))
+            {
+                view.UpdateTime = DateTime.UtcNow;
+                toAdd.Add(view);
+            }
+            else
+            {
+                toAdd.Add(new UserViewedAppIndex
+                {
+                    Id = GuidHelper.GenerateGrainId(address, alias), Alias = alias, Address = address,
+                    CreateTime = DateTime.UtcNow, UpdateTime = DateTime.UtcNow
+                });
+            }
+        }
+
+        await _userViewAppProvider.BulkAddOrUpdateAsync(toAdd);
         return true;
     }
 
@@ -124,21 +137,16 @@ public class DiscoverService : ApplicationService, IDiscoverService
             return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(0, new List<TelegramAppIndex>(),
                 new HashSet<string>());
         }
-        var viewApp = await _userViewAppProvider.GetByAddress(address);
-        var aliasesList = GetAliasList(viewApp);
-        var viewAliases = new HashSet<string>(aliasesList);
+        
         var createTime = latest.CreateTime;
         var monthStart = new DateTime(createTime.Year, createTime.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
         var newAppList = await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd);
-        var notViewedNewAppCount = input.SkipCount == 0 ? newAppList.Count(app => !viewAliases.Contains(app.Alias)) : (int?)null;
-        return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(notViewedNewAppCount, newAppList, viewAliases);
-    }
-
-    private List<string> GetAliasList(UserViewAppIndex app)
-    {
-        return (app?.AliasesString ?? string.Empty).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-            .ToList();
+        var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
+        var viewedApps = await _userViewAppProvider.GetByAliasList(aliases);
+        var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
+        var notViewedNewAppCount = aliases.Except(viewedAliases).Count();
+        return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(notViewedNewAppCount, newAppList, new HashSet<string>(viewedAliases));
     }
     
     private async Task<AppPageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input, string address)
