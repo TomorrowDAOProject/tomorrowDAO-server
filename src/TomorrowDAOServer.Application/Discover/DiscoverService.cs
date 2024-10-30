@@ -83,7 +83,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await FillTotalPoints(input.ChainId, res.Data);
         if (CommonConstant.New != input.Category && input.SkipCount == 0)
         {
-            var (notViewedNewAppCount, _, _) = await GetNewAppInfo(new GetDiscoverAppListInput(), address);
+            var (notViewedNewAppCount, _, _) = await GetNewAppInfo(input, address);
             res.NotViewedNewAppCount = notViewedNewAppCount;
         }
         return res;
