@@ -349,11 +349,4 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         
         throw new UserFriendlyException("Nft Not enough.");
     }
-
-    private DateTime GetTime(TelegramAppIndex existApp)
-    {
-        return existApp != null && existApp.LoadTime != default && existApp.LoadTime != null
-            ? existApp.LoadTime
-            : DateTime.Now;
-    }
 }
