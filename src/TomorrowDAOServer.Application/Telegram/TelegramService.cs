@@ -222,7 +222,8 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             //,SourceType = SourceType.Telegram
         });
 
-        var existAppDictionary = exists.ToDictionary(t => t.Title);
+        var existAppDictionary = exists.GroupBy(t => t.Title)
+            .ToDictionary(g => g.Key, g => g.First());
         foreach (var telegramAppIndex in telegramAppIndices)
         {
             var existApp = existAppDictionary.GetValueOrDefault(telegramAppIndex.Title, new TelegramAppIndex());
