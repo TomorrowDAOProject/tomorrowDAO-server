@@ -17,20 +17,23 @@ public class TelegramAppsSyncDataService : ScheduleSyncDataService
     private readonly IChainAppService _chainAppService;
     private readonly ITelegramAppsSpiderService _telegramAppsSpiderService;
     private readonly ITelegramService _telegramService;
+    private readonly ILogger<TelegramAppsSyncDataService> _logger;
     
     public TelegramAppsSyncDataService(ILogger<ScheduleSyncDataService> logger, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, ITelegramAppsSpiderService telegramAppsSpiderService, 
-        ITelegramService telegramService) : base(logger, graphQlProvider)
+        ITelegramService telegramService, ILogger<TelegramAppsSyncDataService> logger1) : base(logger, graphQlProvider)
     {
         _chainAppService = chainAppService;
         _telegramAppsSpiderService = telegramAppsSpiderService;
         _telegramService = telegramService;
+        _logger = logger1;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
         if (TimeHelper.IsTimestampToday(lastEndHeight))
         {
+            _logger.LogInformation("FindminiNoNeedToSync");
             return lastEndHeight;
         }
         var telegramAppDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsAsync(new LoadAllTelegramAppsInput { ChainId = chainId }, false);

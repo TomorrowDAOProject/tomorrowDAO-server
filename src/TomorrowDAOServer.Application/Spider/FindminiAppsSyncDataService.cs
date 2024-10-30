@@ -19,21 +19,24 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
     private readonly IFindminiAppsSpiderService _findminiAppsSpiderService;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
     private readonly ITelegramService _telegramService;
+    private readonly ILogger<FindminiAppsSyncDataService> _logger;
     
     public FindminiAppsSyncDataService(ILogger<ScheduleSyncDataService> logger, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, IFindminiAppsSpiderService findminiAppsSpiderService, 
-        IOptionsMonitor<TelegramOptions> telegramOptions, ITelegramService telegramService) : base(logger, graphQlProvider)
+        IOptionsMonitor<TelegramOptions> telegramOptions, ITelegramService telegramService, ILogger<FindminiAppsSyncDataService> logger1) : base(logger, graphQlProvider)
     {
         _chainAppService = chainAppService;
         _findminiAppsSpiderService = findminiAppsSpiderService;
         _telegramOptions = telegramOptions;
         _telegramService = telegramService;
+        _logger = logger1;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
         if (TimeHelper.IsTimestampToday(lastEndHeight))
         {
+            _logger.LogInformation("FindminiNoNeedToSync");
             return lastEndHeight;
         }
         var categoryList = _telegramOptions.CurrentValue.FindMiniCategoryList;
@@ -42,11 +45,14 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
             for (var i = 1; i < 50; i++)
             {
                 var pageUrl = i == 1 ? url : url + i;
+                _logger.LogInformation("FindminiSyncStart url={url}", pageUrl);
                 var apps = await _findminiAppsSpiderService.LoadAsync(pageUrl);
                 if (apps.IsNullOrEmpty())
                 {
+                    _logger.LogInformation("FindminiSyncBreak url={url}", pageUrl);
                     break;
                 }
+                _logger.LogInformation("FindminiSyncEnd url={url}, count={count}", pageUrl, apps.Count);
                 await _telegramService.SaveNewTelegramAppsAsync(apps);
             }
         }

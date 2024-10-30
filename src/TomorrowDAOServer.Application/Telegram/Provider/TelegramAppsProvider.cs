@@ -125,7 +125,8 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {
-            q => !q.Exists(i => i.Field(f => f.Url)),
+            // todo open next version
+            // q => !q.Exists(i => i.Field(f => f.Url)),
             q => q.Term(i => i.Field(f => f.SourceType).Value(SourceType.Telegram))
         };
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));

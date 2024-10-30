@@ -72,8 +72,10 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         catch (Exception e)
         {
             _logger.LogError(e, "exec LoadTelegramAppsAsync error, {0}", JsonConvert.SerializeObject(input));
-            throw;
+            // throw;
         }
+
+        return new List<TelegramAppDto>();
     }
 
     public async Task<List<TelegramAppDto>> LoadAllTelegramAppsAsync(LoadAllTelegramAppsInput input, bool needAuth = true)
@@ -126,7 +128,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             catch (Exception e)
             {
                 _logger.LogError(e, "LoadTelegramAppsDetailAsync error. AppName={0}", keyValuePair);
-                throw;
+                // throw;
             }
         }
 

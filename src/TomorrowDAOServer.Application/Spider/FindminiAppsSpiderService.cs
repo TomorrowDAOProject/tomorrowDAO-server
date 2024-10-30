@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf;
 using HtmlAgilityPack;
+using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Enums;
@@ -14,10 +15,12 @@ namespace TomorrowDAOServer.Spider;
 public class FindminiAppsSpiderService : TomorrowDAOServerAppService, IFindminiAppsSpiderService
 {
     private readonly IDaoAliasProvider _daoAliasProvider;
+    private readonly ILogger<FindminiAppsSpiderService> _logger;
 
-    public FindminiAppsSpiderService(IDaoAliasProvider daoAliasProvider)
+    public FindminiAppsSpiderService(IDaoAliasProvider daoAliasProvider, ILogger<FindminiAppsSpiderService> logger)
     {
         _daoAliasProvider = daoAliasProvider;
+        _logger = logger;
     }
 
     public async Task<List<TelegramAppDto>> LoadAsync(string url)
@@ -33,43 +36,50 @@ public class FindminiAppsSpiderService : TomorrowDAOServerAppService, IFindminiA
 
         foreach (var appNode in appNodes)
         {
-            var anchorNode = appNode.SelectSingleNode(".//a[@class='flex w-full']");
-            var imgNode = anchorNode.SelectSingleNode(".//img");
-            var descNode = appNode.SelectSingleNode(".//p[contains(@class, 'line-clamp-2')]");
-            var descUrl = anchorNode?.GetAttributeValue("href", string.Empty) ?? string.Empty;
-            var title = imgNode?.GetAttributeValue("alt", string.Empty) ?? string.Empty;
-            if (string.IsNullOrEmpty(title))
+            try
             {
-                continue;
-            }
-            var telegramAppDto = new TelegramAppDto
-            {
-                Id = HashHelper.ComputeFrom(title).ToHex(),
-                Alias = await _daoAliasProvider.GenerateDaoAliasAsync(title), Title = title,
-                Icon = CommonConstant.FindminiUrlPrefix + imgNode?.GetAttributeValue("src", string.Empty),
-                Description = descNode?.InnerText.Trim(), SourceType = SourceType.FindMini,
-                Creator = CommonConstant.System
-            };
-            dtos.Add(telegramAppDto);
-            if (string.IsNullOrEmpty(descUrl))
-            {
-                continue;
-            }
+                var anchorNode = appNode.SelectSingleNode(".//a[@class='flex w-full']");
+                var imgNode = anchorNode.SelectSingleNode(".//img");
+                var descNode = appNode.SelectSingleNode(".//p[contains(@class, 'line-clamp-2')]");
+                var detailUrl = anchorNode?.GetAttributeValue("href", string.Empty) ?? string.Empty;
+                var title = imgNode?.GetAttributeValue("alt", string.Empty) ?? string.Empty;
+                if (string.IsNullOrEmpty(title))
+                {
+                    continue;
+                }
+                var telegramAppDto = new TelegramAppDto
+                {
+                    Id = HashHelper.ComputeFrom(title).ToHex(),
+                    Alias = await _daoAliasProvider.GenerateDaoAliasAsync(title), Title = title,
+                    Icon = CommonConstant.FindminiUrlPrefix + imgNode?.GetAttributeValue("src", string.Empty),
+                    Description = descNode?.InnerText.Trim(), SourceType = SourceType.FindMini,
+                    Creator = CommonConstant.System
+                };
+                dtos.Add(telegramAppDto);
+                if (string.IsNullOrEmpty(detailUrl))
+                {
+                    continue;
+                }
 
-            descUrl = CommonConstant.FindminiUrlPrefix + descUrl;
-            var descWeb = new HtmlWeb();
-            var descDoc = descWeb.Load(descUrl);
-            var screenImgNodes = descDoc.DocumentNode.SelectNodes("//div[contains(@class, 'flex') and contains(@class, 'snap-x') and contains(@class, 'overflow-x-auto')]//img");
-            var spanNode = descDoc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Description')]/following-sibling::span");
-            var buttonNode = descDoc.DocumentNode.SelectSingleNode("//button[contains(@onclick, 'window.open') and contains(@class, 'bg-telegram')]");
-            var onClickAttribute = buttonNode?.GetAttributeValue("onclick", string.Empty) ?? string.Empty;
-            var startIndex = onClickAttribute.IndexOf("window.open('", StringComparison.Ordinal) + "window.open('".Length;
-            var endIndex = onClickAttribute.IndexOf("'", startIndex, StringComparison.Ordinal);
-            telegramAppDto.Screenshots = screenImgNodes?
-                .Select(screenImgNode => screenImgNode.GetAttributeValue("src", string.Empty))
-                .Where(screen => !string.IsNullOrEmpty(screen)).ToList() ?? new List<string>();
-            telegramAppDto.Url =  onClickAttribute.Substring(startIndex, endIndex - startIndex);
-            telegramAppDto.LongDescription = spanNode?.InnerText.Trim() ?? string.Empty;
+                detailUrl = CommonConstant.FindminiUrlPrefix + detailUrl;
+                var descWeb = new HtmlWeb();
+                var descDoc = descWeb.Load(detailUrl);
+                var screenImgNodes = descDoc.DocumentNode.SelectNodes("//div[contains(@class, 'flex') and contains(@class, 'snap-x') and contains(@class, 'overflow-x-auto')]//img");
+                var spanNode = descDoc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Description')]/following-sibling::span");
+                var buttonNode = descDoc.DocumentNode.SelectSingleNode("//button[contains(@onclick, 'window.open') and contains(@class, 'bg-telegram')]");
+                var onClickAttribute = buttonNode?.GetAttributeValue("onclick", string.Empty) ?? string.Empty;
+                var startIndex = onClickAttribute.IndexOf("window.open('", StringComparison.Ordinal) + "window.open('".Length;
+                var endIndex = onClickAttribute.IndexOf("'", startIndex, StringComparison.Ordinal);
+                telegramAppDto.Screenshots = screenImgNodes?
+                    .Select(screenImgNode => screenImgNode.GetAttributeValue("src", string.Empty))
+                    .Where(screen => !string.IsNullOrEmpty(screen)).ToList() ?? new List<string>();
+                telegramAppDto.Url =  onClickAttribute.Substring(startIndex, endIndex - startIndex);
+                telegramAppDto.LongDescription = spanNode?.InnerText.Trim() ?? string.Empty;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "FindminiLoadAsyncError. url={0}", url);
+            }
         }
 
         return dtos;
