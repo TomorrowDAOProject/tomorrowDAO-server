@@ -119,6 +119,11 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private async Task<Tuple<int?, List<TelegramAppIndex>, HashSet<string>>> GetNewAppInfo(GetDiscoverAppListInput input, string address)
     {
         var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
+        if (latest == null)
+        {
+            return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(0, new List<TelegramAppIndex>(),
+                new HashSet<string>());
+        }
         var viewApp = await _userViewAppProvider.GetByAddress(address);
         var aliasesList = GetAliasList(viewApp);
         var viewAliases = new HashSet<string>(aliasesList);
