@@ -39,6 +39,7 @@ public class TelegramAppsSyncDataService : ScheduleSyncDataService
         var telegramAppDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsAsync(new LoadAllTelegramAppsInput { ChainId = chainId }, false);
         _logger.LogInformation("TelegramSyncBasicEnd count={0}", telegramAppDtos.Count);
         await _telegramService.SaveNewTelegramAppsAsync(telegramAppDtos);
+        _logger.LogInformation("TelegramSyncDetailStart");
         var telegramAppDetailDtos = await _telegramAppsSpiderService.LoadAllTelegramAppsDetailAsync(chainId, false);
         _logger.LogInformation("TelegramSyncDetailEnd count={0}", telegramAppDetailDtos.Count);
         await _telegramService.SaveTelegramAppDetailAsync(telegramAppDetailDtos);

@@ -118,6 +118,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         }
 
         var res = new Dictionary<string, TelegramAppDetailDto>();
+        _logger.LogInformation("LoadTelegramAppsDetailAsyncStart");
         foreach (var keyValuePair in input.Apps)
         {
             try
@@ -127,7 +128,7 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "LoadTelegramAppsDetailAsync error. AppName={0}", keyValuePair);
+                _logger.LogError(e, "LoadTelegramAppsDetailAsyncError. AppName={0}", keyValuePair);
                 // throw;
             }
         }
