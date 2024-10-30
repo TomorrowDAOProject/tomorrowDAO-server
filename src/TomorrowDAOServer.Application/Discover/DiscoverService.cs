@@ -105,25 +105,10 @@ public class DiscoverService : ApplicationService, IDiscoverService
         }
 
         var aliases = apps.Select(x => x.Alias).Distinct().ToList();
-        var existed = await _userViewAppProvider.GetByAliasList(aliases);
-        var dic = existed.ToDictionary(x => x.Alias, x => x);
-        var toAdd = new List<UserViewedAppIndex>();
-        foreach (var alias in aliases)
+        var toAdd = aliases.Select(alias => new UserViewedAppIndex
         {
-            if (dic.TryGetValue(alias, out var view))
-            {
-                view.UpdateTime = DateTime.UtcNow;
-                toAdd.Add(view);
-            }
-            else
-            {
-                toAdd.Add(new UserViewedAppIndex
-                {
-                    Id = GuidHelper.GenerateGrainId(address, alias), Alias = alias, Address = address,
-                    CreateTime = DateTime.UtcNow, UpdateTime = DateTime.UtcNow
-                });
-            }
-        }
+            Id = GuidHelper.GenerateGrainId(address, alias), Alias = alias, Address = address
+        }).ToList();
 
         await _userViewAppProvider.BulkAddOrUpdateAsync(toAdd);
         return true;
