@@ -144,11 +144,19 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         }
         var url = _telegramOptions.CurrentValue.DetailUrl;
         var header = _telegramOptions.CurrentValue.TgHeader;
-        var needLoadDetailAppList = await _telegramAppsProvider.GetNeedLoadDetailAsync();
-        var dic = needLoadDetailAppList.ToDictionary(x => x.Title,
-            x => x.Title.Count(c => c == CommonConstant.SpaceChar) == 2 
-                ? x.Title.Replace(CommonConstant.Space, CommonConstant.Middleline).ToLower() 
-                : x.Title.Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower());
+        var needLoadDetailAppList = (await _telegramAppsProvider.GetNeedLoadDetailAsync())
+            .Where(x => x.SourceType == SourceType.Telegram);
+        var dic = needLoadDetailAppList
+            .GroupBy(x => x.Title) 
+            .ToDictionary(
+                g => g.Key,         
+                g => {
+                    var x = g.First();
+                    return x.Title.Count(c => c == CommonConstant.SpaceChar) == 2 
+                        ? x.Title.Replace(CommonConstant.Space, CommonConstant.Middleline).ToLower() 
+                        : x.Title.Replace(CommonConstant.Space, CommonConstant.EmptyString).ToLower();
+                }
+            );
         var loadRes = await LoadTelegramAppsDetailAsync(new LoadTelegramAppsDetailInput
         {
             ChainId = chainId, Url = url, Header = header, Apps = dic
