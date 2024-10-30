@@ -216,7 +216,6 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     public async Task<List<TelegramAppIndex>> GetAllByTimePeriodAsync(DateTime start, DateTime end)
     {
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(TimePeriodQuery(start, end)));
-        var (count, list) = await _telegramAppIndexRepository.GetListAsync(Filter);
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);
     }
 
