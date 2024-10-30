@@ -104,13 +104,13 @@ public class DiscoverService : ApplicationService, IDiscoverService
             return true;
         }
         var viewApp = await _userViewAppProvider.GetByAddress(address);
-        var aliasesList = new List<string>((viewApp?.AliasesString ?? string.Empty).Split(CommonConstant.Comma));
+        var aliasesList = GetAliasList(viewApp);
         aliasesList.AddRange(apps.Select(x => x.Alias).ToList());
         aliasesList = aliasesList.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
         await _userViewAppProvider.AddOrUpdateAsync(new UserViewAppIndex
         {
             Id = GuidHelper.GenerateGrainId(input.ChainId, address), ChainId = input.ChainId, Address = address,
-            AliasesString = JsonConvert.SerializeObject(aliasesList)
+            AliasesString = string.Join(",", aliasesList)
         });
         return true;
     }
@@ -119,13 +119,20 @@ public class DiscoverService : ApplicationService, IDiscoverService
     {
         var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
         var viewApp = await _userViewAppProvider.GetByAddress(address);
-        var viewAliases = new HashSet<string>(JsonConvert.DeserializeObject<List<string>>(viewApp?.AliasesString ?? string.Empty));
+        var aliasesList = GetAliasList(viewApp);
+        var viewAliases = new HashSet<string>(aliasesList);
         var createTime = latest.CreateTime;
         var monthStart = new DateTime(createTime.Year, createTime.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
         var newAppList = await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd);
         var notViewedNewAppCount = input.SkipCount == 0 ? newAppList.Count(app => !viewAliases.Contains(app.Alias)) : (int?)null;
         return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(notViewedNewAppCount, newAppList, viewAliases);
+    }
+
+    private List<string> GetAliasList(UserViewAppIndex app)
+    {
+        return (app?.AliasesString ?? string.Empty).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
     }
     
     private async Task<AppPageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input, string address)
