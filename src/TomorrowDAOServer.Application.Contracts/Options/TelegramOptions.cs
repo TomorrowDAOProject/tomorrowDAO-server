@@ -9,4 +9,5 @@ public class TelegramOptions
     public string DetailUrl { get; set; }
     public Dictionary<string, string> TgHeader { get; set; } = new();
     public string Types { get; set; }
+    public List<string> FindMiniCategoryList { get; set; } = new();
 }
