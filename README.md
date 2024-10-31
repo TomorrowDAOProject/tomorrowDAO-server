@@ -66,7 +66,7 @@ We welcome contributions to the TomorrowDAO Server project. If you would like to
 
 ## License
 
-TomorrowDAO Server is licensed under [MIT](https://github.com/Portkey-Wallet/portkey-DID-server/blob/master/LICENSE).
+TomorrowDAO Server is licensed under [MIT](https://github.com/TomorrowDAOProject/tomorrowDAO-server/blob/master/LICENSE).
 
 ## Contact
 
