@@ -1,4 +1,3 @@
-using System;
 using AElf.Indexing.Elasticsearch;
 using Nest;
 
