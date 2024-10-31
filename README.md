@@ -1,6 +1,6 @@
 # TomorrowDAO-server
 
-TomorrowDAO Server provides interface services for the TomorrowDAO pa=latform. In terms of project architecture, the project is developed based on the ABP framework. It uses Orleans, which is a framework for building reliable and scalable distributed applications that can simplify the complexity of distributed computing. In terms of data storage, the project uses Grain and Elasticsearch for data storage and retrieval. Grain is the core component of Orleans and represents an automatically scalable and fault-tolerant entity. In summary, TomorrowDAO Server combines the advantages of the ABP framework, Orleans, and Elasticsearch to achieve a high-performance and scalable distributed wallet interface service.
+TomorrowDAO Server provides interface services for the TomorrowDAO platform. In terms of project architecture, the project is developed based on the ABP framework. It uses Orleans, which is a framework for building reliable and scalable distributed applications that can simplify the complexity of distributed computing. In terms of data storage, the project uses Grain and Elasticsearch for data storage and retrieval. Grain is the core component of Orleans and represents an automatically scalable and fault-tolerant entity. In summary, TomorrowDAO Server combines the advantages of the ABP framework, Orleans, and Elasticsearch to achieve a high-performance and scalable distributed wallet interface service.
 ## Getting Started
 
 Before running TomorrowDAO Server, you need to prepare the following infrastructure components, as they are essential for the project's operation:
@@ -57,7 +57,7 @@ TomorrowDAO Server includes the following services:
 - `TomorrowDAOServer.AuthServer`: Authentication service.
 - `TomorrowDAOServer.Silo`: Silo service.
 - `TomorrowDAOServer.HttpApi.Host`: API interface service.
-- `TomorrowDAOServer.EntityEventHandler`: event handling service.
+- `TomorrowDAOServer.EntityEventHandler`: Event handling service.
 
 ## Contributing
 
