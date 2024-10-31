@@ -171,19 +171,28 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             case RankingType.Verified:
                 var res = new List<ProposalIndex>();
-                if (input.SkipCount == 0)
+                Tuple<long, List<ProposalIndex>> officialProposals;
+                if (string.IsNullOrEmpty(goldRankingId))
                 {
-                    var goldProposal = await _proposalProvider.GetProposalByIdAsync(chainId, goldRankingId);
-                    res.Add(goldProposal);
-                    input.MaxResultCount -= 1;
+                    result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount,
+                        input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
                 }
                 else
                 {
-                    input.SkipCount -= 1;
+                    if (input.SkipCount == 0 && !string.IsNullOrEmpty(goldRankingId))
+                    {
+                        var goldProposal = await _proposalProvider.GetProposalByIdAsync(chainId, goldRankingId);
+                        res.Add(goldProposal);
+                        input.MaxResultCount -= 1;
+                    }
+                    else
+                    {
+                        input.SkipCount -= 1;
+                    }
+                    officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
+                    res.AddRange(officialProposals.Item2);
+                    result = new Tuple<long, List<ProposalIndex>>(officialProposals.Item1 + 1, res);
                 }
-                var officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
-                res.AddRange(officialProposals.Item2);
-                result = new Tuple<long, List<ProposalIndex>>(officialProposals.Item1 + 1, res);
                 break;
             case RankingType.All:
                 result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty);
