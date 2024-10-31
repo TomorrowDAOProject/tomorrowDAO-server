@@ -112,9 +112,10 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                     && Regex.IsMatch(x.Memo, CommonConstant.MemoPattern))
                 .Select(x => new { Record = x, Alias = Regex.Match(x.Memo, CommonConstant.MemoPattern).Groups[1].Value })
                 .ToList();
-            var aliasList = validMemoList.Select(x => x.Alias).ToList();
+            var aliasList = validMemoList.Select(x => x.Alias).Distinct().ToList();
             var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
-            var validAliasDic = telegramApps.Item2.ToDictionary(x => x.Alias, x => x);
+            var validAliasDic = telegramApps.Item2.GroupBy(x => x.Alias)      
+                .ToDictionary(g => g.Key, g => g.First());
             var choices = new List<DiscoverChoiceIndex>();
             foreach (var item in validMemoList.Where(x => validAliasDic.ContainsKey(x.Alias)))
             {
