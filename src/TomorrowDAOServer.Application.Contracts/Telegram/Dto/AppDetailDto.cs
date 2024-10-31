@@ -19,4 +19,5 @@ public class AppDetailDto
     public DateTime UpdateTime { get; set; }
     public string AppType { get; set; }
     public string Creator { get; set; }
+    public DateTime LoadTime { get; set; }
 }
