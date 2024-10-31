@@ -224,15 +224,16 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
 
         var existAppDictionary = exists.GroupBy(t => t.Title)
             .ToDictionary(g => g.Key, g => g.First());
+        var now = DateTime.UtcNow;
         foreach (var telegramAppIndex in telegramAppIndices)
         {
             var existApp = existAppDictionary.GetValueOrDefault(telegramAppIndex.Title, new TelegramAppIndex());
-            telegramAppIndex.LoadTime = existApp.LoadTime != default ? existApp.LoadTime : DateTime.UtcNow;
+            telegramAppIndex.LoadTime = existApp.LoadTime != default ? existApp.LoadTime : now;
             telegramAppIndex.Categories = existApp.Categories;
             if (SourceType.FindMini == telegramAppIndex.SourceType)
             {
-                telegramAppIndex.CreateTime = existApp.CreateTime != default ? existApp.CreateTime : DateTime.UtcNow;
-                telegramAppIndex.UpdateTime = existApp.UpdateTime != default ? existApp.UpdateTime : DateTime.UtcNow;
+                telegramAppIndex.CreateTime = existApp.CreateTime != default ? existApp.CreateTime : now;
+                telegramAppIndex.UpdateTime = existApp.UpdateTime != default ? existApp.UpdateTime : now;
             }
             else
             {
