@@ -17,5 +17,5 @@ public class RankingDetailDto
     public string ProposalTitle { get; set; }
     public List<RankingAppDetailDto> RankingList { get; set; } = new();
     public long StartEpochTime { get; set; }
-    public long EndTEpochime { get; set; }
+    public long EndEpochTime { get; set; }
 }

@@ -719,7 +719,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             RankingList = rankingList.OrderByDescending(r => r.PointsAmount)
                 .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList(),
             StartEpochTime = rankingApp.ActiveStartTime.ToUtcMilliSeconds(),
-            EndTEpochime = rankingApp.ActiveEndTime.ToUtcMilliSeconds(),
+            EndEpochTime = rankingApp.ActiveEndTime.ToUtcMilliSeconds(),
         };
     }
 
