@@ -97,7 +97,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             return true;
         }
         var (_, apps) = await _telegramAppsProvider
-            .GetTelegramAppsAsync(new QueryTelegramAppsInput { Aliases = input.Aliases });
+            .GetTelegramAppsAsync(new QueryTelegramAppsInput { Aliases = input.Aliases }, true);
         apps = apps.Where(x => x.SourceType != SourceType.TomorrowDao).ToList();
         if (!apps.Any())
         {

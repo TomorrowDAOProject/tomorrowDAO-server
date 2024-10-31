@@ -16,7 +16,7 @@ public interface ITelegramAppsProvider
 {
     Task AddOrUpdateAsync(TelegramAppIndex telegramAppIndex);
     Task BulkAddOrUpdateAsync(List<TelegramAppIndex> telegramAppIndices);
-    Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input);
+    Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input, bool excludeDao = false);
     Task< List<TelegramAppIndex>> GetAllTelegramAppsAsync(QueryTelegramAppsInput input);
     Task<List<TelegramAppIndex>> GetNeedLoadDetailAsync();
     Task<List<TelegramAppIndex>> GetNeedSetCategoryAsync();
@@ -54,7 +54,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         await _telegramAppIndexRepository.BulkAddOrUpdateAsync(telegramAppIndices);
     }
 
-    public async Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input)
+    public async Task<Tuple<long, List<TelegramAppIndex>>> GetTelegramAppsAsync(QueryTelegramAppsInput input, bool excludeDao = false)
     {
         if (input == null)
         {
@@ -81,6 +81,11 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         if (input.SourceType != null)
         {
             mustQuery.Add(q => q.Term(i => i.Field(f => f.SourceType).Value(input.SourceType)));
+        }
+
+        if (excludeDao)
+        {
+            mustQuery.Add(q => !q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)));
         }
         
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
