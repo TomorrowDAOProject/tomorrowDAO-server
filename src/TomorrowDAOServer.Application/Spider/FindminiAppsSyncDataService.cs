@@ -40,6 +40,7 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
             _logger.LogInformation("FindminiNoNeedToSync");
             return lastEndHeight;
         }
+        _logger.LogInformation("FindminiNeedToSyncStart");
         var categoryList = _telegramOptions.CurrentValue.FindMiniCategoryList;
         foreach (var url in categoryList.Select(category => CommonConstant.FindminiCategoryPrefix + category + "/"))
         {
@@ -57,7 +58,7 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
                 await _telegramService.SaveNewTelegramAppsAsync(apps);
             }
         }
-        
+        _logger.LogInformation("FindminiNeedToSyncEnd");
         return DateTime.UtcNow.ToUtcMilliSeconds();
     }
 
