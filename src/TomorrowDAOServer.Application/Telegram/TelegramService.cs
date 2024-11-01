@@ -6,6 +6,7 @@ using AElf;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Orleans;
 using TomorrowDAOServer.Common;
@@ -102,9 +103,13 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
 
             var categories = parts[1].Split(CommonConstant.Add)
                 .Select(cat => cat.Trim())
-                .Where(cat => Enum.TryParse(cat, out TelegramAppCategory category))
+                .Where(cat => Enum.TryParse(cat, out TelegramAppCategory _))
                 .Select(cat => (TelegramAppCategory)Enum.Parse(typeof(TelegramAppCategory), cat))
                 .ToList();
+            if (categories == null || categories.IsNullOrEmpty())
+            {
+                continue;
+            }
             var alias = parts[0].Trim();
             if (result.TryGetValue(alias, out var existingCategories))
             {
