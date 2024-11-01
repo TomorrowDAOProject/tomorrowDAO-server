@@ -31,7 +31,7 @@ public class TelegramAppsSyncDataService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        if (TimeHelper.IsTimestampToday(lastEndHeight))
+        if (TimeHelper.IsTimestampToday(lastEndHeight) && DateTime.UtcNow.Hour != 12)
         {
             _logger.LogInformation("TelegramNoNeedToSync");
             return lastEndHeight;
