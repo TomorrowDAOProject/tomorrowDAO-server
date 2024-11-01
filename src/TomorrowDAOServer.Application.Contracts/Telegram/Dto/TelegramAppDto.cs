@@ -21,6 +21,7 @@ public class TelegramAppDto
     public List<TelegramAppCategory> Categories { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
+    public DateTime LoadTime { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]
     public SourceType SourceType { get; set; }
     public string Creator { get; set; }

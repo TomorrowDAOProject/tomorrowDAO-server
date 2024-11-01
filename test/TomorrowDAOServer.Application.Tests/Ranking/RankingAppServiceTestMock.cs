@@ -42,7 +42,7 @@ public partial class RankingAppServiceTest
     private ITelegramAppsProvider MockTelegramAppsProvider()
     {
         var mock = new Mock<ITelegramAppsProvider>();
-        mock.Setup(o => o.GetTelegramAppsAsync(It.IsAny<QueryTelegramAppsInput>()))
+        mock.Setup(o => o.GetTelegramAppsAsync(It.IsAny<QueryTelegramAppsInput>(), It.IsAny<bool>()))
             .ReturnsAsync(new Tuple<long, List<TelegramAppIndex>>(1L, new List<TelegramAppIndex>{new() {Id = "id" }}));
         return mock.Object;
     }

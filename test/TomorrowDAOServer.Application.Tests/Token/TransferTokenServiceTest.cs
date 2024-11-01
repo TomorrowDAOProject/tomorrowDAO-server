@@ -93,6 +93,6 @@ public partial class TransferTokenServiceTest : TomorrowDaoServerApplicationTest
         });
         exception.ShouldNotBeNull();
         exception.Message.ShouldNotBeNull();
-        exception.Message.ShouldContain("User Address Not Found.");
+        exception.Message.ShouldContain("No user address found");
     }
 }
