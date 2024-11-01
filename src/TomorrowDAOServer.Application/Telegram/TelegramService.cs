@@ -237,6 +237,11 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
                 telegramAppIndex.Url = existApp.Url;
                 telegramAppIndex.LongDescription = existApp.LongDescription;
                 telegramAppIndex.Screenshots = existApp.Screenshots;
+                if (existApp.SourceType == SourceType.FindMini)
+                {
+                    telegramAppIndex.SourceType = SourceType.FindMini;
+                }
+                
             }
         }
         
