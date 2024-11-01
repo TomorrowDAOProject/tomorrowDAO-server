@@ -34,7 +34,8 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        if (TimeHelper.IsTimestampToday(lastEndHeight))
+        var hour =  _telegramOptions.CurrentValue.FindminiSpiderTime;
+        if (TimeHelper.IsTimestampToday(lastEndHeight) && DateTime.UtcNow.Hour != hour)
         {
             _logger.LogInformation("FindminiNoNeedToSync");
             return lastEndHeight;

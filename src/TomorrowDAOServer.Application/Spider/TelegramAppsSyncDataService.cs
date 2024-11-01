@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Telegram;
 using TomorrowDAOServer.Telegram.Dto;
 
@@ -18,20 +20,23 @@ public class TelegramAppsSyncDataService : ScheduleSyncDataService
     private readonly ITelegramAppsSpiderService _telegramAppsSpiderService;
     private readonly ITelegramService _telegramService;
     private readonly ILogger<TelegramAppsSyncDataService> _logger;
+    private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
     
     public TelegramAppsSyncDataService(ILogger<ScheduleSyncDataService> logger, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, ITelegramAppsSpiderService telegramAppsSpiderService, 
-        ITelegramService telegramService, ILogger<TelegramAppsSyncDataService> logger1) : base(logger, graphQlProvider)
+        ITelegramService telegramService, ILogger<TelegramAppsSyncDataService> logger1, 
+        IOptionsMonitor<TelegramOptions> telegramOptions) : base(logger, graphQlProvider)
     {
         _chainAppService = chainAppService;
         _telegramAppsSpiderService = telegramAppsSpiderService;
         _telegramService = telegramService;
         _logger = logger1;
+        _telegramOptions = telegramOptions;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        if (TimeHelper.IsTimestampToday(lastEndHeight) && DateTime.UtcNow.Hour != 12)
+        if (TimeHelper.IsTimestampToday(lastEndHeight))
         {
             _logger.LogInformation("TelegramNoNeedToSync");
             return lastEndHeight;
