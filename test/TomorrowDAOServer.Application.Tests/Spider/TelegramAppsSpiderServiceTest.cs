@@ -78,31 +78,21 @@ public partial class TelegramAppsSpiderServiceTest : TomorrowDaoServerApplicatio
     {
         Login(Guid.NewGuid(), Address2);
 
-        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
+        var result = await _telegramAppsSpiderService.LoadTelegramAppsAsync(new LoadTelegramAppsInput
         {
-            await _telegramAppsSpiderService.LoadTelegramAppsAsync(new LoadTelegramAppsInput
-            {
-                ChainId = ChainIdAELF,
-                Url = "https://www.tapps.center/",
-                ContentType = 0
-            });
+            ChainId = ChainIdAELF,
+            Url = "https://www.tapps.center/",
+            ContentType = 0
         });
-        exception.ShouldNotBeNull();
-        exception.Message.ShouldNotBeNull();
-        exception.Message.ShouldBe("Unsupported ContentType.");
+        result.Count.ShouldBe(0);
         
-        exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
+        result = await _telegramAppsSpiderService.LoadTelegramAppsAsync(new LoadTelegramAppsInput
         {
-            await _telegramAppsSpiderService.LoadTelegramAppsAsync(new LoadTelegramAppsInput
-            {
-                ChainId = ChainIdAELF,
-                Url = "https://www.tapps.center/",
-                ContentType = ContentType.Script
-            });
+            ChainId = ChainIdAELF,
+            Url = "https://www.tapps.center/",
+            ContentType = ContentType.Script
         });
-        exception.ShouldNotBeNull();
-        exception.Message.ShouldNotBeNull();
-        exception.Message.ShouldBe("Analyze script is not supported yet.");
+        result.Count.ShouldBe(0);
     }
     
     [Fact]

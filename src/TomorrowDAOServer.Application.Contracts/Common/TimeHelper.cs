@@ -157,5 +157,12 @@ public static class TimeHelper
         daysToAdd += currentDay <= targetDay ? 7 : 0;
         return startDate.AddDays(daysToAdd);  
     }  
+    
+    public static bool IsTimestampToday(long timestamp)
+    {
+        var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime;
+        var today = DateTime.UtcNow.Date;
+        return dateTime.Date == today;
+    }
 
 }

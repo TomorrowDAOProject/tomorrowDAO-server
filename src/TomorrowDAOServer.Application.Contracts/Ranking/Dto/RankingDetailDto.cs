@@ -16,4 +16,6 @@ public class RankingDetailDto
     public LabelTypeEnum LabelType { get; set; }
     public string ProposalTitle { get; set; }
     public List<RankingAppDetailDto> RankingList { get; set; } = new();
+    public long StartEpochTime { get; set; }
+    public long EndEpochTime { get; set; }
 }
