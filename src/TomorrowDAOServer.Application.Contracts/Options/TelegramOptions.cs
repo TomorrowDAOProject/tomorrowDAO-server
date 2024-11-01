@@ -10,4 +10,6 @@ public class TelegramOptions
     public Dictionary<string, string> TgHeader { get; set; } = new();
     public string Types { get; set; }
     public List<string> FindMiniCategoryList { get; set; } = new();
+    public int TgSpiderTime { get; set; } = 12;
+    public int FindminiSpiderTime { get; set; } = 12;
 }

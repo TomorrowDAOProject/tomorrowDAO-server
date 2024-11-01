@@ -228,9 +228,9 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         foreach (var telegramAppIndex in telegramAppIndices)
         {
             var existApp = existAppDictionary.GetValueOrDefault(telegramAppIndex.Title, new TelegramAppIndex());
-            telegramAppIndex.LoadTime = existApp.LoadTime != default ? existApp.LoadTime : now;
-            telegramAppIndex.CreateTime = existApp.CreateTime != default ? existApp.CreateTime : now;
-            telegramAppIndex.UpdateTime = existApp.UpdateTime != default ? existApp.UpdateTime : now;
+            telegramAppIndex.LoadTime = existApp.LoadTime != default && existApp.LoadTime != null ? existApp.LoadTime : now;
+            telegramAppIndex.CreateTime = existApp.CreateTime != default && existApp.CreateTime != null ? existApp.CreateTime : now;
+            telegramAppIndex.UpdateTime = existApp.UpdateTime != default && existApp.UpdateTime != null ? existApp.UpdateTime : now;
             telegramAppIndex.Categories = existApp.Categories;
             if (SourceType.Telegram == telegramAppIndex.SourceType)
             {
