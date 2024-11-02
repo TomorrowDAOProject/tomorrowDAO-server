@@ -47,6 +47,7 @@ public class RankingOptions
     public string TopRankingVoteSchemeId { get; set; }
     public string TopRankingBanner { get; set; }
     public DayOfWeek TopRankingGenerateTime { get; set; } = DayOfWeek.Sunday;
+    public List<string> RankingExcludeIds { get; set; } = new();
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {

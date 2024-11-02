@@ -105,41 +105,42 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
         Message = "UpdateValidRankingVote error", LogTargets = new []{"chainId", "list"})]
     public virtual async Task UpdateValidRankingVote(string chainId, List<VoteRecordIndex> list)
     {
-        var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
-        var recordDiscover = _rankingOptions.CurrentValue.RecordDiscover;
-        var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId) && x.Option == VoteOption.Approved && x.Amount == 1)
-            .Select(x => x.VotingItemId).Distinct().ToList();
-        var rankingProposalIds = (await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds))
-            .Where(x => x.ProposalCategory == ProposalCategory.Ranking)
-            .Select(x => x.ProposalId).ToList();
-        var validMemoList = list.Where(x => rankingProposalIds.Contains(x.VotingItemId) && !string.IsNullOrEmpty(x.Memo) 
-                && Regex.IsMatch(x.Memo, CommonConstant.MemoPattern))
-            .Select(x => new { Record = x, Alias = Regex.Match(x.Memo, CommonConstant.MemoPattern).Groups[1].Value })
-            .ToList();
-        var aliasList = validMemoList.Select(x => x.Alias).ToList();
-        var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
-        var validAliasDic = telegramApps.Item2.ToDictionary(x => x.Alias, x => x);
-        var choices = new List<DiscoverChoiceIndex>();
-        foreach (var item in validMemoList.Where(x => validAliasDic.ContainsKey(x.Alias)))
-        {
-            var telegramAppIndex = validAliasDic.GetValueOrDefault(item.Alias);
-            item.Record.ValidRankingVote = true;
-            item.Record.Alias = item.Alias;
-            item.Record.Title = telegramAppIndex?.Title ?? string.Empty;
-            if (recordDiscover && telegramAppIndex is { Categories: not null })
+            var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
+            var recordDiscover = _rankingOptions.CurrentValue.RecordDiscover;
+            var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId) && x.Option == VoteOption.Approved && x.Amount == 1)
+                .Select(x => x.VotingItemId).Distinct().ToList();
+            var rankingProposalIds = (await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIds))
+                .Where(x => x.ProposalCategory == ProposalCategory.Ranking)
+                .Select(x => x.ProposalId).ToList();
+            var validMemoList = list.Where(x => rankingProposalIds.Contains(x.VotingItemId) && !string.IsNullOrEmpty(x.Memo) 
+                    && Regex.IsMatch(x.Memo, CommonConstant.MemoPattern))
+                .Select(x => new { Record = x, Alias = Regex.Match(x.Memo, CommonConstant.MemoPattern).Groups[1].Value })
+                .ToList();
+            var aliasList = validMemoList.Select(x => x.Alias).Distinct().ToList();
+            var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput{Aliases = aliasList});
+            var validAliasDic = telegramApps.Item2.GroupBy(x => x.Alias)      
+                .ToDictionary(g => g.Key, g => g.First());
+            var choices = new List<DiscoverChoiceIndex>();
+            foreach (var item in validMemoList.Where(x => validAliasDic.ContainsKey(x.Alias)))
             {
-                var address = item.Record.Voter;
-                choices.AddRange(telegramAppIndex.Categories.Select(category => new DiscoverChoiceIndex
+                var telegramAppIndex = validAliasDic.GetValueOrDefault(item.Alias);
+                item.Record.ValidRankingVote = true;
+                item.Record.Alias = item.Alias;
+                item.Record.Title = telegramAppIndex?.Title ?? string.Empty;
+                if (recordDiscover && telegramAppIndex is { Categories: not null })
                 {
-                    Id = GuidHelper.GenerateGrainId(chainId, address, category.ToString(), DiscoverChoiceType.Vote.ToString()),
-                    ChainId = chainId,
-                    Address = address,
-                    TelegramAppCategory = category,
-                    DiscoverChoiceType = DiscoverChoiceType.Vote,
-                    UpdateTime = DateTime.UtcNow
-                }));
+                    var address = item.Record.Voter;
+                    choices.AddRange(telegramAppIndex.Categories.Select(category => new DiscoverChoiceIndex
+                    {
+                        Id = GuidHelper.GenerateGrainId(chainId, address, category.ToString(), DiscoverChoiceType.Vote.ToString()),
+                        ChainId = chainId,
+                        Address = address,
+                        TelegramAppCategory = category,
+                        DiscoverChoiceType = DiscoverChoiceType.Vote,
+                        UpdateTime = DateTime.UtcNow
+                    }));
+                }
             }
-        }
 
         await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
     }

@@ -259,7 +259,8 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         LogTargets = new []{"daoId"}, ReturnDefault = default)]
     private async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
     {
-        var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input);
+        var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
+        var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input, excludeIds);
         var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
         return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
     }

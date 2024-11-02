@@ -26,4 +26,5 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     [JsonConverter(typeof(StringEnumConverter))]
     public SourceType SourceType { get; set; } = SourceType.Telegram;
     [Keyword] public string Creator { get; set; }
+    public DateTime LoadTime { get; set; }
 }

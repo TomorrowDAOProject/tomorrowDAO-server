@@ -39,8 +39,15 @@ public class DiscoverController
     
     [HttpPost("app-list")]
     [Authorize]
-    public async Task<PageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
+    public async Task<AppPageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
         return await _discoverService.GetDiscoverAppListAsync(input);
+    }
+    
+    [HttpPost("view-app")]
+    [Authorize]
+    public async Task<bool> ViewAppAsync(ViewAppInput input)
+    {
+        return await _discoverService.ViewAppAsync(input);
     }
 }
