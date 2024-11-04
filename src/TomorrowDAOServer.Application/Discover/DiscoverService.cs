@@ -128,7 +128,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
         var newAppList = await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd);
         var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
-        var viewedApps = await _userViewAppProvider.GetByAliasList(aliases);
+        var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
         var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
         var notViewedNewAppCount = aliases.Except(viewedAliases).Count();
         return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(notViewedNewAppCount, newAppList, new HashSet<string>(viewedAliases));
@@ -152,25 +152,28 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private async Task<AppPageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input, string address)
     {
         var choiceList = await _discoverChoiceProvider.GetByAddressAsync(input.ChainId, address);
-        var types = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
-        var appList = (await _telegramAppsProvider.GetAllDisplayAsync(input.Aliases))
-            .Where(x => x.Categories is { Count: > 0 }).ToList();
-        var userInterestedAppList = appList.Where(app => types.Intersect(app.Categories).Any()).ToList();
-        var userNotInterestedAppList = appList.Where(app => !types.Intersect(app.Categories).Any()).ToList();
-        var recommendApps = new List<DiscoverAppDto>();
+        var allCategories = Enum.GetValues(typeof(TelegramAppCategory)).Cast<TelegramAppCategory>().ToList();
+        var interestedTypes = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
+        var notInterestedTypes = allCategories.Where(category => !interestedTypes.Contains(category)).ToList();
         var interestedCount = (int)(input.MaxResultCount * CommonConstant.InterestedPercent);
         var notInterestedCount = input.MaxResultCount - interestedCount;
-        AddRandomApps(userInterestedAppList, interestedCount, recommendApps);
-        AddRandomApps(userNotInterestedAppList, notInterestedCount, recommendApps);
+        var userInterestedAppList = await _telegramAppsProvider.GetAllDisplayAsync(input.Aliases, interestedCount, interestedTypes);
+        var userNotInterestedAppList = await _telegramAppsProvider.GetAllDisplayAsync(input.Aliases, notInterestedCount, notInterestedTypes);
+        var recommendApps = new List<DiscoverAppDto>();
+        recommendApps.AddRange(ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(userInterestedAppList));
+        recommendApps.AddRange(ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(userNotInterestedAppList));
         if (recommendApps.Count < input.MaxResultCount)
         {
             var remainingCount = input.MaxResultCount - recommendApps.Count;
-            var remainingApps = appList.Where(app => !recommendApps.Select(r => r.Alias).Contains(app.Alias)).ToList();
-            AddRandomApps(remainingApps, remainingCount, recommendApps);
+            var chooseAliases = recommendApps.Select(x => x.Alias).ToList();
+            input.Aliases.AddRange(chooseAliases);
+            var remainingApps = await _telegramAppsProvider.GetAllDisplayAsync(input.Aliases, remainingCount);
+            recommendApps.AddRange(ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(remainingApps));
         }
+        var count = await _telegramAppsProvider.CountAllDisplayAsync();
         return new AppPageResultDto<DiscoverAppDto>
         {
-            TotalCount = appList.Count + input.Aliases?.Count ?? 0, Data = recommendApps.ToList()
+            TotalCount = count, Data = recommendApps.ToList()
         };
     }
     
