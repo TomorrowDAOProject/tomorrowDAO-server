@@ -80,11 +80,6 @@ public class DiscoverService : ApplicationService, IDiscoverService
             _ => await GetCategoryAppListAsync(input)
         };
         await FillTotalPoints(input.ChainId, res.Data);
-        if (CommonConstant.New != input.Category && input.SkipCount == 0)
-        {
-            var (notViewedNewAppCount, _, _) = await GetNewAppInfo(input, address);
-            res.NotViewedNewAppCount = notViewedNewAppCount;
-        }
         return res;
     }
 
@@ -113,14 +108,13 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await _userViewAppProvider.BulkAddOrUpdateAsync(toAdd);
         return true;
     }
-
-    private async Task<Tuple<int?, List<TelegramAppIndex>, HashSet<string>>> GetNewAppInfo(GetDiscoverAppListInput input, string address)
+    
+    private async Task<AppPageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input, string address)
     {
         var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
         if (latest == null)
         {
-            return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(0, new List<TelegramAppIndex>(),
-                new HashSet<string>());
+            return new AppPageResultDto<DiscoverAppDto>(0, new List<DiscoverAppDto>(), 0);
         }
         
         var createTime = latest.CreateTime;
@@ -130,23 +124,15 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
         var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
         var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
-        var notViewedNewAppCount = aliases.Except(viewedAliases).Count();
-        return new Tuple<int?, List<TelegramAppIndex>, HashSet<string>>(notViewedNewAppCount, newAppList, new HashSet<string>(viewedAliases));
-    }
-    
-    private async Task<AppPageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input, string address)
-    {
-        var (notViewedNewAppCount, newAppList, viewAliases) = await GetNewAppInfo(input, address);
+        var notViewedNewAppCount = input.SkipCount == 0 ? 0 : aliases.Except(viewedAliases).Count();
         var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(
             newAppList.OrderByDescending(x => x.CreateTime).Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
         foreach (var app in newApps)
         {
-            app.Viewed = viewAliases.Contains(app.Alias);
+            app.Viewed = viewedAliases.Contains(app.Alias);
         }
-        return new AppPageResultDto<DiscoverAppDto>
-        {
-            TotalCount = newAppList.Count, Data = newApps, NotViewedNewAppCount = notViewedNewAppCount
-        };
+
+        return new AppPageResultDto<DiscoverAppDto>(newAppList.Count, newApps, notViewedNewAppCount);
     }
 
     private async Task<AppPageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input, string address)
@@ -171,10 +157,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             recommendApps.AddRange(ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(remainingApps));
         }
         var count = await _telegramAppsProvider.CountAllDisplayAsync();
-        return new AppPageResultDto<DiscoverAppDto>
-        {
-            TotalCount = count, Data = recommendApps.ToList()
-        };
+        return new AppPageResultDto<DiscoverAppDto>(count, recommendApps.ToList());
     }
     
     private async Task<AppPageResultDto<DiscoverAppDto>> GetCategoryAppListAsync(GetDiscoverAppListInput input)
@@ -182,10 +165,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var category = CheckCategory(input.Category);
         var (totalCount, appList) = await _telegramAppsProvider.GetByCategoryAsync(category, input.SkipCount, input.MaxResultCount);
         var categoryApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(appList);
-        return new AppPageResultDto<DiscoverAppDto>
-        {
-            TotalCount = totalCount, Data = categoryApps
-        };
+        return new AppPageResultDto<DiscoverAppDto>(totalCount, categoryApps);
     }
     
     private void AddRandomApps(IReadOnlyCollection<TelegramAppIndex> appList, int count, List<DiscoverAppDto> targetList)

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Common.Dtos;
@@ -20,4 +19,5 @@ public interface IRankingAppService
     Task MoveHistoryDataAsync(string chainId, string type, string key, string value);
     Task<long> LikeAsync(RankingAppLikeInput input);
     Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId, int count);
+    Task<RankingBannerInfo> GetBannerInfoAsync(string chainId);
 }
