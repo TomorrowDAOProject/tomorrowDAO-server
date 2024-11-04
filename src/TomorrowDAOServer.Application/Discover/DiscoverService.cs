@@ -124,7 +124,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
         var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
         var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
-        var notViewedNewAppCount = input.SkipCount == 0 ? 0 : aliases.Except(viewedAliases).Count();
+        var notViewedNewAppCount = input.SkipCount == 0 ? aliases.Except(viewedAliases).Count() : 0;
         var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(
             newAppList.OrderByDescending(x => x.CreateTime).Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
         foreach (var app in newApps)
