@@ -72,6 +72,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IUserPointsRecordProvider _userPointsRecordProvider;
     private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
     private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
+    private readonly IUserViewAppProvider _userViewAppProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -85,7 +86,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider,
         IUserAppService userAppService, IPortkeyProvider portkeyProvider, IUserBalanceProvider userBalanceProvider,
         IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider, 
-        IRankingAppPointsProvider rankingAppPointsProvider)
+        IRankingAppPointsProvider rankingAppPointsProvider, IUserViewAppProvider userViewAppProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -109,6 +110,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _userPointsRecordProvider = userPointsRecordProvider;
         _discoverChoiceProvider = discoverChoiceProvider;
         _rankingAppPointsProvider = rankingAppPointsProvider;
+        _userViewAppProvider = userViewAppProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -624,6 +626,29 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         };
     
         return resultDto;
+    }
+
+    public async Task<RankingBannerInfo> GetBannerInfoAsync(string chainId)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var hasFire = _rankingOptions.CurrentValue.TopRankingIds.Count > 0;
+        var notViewedNewAppCount = 0;
+        var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
+        if (latest != null)
+        {
+            var createTime = latest.CreateTime;
+            var monthStart = new DateTime(createTime.Year, createTime.Month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+            var newAppList = await _telegramAppsProvider.GetAllByTimePeriodAsync(monthStart, monthEnd);
+            var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
+            var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
+            var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
+            notViewedNewAppCount = aliases.Except(viewedAliases).Count();
+        }
+        return new RankingBannerInfo
+        {
+            HasFire = hasFire, NotViewedNewAppCount = notViewedNewAppCount
+        };
     }
 
     private async Task SaveVotingRecordAsync(string chainId, string address,
