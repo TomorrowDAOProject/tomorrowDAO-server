@@ -202,7 +202,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty, excludeIds);
                 break;
             case RankingType.Top:
-                if (string.IsNullOrEmpty(goldRankingId))
+                if (!string.IsNullOrEmpty(goldRankingId))
                 {
                     topRankingIds.Add(goldRankingId);
                 }
