@@ -182,20 +182,15 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         if (categories != null && !categories.IsNullOrEmpty())
         {
             mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(categories)));
-
         }
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.MustNot(mustNotQuery).Must(mustQuery));
         var searchRequest = new SearchDescriptor<TelegramAppIndex>()
             .Query(q => q
-                .FunctionScore(fs => fs
-                    .Query(Filter)  
-                    .Functions(fn => fn.RandomScore(rs => rs.Seed(DateTime.UtcNow.Ticks)) 
-                    )
-                )
-            )
-            .Size(count); 
-        var response = await _telegramAppIndexRepository.SearchAsync(searchRequest, 0, int.MaxValue);
-        return response.Documents.ToList();
+                .FunctionScore(fs => fs.Query(Filter)  
+                    .Functions(fn => fn.RandomScore(rs => rs.Seed(DateTime.UtcNow.Ticks)))
+                ));  
+        var response = await _telegramAppIndexRepository.SearchAsync(searchRequest,0, count);
+        return response.Documents.ToList();  
     }
 
     public async Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount)
