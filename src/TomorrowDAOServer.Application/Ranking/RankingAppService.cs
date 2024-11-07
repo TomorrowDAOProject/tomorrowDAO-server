@@ -236,9 +236,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         if (input.Type != RankingType.Community)
         {
-            var topRankingBanner = _rankingOptions.CurrentValue.TopRankingBanner;
             list.Where(x => string.IsNullOrEmpty(x.BannerUrl) && x.Proposer == topRankingAddress)
-                .ToList().ForEach(item => item.BannerUrl = topRankingBanner);
+                .ToList().ForEach(item => item.BannerUrl = _rankingOptions.CurrentValue.TopRankingBanner);
         }
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         return new RankingListPageResultDto<RankingListDto>
@@ -693,6 +692,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         var labelType = LabelTypeEnum.None;
+        var proposer = proposal.Proposer;
         var (_, goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         var rankingApp = rankingAppList[0];
         var canVoteAmount = 0;
@@ -747,7 +747,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             app.VotePercent = appVoteAmountDic.GetValueOrDefault(app.Alias, 0) * votePercentFactor;
             app.PointsPercent = app.PointsAmount * pointsPercentFactor;
         }
-        
+
+        var bannerUrl = await getBannerUrlTask;
+        if (string.IsNullOrEmpty(bannerUrl) && proposer == _rankingOptions.CurrentValue.TopRankingAddress)
+        {
+            bannerUrl = _rankingOptions.CurrentValue.TopRankingBanner;
+        }
         return new RankingDetailDto
         {
             StartTime = rankingApp.ActiveStartTime,
@@ -755,7 +760,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
             UserTotalPoints = userAllPoints,
-            BannerUrl = await getBannerUrlTask,
+            BannerUrl = bannerUrl,
             RankingType = rankingType,
             LabelType = labelType,
             ProposalTitle = proposal.ProposalTitle,
