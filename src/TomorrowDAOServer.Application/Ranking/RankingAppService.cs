@@ -202,12 +202,22 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty, excludeIds);
                 break;
             case RankingType.Top:
+                if (string.IsNullOrEmpty(goldRankingId))
+                {
+                    topRankingIds.Add(goldRankingId);
+                }
                 var topProposals = await _proposalProvider.GetProposalByIdsAsync(chainId, topRankingIds);
                 result = new Tuple<long, List<ProposalIndex>>(topProposals.Count, topProposals);
                 break;
         }
         
         var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(result.Item2);
+        if (input.Type != RankingType.Community)
+        {
+            var topRankingBanner = _rankingOptions.CurrentValue.TopRankingBanner;
+            list.Where(x => string.IsNullOrEmpty(x.BannerUrl) && x.Proposer == topRankingAddress)
+                .ToList().ForEach(item => item.BannerUrl = topRankingBanner);
+        }
         var descList = list.Where(x => !string.IsNullOrEmpty(x.ProposalDescription)).Select(x => x.ProposalDescription).ToList();
         var proposalIds = list.Select(x => x.ProposalId).ToList();
         var bannerDic = await GetBannerUrlsAsync(descList);
