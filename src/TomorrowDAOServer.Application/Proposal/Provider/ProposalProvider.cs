@@ -232,7 +232,8 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
-        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<ProposalIndex>().Descending(index => index.DeployTime),
+        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<ProposalIndex>()
+                .Descending(a => a.ActiveEndTime > DateTime.UtcNow).Descending(index => index.DeployTime),
             skip: skipCount, limit: maxResultCount);
     }
 
@@ -468,15 +469,5 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Term(i =>
                 i.Field(f => f.ProposalStatus).Value(proposalStatus))
         };
-    }
-    
-    private static Func<SortDescriptor<ProposalIndex>, IPromise<IList<ISort>>> GetCustomSortDescriptor()
-    {
-        var nowUtc = DateTime.UtcNow;
-        var sortDescriptor = new SortDescriptor<ProposalIndex>();
-        sortDescriptor
-            .Descending(a => a.ActiveEndTime > nowUtc) 
-            .Descending(a => a.DeployTime);            
-        return _ => sortDescriptor;
     }
 }
