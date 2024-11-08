@@ -236,9 +236,22 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
-        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<ProposalIndex>()
-                .Descending(a => a.ActiveEndTime > now).Descending(index => index.DeployTime),
-            skip: skipCount, limit: maxResultCount);
+        var currentUtcTime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"); 
+        return await _proposalIndexRepository.GetSortListAsync(
+            Filter,
+            sortFunc: _ => new SortDescriptor<ProposalIndex>()
+                .Script(script => script
+                    .Type("number")
+                    .Order(SortOrder.Descending)
+                    .Script(s => s
+                            .Source("doc['activeEndTime'].value.toInstant().toEpochMilli() > ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() ? 1 : 0")
+                            .Params(p => p.Add("currentUtcTime", currentUtcTime)) 
+                    )
+                )
+                .Descending(a => a.DeployTime),
+            skip: skipCount,
+            limit: maxResultCount
+        );
     }
 
     public async Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive)
