@@ -233,13 +233,21 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
+        var currentUtcTime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"); 
         return await _proposalIndexRepository.GetSortListAsync(
-            Filter, skip: skipCount,limit: maxResultCount,
+            Filter,
             sortFunc: _ => new SortDescriptor<ProposalIndex>()
-                .Script(s => s.Type("number").Order(SortOrder.Descending)  
-                    .Script(script => script.Source("doc['activeEndTime'].value > params.currentUtcTime ? 1 : 0") 
-                            .Params(p => p.Add("currentUtcTime", now))))
-                .Descending(a => a.DeployTime)
+                .Script(script => script
+                    .Type("number")
+                    .Order(SortOrder.Descending)
+                    .Script(s => s
+                            .Source("doc['activeEndTime'].value.toInstant().toEpochMilli() > ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() ? 1 : 0")
+                            .Params(p => p.Add("currentUtcTime", currentUtcTime)) 
+                    )
+                )
+                .Descending(a => a.DeployTime),
+            skip: skipCount,
+            limit: maxResultCount
         );
     }
 
