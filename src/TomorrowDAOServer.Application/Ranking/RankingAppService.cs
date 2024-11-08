@@ -647,7 +647,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         {
             var createTime = latest.CreateTime;
             var start = createTime.AddDays(-30);
-            var newAppList = await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime);
+            var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime))
+                .OrderByDescending(x => x.CreateTime).Take(100).ToList();
             var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
             var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
             var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
@@ -655,7 +656,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         return new RankingBannerInfo
         {
-            HasFire = hasFire, NotViewedNewAppCount = Math.Min(notViewedNewAppCount, 100)
+            HasFire = hasFire, NotViewedNewAppCount = notViewedNewAppCount
         };
     }
 
