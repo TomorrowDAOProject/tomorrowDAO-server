@@ -119,19 +119,20 @@ public class DiscoverService : ApplicationService, IDiscoverService
         
         var createTime = latest.CreateTime;
         var start = createTime.AddDays(-30);
-        var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime)).Take(100).ToList();
+        var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime))
+            .OrderByDescending(x => x.CreateTime).Take(100).ToList();
         var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
         var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
         var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
         var notViewedNewAppCount = input.SkipCount == 0 ? aliases.Except(viewedAliases).Count() : 0;
         var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(
-            newAppList.OrderByDescending(x => x.CreateTime).Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
+            newAppList.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
         foreach (var app in newApps)
         {
             app.Viewed = viewedAliases.Contains(app.Alias);
         }
 
-        return new AppPageResultDto<DiscoverAppDto>(Math.Min(newAppList.Count, 100), newApps, notViewedNewAppCount);
+        return new AppPageResultDto<DiscoverAppDto>(newAppList.Count, newApps, notViewedNewAppCount);
     }
 
     private async Task<AppPageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input, string address)
