@@ -645,7 +645,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         return new RankingBannerInfo
         {
-            HasFire = hasFire, NotViewedNewAppCount = Math.Max(notViewedNewAppCount, 100)
+            HasFire = hasFire, NotViewedNewAppCount = Math.Min(notViewedNewAppCount, 100)
         };
     }
 

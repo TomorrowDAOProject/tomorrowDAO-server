@@ -119,7 +119,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         
         var createTime = latest.CreateTime;
         var start = createTime.AddDays(-30);
-        var newAppList = await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime);
+        var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime)).Take(100).ToList();
         var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
         var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
         var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
@@ -131,7 +131,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             app.Viewed = viewedAliases.Contains(app.Alias);
         }
 
-        return new AppPageResultDto<DiscoverAppDto>(Math.Max(newAppList.Count, 100), newApps, notViewedNewAppCount);
+        return new AppPageResultDto<DiscoverAppDto>(Math.Min(newAppList.Count, 100), newApps, notViewedNewAppCount);
     }
 
     private async Task<AppPageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input, string address)
