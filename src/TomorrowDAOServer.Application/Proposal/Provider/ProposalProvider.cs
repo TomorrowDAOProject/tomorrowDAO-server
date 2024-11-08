@@ -120,7 +120,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
         var now = DateTime.UtcNow;
         return await _proposalIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
-            sortFunc: _ => new SortDescriptor<ProposalIndex>().Descending(a => a.ActiveEndTime > now).Descending(a => a.DeployTime));
+            sortFunc: _ => new SortDescriptor<ProposalIndex>().Descending(a => a.DeployTime));
     }
 
     public async Task<ProposalIndex> GetProposalByIdAsync(string chainId, string proposalId)
