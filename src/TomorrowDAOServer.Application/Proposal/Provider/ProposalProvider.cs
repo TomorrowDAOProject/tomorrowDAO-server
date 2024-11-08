@@ -209,11 +209,12 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
     public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null)
     {
+        var now = DateTime.UtcNow;
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)), 
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
-            q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
+            q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(now))
         };
 
         if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
@@ -233,7 +234,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<ProposalIndex>()
-                .Descending(a => a.ActiveEndTime > DateTime.UtcNow).Descending(index => index.DeployTime),
+                .Descending(a => a.ActiveEndTime > now).Descending(index => index.DeployTime),
             skip: skipCount, limit: maxResultCount);
     }
 
