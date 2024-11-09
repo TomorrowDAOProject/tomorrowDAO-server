@@ -72,6 +72,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IUserPointsRecordProvider _userPointsRecordProvider;
     private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
     private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
+    private readonly IUserViewAppProvider _userViewAppProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -85,7 +86,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider,
         IUserAppService userAppService, IPortkeyProvider portkeyProvider, IUserBalanceProvider userBalanceProvider,
         IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider, 
-        IRankingAppPointsProvider rankingAppPointsProvider)
+        IRankingAppPointsProvider rankingAppPointsProvider, IUserViewAppProvider userViewAppProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -109,6 +110,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _userPointsRecordProvider = userPointsRecordProvider;
         _discoverChoiceProvider = discoverChoiceProvider;
         _rankingAppPointsProvider = rankingAppPointsProvider;
+        _userViewAppProvider = userViewAppProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -200,6 +202,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty, excludeIds);
                 break;
             case RankingType.Top:
+                if (!string.IsNullOrEmpty(goldRankingId))
+                {
+                    topRankingIds.Add(goldRankingId);
+                }
                 var topProposals = await _proposalProvider.GetProposalByIdsAsync(chainId, topRankingIds);
                 result = new Tuple<long, List<ProposalIndex>>(topProposals.Count, topProposals);
                 break;
@@ -227,6 +233,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             }
             detail.Active = utcNow >= detail.ActiveStartTime && utcNow <= detail.ActiveEndTime;
             detail.BannerUrl = string.IsNullOrEmpty(detail.ProposalDescription) ? string.Empty : bannerDic.GetValueOrDefault(detail.ProposalDescription, string.Empty);
+        }
+        if (input.Type != RankingType.Community)
+        {
+            list.Where(x => string.IsNullOrEmpty(x.BannerUrl) && x.Proposer == topRankingAddress)
+                .ToList().ForEach(item => item.BannerUrl = _rankingOptions.CurrentValue.TopRankingBanner);
         }
         var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
         return new RankingListPageResultDto<RankingListDto>
@@ -616,6 +627,29 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return resultDto;
     }
 
+    public async Task<RankingBannerInfo> GetBannerInfoAsync(string chainId)
+    {
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var hasFire = _rankingOptions.CurrentValue.TopRankingIds.Count > 0;
+        var notViewedNewAppCount = 0;
+        var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
+        if (latest != null)
+        {
+            var createTime = latest.CreateTime;
+            var start = createTime.AddDays(-30);
+            var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime))
+                .OrderByDescending(x => x.CreateTime).Take(100).ToList();
+            var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
+            var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
+            var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
+            notViewedNewAppCount = aliases.Except(viewedAliases).Count();
+        }
+        return new RankingBannerInfo
+        {
+            HasFire = hasFire, NotViewedNewAppCount = notViewedNewAppCount
+        };
+    }
+
     private async Task SaveVotingRecordAsync(string chainId, string address,
         string proposalId, RankingVoteStatusEnum status, string transactionId, TimeSpan? expire = null)
     {
@@ -648,6 +682,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         var labelType = LabelTypeEnum.None;
+        var proposer = proposal.Proposer;
         var (_, goldRankingId, topRankingIds) = await GetTopRankingIdsAsync();
         var rankingApp = rankingAppList[0];
         var canVoteAmount = 0;
@@ -702,7 +737,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             app.VotePercent = appVoteAmountDic.GetValueOrDefault(app.Alias, 0) * votePercentFactor;
             app.PointsPercent = app.PointsAmount * pointsPercentFactor;
         }
-        
+
+        var bannerUrl = await getBannerUrlTask;
+        if (string.IsNullOrEmpty(bannerUrl) && proposer == _rankingOptions.CurrentValue.TopRankingAddress)
+        {
+            bannerUrl = _rankingOptions.CurrentValue.TopRankingBanner;
+        }
         return new RankingDetailDto
         {
             StartTime = rankingApp.ActiveStartTime,
@@ -710,7 +750,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             CanVoteAmount = canVoteAmount,
             TotalVoteAmount = totalVoteAmount,
             UserTotalPoints = userAllPoints,
-            BannerUrl = await getBannerUrlTask,
+            BannerUrl = bannerUrl,
             RankingType = rankingType,
             LabelType = labelType,
             ProposalTitle = proposal.ProposalTitle,
