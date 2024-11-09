@@ -71,10 +71,10 @@ public class TopProposalGenerateService : ScheduleSyncDataService
         {
             var excludeAliasList = await GetExcludeAliasListAsync();
             _logger.LogInformation("[TopProposalGenerate] excludeAliasList.count:{0}", excludeAliasList.Count);
-            var appList = await _telegramAppsProvider.GetAllDisplayAsync(excludeAliasList);
+            var appList = await _telegramAppsProvider.GetAllDisplayAsync(excludeAliasList, 15);
             if (appList.Count < 15)
             {
-                appList = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>());
+                appList = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 15);
             }
 
             _logger.LogInformation("[TopProposalGenerate] appList.count:{0}", appList.Count);
