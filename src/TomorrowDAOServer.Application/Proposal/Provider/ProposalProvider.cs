@@ -40,7 +40,7 @@ public interface IProposalProvider
     public Task<Tuple<long, List<ProposalIndex>>> QueryProposalsByProposerAsync(QueryProposalByProposerRequest request);
     public Task<ProposalIndex> GetDefaultProposalAsync(string chainId);
     public Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, 
-        RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null);
+        RankingType rankingType, string excludeAddress, bool needActive, List<string> excludeProposalIds = null);
     public Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive);
     Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds);
 }
@@ -207,7 +207,8 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             sortExp: o => o.DeployTime);
     }
 
-    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null)
+    public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, 
+        int maxResultCount, RankingType rankingType, string excludeAddress, bool needActive, List<string> excludeProposalIds = null)
     {
         var now = DateTime.UtcNow;
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
@@ -230,6 +231,11 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         if (rankingType != RankingType.All)
         {
             mustQuery.Add(q => q.Term(i => i.Field(f => f.RankingType).Value(rankingType)));
+        }
+
+        if (needActive)
+        {
+            mustQuery.Add(q => q.DateRange(i => i.Field(f => f.ActiveEndTime).GreaterThan(now)));
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
