@@ -130,7 +130,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         {
             app.Viewed = viewedAliases.Contains(app.Alias);
         }
-        var sortedNewApps = newApps.OrderBy(app => !app.Viewed) 
+        var sortedNewApps = newApps.OrderBy(app => app.Viewed) 
             .ThenByDescending(app => app.CreateTime).Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
 
         return new AppPageResultDto<DiscoverAppDto>(newAppList.Count, sortedNewApps, notViewedNewAppCount);
