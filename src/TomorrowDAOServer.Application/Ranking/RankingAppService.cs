@@ -724,7 +724,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         foreach (var rankingAppDetailDto in rankingList)
         {
             var icon = rankingAppDetailDto.Icon;
-            var needPrefix = icon.StartsWith("/");
+            var needPrefix = !string.IsNullOrEmpty(icon) && icon.StartsWith("/");
             if (needPrefix)
             {
                 rankingAppDetailDto.Icon = CommonConstant.FindminiUrlPrefix + icon;
