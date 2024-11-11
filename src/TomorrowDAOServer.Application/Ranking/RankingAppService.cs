@@ -721,6 +721,16 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             .ConvertToBaseList(appPointsList)
             .ToDictionary(x => x.Alias, x => x.Points);
         var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
+        foreach (var rankingAppDetailDto in rankingList)
+        {
+            var icon = rankingAppDetailDto.Icon;
+            var needPrefix = !string.IsNullOrEmpty(icon) && icon.StartsWith("/");
+            if (needPrefix)
+            {
+                rankingAppDetailDto.Icon = CommonConstant.FindminiUrlPrefix + icon;
+            }
+            _logger.LogInformation("OriginIcon :{0}, needPrefix {1} newIcon {2}", icon, needPrefix, rankingAppDetailDto.Icon);
+        }
         var rankingType = proposal.RankingType == RankingType.All ? RankingType.Verified : proposal.RankingType;
         if (rankingType == RankingType.Verified)
         {
