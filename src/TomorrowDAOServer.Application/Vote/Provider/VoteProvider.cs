@@ -40,6 +40,7 @@ public interface IVoteProvider
     Task<long> GetVotePoints(string chainId, string daoId, string voter);
     Task<List<VoteRecordIndex>> GetNeedMoveVoteRecordListAsync();
     Task<List<string>> GetDistinctVotersAsync(string proposalId);
+    Task<List<VoteRecordIndex>> GetByProposalIdAndHeightAsync(string proposalId, long blockHeight, int skipCount, int maxResultCount);
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -496,6 +497,18 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         var distinctVoters = response.Aggregations.Terms("distinct_voters").Buckets
             .Select(b => b.Key as string).ToList();
         return distinctVoters;
+    }
+
+    public async Task<List<VoteRecordIndex>> GetByProposalIdAndHeightAsync(string proposalId, long blockHeight, int skipCount, int maxResultCount)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.VotingItemId).Value(proposalId)),
+            q => q.LongRange(i => i.Field(f => f.BlockHeight).GreaterThanOrEquals(blockHeight))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _voteRecordIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<ProposalIndex>().Ascending(index => index.BlockHeight),
+            skip: skipCount, limit: maxResultCount)).Item2;
     }
 
     public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)
