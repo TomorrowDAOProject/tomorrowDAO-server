@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf;
 using Aetherlink.PriceServer.Common;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
@@ -32,12 +33,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
+    private readonly ILogger<UserService> _logger;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
         IUserPointsRecordProvider userPointsRecordProvider,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider,
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -48,6 +50,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _referralInviteProvider = referralInviteProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _telegramAppsProvider = telegramAppsProvider;
+        _logger = logger;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
