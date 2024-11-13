@@ -240,7 +240,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     public Task<string> GetAdHashAsync(long timeStamp)
     { 
         var checkKey = _userOptions.CurrentValue.CheckKey;
-        return Task.FromResult(HashHelper.ComputeFrom(IdGeneratorHelper.GenerateId(checkKey, timeStamp)).ToHex());
+        return Task.FromResult(Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp)));;
     }
 
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
