@@ -231,6 +231,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         return true;
     }
 
+    public Task<string> GetAdHashAsync(long timeStamp)
+    { 
+        var checkKey = _userOptions.CurrentValue.CheckKey;
+        return Task.FromResult(HashHelper.ComputeFrom(IdGeneratorHelper.GenerateId(checkKey, timeStamp)).ToHex());
+    }
+
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
     {
         if (!Enum.TryParse<UserTask>(input.UserTask, out var userTask) || UserTask.None == userTask)
@@ -421,4 +427,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             }
         };
     }
+    
+    
 }

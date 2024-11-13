@@ -6,6 +6,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
+using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Caching;
@@ -23,16 +24,18 @@ public class TestController
     private readonly IOptionsMonitor<EmojiOptions> _emojiOptions;
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IUserProvider _userProvider;
+    private readonly IUserService _userService;
 
     public TestController(IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, 
         IDistributedCache<string> distributedCache, IOptionsMonitor<EmojiOptions> emojiOptions, 
-        IReferralInviteProvider referralInviteProvider, IUserProvider userProvider)
+        IReferralInviteProvider referralInviteProvider, IUserProvider userProvider, IUserService userService)
     {
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _distributedCache = distributedCache;
         _emojiOptions = emojiOptions;
         _referralInviteProvider = referralInviteProvider;
         _userProvider = userProvider;
+        _userService = userService;
     }
     
     [HttpGet("redis-value")]
@@ -87,5 +90,11 @@ public class TestController
     public async Task<long> GetInviteCountAsync(string chainId, string address)
     {
         return await _referralInviteProvider.GetInviteCountAsync(chainId, address);
+    }
+    
+    [HttpGet("get-ad-hash")]
+    public async Task<string> GetAdHashAsync(long timeStamp)
+    {
+        return await _userService.GetAdHashAsync(timeStamp);
     }
 }
