@@ -23,6 +23,7 @@ namespace TomorrowDAOServer.Ranking.Provider
         public long CalculatePointsFromExploreCumulateTenInvite();
         public long CalculatePointsFromExploreCumulateTwentyInvite();
         public long CalculatePointsFromPointsExploreForwardX();
+        public long CalculatePointsFromViewAd();
     }
 
     public class RankingAppPointsCalcProvider : IRankingAppPointsCalcProvider, ISingletonDependency
@@ -80,6 +81,11 @@ namespace TomorrowDAOServer.Ranking.Provider
         public long CalculatePointsFromPointsExploreForwardX()
         {
             return _rankingOptions.CurrentValue.PointsExploreForwardX;
+        }
+
+        public long CalculatePointsFromViewAd()
+        {
+            return _rankingOptions.CurrentValue.PointsViewAd;
         }
 
         public long CalculatePointsFromPointsType(PointsType? pointsType, long count = 0)

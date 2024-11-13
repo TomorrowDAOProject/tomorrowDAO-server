@@ -48,4 +48,11 @@ public class UserController
     {
         return await _userService.GetTaskListAsync(chainId);
     }
+    
+    [HttpPost("view-ad")]
+    [Authorize]
+    public async Task<bool> ViewAdAsync(ViewAdInput input)
+    {
+        return await _userService.ViewAdAsync(input);
+    }
 }

@@ -116,6 +116,8 @@ public static class CommonConstant
     public const string Rank = "Rank";
     public const string Inviter = "Inviter";
     public const string Invitee = "Invitee";
+    public const string AdPlatform = "AdPlatform";
+    public const string AdTime = "AdTime";
     
     // Discover
     public const string Recommend = "Recommend";

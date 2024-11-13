@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
+using AElf;
+using Aetherlink.PriceServer.Common;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
@@ -30,12 +35,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
+    private readonly ILogger<UserService> _logger;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
         IUserPointsRecordProvider userPointsRecordProvider,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider,
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -46,6 +52,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _referralInviteProvider = referralInviteProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _telegramAppsProvider = telegramAppsProvider;
+        _logger = logger;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -203,6 +210,32 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         };
     }
 
+    public async Task<bool> ViewAdAsync(ViewAdInput input)
+    {
+        var checkKey = _userOptions.CurrentValue.CheckKey;
+        var timeStamp = input.TimeStamp;
+        var signature = input.Signature;
+        var chainId = input.ChainId;
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var hashString = Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp));
+        if (hashString != signature)
+        {
+            throw new UserFriendlyException("Invalid signature.");
+        }
+
+        var timeCheck = await _userPointsRecordProvider.UpdateUserViewAdTimeStampAsync(chainId, address, timeStamp);
+        if (!timeCheck)
+        {
+            throw new UserFriendlyException("Invalid timeStamp.");
+        }
+
+        var information = InformationHelper.GetViewAdInformation(AdPlatform.Adsgram.ToString(), timeStamp);
+        await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync(address);
+        await _userPointsRecordProvider.GeneratePointsRecordAsync(chainId, address, PointsType.ViewAd, timeStamp,
+            information);
+        return true;
+    }
+
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
     {
         if (!Enum.TryParse<UserTask>(input.UserTask, out var userTask) || UserTask.None == userTask)
@@ -269,6 +302,9 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Task", "Invite 10 friends");
             case PointsType.ExploreCumulateTwentyInvite:
                 return new Tuple<string, string>("Task", "Invite 20 friends");
+            case PointsType.ViewAd:
+                var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
+                return new Tuple<string, string>("Click Ads", adPlatform);
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }

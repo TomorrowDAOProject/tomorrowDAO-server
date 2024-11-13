@@ -29,6 +29,7 @@ public interface IRankingAppPointsRedisProvider
     Task IncrementReferralVotePointsAsync(string inviter, string invitee, long voteCount);
     Task IncrementReferralTopInviterPointsAsync(string address);
     Task IncrementTaskPointsAsync(string address, UserTaskDetail userTaskDetail);
+    Task IncrementViewAdPointsAsync(string address);
     Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId);
     Task<string> GetDefaultRankingProposalIdAsync(string chainId);
     Task GenerateRedisDefaultProposal(string proposalId, string proposalDesc, string chainId);
@@ -183,6 +184,13 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var pointsType = TaskPointsHelper.GetPointsTypeFromUserTaskDetail(userTaskDetail);
         var taskPoints = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType);
         await IncrementAsync(userKey, taskPoints);
+    }
+
+    public async Task IncrementViewAdPointsAsync(string address)
+    {
+        var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
+        var viewAdPoints = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ViewAd);
+        await IncrementAsync(userKey, viewAdPoints);
     }
 
     public async Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId)
