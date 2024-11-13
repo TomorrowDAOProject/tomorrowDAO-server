@@ -23,6 +23,8 @@ public interface IUserPointsRecordProvider
     Task<Tuple<long, List<UserPointsIndex>>> GetPointsListAsync(GetMyPointsInput input, string address);
     Task<bool> UpdateUserTaskCompleteTimeAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail, DateTime completeTime);
     Task<List<UserPointsIndex>> GetByAddressAndUserTaskAsync(string chainId, string address, UserTask userTask);
+    Task<bool> UpdateUserViewAdTimeStampAsync(string chainId, string address, long timeStamp);
+    Task GeneratePointsRecordAsync(string chainId, string address, PointsType pointsType, long timeStamp, Dictionary<string, string> information = null);
 }
 
 public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDependency
@@ -170,5 +172,34 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
 
         QueryContainer Filter(QueryContainerDescriptor<UserPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _userPointsRecordRepository.GetListAsync(Filter)).Item2;
+    }
+
+    public async Task<bool> UpdateUserViewAdTimeStampAsync(string chainId, string address, long timeStamp)
+    {
+        var id = GuidHelper.GenerateGrainId(chainId, address);
+        try
+        {
+            var grain = _clusterClient.GetGrain<IUserViewAdTimeStampGrain>(id);
+            return await grain.UpdateUserViewAdTimeStampAsync(timeStamp);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "UpdateUserViewAdTimeStampAsyncException id {id}", id);
+            return false;
+        }
+    }
+
+    public async Task GeneratePointsRecordAsync(string chainId, string address, PointsType pointsType, long timeStamp,
+        Dictionary<string, string> information = null)
+    {
+        var pointsRecordIndex = new UserPointsIndex
+        {
+            Id = GuidHelper.GenerateGrainId(chainId, address, pointsType, timeStamp),
+            ChainId = chainId, Address = address, Information = information ?? new Dictionary<string, string>(),
+            UserTask = UserTask.None, UserTaskDetail = UserTaskDetail.None,
+            PointsType = pointsType, PointsTime = DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).UtcDateTime,
+            Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType)
+        };
+        await _userPointsRecordRepository.AddOrUpdateAsync(pointsRecordIndex);
     }
 }

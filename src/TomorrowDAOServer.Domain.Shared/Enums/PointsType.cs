@@ -24,5 +24,8 @@ public enum PointsType
     ExploreCumulateFiveInvite = 11,
     ExploreCumulateTenInvite = 12,
     ExploreCumulateTwentyInvite = 13,
-    ExploreForwardX = 14
+    ExploreForwardX = 14,
+    
+    // no classification
+    ViewAd = 15
 }
