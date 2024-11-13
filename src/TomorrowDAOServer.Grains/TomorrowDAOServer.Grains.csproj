@@ -24,7 +24,7 @@
         <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="5.1.0" />
         <PackageReference Include="GraphQL.Client" Version="5.1.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="AElf.ExceptionHandler.Orleans" Version="1.0.0" />
+        <PackageReference Include="AElf.ExceptionHandler.Orleans" Version="1.2.2" />
     </ItemGroup>
     
     <ItemGroup>

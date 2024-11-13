@@ -169,7 +169,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
             pair, JsonConvert.SerializeObject(exchange));
     }
 
-    [ExceptionHandler(typeof(Exception), typeof(TmrwDaoExceptionHandler), 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), 
         Message = "Query exchange failed", LogTargets = new []{"providerName"})]
     public virtual async Task UpdateExchangeInfosAsync(TokenExchangeGrainDto exchange, string providerName,
@@ -185,7 +185,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
             ? targetSymbol : sourceSymbol;
     }
 
-    [ExceptionHandler(typeof(Exception), typeof(TmrwDaoExceptionHandler), 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = default)]
     public static async Task<decimal> AvgPrice(TokenExchangeGrainDto exchange)
     {

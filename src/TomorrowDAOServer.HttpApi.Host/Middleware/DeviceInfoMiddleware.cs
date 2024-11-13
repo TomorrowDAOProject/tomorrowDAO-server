@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 
 namespace TomorrowDAOServer.Middleware;
 
@@ -34,7 +35,8 @@ public class DeviceInfoMiddleware
         }
     }
 
-    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default, Message = "Decode device info error")]
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.Default, Message = "Decode device info error")]
     public async Task<DeviceInfo> ExtractDeviceInfoAsync(HttpContext context)
     {
         var headers = context.Request.Headers;

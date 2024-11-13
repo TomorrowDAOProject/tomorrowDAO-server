@@ -68,7 +68,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         return newIndexHeight;
     }
 
-    [ExceptionHandler(typeof(Exception), typeof(TmrwDaoExceptionHandler), 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), 
         Message = "high council member sync error", LogTargets = new []{"chainId", "daoId", "addressList"})]
     public virtual async Task SyncHighCouncilMemberRecordsAsync(string chainId, string daoId)
@@ -85,7 +85,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
             new HashSet<string>(addressList ?? new List<string>()));
     }
 
-    [ExceptionHandler(typeof(Exception), typeof(TmrwDaoExceptionHandler), 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), 
         Message = "Update HighCouncilManagedDAOIndex error")]
     public virtual async Task UpdateHighCouncilManagedDaoIndexAsync(string chainId, string daoId, ISet<string> addressList)
@@ -148,7 +148,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         return WorkerBusinessType.HighCouncilMemberSync;
     }
 
-    [ExceptionHandler(typeof(Exception), typeof(TmrwDaoExceptionHandler), 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleGetCandidateElectedDaoId), 
         Message = "query candidate elected daoId error", LogTargets = new []{"daoIds", "chainId", "lastEndHeight", "newIndexHeight"})]
     public virtual async Task<long> GetCandidateElectedDaoId(ISet<string> daoIds, string chainId, long lastEndHeight,
@@ -180,7 +180,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
             : newIndexHeight;
     }
 
-    [ExceptionHandler(typeof(Exception), typeof(TmrwDaoExceptionHandler), 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleGetHighCouncilConfigChangedDaoId), 
         Message = "query high council config changed daoId error", LogTargets = new []{"daoIds", "chainId", "lastEndHeight", "newIndexHeight"})]
     public virtual async Task<long> GetHighCouncilConfigChangedDaoId(ISet<string> daoIds, string chainId, long lastEndHeight,

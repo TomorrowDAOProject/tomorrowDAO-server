@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler.ABP;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,7 @@ namespace TomorrowDAOServer
                     .UseApollo()
                     .UseOrleansClient()
                     .UseAutofac()
+                    .UseAElfExceptionHandler()
                     .UseSerilog();
 
                 await builder.AddApplicationAsync<TomorrowDAOServerHttpApiHostModule>();

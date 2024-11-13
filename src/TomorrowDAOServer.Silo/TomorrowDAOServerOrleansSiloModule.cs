@@ -1,5 +1,6 @@
 using AElf.ExceptionHandler;
 using AElf.ExceptionHandler.ABP;
+using AElf.ExceptionHandler.Orleans.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.MongoDB;
@@ -34,5 +35,7 @@ public class TomorrowDAOServerOrleansSiloModule : AbpModule
         context.Services.AddTransient<IExchangeProvider, OkxProvider>();
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
+        
+        context.Services.AddOrleansExceptionHandler();
     }
 }
