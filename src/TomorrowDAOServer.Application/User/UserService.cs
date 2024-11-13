@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using AElf;
 using Aetherlink.PriceServer.Common;
@@ -215,7 +217,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var signature = input.Signature;
         var chainId = input.ChainId;
         var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        var hashString = HashHelper.ComputeFrom(IdGeneratorHelper.GenerateId(checkKey, timeStamp)).ToHex();
+        var hashString = Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp));
         _logger.LogInformation("ViewAdAsync timeStamp {0} hashString {1} signature {2}", timeStamp, hashString, signature);
         if (hashString != signature)
         {
@@ -431,6 +433,4 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             }
         };
     }
-    
-    
 }
