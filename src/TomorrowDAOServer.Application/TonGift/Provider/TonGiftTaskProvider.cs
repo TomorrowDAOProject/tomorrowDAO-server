@@ -15,6 +15,7 @@ namespace TomorrowDAOServer.TonGift.Provider;
 public interface ITonGiftTaskProvider
 {
     Task BulkAddOrUpdateAsync(List<TonGiftTaskIndex> list);
+    Task<List<TonGiftTaskIndex>> GetByIdList(List<string> idList);
     Task<List<TonGiftTaskIndex>> GetCompletedByTaskIdAndIdentifierListAsync(string taskId, List<string> identifierList);
     Task<List<TonGiftTaskIndex>> GetFailedListAsync(string taskId, int skipCount);
     Task HandleUpdateStatusAsync(TonGiftsResponseDto response, List<string> allIds, string taskId);
@@ -37,6 +38,16 @@ public class TonGiftTaskProvider : ITonGiftTaskProvider, ISingletonDependency
         }
 
         await _tonGiftTaskRepository.BulkAddOrUpdateAsync(list);
+    }
+
+    public async Task<List<TonGiftTaskIndex>> GetByIdList(List<string> idList)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<TonGiftTaskIndex>, QueryContainer>>
+        {
+            q => q.Terms(i => i.Field(f => f.Identifier).Terms(idList)),
+        };
+        QueryContainer Filter(QueryContainerDescriptor<TonGiftTaskIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _tonGiftTaskRepository.GetListAsync(Filter)).Item2;
     }
 
     public async Task<List<TonGiftTaskIndex>> GetCompletedByTaskIdAndIdentifierListAsync(string taskId, List<string> identifierList)

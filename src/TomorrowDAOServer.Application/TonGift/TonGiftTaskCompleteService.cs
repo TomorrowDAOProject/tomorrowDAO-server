@@ -2,74 +2,74 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Chains;
-using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
-using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.TonGift.Provider;
-using TomorrowDAOServer.Vote;
-using TomorrowDAOServer.Vote.Provider;
 
 namespace TomorrowDAOServer.TonGift;
 
-public class TonGiftTaskCompleteService : ScheduleSyncDataService
+public class TonGiftTaskCompleteService: ScheduleSyncDataService
 {
     private readonly ILogger<TonGiftTaskCompleteService> _logger;
     private readonly IChainAppService _chainAppService;
-    private readonly IVoteProvider _voteProvider;
-    private readonly IOptionsMonitor<TonGiftTaskOptions> _tonGiftTaskOptions;
     private readonly ITonGiftTaskProvider _tonGiftTaskProvider;
-    private readonly IPortkeyProvider _portkeyProvider;
+    private readonly IOptionsMonitor<TonGiftTaskOptions> _tonGiftTaskOptions;
     private readonly ITonGiftApiProvider _tonGiftApiProvider;
     
     public TonGiftTaskCompleteService(ILogger<TonGiftTaskCompleteService> logger, IGraphQLProvider graphQlProvider, 
-        IChainAppService chainAppService, IVoteProvider voteProvider, IOptionsMonitor<TonGiftTaskOptions> tonGiftTaskOptions, 
-        ITonGiftTaskProvider tonGiftTaskProvider, IPortkeyProvider portkeyProvider, ITonGiftApiProvider tonGiftApiProvider) 
-        : base(logger, graphQlProvider)
+        IChainAppService chainAppService, ITonGiftTaskProvider tonGiftTaskProvider, 
+        IOptionsMonitor<TonGiftTaskOptions> tonGiftTaskOptions, 
+        ITonGiftApiProvider tonGiftApiProvider) : base(logger, graphQlProvider)
     {
         _chainAppService = chainAppService;
-        _voteProvider = voteProvider;
-        _tonGiftTaskOptions = tonGiftTaskOptions;
         _tonGiftTaskProvider = tonGiftTaskProvider;
-        _portkeyProvider = portkeyProvider;
+        _tonGiftTaskOptions = tonGiftTaskOptions;
         _tonGiftApiProvider = tonGiftApiProvider;
         _logger = logger;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var start = _tonGiftTaskOptions.CurrentValue.IsStart;
-        if (!start)
-        {
-            _logger.LogInformation("TonGiftTaskNotStart");
-            return lastEndHeight;
-        }
-        
-        var proposalId = _tonGiftTaskOptions.CurrentValue.ProposalId;
-        var taskId = _tonGiftTaskOptions.CurrentValue.TaskId;
         var skipCount = 0;
-        var blockHeight = lastEndHeight;
-        List<VoteRecordIndex> queryList;
+        var taskId = _tonGiftTaskOptions.CurrentValue.TaskId;
+        List<TonGiftTaskIndex> queryList;
+
         do
         {
-            queryList = await _voteProvider.GetByProposalIdAndHeightAsync(proposalId, blockHeight, skipCount, CommonConstant.MaxResultCount);
-            _logger.LogInformation("TonGiftTaskComplete queryList skipCount {skipCount} startBlockHeight: {lastEndHeight} count: {count}",
-                skipCount, lastEndHeight, queryList?.Count);
+            queryList = await _tonGiftTaskProvider.GetFailedListAsync(taskId, skipCount);
+            _logger.LogInformation("NeedChangeProposalList taskId {taskId} skipCount {skipCount} count: {count}", taskId, skipCount, queryList?.Count);
+
             if (queryList == null || queryList.IsNullOrEmpty())
             {
                 break;
             }
 
-            var voters = queryList.Select(x => x.Voter).Distinct().ToList();
-            blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight).Max());
+            var dic = queryList.ToDictionary(index => index.Identifier, index => Tuple.Create(index.CaHash, index.IdentifierHash, index.Address));
+            var identifiers = queryList.Select(x => x.Identifier).Distinct().ToList();
+            var response = await _tonGiftApiProvider.UpdateTaskAsync(identifiers);
+            var toAdd = new List<TonGiftTaskIndex>();
+
+            if (response.Message.Contains("successfully"))
+            {
+                toAdd.AddRange(identifiers.Select(x => CreateTask(x, dic[x], UpdateTaskStatus.Completed)).ToList());
+            }
+            else
+            {
+                toAdd.AddRange(response.SuccessfulUpdates.Select(x => CreateTask(x.UserId, dic[x.UserId], UpdateTaskStatus.Completed)).ToList());
+                toAdd.AddRange(response.FailedUpdates.Select(x => CreateTask(x.UserId, dic[x.UserId], UpdateTaskStatus.Failed)).ToList());
+            }
+
+            await _tonGiftTaskProvider.BulkAddOrUpdateAsync(toAdd);
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
-        
-        return blockHeight;
+
+        return -1L;
     }
 
     public override async Task<List<string>> GetChainIdsAsync()
@@ -81,5 +81,22 @@ public class TonGiftTaskCompleteService : ScheduleSyncDataService
     public override WorkerBusinessType GetBusinessType()
     {
         return WorkerBusinessType.TonGiftTaskComplete;
+    }
+    
+    private TonGiftTaskIndex CreateTask(string identifier, Tuple<string, string, string> identifierInfo, UpdateTaskStatus status)
+    {
+        var taskId = _tonGiftTaskOptions.CurrentValue.TaskId;
+        var (caHash, identifierHash, address) = identifierInfo;
+        return new TonGiftTaskIndex
+        {
+            Id = IdGeneratorHelper.GenerateId(taskId, address, identifier),
+            TaskId = taskId,
+            Identifier = identifier,
+            CaHash = caHash,
+            IdentifierHash = identifierHash,
+            Address = address,
+            TonGiftTask = TonGiftTask.Vote,
+            UpdateTaskStatus = status
+        };
     }
 }

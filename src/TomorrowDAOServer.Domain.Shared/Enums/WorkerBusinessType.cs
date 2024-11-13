@@ -19,6 +19,6 @@ public enum WorkerBusinessType
     TopProposalGenerate,
     TelegramAppsSync,
     FindminiAppsSync,
+    TonGiftTaskGenerate,
     TonGiftTaskComplete,
-    TonGiftTaskCheck,
 }

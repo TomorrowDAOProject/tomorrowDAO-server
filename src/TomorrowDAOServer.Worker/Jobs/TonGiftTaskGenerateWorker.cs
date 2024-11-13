@@ -7,11 +7,11 @@ using Volo.Abp.Threading;
 
 namespace TomorrowDAOServer.Worker.Jobs;
 
-public class TonGiftTaskCheckWorker : TomorrowDAOServerWorkBase
+public class TonGiftTaskGenerateWorker : TomorrowDAOServerWorkBase
 {
-    protected override WorkerBusinessType BusinessType => WorkerBusinessType.TonGiftTaskCheck;
+    protected override WorkerBusinessType BusinessType => WorkerBusinessType.TonGiftTaskGenerate;
 
-    public TonGiftTaskCheckWorker(ILogger<ScheduleSyncDataContext> logger,
+    public TonGiftTaskGenerateWorker(ILogger<ScheduleSyncDataContext> logger,
         AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
         IScheduleSyncDataContext scheduleSyncDataContext,
         IOptionsMonitor<WorkerOptions> optionsMonitor,

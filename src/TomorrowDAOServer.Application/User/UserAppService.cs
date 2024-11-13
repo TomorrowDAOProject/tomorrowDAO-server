@@ -96,19 +96,12 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         return (await _userIndexRepository.GetListAsync(Filter)).Item2;
     }
 
-    public async Task<List<UserIndex>> GetUserByAddressListAsync(string chainId, List<string> addressList)
+    public async Task<List<UserIndex>> GetUserByAddressListAsync(List<string> addressList)
     {
         var searchResponse = await _userIndexRepository.SearchAsync(new SearchDescriptor<UserIndex>().Query(q => q
             .Bool(b => b
-                .Must(
-                    m => m.Match(mm => mm
-                        .Field("addressInfos.chainId")
-                        .Query(chainId)
-                    ),
-                    m => m.Terms(t => t
-                        .Field("addressInfos.address")
-                        .Terms(addressList)
-                    )
+                .Must(m => m.Terms(t => t
+                        .Field("addressInfos.address").Terms(addressList))
                 )
             )
         ), 0 ,1);
