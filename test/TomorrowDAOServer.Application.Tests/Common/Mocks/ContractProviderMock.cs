@@ -13,6 +13,7 @@ using Google.Protobuf.Collections;
 using Moq;
 using NSubstitute;
 using TomorrowDAOServer.Common.AElfSdk;
+using TomorrowDAOServer.Contract.Dto;
 using static TomorrowDAOServer.Common.TestConstant;
 using TokenInfo = AElf.Contracts.MultiToken.TokenInfo;
 
@@ -32,6 +33,7 @@ public class ContractProviderMock
         MockCallTransactionAsync<CandidateVote>(mock);
         MockCallTransactionAsync<TokenInfo>(mock);
         MockCallTransactionAsync<ProxyAccount>(mock);
+        MockCallTransactionAsync<GetCurrentMinerPubkeyListDto>(mock);
         MockGetTreasuryAddressAsync(mock);
         MockSendTransactionAsync(mock);
         MockContractAddress(mock);
@@ -204,6 +206,13 @@ public class ContractProviderMock
                     }
                 );
                 return await Task.FromResult<T>((T)(object)proxyAccount);
+            } else if (typeof(T) == typeof(GetCurrentMinerPubkeyListDto))
+            {
+                var getCurrentMinerPubkeyListDto = new GetCurrentMinerPubkeyListDto
+                {
+                    Pubkeys = new List<string>() {"Pubkeys1"}
+                };
+                return await Task.FromResult<T>((T)(object)getCurrentMinerPubkeyListDto);
             }
 
             throw new Exception("Not support type.");

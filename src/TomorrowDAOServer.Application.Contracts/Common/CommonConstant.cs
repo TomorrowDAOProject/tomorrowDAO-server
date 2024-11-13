@@ -122,6 +122,7 @@ public static class CommonConstant
     
     // Discover
     public const string Recommend = "Recommend";
+    public const string New = "New";
     public const double InterestedPercent = 0.75;
     
     // App
@@ -130,4 +131,8 @@ public static class CommonConstant
     
     //GrainId
     public const string GrainIdTelegramAppSequence = "TelegramAppSequence";
+    
+    //Findmini
+    public const string FindminiUrlPrefix = "https://www.findmini.app";
+    public const string FindminiCategoryPrefix = "https://www.findmini.app/category/";
 }

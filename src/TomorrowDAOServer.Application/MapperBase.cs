@@ -51,6 +51,39 @@ public class MapperBase : Profile
 
         return list.Select(x => x.ToString()).ToList();
     }
+
+    protected static string MapIcon(SourceType sourceType, string icon)
+    {
+        if (sourceType != SourceType.FindMini)
+        {
+            return icon;
+        }
+
+        if (icon == null)
+        {
+            return string.Empty;
+        }
+
+        return icon.StartsWith("/") ? CommonConstant.FindminiUrlPrefix + icon : icon;
+    }
+    
+    protected static List<string> MapScreenshots(SourceType sourceType, List<string> screenshots)
+    {
+        if (sourceType != SourceType.FindMini)
+        {
+            return screenshots;
+        }
+        
+        var res = new List<string>();
+        if (screenshots == null || screenshots.IsNullOrEmpty())
+        {
+            return res;
+        }
+
+        res.AddRange(screenshots.Select(screenshot => screenshot.StartsWith("/") ? CommonConstant.FindminiUrlPrefix + screenshot : screenshot));
+        
+        return res;
+    }
     
     protected static NetworkDaoCreatedByEnum MapCreateBy(string methodName)
     {

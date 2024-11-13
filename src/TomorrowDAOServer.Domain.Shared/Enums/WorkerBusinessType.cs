@@ -17,6 +17,8 @@ public enum WorkerBusinessType
     TopInviterGenerate,
     ProposalRedisUpdate,
     TopProposalGenerate,
+    TelegramAppsSync,
+    FindminiAppsSync,
     NetworkDaoMainChainSync,
     NetworkDaoSideChainSync,
     NetworkDaoMainChainOrgSync,
