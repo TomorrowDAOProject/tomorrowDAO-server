@@ -23,10 +23,6 @@ public interface IPortkeyProvider
     Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes);
     Task<List<CaHolderTransactionDetail>> GetCaHolderTransactionAsync(string chainId, string caAddress);
     Task<HolderInfoIndexerDto> GetHolderInfosAsync(string caHash);
-    Task<GuardiansDto> GetCaHolderInfoAsync(List<string> caAddresses, string caHash, int skipCount = 0,
-        int maxResultCount = 10);
-    Task<GuardiansDto> GetCaHolderInfoAsync(string identifierHash, int skipCount = 0,
-        int maxResultCount = 10);
 }
 
 public static class ReferralApi
@@ -230,45 +226,5 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         }
 
         return new HolderInfoIndexerDto();
-    }
-
-    public async Task<GuardiansDto> GetCaHolderInfoAsync(List<string> caAddresses, string caHash, int skipCount = 0, int maxResultCount = 10)
-    {
-        var response =  await PortkeyClient().SendQueryAsync<GuardiansDto>(new GraphQLRequest
-        {
-            Query = @"
-			    query($caAddresses:[String],$caHash:String,$skipCount:Int!,$maxResultCount:Int!) {
-                    caHolderInfo(dto: {caAddresses:$caAddresses,caHash:$caHash,skipCount:$skipCount,maxResultCount:$maxResultCount}){
-                            id,chainId,caHash,caAddress,originChainId,managerInfos{address,extraData},guardianList{guardians{verifierId,identifierHash,salt,isLoginGuardian,type}}}
-                }",
-            Variables = new
-            {
-                caAddresses, caHash, skipCount, maxResultCount
-            }
-        });
-        return response.Data;
-    }
-
-    public async Task<GuardiansDto> GetCaHolderInfoAsync(string identifierHash, int skipCount = 0, int maxResultCount = 10)
-    {
-        var response = await PortkeyClient().SendQueryAsync<GuardiansDto>(new GraphQLRequest
-        {
-            Query = @"
-			    query(loginGuardianIdentifierHash:[String],$skipCount:Int!,$maxResultCount:Int!) {
-                    caHolderInfo(dto: {loginGuardianIdentifierHash:loginGuardianIdentifierHash,skipCount:$skipCount,maxResultCount:$maxResultCount}){
-                            id,chainId,caHash,caAddress,originChainId,managerInfos{address,extraData},guardianList{guardians{verifierId,identifierHash,salt,isLoginGuardian,type}}}
-                }",
-            Variables = new
-            {
-                identifierHash, skipCount, maxResultCount
-            }
-        });
-        return response.Data;
-    }
-
-    private GraphQLHttpClient PortkeyClient()
-    {
-        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
-        return new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
     }
 }

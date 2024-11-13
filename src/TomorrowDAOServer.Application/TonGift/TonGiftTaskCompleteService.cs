@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NUglify.Helpers;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -66,13 +65,6 @@ public class TonGiftTaskCompleteService : ScheduleSyncDataService
             }
 
             var voters = queryList.Select(x => x.Voter).Distinct().ToList();
-            var identifierHashSet = await GetIdentifierHashSet(voters);
-            var identifierSet = await GetTelegramIdSet(identifierHashSet);
-            var completedList = await _tonGiftTaskProvider.GetCompletedByTaskIdAndIdentifierListAsync(taskId, identifierSet.ToList());
-            var completedVoters = new HashSet<string>(completedList.Select(c => c.Identifier));
-            var toValidateVoters = identifierSet.Where(q => !completedVoters.Contains(q)).Distinct().ToList();
-            var response = await _tonGiftApiProvider.UpdateTaskAsync(toValidateVoters);
-            await _tonGiftTaskProvider.HandleUpdateStatusAsync(response, toValidateVoters, taskId);
             blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight).Max());
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
@@ -89,30 +81,5 @@ public class TonGiftTaskCompleteService : ScheduleSyncDataService
     public override WorkerBusinessType GetBusinessType()
     {
         return WorkerBusinessType.TonGiftTaskComplete;
-    }
-    
-    private async Task<HashSet<string>> GetIdentifierHashSet(List<string> fromAddressSet)
-    {
-        var identifierHashSet = new HashSet<string>();
-        var guardiansDto = await _portkeyProvider.GetCaHolderInfoAsync(fromAddressSet, null, 0, CommonConstant.MaxResultCount);
-        if (guardiansDto == null || guardiansDto?.CaHolderInfo?.Count == 0)
-        {
-            return identifierHashSet;
-        }
-
-        guardiansDto.CaHolderInfo
-            .Where(info => info.GuardianList?.Guardians?.Any() == true)
-            .SelectMany(info => info.GuardianList.Guardians)
-            .Select(guardian => guardian.IdentifierHash)
-            .ForEach(identifierHash => identifierHashSet.Add(identifierHash));
-
-        return identifierHashSet;
-    }
-    
-    private async Task<HashSet<string>> GetTelegramIdSet(HashSet<string> identifierHashSet)
-    {
-        // todo need query
-        var telegramIdSet = new HashSet<string>();
-        return telegramIdSet;
     }
 }
