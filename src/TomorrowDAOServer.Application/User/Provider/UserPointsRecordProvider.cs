@@ -110,7 +110,7 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
                 return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, endTime);
             case PointsType.DailyViewAds:
                 var timeStamp = information?.GetValueOrDefault(CommonConstant.AdTime) ?? string.Empty;
-                return GuidHelper.GenerateGrainId(chainId, address, pointsType, timeStamp);
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, timeStamp);
             case PointsType.All:
             case PointsType.Like:
             case PointsType.ExploreJoinTgChannel:

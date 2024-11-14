@@ -340,7 +340,10 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 taskDetail.Complete = taskDetail.CompleteCount >= taskDetail.TaskCount;
             }
-            taskDetail.Complete = true;
+            else
+            {
+                taskDetail.Complete = true;
+            }
         }
 
         return taskDetails;
