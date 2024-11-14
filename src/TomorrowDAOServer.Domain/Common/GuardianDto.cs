@@ -9,11 +9,11 @@ public class GuardianIdentifiersResponse
 
 public class GuardianIdentifierList
 {
-    public List<GuardianIdentifier> Guardians { get; set; }
+    public List<Guardian> Guardians { get; set; }
 }
 
-public class GuardianIdentifier
+public class Guardian
 {
     public string IdentifierHash { get; set; }
-    public string Identifier { get; set; }
+    public string GuardianIdentifier { get; set; }
 }

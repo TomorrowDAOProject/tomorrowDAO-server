@@ -66,12 +66,13 @@ public class TonGiftTaskGenerateService : ScheduleSyncDataService
             }
 
             var voters = queryList.Select(x => x.Voter).Distinct().ToList();
-            var caHolderInfos = await _portkeyProvider.GetCaHolderInfoAsync(voters, null, 0, voters.Count);
+            var caHolderInfos = await _portkeyProvider.GetCaHolderInfoAsync(voters, null, 0, voters.Count * 2);
             var caHashDic = caHolderInfos.CaHolderInfo
+                .GroupBy(holder => holder.CaAddress).Select(g => g.First()) 
                 .ToDictionary(holder => holder.CaAddress, holder => new Info { CaHash = holder.CaHash, OriginChainId = holder.OriginChainId });
             var tasks = caHashDic.Values.Select(async info =>
             {
-                var guardianIdentifierList = await _portkeyProvider.GetGuardianIdentifiersAsync(info.CaHash, info.OriginChainId);
+                var guardianIdentifierList = await _portkeyProvider.GetGuardianIdentifiersAsync(info.OriginChainId, info.CaHash);
                 info.Guardians = guardianIdentifierList.Guardians;
             });
             await Task.WhenAll(tasks);
@@ -81,7 +82,7 @@ public class TonGiftTaskGenerateService : ScheduleSyncDataService
             {
                 var info = caHashDic.GetValueOrDefault(voter, new Info());
                 toAdd.AddRange(from guardian in info.Guardians
-                    let identifier = guardian.Identifier
+                    let identifier = guardian.GuardianIdentifier
                     let identifierHash = guardian.IdentifierHash
                     select new TonGiftTaskIndex
                     {
@@ -119,6 +120,6 @@ public class TonGiftTaskGenerateService : ScheduleSyncDataService
     {
         public string CaHash { get; set; } = string.Empty;
         public string OriginChainId { get; set; } = string.Empty;
-        public List<GuardianIdentifier> Guardians { get; set; } = new();
+        public List<Guardian> Guardians { get; set; } = new();
     }
 }

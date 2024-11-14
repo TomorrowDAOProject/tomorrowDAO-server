@@ -256,7 +256,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         try
         {
             var domain = _rankingOptions.CurrentValue.ReferralDomain;
-            var url = $"{domain}{ReferralApi.GuardianIdentifiers.Path}?chainId={chainId}&caHsh={caHash}";
+            var url = domain + ReferralApi.GuardianIdentifiers.Path + "?chainId=" + chainId + "&caHash=" + caHash;
             var resp = await _httpProvider.InvokeAsync<GuardianIdentifiersResponse>(ReferralApi.ReferralCode.Method, url);
             return resp.GuardianList;
         }
