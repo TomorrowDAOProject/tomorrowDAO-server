@@ -37,12 +37,12 @@ public class PerformanceMonitorMiddleware
         }
 
         var stopwatch = Stopwatch.StartNew();
-        await InvokeAsync(_monitor, context, stopwatch);
+        await InvokeTrackAsync(_monitor, context, stopwatch);
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = nameof(TmrwDaoExceptionHandler.HandleInvokeAsync))]
-    public virtual async Task InvokeAsync(IMonitor monitor, HttpContext context, Stopwatch stopwatch)
+    public virtual async Task InvokeTrackAsync(IMonitor monitor, HttpContext context, Stopwatch stopwatch)
     {
         await _next(context);
         await Track(monitor, context, stopwatch, false);
