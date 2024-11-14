@@ -9,7 +9,7 @@ public class TaskPointsHelper
     private static readonly Dictionary<UserTask, List<UserTaskDetail>> TaskDetailMapping = new()
     {
         { UserTask.None, new List<UserTaskDetail> { UserTaskDetail.None }},
-        { UserTask.Daily, new List<UserTaskDetail> { UserTaskDetail.DailyVote, UserTaskDetail.DailyFirstInvite, UserTaskDetail.DailyViewAsset } },
+        { UserTask.Daily, new List<UserTaskDetail> { UserTaskDetail.DailyVote, UserTaskDetail.DailyFirstInvite, UserTaskDetail.DailyViewAsset, UserTaskDetail.DailyViewAds } },
         { UserTask.Explore, new List<UserTaskDetail>
             {
                 UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX, UserTaskDetail.ExploreJoinDiscord, UserTaskDetail.ExploreForwardX,
@@ -46,6 +46,7 @@ public class TaskPointsHelper
             UserTaskDetail.DailyVote => PointsType.Vote,
             UserTaskDetail.DailyFirstInvite => PointsType.DailyFirstInvite,
             UserTaskDetail.DailyViewAsset => PointsType.DailyViewAsset,
+            UserTaskDetail.DailyViewAds => PointsType.DailyViewAds,
             UserTaskDetail.ExploreJoinTgChannel => PointsType.ExploreJoinTgChannel,
             UserTaskDetail.ExploreFollowX => PointsType.ExploreFollowX,
             UserTaskDetail.ExploreJoinDiscord => PointsType.ExploreJoinDiscord,
