@@ -280,7 +280,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         switch (pointsType)
         {
             case PointsType.Vote:
-                var alias = information.GetValueOrDefault(CommonConstant.Alias, string.Empty);
+                var alias = information.GetValueOrDefault(CommonConstant.Alias, string.Empty) ?? string.Empty;
                 alias = appNames.GetValueOrDefault(alias, alias);
                 var proposalTitle = information.GetValueOrDefault(CommonConstant.ProposalTitle, string.Empty);
                 return new Tuple<string, string>("Voted for: " + alias, proposalTitle);
