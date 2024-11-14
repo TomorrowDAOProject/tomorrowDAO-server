@@ -12,5 +12,4 @@ public interface IUserService
     Task<TaskListDto> GetTaskListAsync(string chainId);
     Task<long> ViewAdAsync(ViewAdInput input);
     Task<string> GetAdHashAsync(long timeStamp);
-    
 }
