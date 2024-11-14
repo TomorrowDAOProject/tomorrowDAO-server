@@ -160,10 +160,14 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         var aliases =  userPointsIndices
             .Where(t => t.PointsType == PointsType.Vote && t.Information != null &&
-                        t.Information.ContainsKey(CommonConstant.Alias) &&
+                        t.Information.ContainsKey(CommonConstant.Alias) && t.Information[CommonConstant.Alias] != null &&
                         !t.Information[CommonConstant.Alias].IsNullOrWhiteSpace()).Select(t =>
                 t.Information.GetValueOrDefault(CommonConstant.Alias, string.Empty)).ToList();
 
+        if (aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, string>();
+        }
         var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
             Aliases = aliases
