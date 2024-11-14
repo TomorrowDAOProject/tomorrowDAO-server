@@ -105,7 +105,7 @@ namespace TomorrowDAOServer.Ranking.Provider
                 PointsType.ExploreCumulateTenInvite => CalculatePointsFromExploreCumulateTenInvite(),
                 PointsType.ExploreCumulateTwentyInvite => CalculatePointsFromExploreCumulateTwentyInvite(),
                 PointsType.ExploreForwardX => CalculatePointsFromPointsExploreForwardX(),
-                PointsType.ViewAd => CalculatePointsFromViewAd(),
+                PointsType.DailyViewAds => CalculatePointsFromViewAd(),
                 _ => 0
             };
         }

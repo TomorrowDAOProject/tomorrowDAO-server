@@ -231,7 +231,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         var information = InformationHelper.GetViewAdInformation(AdPlatform.Adsgram.ToString(), timeStamp);
         await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync(address);
-        await _userPointsRecordProvider.GeneratePointsRecordAsync(chainId, address, PointsType.ViewAd, timeStamp, information);
+        var adTime = DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).UtcDateTime;
+        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyViewAds, adTime, information);
         return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
     }
 
@@ -301,7 +302,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Task", "Invite 10 friends");
             case PointsType.ExploreCumulateTwentyInvite:
                 return new Tuple<string, string>("Task", "Invite 20 friends");
-            case PointsType.ViewAd:
+            case PointsType.DailyViewAds:
                 var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
                 return new Tuple<string, string>("Click Ads", adPlatform);
             default:
@@ -322,41 +323,30 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     }
 
     private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string address,
-        List<UserPointsIndex> dailyTaskList, UserTask userTask)
+        List<UserPointsIndex> taskList, UserTask userTask)
     {
-        var taskDictionary = dailyTaskList
+        var taskDictionary = taskList
             .GroupBy(task => task.UserTaskDetail.ToString())
             .Select(g => g.OrderByDescending(task => task.PointsTime).First())
             .ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
-        // var latestDailyVote = dailyTaskList.Where(x => x.UserTaskDetail == UserTaskDetail.DailyVote)
-        //     .MaxBy(x => x.PointsTime);
-        // if (latestDailyVote != null)
-        // {
-        //     var defaultProposalProposalId =
-        //         await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
-        //     var latestDailyVoteProposalId =
-        //         latestDailyVote.Information.GetValueOrDefault(CommonConstant.ProposalId, string.Empty);
-        //     if (defaultProposalProposalId != latestDailyVoteProposalId)
-        //     {
-        //         taskDictionary.Remove(UserTaskDetail.DailyVote.ToString());
-        //     }
-        // }
-
-        var completeCount = await _referralInviteProvider.GetInviteCountAsync(chainId, address);
         var taskDetails = userTask == UserTask.Daily
-            ? InitDailyTaskDetailList()
-            : InitExploreTaskDetailList(completeCount);
+            ? InitDailyTaskDetailList(await _userPointsRecordProvider.GetDailyViewAdCountAsync(chainId, address))
+            : InitExploreTaskDetailList(await _referralInviteProvider.GetInviteCountAsync(chainId, address));
 
         foreach (var taskDetail in taskDetails.Where(taskDetail =>
                      taskDictionary.TryGetValue(taskDetail.UserTaskDetail, out _)))
         {
+            if (UserTaskDetail.DailyViewAds.ToString() == taskDetail.UserTaskDetail)
+            {
+                taskDetail.Complete = taskDetail.CompleteCount >= taskDetail.TaskCount;
+            }
             taskDetail.Complete = true;
         }
 
         return taskDetails;
     }
 
-    private List<TaskInfoDetail> InitDailyTaskDetailList()
+    private List<TaskInfoDetail> InitDailyTaskDetailList(long adCount)
     {
         return new List<TaskInfoDetail>
         {
@@ -374,6 +364,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 UserTaskDetail = UserTaskDetail.DailyViewAsset.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAsset)
+            },
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.DailyViewAds.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds),
+                CompleteCount = adCount, TaskCount = 20
             }
         };
     }

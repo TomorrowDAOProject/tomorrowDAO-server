@@ -189,7 +189,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     public async Task IncrementViewAdPointsAsync(string address)
     {
         var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
-        var viewAdPoints = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ViewAd);
+        var viewAdPoints = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds);
         await IncrementAsync(userKey, viewAdPoints);
     }
 
