@@ -93,8 +93,8 @@ public class TestController
     }
     
     [HttpGet("get-ad-hash")]
-    public Task<string> GetAdHashAsync(long timeStamp)
+    public async Task<string> GetAdHashAsync(long timeStamp)
     {
-        return Task.FromResult("1");
+        return await _userService.GetAdHashAsync(timeStamp);
     }
 }
