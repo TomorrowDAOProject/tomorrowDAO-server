@@ -23,6 +23,7 @@ public interface INetworkDaoEsDataProvider
     Task BulkAddOrUpdateOrgProposerIndexAsync(List<NetworkDaoOrgProposerIndex> orgProposerIndices);
     Task BulkDeleteOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberList);
     Task BulkDeleteOrgProposerIndexAsync(List<NetworkDaoOrgProposerIndex> orgProposerList);
+    Task BulkAddOrUpdateVoteTeamAsync(List<NetworkDaoVoteTeamIndex> networkDaoVoteTeamIndices);
     Task<Tuple<long, List<NetworkDaoProposalListIndex>>> GetProposalListListAsync(GetProposalListInput request);
     Task<Tuple<long, List<NetworkDaoProposalIndex>>> GetProposalListAsync(GetProposalListInput getProposalListInput);
     Task<NetworkDaoProposalIndex> GetProposalIndexAsync(GetProposalInfoInput input);
@@ -39,6 +40,7 @@ public interface INetworkDaoEsDataProvider
 
 
     Task<Tuple<long, List<NetworkDaoProposalVoteIndex>>> GetProposalVotedListAsync(GetVotedListInput input);
+    Task<Tuple<long, List<NetworkDaoVoteTeamIndex>>> GetVoteTeamListAsync(GetVoteTeamListInput input);
 }
 
 public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDependency
@@ -50,6 +52,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
     private readonly INESTRepository<NetworkDaoOrgIndex, string> _orgIndexRepository;
     private readonly INESTRepository<NetworkDaoOrgMemberIndex, string> _orgMemberIndexRepository;
     private readonly INESTRepository<NetworkDaoOrgProposerIndex, string> _orgProposerIndexRepository;
+    private readonly INESTRepository<NetworkDaoVoteTeamIndex, string> _voteTeamIndexRepository;
 
     public NetworkDaoEsDataProvider(ILogger<NetworkDaoEsDataProvider> logger,
         INESTRepository<NetworkDaoProposalIndex, string> proposalIndexRepository,
@@ -57,7 +60,8 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         INESTRepository<NetworkDaoProposalVoteIndex, string> proposalVoteIndexRepository,
         INESTRepository<NetworkDaoOrgIndex, string> orgIndexRepository,
         INESTRepository<NetworkDaoOrgMemberIndex, string> orgMemberIndexRepository,
-        INESTRepository<NetworkDaoOrgProposerIndex, string> orgProposerIndexRepository)
+        INESTRepository<NetworkDaoOrgProposerIndex, string> orgProposerIndexRepository,
+        INESTRepository<NetworkDaoVoteTeamIndex, string> voteTeamIndexRepository)
     {
         _logger = logger;
         _proposalIndexRepository = proposalIndexRepository;
@@ -66,6 +70,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         _orgIndexRepository = orgIndexRepository;
         _orgMemberIndexRepository = orgMemberIndexRepository;
         _orgProposerIndexRepository = orgProposerIndexRepository;
+        _voteTeamIndexRepository = voteTeamIndexRepository;
     }
 
     public async Task BulkAddOrUpdateProposalIndexAsync(List<NetworkDaoProposalIndex> proposalList)
@@ -126,6 +131,35 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         }
 
         await _orgProposerIndexRepository.BulkAddOrUpdateAsync(orgProposerIndices);
+    }
+    
+    public async Task BulkDeleteOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberList)
+    {
+        if (orgMemberList.IsNullOrEmpty())
+        {
+            return;
+        }
+
+        await _orgMemberIndexRepository.BulkDeleteAsync(orgMemberList);
+    }
+
+    public async Task BulkDeleteOrgProposerIndexAsync(List<NetworkDaoOrgProposerIndex> orgProposerList)
+    {
+        if (orgProposerList.IsNullOrEmpty())
+        {
+            return;
+        }
+
+        await _orgProposerIndexRepository.BulkDeleteAsync(orgProposerList);
+    }
+
+    public async Task BulkAddOrUpdateVoteTeamAsync(List<NetworkDaoVoteTeamIndex> networkDaoVoteTeamIndices)
+    {
+        if (networkDaoVoteTeamIndices.IsNullOrEmpty())
+        {
+            return;
+        }
+        await _voteTeamIndexRepository.BulkAddOrUpdateAsync(networkDaoVoteTeamIndices);
     }
 
     public async Task<Tuple<long, List<NetworkDaoProposalListIndex>>> GetProposalListListAsync(
@@ -423,24 +457,38 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
             skip: input.SkipCount, limit: input.MaxResultCount);
     }
 
-    public async Task BulkDeleteOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberList)
+    public async Task<Tuple<long, List<NetworkDaoVoteTeamIndex>>> GetVoteTeamListAsync(GetVoteTeamListInput input)
     {
-        if (orgMemberList.IsNullOrEmpty())
+        if (input.ChainId.IsNullOrWhiteSpace())
         {
-            return;
+            return new Tuple<long, List<NetworkDaoVoteTeamIndex>>(0, new List<NetworkDaoVoteTeamIndex>());
         }
 
-        await _orgMemberIndexRepository.BulkDeleteAsync(orgMemberList);
-    }
-
-    public async Task BulkDeleteOrgProposerIndexAsync(List<NetworkDaoOrgProposerIndex> orgProposerList)
-    {
-        if (orgProposerList.IsNullOrEmpty())
+        var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoVoteTeamIndex>, QueryContainer>>
         {
-            return;
+            q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId))
+        };
+
+        if (!input.PublicKey.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)));
         }
 
-        await _orgProposerIndexRepository.BulkDeleteAsync(orgProposerList);
+        QueryContainer Filter(QueryContainerDescriptor<NetworkDaoVoteTeamIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        Func<SortDescriptor<NetworkDaoVoteTeamIndex>, IPromise<IList<ISort>>> sortDescriptor = null;
+        if (input.Sorting.IsNullOrWhiteSpace())
+        {
+            sortDescriptor =
+                _ => new SortDescriptor<NetworkDaoVoteTeamIndex>().Descending(a => a.CreateTime);
+        }
+        else
+        {
+            sortDescriptor = CreateSortDescriptor<NetworkDaoVoteTeamIndex>(input.Sorting);
+        }
+
+        return await _voteTeamIndexRepository.GetSortListAsync(Filter, sortFunc: sortDescriptor, skip: input.SkipCount,
+            limit: input.MaxResultCount);
     }
 
     private static void AssemblyBaseQuery(GetProposalListInput input,

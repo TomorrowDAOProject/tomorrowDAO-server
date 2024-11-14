@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Dtos.Explorer;
@@ -7,6 +9,7 @@ using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.NetworkDao;
 using TomorrowDAOServer.NetworkDao.Dto;
 using TomorrowDAOServer.NetworkDao.Dtos;
+using TomorrowDAOServer.NetworkDao.GrainDtos;
 using TomorrowDAOServer.NetworkDao.Migrator;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using Volo.Abp;
@@ -68,6 +71,27 @@ public class NetworkDaoController
     public async Task<GetAllPersonalVotesPagedResult> GetAllPersonalVotesAsync(GetAllPersonalVotesInput input)
     {
         return await _networkDaoVoteService.GetAllPersonalVotesAsync(input);
+    }
+    
+    [Authorize]
+    [HttpPost("vote/loadHistory")]
+    public async Task<bool> LoadVoteTeamHistoryDataAsync(LoadVoteTeamDescHistoryInput input)
+    {
+        return await _networkDaoVoteService.LoadVoteTeamHistoryDateAsync(input);
+    }
+
+    [Authorize]
+    [HttpPost("vote/addTeamDesc")]
+    public async Task<AddTeamDescResultDto> AddTeamDescriptionAsync(AddTeamDescInput input)
+    {
+        return await _networkDaoVoteService.AddTeamDescriptionAsync(input);
+    }
+
+    [Authorize]
+    [HttpPost("vote/updateTeamStatus")]
+    public async Task<UpdateTeamStatusResultDto> UpdateTeamStatusAsync(UpdateTeamStatusInput input)
+    {
+        return await _networkDaoVoteService.UpdateTeamStatusAsync(input);
     }
 
     [HttpGet("org")]

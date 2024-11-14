@@ -16,6 +16,8 @@ using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Governance.Dto;
 using TomorrowDAOServer.NetworkDao;
 using TomorrowDAOServer.NetworkDao.Dto;
+using TomorrowDAOServer.NetworkDao.Dtos;
+using TomorrowDAOServer.NetworkDao.GrainDtos;
 using TomorrowDAOServer.NetworkDao.Index;
 using TomorrowDAOServer.NetworkDao.Migrator;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
@@ -250,7 +252,9 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.LeftOrgInfo.CreationToken, opt => opt.MapFrom(src => src.CreationToken))
             .ForMember(des => des.LeftOrgInfo.ProposerAuthorityRequired, opt => opt.MapFrom(src => src.ProposerAuthorityRequired))
             .ForMember(des => des.LeftOrgInfo.TokenSymbol, opt => opt.MapFrom(src => src.TokenSymbol));
-
+        CreateMap<AddTeamDescInput, NetworkDaoVoteTeamDto>();
+        CreateMap<AddTeamDescInput, NetworkDaoVoteTeamIndex>();
+        
         CreateMap<IndexerVoteRecord, IndexerVoteHistoryDto>()
             .ForMember(des => des.TimeStamp, opt
                 => opt.MapFrom(source => source.VoteTime))
