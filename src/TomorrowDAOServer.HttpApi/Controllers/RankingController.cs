@@ -78,4 +78,11 @@ public class RankingController : AbpController
     {
         return await _rankingAppService.GetRankingActivityResultAsync(chainId, proposalId, count);
     }
+    
+    [HttpGet("banner-info")]
+    [Authorize]
+    public async Task<RankingBannerInfo> GetBannerInfoAsync(string chainId)
+    {
+        return await _rankingAppService.GetBannerInfoAsync(chainId);
+    }
 }

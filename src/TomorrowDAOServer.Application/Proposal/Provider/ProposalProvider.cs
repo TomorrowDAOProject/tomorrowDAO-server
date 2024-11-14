@@ -119,12 +119,9 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                 : b.Must(mustQuery)
             );
 
-        //add sorting
-        var sortDescriptor = GetDescendingDeployTimeSortDescriptor();
-
-        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: sortDescriptor,
-            skip: input.SkipCount,
-            limit: input.MaxResultCount);
+        var now = DateTime.UtcNow;
+        return await _proposalIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<ProposalIndex>().Descending(a => a.DeployTime));
     }
 
     public async Task<ProposalIndex> GetProposalByIdAsync(string chainId, string proposalId)
@@ -192,10 +189,7 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         // }
 
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
-
-        var sortDescriptor = GetAscendingDeployTimeSortDescriptor();
-
-        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: sortDescriptor,
+        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<ProposalIndex>().Ascending(index => index.DeployTime),
             skip: request.SkipCount,
             limit: request.MaxResultCount);
     }
@@ -219,11 +213,12 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
 
     public async Task<Tuple<long, List<ProposalIndex>>> GetRankingProposalListAsync(string chainId, int skipCount, int maxResultCount, RankingType rankingType, string excludeAddress, List<string> excludeProposalIds = null)
     {
+        var now = DateTime.UtcNow;
         var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)), 
             q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking)),
-            q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(DateTime.UtcNow))
+            q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(now))
         };
 
         if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
@@ -242,8 +237,22 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         }
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
 
-        return await _proposalIndexRepository.GetSortListAsync(Filter, sortFunc: GetDescendingDeployTimeSortDescriptor(),
-            skip: skipCount, limit: maxResultCount);
+        var currentUtcTime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"); 
+        return await _proposalIndexRepository.GetSortListAsync(
+            Filter,
+            sortFunc: _ => new SortDescriptor<ProposalIndex>()
+                .Script(script => script
+                    .Type("number")
+                    .Order(SortOrder.Descending)
+                    .Script(s => s
+                            .Source("doc['activeEndTime'].value.toInstant().toEpochMilli() > ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() ? 1 : 0")
+                            .Params(p => p.Add("currentUtcTime", currentUtcTime)) 
+                    )
+                )
+                .Descending(a => a.DeployTime),
+            skip: skipCount,
+            limit: maxResultCount
+        );
     }
 
     public async Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive)
@@ -478,21 +487,5 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
             q => q.Term(i =>
                 i.Field(f => f.ProposalStatus).Value(proposalStatus))
         };
-    }
-
-    private static Func<SortDescriptor<ProposalIndex>, IPromise<IList<ISort>>> GetDescendingDeployTimeSortDescriptor()
-    {
-        //use default
-        var sortDescriptor = new SortDescriptor<ProposalIndex>();
-        sortDescriptor.Descending(a => a.DeployTime);
-        return _ => sortDescriptor;
-    }
-
-    private static Func<SortDescriptor<ProposalIndex>, IPromise<IList<ISort>>> GetAscendingDeployTimeSortDescriptor()
-    {
-        //use default
-        var sortDescriptor = new SortDescriptor<ProposalIndex>();
-        sortDescriptor.Ascending(a => a.DeployTime);
-        return _ => sortDescriptor;
     }
 }

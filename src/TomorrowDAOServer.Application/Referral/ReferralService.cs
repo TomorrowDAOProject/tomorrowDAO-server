@@ -71,23 +71,35 @@ public class ReferralService : ApplicationService, IReferralService
     {
         var (address, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), chainId);
         var currentCycle = await _referralCycleProvider.GetCurrentCycleAsync();
-        if (!_rankingOptions.CurrentValue.ReferralActivityValid || !IsCycleValid(currentCycle))
+        var accountCreation = 0L;
+        var votigramVote = 0L;
+        var votigramActivityVote = 0L;
+        var estimatedReward = 0L;
+        var startTime = 0L;
+        var endTime = 0L;
+        if (_rankingOptions.CurrentValue.ReferralActivityValid && IsCycleValid(currentCycle))
         {
-            return new InviteDetailDto();
+            startTime = currentCycle.StartTime;
+            endTime = currentCycle.EndTime;
+            accountCreation = await _referralInviteProvider.GetAccountCreationAsync(startTime, endTime, chainId, addressCaHash);
+            votigramVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true);
+            votigramActivityVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true, true);
+            estimatedReward = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramActivityVote);
         }
-
-        var startTime = currentCycle.StartTime;
-        var endTime = currentCycle.EndTime;
-        var accountCreation = await _referralInviteProvider.GetAccountCreationAsync(startTime, endTime, chainId, addressCaHash);
-        var votigramVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true);
-        var votigramActivityVote = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(startTime, endTime, chainId, addressCaHash, true, true);
-        var estimatedReward = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramActivityVote);
+        var accountCreationAll= await _referralInviteProvider.GetAccountCreationAsync(0, 0, chainId, addressCaHash);
+        var votigramVoteAll = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(0, 0, chainId, addressCaHash, true);
+        var votigramActivityVoteAll = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(0, 0, chainId, addressCaHash, true, true);
+        var estimatedRewardAll = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramActivityVoteAll);
         return new InviteDetailDto
         {
             EstimatedReward = estimatedReward,
             AccountCreation = accountCreation,
             VotigramVote = votigramVote,
             VotigramActivityVote = votigramActivityVote,
+            EstimatedRewardAll = estimatedRewardAll,
+            AccountCreationAll = accountCreationAll,
+            VotigramVoteAll = votigramVoteAll,
+            VotigramActivityVoteAll = votigramActivityVoteAll,
             StartTime = startTime,
             EndTime = endTime,
             DuringCycle = true,

@@ -19,4 +19,5 @@ public class RankingListDto
     public RankingType RankingType { get; set; } 
     public LabelTypeEnum LabelType { get; set; }
     public string BannerUrl { get; set; }
+    public string Proposer { get; set; }
 }
