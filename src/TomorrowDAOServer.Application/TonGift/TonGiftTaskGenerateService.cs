@@ -68,15 +68,7 @@ public class TonGiftTaskGenerateService : ScheduleSyncDataService
             var voters = queryList.Select(x => x.Voter).Distinct().ToList();
             var caHolderInfos = await _portkeyProvider.GetCaHolderInfoAsync(voters, null, 0, voters.Count);
             var caHashDic = caHolderInfos.CaHolderInfo
-                .Where(holder => holder.ManagerInfos != null && holder.ManagerInfos.Any()) 
-                .ToDictionary(
-                    holder => holder.ManagerInfos.First().Address,
-                    holder => new Info
-                    {
-                        CaHash = holder.CaHash,
-                        OriginChainId = holder.OriginChainId
-                    }
-                );
+                .ToDictionary(holder => holder.CaAddress, holder => new Info { CaHash = holder.CaHash, OriginChainId = holder.OriginChainId });
             var tasks = caHashDic.Values.Select(async info =>
             {
                 var guardianIdentifierList = await _portkeyProvider.GetGuardianIdentifiersAsync(info.CaHash, info.OriginChainId);
