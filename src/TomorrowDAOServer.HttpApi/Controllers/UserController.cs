@@ -51,7 +51,7 @@ public class UserController
     
     [HttpPost("view-ad")]
     [Authorize]
-    public async Task<bool> ViewAdAsync(ViewAdInput input)
+    public async Task<long> ViewAdAsync(ViewAdInput input)
     {
         return await _userService.ViewAdAsync(input);
     }
