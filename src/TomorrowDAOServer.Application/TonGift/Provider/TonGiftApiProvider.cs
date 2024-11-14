@@ -62,8 +62,3 @@ public class TonGiftApiProvider : ITonGiftApiProvider, ISingletonDependency
         return JsonConvert.DeserializeObject<TonGiftsResponseDto>(result);
     }
 }
-
-public static class ExplorerApi
-{
-    public static readonly ApiInfo UpdateTask = new(HttpMethod.Post, "/api/open/updateTask");
-}
