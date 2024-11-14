@@ -27,11 +27,10 @@ public class TonGiftTaskGenerateService : ScheduleSyncDataService
     private readonly IOptionsMonitor<TonGiftTaskOptions> _tonGiftTaskOptions;
     private readonly ITonGiftTaskProvider _tonGiftTaskProvider;
     private readonly IPortkeyProvider _portkeyProvider;
-    private readonly ITonGiftApiProvider _tonGiftApiProvider;
     
     public TonGiftTaskGenerateService(ILogger<TonGiftTaskGenerateService> logger, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, IVoteProvider voteProvider, IOptionsMonitor<TonGiftTaskOptions> tonGiftTaskOptions, 
-        ITonGiftTaskProvider tonGiftTaskProvider, IPortkeyProvider portkeyProvider, ITonGiftApiProvider tonGiftApiProvider, IUserAppService userAppService) 
+        ITonGiftTaskProvider tonGiftTaskProvider, IPortkeyProvider portkeyProvider) 
         : base(logger, graphQlProvider)
     {
         _chainAppService = chainAppService;
@@ -39,7 +38,6 @@ public class TonGiftTaskGenerateService : ScheduleSyncDataService
         _tonGiftTaskOptions = tonGiftTaskOptions;
         _tonGiftTaskProvider = tonGiftTaskProvider;
         _portkeyProvider = portkeyProvider;
-        _tonGiftApiProvider = tonGiftApiProvider;
         _logger = logger;
     }
 
