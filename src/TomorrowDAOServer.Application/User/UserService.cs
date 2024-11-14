@@ -210,7 +210,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         };
     }
 
-    public async Task<bool> ViewAdAsync(ViewAdInput input)
+    public async Task<long> ViewAdAsync(ViewAdInput input)
     {
         var checkKey = _userOptions.CurrentValue.CheckKey;
         var timeStamp = input.TimeStamp;
@@ -234,7 +234,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync(address);
         await _userPointsRecordProvider.GeneratePointsRecordAsync(chainId, address, PointsType.ViewAd, timeStamp,
             information);
-        return true;
+        return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
     }
 
     public Task<string> GetAdHashAsync(long timeStamp)

@@ -10,6 +10,6 @@ public interface IUserService
     Task<bool> CompleteTaskAsync(CompleteTaskInput input);
     Task<VoteHistoryPagedResultDto<MyPointsDto>> GetMyPointsAsync(GetMyPointsInput input);
     Task<TaskListDto> GetTaskListAsync(string chainId);
-    Task<bool> ViewAdAsync(ViewAdInput input);
+    Task<long> ViewAdAsync(ViewAdInput input);
     Task<string> GetAdHashAsync(long timeStamp);
 }
