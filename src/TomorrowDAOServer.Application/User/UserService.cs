@@ -231,8 +231,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         var information = InformationHelper.GetViewAdInformation(AdPlatform.Adsgram.ToString(), timeStamp);
         await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync(address);
-        await _userPointsRecordProvider.GeneratePointsRecordAsync(chainId, address, PointsType.ViewAd, timeStamp,
-            information);
+        await _userPointsRecordProvider.GeneratePointsRecordAsync(chainId, address, PointsType.ViewAd, timeStamp, information);
         return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
     }
 
