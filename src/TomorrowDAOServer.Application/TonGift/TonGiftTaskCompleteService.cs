@@ -42,7 +42,7 @@ public class TonGiftTaskCompleteService: ScheduleSyncDataService
 
         do
         {
-            queryList = await _tonGiftTaskProvider.GetFailedListAsync(taskId, skipCount);
+            queryList = await _tonGiftTaskProvider.GetNeedUpdateListAsync(taskId, skipCount);
             _logger.LogInformation("NeedChangeProposalList taskId {taskId} skipCount {skipCount} count: {count}", taskId, skipCount, queryList?.Count);
 
             if (queryList == null || queryList.IsNullOrEmpty())

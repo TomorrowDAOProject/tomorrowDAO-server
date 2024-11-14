@@ -17,8 +17,7 @@ public interface ITonGiftTaskProvider
     Task BulkAddOrUpdateAsync(List<TonGiftTaskIndex> list);
     Task<List<TonGiftTaskIndex>> GetByIdList(List<string> idList);
     Task<List<TonGiftTaskIndex>> GetCompletedByTaskIdAndIdentifierListAsync(string taskId, List<string> identifierList);
-    Task<List<TonGiftTaskIndex>> GetFailedListAsync(string taskId, int skipCount);
-    Task HandleUpdateStatusAsync(TonGiftsResponseDto response, List<string> allIds, string taskId);
+    Task<List<TonGiftTaskIndex>> GetNeedUpdateListAsync(string taskId, int skipCount);
 }
 
 public class TonGiftTaskProvider : ITonGiftTaskProvider, ISingletonDependency
@@ -62,42 +61,15 @@ public class TonGiftTaskProvider : ITonGiftTaskProvider, ISingletonDependency
         return (await _tonGiftTaskRepository.GetListAsync(Filter)).Item2;
     }
 
-    public async Task<List<TonGiftTaskIndex>> GetFailedListAsync(string taskId, int skipCount)
+    public async Task<List<TonGiftTaskIndex>> GetNeedUpdateListAsync(string taskId, int skipCount)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<TonGiftTaskIndex>, QueryContainer>>
         {
             q => q.Term(i => i.Field(f => f.TaskId).Value(taskId)),
-            q => q.Term(i => i.Field(f => f.UpdateTaskStatus).Value(UpdateTaskStatus.Failed))
+            q => !q.Term(i => i.Field(f => f.UpdateTaskStatus).Value(UpdateTaskStatus.Completed))
         };
         QueryContainer Filter(QueryContainerDescriptor<TonGiftTaskIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _tonGiftTaskRepository.GetListAsync(Filter, skip: skipCount, sortType: SortOrder.Ascending,
             sortExp: o => o.Identifier)).Item2;
-    }
-
-    public async Task HandleUpdateStatusAsync(TonGiftsResponseDto response, List<string> allIds, string taskId)
-    {
-        var toAdd = new List<TonGiftTaskIndex>();
-        if (response.Message.Contains("successfully"))
-        {
-            toAdd.AddRange(allIds.Select(x => new TonGiftTaskIndex
-            {
-                Id = GuidHelper.GenerateGrainId(taskId, x), TaskId = taskId, Identifier = x,
-                TonGiftTask = TonGiftTask.Vote, UpdateTaskStatus = UpdateTaskStatus.Completed
-            }).ToList());
-        }
-        else
-        {
-            toAdd.AddRange(response.SuccessfulUpdates.Select(x => new TonGiftTaskIndex
-            {
-                Id = GuidHelper.GenerateGrainId(taskId, x), TaskId = taskId, Identifier = x.UserId,
-                TonGiftTask = TonGiftTask.Vote, UpdateTaskStatus = UpdateTaskStatus.Completed
-            }).ToList());
-            toAdd.AddRange(response.FailedUpdates.Select(x => new TonGiftTaskIndex
-            {
-                Id = GuidHelper.GenerateGrainId(taskId, x), TaskId = taskId, Identifier = x.UserId,
-                TonGiftTask = TonGiftTask.Vote, UpdateTaskStatus = UpdateTaskStatus.Failed
-            }).ToList());
-        }
-        await BulkAddOrUpdateAsync(toAdd);
     }
 }
