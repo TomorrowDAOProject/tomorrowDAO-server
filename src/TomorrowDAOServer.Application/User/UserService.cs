@@ -218,7 +218,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var chainId = input.ChainId;
         var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
         var hashString = Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp));
-        _logger.LogInformation("ViewAdAsync timeStamp {0} hashString {1} signature {2}", timeStamp, hashString, signature);
         if (hashString != signature)
         {
             throw new UserFriendlyException("Invalid signature.");
