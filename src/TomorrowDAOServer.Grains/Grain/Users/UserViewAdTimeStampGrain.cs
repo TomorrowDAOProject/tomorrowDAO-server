@@ -7,6 +7,7 @@ public interface IUserViewAdTimeStampGrain : IGrainWithStringKey
 {
     Task<bool> UpdateUserViewAdTimeStampAsync(long timeStamp);
     Task<long> GetDailyViewAdCountAsync();
+    Task ClearDailyViewAdCountAsync();
 }
 
 public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserViewAdTimeStampGrain
@@ -46,5 +47,11 @@ public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserVi
     public Task<long> GetDailyViewAdCountAsync()
     {
         return Task.FromResult(State.DailyViewAdCount);
+    }
+
+    public async Task ClearDailyViewAdCountAsync()
+    {
+        State.DailyViewAdCount = 0;
+        await WriteStateAsync();
     }
 }

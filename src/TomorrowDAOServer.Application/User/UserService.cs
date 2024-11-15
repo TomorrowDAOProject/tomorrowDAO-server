@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using AElf.ExceptionHandler;
 using AElf;
@@ -248,6 +246,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         return Task.FromResult(Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp)));;
     }
 
+    public async Task<long> ClearAdCountAsync(string chainId, string address)
+    {
+        await _userPointsRecordProvider.ClearDailyViewAdCountAsync(chainId, address);
+        return await _userPointsRecordProvider.GetDailyViewAdCountAsync(chainId, address);
+    }
+
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
     {
         if (!Enum.TryParse<UserTask>(input.UserTask, out var userTask) || UserTask.None == userTask)
@@ -316,7 +320,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Task", "Invite 20 friends");
             case PointsType.DailyViewAds:
                 var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
-                return new Tuple<string, string>("Click Ads", adPlatform);
+                return new Tuple<string, string>("Watch Ads", adPlatform);
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
@@ -363,6 +367,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             new()
             {
+                UserTaskDetail = UserTaskDetail.DailyViewAds.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds),
+                CompleteCount = adCount, TaskCount = 20
+            },
+            new()
+            {
                 UserTaskDetail = UserTaskDetail.DailyVote.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.Vote, 1)
             },
@@ -375,12 +385,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 UserTaskDetail = UserTaskDetail.DailyViewAsset.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAsset)
-            },
-            new()
-            {
-                UserTaskDetail = UserTaskDetail.DailyViewAds.ToString(),
-                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds),
-                CompleteCount = adCount, TaskCount = 20
             }
         };
     }

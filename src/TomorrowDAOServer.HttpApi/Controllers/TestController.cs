@@ -98,4 +98,10 @@ public class TestController
     {
         return await _userService.GetAdHashAsync(timeStamp);
     }
+    
+    [HttpGet("clear-ad-count")]
+    public async Task<long> ClearAdCountAsync(string chainId, string address)
+    {
+        return await _userService.ClearAdCountAsync(chainId, address);
+    }
 }
