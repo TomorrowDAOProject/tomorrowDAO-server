@@ -314,7 +314,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Task", "Invite 20 friends");
             case PointsType.DailyViewAds:
                 var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
-                return new Tuple<string, string>("Click Ads", adPlatform);
+                return new Tuple<string, string>("Watch Ads", adPlatform);
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
