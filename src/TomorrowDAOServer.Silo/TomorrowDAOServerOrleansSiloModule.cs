@@ -1,6 +1,8 @@
+using AElf.ExceptionHandler;
+using AElf.ExceptionHandler.ABP;
+using AElf.ExceptionHandler.Orleans.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Grains;
-using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
 using TomorrowDAOServer.MongoDB;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.ThirdPart.Exchange;
@@ -14,7 +16,8 @@ namespace TomorrowDAOServer.Silo;
     typeof(TomorrowDAOServerGrainsModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(TomorrowDAOServerMongoDbModule),
-    typeof(TomorrowDAOServerApplicationModule)
+    typeof(TomorrowDAOServerApplicationModule),
+    typeof(AOPExceptionModule)
 )]
 public class TomorrowDAOServerOrleansSiloModule : AbpModule
 {
@@ -32,5 +35,7 @@ public class TomorrowDAOServerOrleansSiloModule : AbpModule
         context.Services.AddTransient<IExchangeProvider, OkxProvider>();
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
+        
+        context.Services.AddOrleansExceptionHandler();
     }
 }

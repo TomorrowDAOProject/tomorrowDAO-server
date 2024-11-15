@@ -1,3 +1,4 @@
+using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.DAO;
@@ -34,7 +35,8 @@ namespace TomorrowDAOServer;
     typeof(AbpTenantManagementApplicationModule),
     typeof(AbpFeatureManagementApplicationModule),
     typeof(TomorrowDAOServerGrainsModule),
-    typeof(AbpSettingManagementApplicationModule)
+    typeof(AbpSettingManagementApplicationModule),
+    typeof(AOPExceptionModule)
 )]
 public class TomorrowDAOServerApplicationModule : AbpModule
 {
@@ -76,6 +78,5 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddHttpClient();
         context.Services.AddMemoryCache();
         context.Services.AddSingleton(typeof(ILocalMemoryCache<>), typeof(LocalMemoryCache<>));
-
     }
 }

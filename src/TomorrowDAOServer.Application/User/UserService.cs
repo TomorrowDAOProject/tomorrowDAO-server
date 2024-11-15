@@ -4,11 +4,13 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
@@ -320,16 +322,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         }
     }
 
-    private string GetIndexString(string str, int index, string splitSymbol)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"str", "index", "splitSymbol"})]
+    public async Task<string> GetIndexStringAsync(string str, int index, string splitSymbol)
     {
-        try
-        {
-            return str.Split(splitSymbol)[index];
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
+        return str.Split(splitSymbol)[index];
     }
 
     private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string address,

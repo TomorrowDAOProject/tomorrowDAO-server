@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -47,7 +48,9 @@ namespace TomorrowDAOServer.EntityEventHandler
                 })
                 .ConfigureAppConfiguration((h, c) => c.AddJsonFile("apollo.appsettings.json"))
                 .UseApollo()
+                .UseOrleansClient()
                 .UseAutofac()
+                .UseAElfExceptionHandler()
                 .UseSerilog();
     }
 }

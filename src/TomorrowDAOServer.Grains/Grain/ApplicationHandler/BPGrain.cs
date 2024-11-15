@@ -13,10 +13,10 @@ public interface IBPGrain : IGrainWithStringKey
 
 public class BPGrain : Grain<BPState>, IBPGrain
 {
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
 
     public async Task SetBPAsync(List<string> addressList, long round)

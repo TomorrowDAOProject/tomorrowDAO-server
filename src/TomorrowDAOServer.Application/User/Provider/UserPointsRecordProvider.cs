@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.Users;
@@ -141,20 +144,15 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             sortFunc: _ => new SortDescriptor<UserPointsIndex>().Descending(index => index.PointsTime));
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.Default,
+        Message = "GetUserTaskCompleteTime error", LogTargets = new []{"chainId", "address", "userTask", "userTaskDetail"})]
     public async Task<bool> UpdateUserTaskCompleteTimeAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail,
         DateTime completeTime)
     {
         var id = GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, address);
-        try
-        {
-            var grain = _clusterClient.GetGrain<IUserTaskGrain>(id);
-            return await grain.UpdateUserTaskCompleteTimeAsync(completeTime, userTask);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetUserTaskCompleteTimeAsyncException id {id}", id);
-            return false;
-        }
+        var grain = _clusterClient.GetGrain<IUserTaskGrain>(id);
+        return await grain.UpdateUserTaskCompleteTimeAsync(completeTime, userTask);
     }
 
     public async Task<List<UserPointsIndex>> GetByAddressAndUserTaskAsync(string chainId, string address, UserTask userTask)

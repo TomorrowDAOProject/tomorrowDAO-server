@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
@@ -76,7 +79,7 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                 EndBlockHeight = newIndexHeight
             };
             queryList = await _voteProvider.GetSyncVoteRecordListAsync(input);
-            _logger.LogInformation("VoteRecordSyncDataService queryList chainId: {chainId} skipCount: {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
+            Log.Information("VoteRecordSyncDataService queryList chainId: {chainId} skipCount: {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
                 chainId, skipCount, lastEndHeight, newIndexHeight, queryList?.Count);
             if (queryList == null || queryList.IsNullOrEmpty())
             {
@@ -97,10 +100,11 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
         return blockHeight;
     }
 
-    private async Task UpdateValidRankingVote(string chainId, List<VoteRecordIndex> list)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
+        Message = "UpdateValidRankingVote error", LogTargets = new []{"chainId", "list"})]
+    public virtual async Task UpdateValidRankingVote(string chainId, List<VoteRecordIndex> list)
     {
-        try
-        {
             var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
             var recordDiscover = _rankingOptions.CurrentValue.RecordDiscover;
             var proposalIds = list.Where(x => rankingDaoIds.Contains(x.DAOId) && x.Option == VoteOption.Approved && x.Amount == 1)
@@ -138,12 +142,7 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                 }
             }
 
-            await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "UpdateValidRankingVoteException");
-        }
+        await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
     }
 
     public override async Task<List<string>> GetChainIdsAsync()

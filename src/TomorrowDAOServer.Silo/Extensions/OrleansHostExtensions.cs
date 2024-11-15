@@ -66,7 +66,6 @@ public static class OrleansHostExtensions
                 options.ServiceId = serviceId;
             })
             // .AddMemoryGrainStorage("PubSubStore")
-            .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
             .Configure<GrainCollectionOptions>(opt =>
             {
                 var collectionAge = configSection.GetValue<int>("CollectionAge");
@@ -74,13 +73,6 @@ public static class OrleansHostExtensions
                 {
                     opt.CollectionAge = TimeSpan.FromSeconds(collectionAge);
                 }
-            })
-            .Configure<PerformanceTuningOptions>(opt =>
-            {
-                var minDotNetThreadPoolSize = configSection.GetValue<int>("MinDotNetThreadPoolSize");
-                var minIoThreadPoolSize = configSection.GetValue<int>("MinIOThreadPoolSize");
-                opt.MinDotNetThreadPoolSize = minDotNetThreadPoolSize > 0 ? minDotNetThreadPoolSize : 200;
-                opt.MinIOThreadPoolSize = minIoThreadPoolSize > 0 ? minIoThreadPoolSize : 200;
             })
             .UseDashboard(options =>
             {
@@ -91,7 +83,6 @@ public static class OrleansHostExtensions
                 options.HostSelf = true;
                 options.CounterUpdateIntervalMs = configSection.GetValue<int>("DashboardCounterUpdateIntervalMs");
             })
-            .UseLinuxEnvironmentStatistics()
             .ConfigureLogging(logging => { logging.SetMinimumLevel(LogLevel.Debug).AddConsole(); });
         });
     }

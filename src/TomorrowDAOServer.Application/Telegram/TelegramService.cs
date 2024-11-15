@@ -3,14 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf;
+using AElf.ExceptionHandler;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Serilog;
 using Orleans;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -124,7 +127,11 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         return result;
     }
 
-    public async Task<List<string>> SaveTelegramAppAsync(BatchSaveAppsInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,
+        Message = "SaveTelegramAppAsync error", 
+        LogTargets = new []{"telegramAppDto", "chainId"})]
+    public virtual async Task<List<string>> SaveTelegramAppAsync(BatchSaveAppsInput input)
     {
         var chainId = input.ChainId;
         var address = await CheckUserPermission(chainId);
@@ -193,23 +200,19 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         return await sequenceGrain.GetNextValAsync(count);
     }
 
-    public async Task SaveTelegramAppsAsync(List<TelegramAppDto> telegramAppDtos)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,
+        Message = "SaveTelegramAppsAsync error", 
+        LogTargets = new []{"telegramAppDtos"})]
+    public virtual async Task SaveTelegramAppsAsync(List<TelegramAppDto> telegramAppDtos)
     {
         if (telegramAppDtos.IsNullOrEmpty())
         {
             return;
         }
 
-        try
-        {
-            var telegramAppIndices = _objectMapper.Map<List<TelegramAppDto>, List<TelegramAppIndex>>(telegramAppDtos);
-            await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "SaveTelegramAppsAsync error. {0}", JsonConvert.SerializeObject(telegramAppDtos));
-            throw new UserFriendlyException($"System exception occurred during saving telegram apps. {e.Message}");
-        }
+        var telegramAppIndices = _objectMapper.Map<List<TelegramAppDto>, List<TelegramAppIndex>>(telegramAppDtos);
+        await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);
     }
 
     public async Task SaveNewTelegramAppsAsync(List<TelegramAppDto> telegramAppDtos)
@@ -253,7 +256,11 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);
     }
 
-    public async Task<List<TelegramAppDto>> GetTelegramAppAsync(QueryTelegramAppsInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,
+        Message = "GetTelegramAppAsync error", 
+        LogTargets = new []{"input"})]
+    public virtual async Task<List<TelegramAppDto>> GetTelegramAppAsync(QueryTelegramAppsInput input)
     {
         if (input == null ||
             (input.Names.IsNullOrEmpty() && input.Aliases.IsNullOrEmpty() && input.Ids.IsNullOrEmpty()))
@@ -261,21 +268,13 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             return new List<TelegramAppDto>();
         }
 
-        try
+        var (count, telegramAppindices) = await _telegramAppsProvider.GetTelegramAppsAsync(input);
+        if (telegramAppindices.IsNullOrEmpty())
         {
-            var (count, telegramAppindices) = await _telegramAppsProvider.GetTelegramAppsAsync(input);
-            if (telegramAppindices.IsNullOrEmpty())
-            {
-                return new List<TelegramAppDto>();
-            }
+            return new List<TelegramAppDto>();
+        }
 
-            return _objectMapper.Map<List<TelegramAppIndex>, List<TelegramAppDto>>(telegramAppindices);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetTelegramAppAsync error. {0}", JsonConvert.SerializeObject(input));
-            throw new UserFriendlyException($"System exception occurred during querying telegram apps. {e.Message}");
-        }
+        return _objectMapper.Map<List<TelegramAppIndex>, List<TelegramAppDto>>(telegramAppindices);
     }
 
     public async Task<IDictionary<string, TelegramAppDetailDto>> SaveTelegramAppDetailAsync(IDictionary<string, TelegramAppDetailDto> telegramAppDetailDtos)

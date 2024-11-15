@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Newtonsoft.Json;
+using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
@@ -30,18 +33,14 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         _objectMapper = objectMapper;
     }
 
-    public async Task CreateUserAsync(UserDto user)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
+        Message = "Create user error", LogTargets = new []{"user"})]
+    public virtual async Task CreateUserAsync(UserDto user)
     {
-        try
-        {
-            var userIndex = _objectMapper.Map<UserDto, UserIndex>(user);
-            await _userIndexRepository.AddOrUpdateAsync(userIndex);
-            _logger.LogInformation("CreateUserAsyncEs, UserDto {0}", JsonConvert.SerializeObject(user));
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "CreateUserAsyncException, UserDto {0}", JsonConvert.SerializeObject(user));
-        }
+        var userIndex = _objectMapper.Map<UserDto, UserIndex>(user);
+        await _userIndexRepository.AddOrUpdateAsync(userIndex);
+        Log.Information("CreateUserAsyncEs, UserDto {0}", JsonConvert.SerializeObject(user));
     }
 
     public async Task<UserDto> GetUserByIdAsync(string userId)

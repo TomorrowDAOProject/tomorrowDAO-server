@@ -11,10 +11,10 @@ public interface IProposalNumGrain : IGrainWithStringKey
 
 public class ProposalNumGrain : Grain<ProposalNumState>, IProposalNumGrain
 {
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
 
     public async Task SetProposalNumAsync(long parliamentCount, long associationCount, long referendumCount)

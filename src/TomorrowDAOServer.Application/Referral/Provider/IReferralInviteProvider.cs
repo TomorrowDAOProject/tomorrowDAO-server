@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Grains.Grain.Referral;
 using Volo.Abp.DependencyInjection;
@@ -197,33 +200,24 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
 
         return await IndexHelper.GetAllIndex(Filter, _referralInviteRepository);
     }
-
-    public async Task<long> IncrementInviteCountAsync(string chainId, string address, long delta)
+    
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleIncrementInviteCountAsync), 
+        Message = "IncrementInviteCountAsync error",
+        LogTargets = new []{"chainId", "address", "delta"})]
+    public virtual async Task<long> IncrementInviteCountAsync(string chainId, string address, long delta)
     {
-        try
-        {
-            var grain = _clusterClient.GetGrain<IReferralInviteCountGrain>(GuidHelper.GenerateGrainId(chainId, address));
-            return await grain.IncrementInviteCountAsync(delta);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "IncrementInviteCountAsyncException chainId {chainId} address {address} delta {delta}", 
-                chainId, address, delta);
-            return -1;
-        }
+        var grain = _clusterClient.GetGrain<IReferralInviteCountGrain>(GuidHelper.GenerateGrainId(chainId, address));
+        return await grain.IncrementInviteCountAsync(delta);
     }
 
-    public async Task<long> GetInviteCountAsync(string chainId, string address)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,  ReturnDefault = default,
+        Message = "GetInviteCountAsyncException error",
+        LogTargets = new []{"chainId", "address"})]
+    public virtual async Task<long> GetInviteCountAsync(string chainId, string address)
     {
-        try
-        {
-            var grain = _clusterClient.GetGrain<IReferralInviteCountGrain>(GuidHelper.GenerateGrainId(chainId, address));
-            return await grain.GetInviteCountAsync();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetInviteCountAsyncException chainId {chainId} address {address}", chainId, address);
-            return 0;
-        }
+        var grain = _clusterClient.GetGrain<IReferralInviteCountGrain>(GuidHelper.GenerateGrainId(chainId, address));
+        return await grain.GetInviteCountAsync();
     }
 }
