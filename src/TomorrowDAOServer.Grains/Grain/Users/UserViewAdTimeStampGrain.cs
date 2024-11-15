@@ -11,12 +11,12 @@ public interface IUserViewAdTimeStampGrain : IGrainWithStringKey
 
 public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserViewAdTimeStampGrain
 {
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
-    
+
     public async Task<bool> UpdateUserViewAdTimeStampAsync(long timeStamp)
     {
         var today = DateTime.UtcNow.Date;
