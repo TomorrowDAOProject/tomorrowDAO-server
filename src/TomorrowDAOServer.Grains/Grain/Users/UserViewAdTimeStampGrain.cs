@@ -6,6 +6,7 @@ namespace TomorrowDAOServer.Grains.Grain.Users;
 public interface IUserViewAdTimeStampGrain : IGrainWithStringKey
 {
     Task<bool> UpdateUserViewAdTimeStampAsync(long timeStamp);
+    Task<long> GetDailyViewAdCountAsync();
 }
 
 public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserViewAdTimeStampGrain
@@ -18,13 +19,32 @@ public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserVi
     
     public async Task<bool> UpdateUserViewAdTimeStampAsync(long timeStamp)
     {
-        var result = State.TimeStamp < timeStamp;
-        if (result)
+        var today = DateTime.UtcNow.Date;
+
+        if (State.LastUpdateDate != today)
+        {
+            State.DailyViewAdCount = 0;
+            State.LastUpdateDate = today;
+        }
+
+        if (State.DailyViewAdCount >= 20)
+        {
+            return false; 
+        }
+
+        var isUpdated = State.TimeStamp < timeStamp;
+        if (isUpdated)
         {
             State.TimeStamp = timeStamp;
+            State.DailyViewAdCount++; 
         }
 
         await WriteStateAsync();
-        return result;
+        return isUpdated;
+    }
+
+    public Task<long> GetDailyViewAdCountAsync()
+    {
+        return Task.FromResult(State.DailyViewAdCount);
     }
 }
