@@ -23,7 +23,7 @@ namespace TomorrowDAOServer.Ranking.Provider
         public long CalculatePointsFromExploreCumulateTenInvite();
         public long CalculatePointsFromExploreCumulateTwentyInvite();
         public long CalculatePointsFromPointsExploreForwardX();
-        public long CalculatePointsFromViewAd();
+        public long CalculatePointsFromDailyViewAds();
     }
 
     public class RankingAppPointsCalcProvider : IRankingAppPointsCalcProvider, ISingletonDependency
@@ -83,7 +83,7 @@ namespace TomorrowDAOServer.Ranking.Provider
             return _rankingOptions.CurrentValue.PointsExploreForwardX;
         }
 
-        public long CalculatePointsFromViewAd()
+        public long CalculatePointsFromDailyViewAds()
         {
             return _rankingOptions.CurrentValue.PointsViewAd;
         }
@@ -105,7 +105,7 @@ namespace TomorrowDAOServer.Ranking.Provider
                 PointsType.ExploreCumulateTenInvite => CalculatePointsFromExploreCumulateTenInvite(),
                 PointsType.ExploreCumulateTwentyInvite => CalculatePointsFromExploreCumulateTwentyInvite(),
                 PointsType.ExploreForwardX => CalculatePointsFromPointsExploreForwardX(),
-                PointsType.DailyViewAds => CalculatePointsFromViewAd(),
+                PointsType.DailyViewAds => CalculatePointsFromDailyViewAds(),
                 _ => 0
             };
         }
