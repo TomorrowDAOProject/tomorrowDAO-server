@@ -234,21 +234,29 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
     public async Task<HolderInfoIndexerDto> GetCaHolderInfoAsync(List<string> caAddresses, string caHash, int skipCount = 0,
         int maxResultCount = 10)
     {
-        var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
-        using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
-        var response = await graphQlClient.SendQueryAsync<HolderInfoIndexerDto>(new GraphQLRequest
+        try
         {
-            Query = @"
+            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+            using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+            var response = await graphQlClient.SendQueryAsync<HolderInfoIndexerDto>(new GraphQLRequest
+            {
+                Query = @"
 			    query($caAddresses:[String],$caHash:String,$skipCount:Int!,$maxResultCount:Int!) {
                     caHolderInfo(dto: {caAddresses:$caAddresses,caHash:$caHash,skipCount:$skipCount,maxResultCount:$maxResultCount}){
                             id,chainId,caHash,caAddress,originChainId,managerInfos{address,extraData}}
                 }",
-            Variables = new
-            {
-                caAddresses, caHash, skipCount, maxResultCount
-            }
-        });
-        return response.Data;
+                Variables = new
+                {
+                    caAddresses, caHash, skipCount, maxResultCount
+                }
+            });
+            return response.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetCaHolderInfoAsyncException chainId {0}", caAddresses.Count);
+            return new HolderInfoIndexerDto();
+        }
     }
 
     public async Task<GuardianIdentifierList> GetGuardianIdentifiersAsync(string chainId, string caHash)
