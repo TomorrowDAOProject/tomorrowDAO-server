@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
-using AElf;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -244,6 +241,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     { 
         var checkKey = _userOptions.CurrentValue.CheckKey;
         return Task.FromResult(Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp)));;
+    }
+
+    public async Task<long> ClearAdCountAsync(string chainId, string address)
+    {
+        await _userPointsRecordProvider.ClearDailyViewAdCountAsync(chainId, address);
+        return await _userPointsRecordProvider.GetDailyViewAdCountAsync(chainId, address);
     }
 
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
