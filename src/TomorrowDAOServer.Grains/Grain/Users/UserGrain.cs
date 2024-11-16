@@ -41,7 +41,7 @@ public class UserGrain : Grain<UserState>, IUserGrain
 
     public async Task<GrainResultDto<UserGrainDto>> CreateUser(UserGrainDto input)
     {
-        _logger.LogInformation("CreateUserGrain UserGrainDto 1 2 {0}",JsonConvert.SerializeObject(input));
+        _logger.LogInformation("CreateUserGrain UserGrainDto {0}",JsonConvert.SerializeObject(input));
         if (State.Id == Guid.Empty)
         {
             State.Id = this.GetPrimaryKey();
