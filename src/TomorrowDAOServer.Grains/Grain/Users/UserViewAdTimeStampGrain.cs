@@ -21,11 +21,11 @@ public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserVi
     public async Task<bool> UpdateUserViewAdTimeStampAsync(long timeStamp)
     {
         var today = DateTime.UtcNow.Date;
-
         if (State.LastUpdateDate != today)
         {
             State.DailyViewAdCount = 0;
             State.LastUpdateDate = today;
+            await WriteStateAsync(); 
         }
 
         if (State.DailyViewAdCount >= 20)
@@ -46,6 +46,11 @@ public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserVi
 
     public Task<long> GetDailyViewAdCountAsync()
     {
+        var today = DateTime.UtcNow.Date;
+        if (State.LastUpdateDate != today)
+        {
+            return Task.FromResult(0L);
+        }
         return Task.FromResult(State.DailyViewAdCount);
     }
 
