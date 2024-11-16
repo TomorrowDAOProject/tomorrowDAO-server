@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
+using AElf;
+using Aetherlink.PriceServer.Common;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
@@ -30,12 +35,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
+    private readonly ILogger<UserService> _logger;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
         IUserPointsRecordProvider userPointsRecordProvider,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider,
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -46,6 +52,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _referralInviteProvider = referralInviteProvider;
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _telegramAppsProvider = telegramAppsProvider;
+        _logger = logger;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -153,10 +160,14 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         var aliases =  userPointsIndices
             .Where(t => t.PointsType == PointsType.Vote && t.Information != null &&
-                        t.Information.ContainsKey(CommonConstant.Alias) &&
+                        t.Information.ContainsKey(CommonConstant.Alias) && t.Information[CommonConstant.Alias] != null &&
                         !t.Information[CommonConstant.Alias].IsNullOrWhiteSpace()).Select(t =>
                 t.Information.GetValueOrDefault(CommonConstant.Alias, string.Empty)).ToList();
 
+        if (aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, string>();
+        }
         var telegramApps = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
             Aliases = aliases
@@ -203,6 +214,32 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         };
     }
 
+    public async Task<long> ViewAdAsync(ViewAdInput input)
+    {
+        var checkKey = _userOptions.CurrentValue.CheckKey;
+        var timeStamp = input.TimeStamp;
+        var signature = input.Signature;
+        var chainId = input.ChainId;
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var hashString = Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp));
+        if (hashString != signature)
+        {
+            throw new UserFriendlyException("Invalid signature.");
+        }
+
+        var timeCheck = await _userPointsRecordProvider.UpdateUserViewAdTimeStampAsync(chainId, address, timeStamp);
+        if (!timeCheck)
+        {
+            throw new UserFriendlyException("Invalid timeStamp.");
+        }
+
+        var information = InformationHelper.GetViewAdInformation(AdPlatform.Adsgram.ToString(), timeStamp);
+        await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync(address);
+        var adTime = DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).UtcDateTime;
+        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyViewAds, adTime, information);
+        return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+    }
+
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
     {
         if (!Enum.TryParse<UserTask>(input.UserTask, out var userTask) || UserTask.None == userTask)
@@ -237,7 +274,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         switch (pointsType)
         {
             case PointsType.Vote:
-                var alias = information.GetValueOrDefault(CommonConstant.Alias, string.Empty);
+                var alias = information.GetValueOrDefault(CommonConstant.Alias, string.Empty) ?? string.Empty;
                 alias = appNames.GetValueOrDefault(alias, alias);
                 var proposalTitle = information.GetValueOrDefault(CommonConstant.ProposalTitle, string.Empty);
                 return new Tuple<string, string>("Voted for: " + alias, proposalTitle);
@@ -269,6 +306,9 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Task", "Invite 10 friends");
             case PointsType.ExploreCumulateTwentyInvite:
                 return new Tuple<string, string>("Task", "Invite 20 friends");
+            case PointsType.DailyViewAds:
+                var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
+                return new Tuple<string, string>("Watch Ads", adPlatform);
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
@@ -287,44 +327,42 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     }
 
     private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string address,
-        List<UserPointsIndex> dailyTaskList, UserTask userTask)
+        List<UserPointsIndex> taskList, UserTask userTask)
     {
-        var taskDictionary = dailyTaskList
+        var taskDictionary = taskList
             .GroupBy(task => task.UserTaskDetail.ToString())
             .Select(g => g.OrderByDescending(task => task.PointsTime).First())
             .ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
-        // var latestDailyVote = dailyTaskList.Where(x => x.UserTaskDetail == UserTaskDetail.DailyVote)
-        //     .MaxBy(x => x.PointsTime);
-        // if (latestDailyVote != null)
-        // {
-        //     var defaultProposalProposalId =
-        //         await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(chainId);
-        //     var latestDailyVoteProposalId =
-        //         latestDailyVote.Information.GetValueOrDefault(CommonConstant.ProposalId, string.Empty);
-        //     if (defaultProposalProposalId != latestDailyVoteProposalId)
-        //     {
-        //         taskDictionary.Remove(UserTaskDetail.DailyVote.ToString());
-        //     }
-        // }
-
-        var completeCount = await _referralInviteProvider.GetInviteCountAsync(chainId, address);
         var taskDetails = userTask == UserTask.Daily
-            ? InitDailyTaskDetailList()
-            : InitExploreTaskDetailList(completeCount);
+            ? InitDailyTaskDetailList(await _userPointsRecordProvider.GetDailyViewAdCountAsync(chainId, address))
+            : InitExploreTaskDetailList(await _referralInviteProvider.GetInviteCountAsync(chainId, address));
 
         foreach (var taskDetail in taskDetails.Where(taskDetail =>
                      taskDictionary.TryGetValue(taskDetail.UserTaskDetail, out _)))
         {
-            taskDetail.Complete = true;
+            if (UserTaskDetail.DailyViewAds.ToString() == taskDetail.UserTaskDetail)
+            {
+                taskDetail.Complete = taskDetail.CompleteCount >= taskDetail.TaskCount;
+            }
+            else
+            {
+                taskDetail.Complete = true;
+            }
         }
 
         return taskDetails;
     }
 
-    private List<TaskInfoDetail> InitDailyTaskDetailList()
+    private List<TaskInfoDetail> InitDailyTaskDetailList(long adCount)
     {
         return new List<TaskInfoDetail>
         {
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.DailyViewAds.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds),
+                CompleteCount = adCount, TaskCount = 20
+            },
             new()
             {
                 UserTaskDetail = UserTaskDetail.DailyVote.ToString(),
