@@ -9,6 +9,7 @@ public enum UserTaskDetail
     DailyVote = 1,
     DailyFirstInvite = 2,
     DailyViewAsset = 3,
+    DailyViewAds = 11,
     
     // Explore
     ExploreJoinTgChannel = 4,

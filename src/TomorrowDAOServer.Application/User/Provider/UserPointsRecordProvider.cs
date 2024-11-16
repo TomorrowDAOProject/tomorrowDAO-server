@@ -23,6 +23,8 @@ public interface IUserPointsRecordProvider
     Task<Tuple<long, List<UserPointsIndex>>> GetPointsListAsync(GetMyPointsInput input, string address);
     Task<bool> UpdateUserTaskCompleteTimeAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail, DateTime completeTime);
     Task<List<UserPointsIndex>> GetByAddressAndUserTaskAsync(string chainId, string address, UserTask userTask);
+    Task<bool> UpdateUserViewAdTimeStampAsync(string chainId, string address, long timeStamp);
+    Task<long> GetDailyViewAdCountAsync(string chainId, string address);
 }
 
 public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDependency
@@ -106,6 +108,9 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             case PointsType.TopInviter:
                 var endTime = information?.GetValueOrDefault(CommonConstant.CycleEndTime) ?? string.Empty;
                 return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, endTime);
+            case PointsType.DailyViewAds:
+                var timeStamp = information?.GetValueOrDefault(CommonConstant.AdTime) ?? string.Empty;
+                return GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, pointsType, address, timeStamp);
             case PointsType.All:
             case PointsType.Like:
             case PointsType.ExploreJoinTgChannel:
@@ -166,9 +171,41 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             var todayEnd = todayStart.AddDays(1).AddTicks(-1); 
             mustQuery.Add(q => q.DateRange(r => r
                 .Field(f => f.PointsTime).GreaterThanOrEquals(todayStart).LessThanOrEquals(todayEnd)));
+            mustQuery.Add(q => q.Term(i => i
+                .Field(t => t.PointsType).Value(PointsType.DailyViewAds)));
         }
 
         QueryContainer Filter(QueryContainerDescriptor<UserPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _userPointsRecordRepository.GetListAsync(Filter)).Item2;
+    }
+
+    public async Task<bool> UpdateUserViewAdTimeStampAsync(string chainId, string address, long timeStamp)
+    {
+        var id = GuidHelper.GenerateGrainId(chainId, address);
+        try
+        {
+            var grain = _clusterClient.GetGrain<IUserViewAdTimeStampGrain>(id);
+            return await grain.UpdateUserViewAdTimeStampAsync(timeStamp);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "UpdateUserViewAdTimeStampAsyncException id {id}", id);
+            return false;
+        }
+    }
+
+    public async Task<long> GetDailyViewAdCountAsync(string chainId, string address)
+    {
+        var id = GuidHelper.GenerateGrainId(chainId, address);
+        try
+        {
+            var grain = _clusterClient.GetGrain<IUserViewAdTimeStampGrain>(id);
+            return await grain.GetDailyViewAdCountAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetDailyViewAdCountAsyncException id {id}", id);
+            return 0;
+        }
     }
 }

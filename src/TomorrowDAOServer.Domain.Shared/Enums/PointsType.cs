@@ -16,6 +16,7 @@ public enum PointsType
     // daily task
     DailyViewAsset = 6,
     DailyFirstInvite = 7,
+    DailyViewAds = 15,
     
     // explore task
     ExploreJoinTgChannel = 8,
@@ -24,5 +25,5 @@ public enum PointsType
     ExploreCumulateFiveInvite = 11,
     ExploreCumulateTenInvite = 12,
     ExploreCumulateTwentyInvite = 13,
-    ExploreForwardX = 14
+    ExploreForwardX = 14,
 }

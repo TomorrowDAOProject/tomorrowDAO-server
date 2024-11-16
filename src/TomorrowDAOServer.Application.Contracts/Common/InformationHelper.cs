@@ -46,4 +46,13 @@ public class InformationHelper
             { CommonConstant.Invitee, invitee }
         };
     }
+    
+    public static Dictionary<string, string> GetViewAdInformation(string adPlatform, long timeStamp)
+    {
+        return new Dictionary<string, string>
+        {
+            { CommonConstant.AdPlatform, adPlatform },
+            { CommonConstant.AdTime, timeStamp.ToString() }
+        };
+    }
 }
