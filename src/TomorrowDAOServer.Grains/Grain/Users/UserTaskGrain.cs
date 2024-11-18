@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Orleans;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.State.Users;
