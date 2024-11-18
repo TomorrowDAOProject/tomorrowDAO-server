@@ -35,11 +35,11 @@ public class FindminiAppsSyncDataService : ScheduleSyncDataService
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
         var hour =  _telegramOptions.CurrentValue.FindminiSpiderTime;
-        if (TimeHelper.IsTimestampToday(lastEndHeight) || DateTime.UtcNow.Hour != hour)
-        {
-            _logger.LogInformation("FindminiNoNeedToSync");
-            return lastEndHeight;
-        }
+        // if (TimeHelper.IsTimestampToday(lastEndHeight) || DateTime.UtcNow.Hour != hour)
+        // {
+        //     _logger.LogInformation("FindminiNoNeedToSync");
+        //     return lastEndHeight;
+        // }
         _logger.LogInformation("FindminiNeedToSyncStart");
         var categoryList = _telegramOptions.CurrentValue.FindMiniCategoryList;
         foreach (var url in categoryList.Select(category => CommonConstant.FindminiCategoryPrefix + category + "/"))
