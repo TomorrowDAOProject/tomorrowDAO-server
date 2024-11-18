@@ -21,8 +21,6 @@ public class UserTaskGrain : Grain<UserTaskState>, IUserTaskGrain
 
     public async Task<bool> UpdateUserTaskCompleteTimeAsync(DateTime completeTime, UserTask userTask)
     {
-        _logger.LogInformation("UpdateUserTaskCompleteTimeAsync completeTime {0}, userTask {1} completeTime {2}", 
-            completeTime, userTask, State.CompleteTime);
         switch (userTask)
         {
             case UserTask.Daily:
