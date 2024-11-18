@@ -6,4 +6,5 @@ public class GetVoteTeamListInput : PagedAndSortedResultRequestDto
 {
     public string ChainId { get; set; }
     public string PublicKey { get; set; }
+    public bool? IsActive { get; set; }
 }

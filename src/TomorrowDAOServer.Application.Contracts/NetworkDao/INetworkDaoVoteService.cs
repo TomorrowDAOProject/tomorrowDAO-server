@@ -10,7 +10,9 @@ public interface INetworkDaoVoteService
 {
     Task<GetVotedListPagedResult> GetVotedListAsync(GetVotedListInput input);
     Task<GetAllPersonalVotesPagedResult> GetAllPersonalVotesAsync(GetAllPersonalVotesInput input);
-    Task<AddTeamDescResultDto> AddTeamDescriptionAsync(AddTeamDescInput input);
+    Task<AddTeamDescResultDto> AddTeamDescriptionAsync(AddTeamDescInput input, bool authRequired = true);
     Task<UpdateTeamStatusResultDto> UpdateTeamStatusAsync(UpdateTeamStatusInput input);
-    Task<bool> LoadVoteTeamHistoryDateAsync(LoadVoteTeamDescHistoryInput input);
+    Task<int> LoadVoteTeamHistoryDateAsync(LoadVoteTeamDescHistoryInput input);
+    Task<GetTeamDescResultDto> GetTeamDescAsync(GetTeamDescInput input);
+    Task<List<GetTeamDescResultDto>> GetAllTeamDescAsync(GetAllTeamDescInput input);
 }

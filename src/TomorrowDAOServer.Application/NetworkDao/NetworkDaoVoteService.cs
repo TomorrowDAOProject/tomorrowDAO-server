@@ -1,16 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Aetherlink.PriceServer.Common;
+using Microsoft.Extensions.Options;
 using Orleans;
+using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Grains.Grain.NetworkDao;
 using TomorrowDAOServer.NetworkDao.Dtos;
 using TomorrowDAOServer.NetworkDao.GrainDtos;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.NetworkDao.Provider;
+using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp.Users;
@@ -26,15 +31,18 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
     private readonly IClusterClient _clusterClient;
     private readonly IUserProvider _userProvider;
     private readonly IExplorerProvider _explorerProvider;
+    private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
 
     public NetworkDaoVoteService(INetworkDaoEsDataProvider networkDaoEsDataProvider, IObjectMapper objectMapper,
-        IClusterClient clusterClient, IUserProvider userProvider, IExplorerProvider explorerProvider)
+        IClusterClient clusterClient, IUserProvider userProvider, IExplorerProvider explorerProvider, 
+        IOptionsMonitor<TelegramOptions> telegramOptions)
     {
         _networkDaoEsDataProvider = networkDaoEsDataProvider;
         _objectMapper = objectMapper;
         _clusterClient = clusterClient;
         _userProvider = userProvider;
         _explorerProvider = explorerProvider;
+        _telegramOptions = telegramOptions;
     }
 
     public async Task<GetVotedListPagedResult> GetVotedListAsync(GetVotedListInput input)
@@ -88,20 +96,23 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
         };
     }
 
-    public async Task<AddTeamDescResultDto> AddTeamDescriptionAsync(AddTeamDescInput input)
+    public async Task<AddTeamDescResultDto> AddTeamDescriptionAsync(AddTeamDescInput input, bool authRequired = true)
     {
-        var address =
-            await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        if (address.IsNullOrEmpty())
+        if (authRequired)
         {
-            return new AddTeamDescResultDto
+            var address =
+                await _userProvider.GetAndValidateUserAddressAsync(
+                    CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+            if (address.IsNullOrEmpty())
             {
-                Success = false,
-                Message = "No user address found"
-            };
+                return new AddTeamDescResultDto
+                {
+                    Success = false,
+                    Message = "No user address found"
+                };
+            }
         }
-        
+
         var voteTeamDto = _objectMapper.Map<AddTeamDescInput, NetworkDaoVoteTeamDto>(input);
         voteTeamDto.Id = IdGeneratorHelper.GenerateId(input.ChainId, input.Name, input.PublicKey);
 
@@ -122,7 +133,8 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
         var now = DateTime.Now;
         voteTeamIndex.CreateTime = now;
         voteTeamIndex.UpdateTime ??= now;
-        await _networkDaoEsDataProvider.BulkAddOrUpdateVoteTeamAsync(new List<NetworkDaoVoteTeamIndex>(){voteTeamIndex});
+        await _networkDaoEsDataProvider.BulkAddOrUpdateVoteTeamAsync(new List<NetworkDaoVoteTeamIndex>()
+            { voteTeamIndex });
 
         return new AddTeamDescResultDto
         {
@@ -143,7 +155,7 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
                 Message = "No user address found"
             };
         }
-        
+
         var voteTeamGrain = _clusterClient.GetGrain<INetworkDaoVoteTeamGrain>(input.Name);
         var resultDto = await voteTeamGrain.UpdateVoteTeamStatusAsync(input.PublicKey, input.IsActive);
         if (!resultDto.Success)
@@ -155,6 +167,7 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
             };
         }
 
+        //Grain updated the data with the specified name, and Index updated all the data under the publickey
         var (count, voteTeamIndices) = await _networkDaoEsDataProvider.GetVoteTeamListAsync(new GetVoteTeamListInput
         {
             ChainId = input.ChainId,
@@ -165,38 +178,85 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
             voteTeamIndex.IsActive = input.IsActive;
             voteTeamIndex.UpdateTime = DateTime.Now;
         }
+
         await _networkDaoEsDataProvider.BulkAddOrUpdateVoteTeamAsync(voteTeamIndices);
-        
+
         return new UpdateTeamStatusResultDto
         {
             Success = true
         };
     }
 
-    public async Task<bool> LoadVoteTeamHistoryDateAsync(LoadVoteTeamDescHistoryInput input)
+    public async Task<int> LoadVoteTeamHistoryDateAsync(LoadVoteTeamDescHistoryInput input)
     {
         var address =
             await _userProvider.GetAndValidateUserAddressAsync(
                 CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         if (address.IsNullOrEmpty())
         {
-            return false;
+            throw new UserFriendlyException("Access denied");
         }
         
-        var allTeamDesc = await _explorerProvider.GetAllTeamDescAsync(input.ChainId, false);
-        foreach (var networkDaoVoteTeamIndex in allTeamDesc)
+        if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
-            var teamDescInput = _objectMapper.Map<NetworkDaoVoteTeamIndex, AddTeamDescInput>(networkDaoVoteTeamIndex);
-            await AddTeamDescriptionAsync(teamDescInput);
-        }
-        
-        allTeamDesc = await _explorerProvider.GetAllTeamDescAsync(input.ChainId, true);
-        foreach (var networkDaoVoteTeamIndex in allTeamDesc)
-        {
-            var teamDescInput = _objectMapper.Map<NetworkDaoVoteTeamIndex, AddTeamDescInput>(networkDaoVoteTeamIndex);
-            await AddTeamDescriptionAsync(teamDescInput);
+            throw new UserFriendlyException("Access denied.");
         }
 
-        return true;
+        var count = 0;
+        var allTeamDesc = await _explorerProvider.GetAllTeamDescAsync(input.OperateChainId, false);
+        foreach (var teamDescDto in allTeamDesc)
+        {
+            count++;
+            var teamDescInput = _objectMapper.Map<ExplorerVoteTeamDescDto, AddTeamDescInput>(teamDescDto);
+            teamDescInput.ChainId = input.OperateChainId;
+            await AddTeamDescriptionAsync(teamDescInput, false);
+        }
+
+        allTeamDesc = await _explorerProvider.GetAllTeamDescAsync(input.OperateChainId, true);
+        foreach (var teamDescDto in allTeamDesc)
+        {
+            count++;
+            var teamDescInput = _objectMapper.Map<ExplorerVoteTeamDescDto, AddTeamDescInput>(teamDescDto);
+            teamDescInput.ChainId = input.OperateChainId;
+            await AddTeamDescriptionAsync(teamDescInput, false);
+        }
+
+        return count;
+    }
+
+    public async Task<GetTeamDescResultDto> GetTeamDescAsync(GetTeamDescInput input)
+    {
+        var (count, voteTeamIndices) =
+            await _networkDaoEsDataProvider.GetVoteTeamListAsync(new GetVoteTeamListInput
+            {
+                MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+                ChainId = input.ChainId,
+                PublicKey = input.PublicKey
+            });
+        if (voteTeamIndices.IsNullOrEmpty())
+        {
+            throw new UserFriendlyException("not found");
+        }
+
+        return _objectMapper.Map<NetworkDaoVoteTeamIndex, GetTeamDescResultDto>(voteTeamIndices.First());
+    }
+
+    public async Task<List<GetTeamDescResultDto>> GetAllTeamDescAsync(GetAllTeamDescInput input)
+    {
+        var (count, voteTeamIndices) =
+            await _networkDaoEsDataProvider.GetVoteTeamListAsync(new GetVoteTeamListInput
+            {
+                MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+                ChainId = input.ChainId,
+                IsActive = input.IsActive
+            });
+
+        if (voteTeamIndices.IsNullOrEmpty())
+        {
+            return new List<GetTeamDescResultDto>();
+        }
+
+        voteTeamIndices = voteTeamIndices.GroupBy(t => t.PublicKey).Select(g => g.First()).ToList();
+        return _objectMapper.Map<List<NetworkDaoVoteTeamIndex>, List<GetTeamDescResultDto>>(voteTeamIndices);
     }
 }

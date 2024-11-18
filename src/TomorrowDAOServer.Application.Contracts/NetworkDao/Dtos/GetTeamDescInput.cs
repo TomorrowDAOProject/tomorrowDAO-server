@@ -1,27 +1,26 @@
 using System;
 using System.Collections.Generic;
-using AElf.Indexing.Elasticsearch;
-using Nest;
-using TomorrowDAOServer.Entities;
+using System.ComponentModel.DataAnnotations;
 
-namespace TomorrowDAOServer.NetworkDao;
+namespace TomorrowDAOServer.NetworkDao.Dtos;
 
-public class NetworkDaoVoteTeamIndex : AbstractEntity<string>, IIndexBuild
+public class GetTeamDescInput
 {
-    [Keyword]
+    [Required]
     public string ChainId { get; set; }
-    [Keyword]
+    [Required]
     public string PublicKey { get; set; }
-    [Keyword]
+}
+
+public class GetTeamDescResultDto
+{
+    public string ChainId { get; set; }
+    public string PublicKey { get; set; }
     public string Address { get; set; }
-    [Keyword]
     public string Name { get; set; }
-    [Keyword]
     public string Avatar { get; set; }
     public string Intro { get; set; }
-    [Keyword]
     public string TxId { get; set; }
-    [Keyword]
     public bool IsActive { get; set; }
     public List<string> Socials { get; set; }
     public string OfficialWebsite { get; set; }

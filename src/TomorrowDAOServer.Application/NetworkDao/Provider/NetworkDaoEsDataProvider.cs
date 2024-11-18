@@ -471,7 +471,12 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
 
         if (!input.PublicKey.IsNullOrWhiteSpace())
         {
-            mustQuery.Add(q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)));
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.PublicKey).Value(input.PublicKey)));
+        }
+
+        if (input.IsActive != null)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.IsActive).Value(input.IsActive)));
         }
 
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoVoteTeamIndex> f) => f.Bool(b => b.Must(mustQuery));
@@ -480,7 +485,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         if (input.Sorting.IsNullOrWhiteSpace())
         {
             sortDescriptor =
-                _ => new SortDescriptor<NetworkDaoVoteTeamIndex>().Descending(a => a.CreateTime);
+                _ => new SortDescriptor<NetworkDaoVoteTeamIndex>().Descending(a => a.UpdateTime);
         }
         else
         {

@@ -31,7 +31,7 @@ public interface IExplorerProvider
         ExplorerTransferRequest request);
     
     //Call before migration, do not delete
-    Task<List<NetworkDaoVoteTeamIndex>> GetAllTeamDescAsync(string chainId, bool isActive);
+    Task<List<ExplorerVoteTeamDescDto>> GetAllTeamDescAsync(string chainId, bool isActive);
 }
 
 public static class ExplorerApi
@@ -83,11 +83,11 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     }
 
     //Call before migration, do not delete
-    public async Task<List<NetworkDaoVoteTeamIndex>> GetAllTeamDescAsync(string chainId, bool isActive)
+    public async Task<List<ExplorerVoteTeamDescDto>> GetAllTeamDescAsync(string chainId, bool isActive)
     {
-        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<List<NetworkDaoVoteTeamIndex>>>(
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<List<ExplorerVoteTeamDescDto>>>(
             BaseUrl(chainId), ExplorerApi.GetAllTeamDesc,
-            param: new Dictionary<string, string>() { { "isActive", isActive.ToString() } },
+            param: new Dictionary<string, string>() { { "isActive", isActive ? "true" : "false" } },
             settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;

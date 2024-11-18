@@ -9,8 +9,6 @@ using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.NetworkDao;
 using TomorrowDAOServer.NetworkDao.Dto;
 using TomorrowDAOServer.NetworkDao.Dtos;
-using TomorrowDAOServer.NetworkDao.GrainDtos;
-using TomorrowDAOServer.NetworkDao.Migrator;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -74,8 +72,8 @@ public class NetworkDaoController
     }
     
     [Authorize]
-    [HttpPost("vote/loadHistory")]
-    public async Task<bool> LoadVoteTeamHistoryDataAsync(LoadVoteTeamDescHistoryInput input)
+    [HttpGet("vote/loadHistory")]
+    public async Task<int> LoadVoteTeamHistoryDataAsync(LoadVoteTeamDescHistoryInput input)
     {
         return await _networkDaoVoteService.LoadVoteTeamHistoryDateAsync(input);
     }
@@ -92,6 +90,18 @@ public class NetworkDaoController
     public async Task<UpdateTeamStatusResultDto> UpdateTeamStatusAsync(UpdateTeamStatusInput input)
     {
         return await _networkDaoVoteService.UpdateTeamStatusAsync(input);
+    }
+
+    [HttpGet("vote/getTeamDesc")]
+    public async Task<GetTeamDescResultDto> GetTeamDescAsync(GetTeamDescInput input)
+    {
+        return await _networkDaoVoteService.GetTeamDescAsync(input);
+    }
+
+    [HttpGet("vote/getAllTeamDesc")]
+    public async Task<List<GetTeamDescResultDto>> GetAllTeamDescAsync(GetAllTeamDescInput input)
+    {
+        return await _networkDaoVoteService.GetAllTeamDescAsync(input);
     }
 
     [HttpGet("org")]

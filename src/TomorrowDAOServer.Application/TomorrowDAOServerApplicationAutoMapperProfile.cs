@@ -220,16 +220,16 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.CreateTxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId))
             .ForMember(des => des.Status, opt => opt.MapFrom(src => MapNetworkDaoProposalStatus(src.ExpiredTime, src.Status)));
         CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex, TomorrowDAOServer.NetworkDao.Dtos.GetOrgOfOwnerListResultDto>()
-            .ForMember(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
-            .ForMember(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
-            .ForMember(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
-            .ForMember(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
+            .ForPath(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
+            .ForPath(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
+            .ForPath(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
+            .ForPath(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
             .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType));
         CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex, TomorrowDAOServer.NetworkDao.Dtos.GetOrgOfProposerListResultDto>()
-            .ForMember(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
-            .ForMember(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
-            .ForMember(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
-            .ForMember(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
+            .ForPath(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
+            .ForPath(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
+            .ForPath(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
+            .ForPath(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
             .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType));
         CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoProposalVoteIndex,
                 TomorrowDAOServer.NetworkDao.Dtos.GetAllPersonalVotesResultDto>()
@@ -243,18 +243,27 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.OrgType, opt => opt.MapFrom(src => src.ProposalType))
             .ForMember(des => des.OrgAddress, opt => opt.MapFrom(src => src.Search));
         CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex, TomorrowDAOServer.NetworkDao.Dtos.GetOrganizationsResultDto>()
-            .ForMember(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
-            .ForMember(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
-            .ForMember(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
-            .ForMember(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
+            .ForPath(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
+            .ForPath(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
+            .ForPath(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
+            .ForPath(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
             .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType))
-            .ForMember(des => des.LeftOrgInfo.ParliamentMemberProposingAllowed, opt => opt.MapFrom(src => src.ParliamentMemberProposingAllowed))
-            .ForMember(des => des.LeftOrgInfo.CreationToken, opt => opt.MapFrom(src => src.CreationToken))
-            .ForMember(des => des.LeftOrgInfo.ProposerAuthorityRequired, opt => opt.MapFrom(src => src.ProposerAuthorityRequired))
-            .ForMember(des => des.LeftOrgInfo.TokenSymbol, opt => opt.MapFrom(src => src.TokenSymbol));
+            .ForPath(des => des.LeftOrgInfo.ParliamentMemberProposingAllowed, opt => opt.MapFrom(src => src.ParliamentMemberProposingAllowed))
+            .ForPath(des => des.LeftOrgInfo.CreationToken, opt => opt.MapFrom(src => src.CreationToken))
+            .ForPath(des => des.LeftOrgInfo.ProposerAuthorityRequired, opt => opt.MapFrom(src => src.ProposerAuthorityRequired))
+            .ForPath(des => des.LeftOrgInfo.TokenSymbol, opt => opt.MapFrom(src => src.TokenSymbol));
         CreateMap<AddTeamDescInput, NetworkDaoVoteTeamDto>();
         CreateMap<AddTeamDescInput, NetworkDaoVoteTeamIndex>();
-        
+        CreateMap<NetworkDaoVoteTeamIndex, GetTeamDescResultDto>();
+        CreateMap<ExplorerVoteTeamDescDto, AddTeamDescInput>()
+            .ForMember(des => des.PublicKey, opt => opt.MapFrom(src => src.Public_Key))
+            .ForMember(des => des.TxId, opt => opt.MapFrom(src => src.Tx_Id))
+            .ForMember(des => des.IsActive, opt => opt.MapFrom(src => MapIsActive(src.Is_Active)))
+            .ForMember(des => des.Socials, opt => opt.MapFrom(src => MapSocials(src.Socials)))
+            .ForMember(des => des.OfficialWebsite, opt => opt.MapFrom(src => src.Official_Website))
+            .ForMember(des => des.UpdateTime, opt => opt.MapFrom(src => MapUpdateTime(src.Update_Time)))
+            ;
+
         CreateMap<IndexerVoteRecord, IndexerVoteHistoryDto>()
             .ForMember(des => des.TimeStamp, opt
                 => opt.MapFrom(source => source.VoteTime))

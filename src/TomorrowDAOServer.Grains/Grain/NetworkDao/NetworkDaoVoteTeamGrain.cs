@@ -42,7 +42,7 @@ public class NetworkDaoVoteTeamGrain : Grain<NetworkDaoVoteTeamState>, INetworkD
     public async Task<GrainResultDto<string>> SaveVoteTeamDescriptionAsync(NetworkDaoVoteTeamDto voteTeamDto)
     {
         var daoVoteTeams = State.VoteTeams;
-        var duplicateNames = daoVoteTeams.Select(t => t.PublicKey != voteTeamDto.PublicKey).ToList();
+        var duplicateNames = daoVoteTeams.Where(t => t.PublicKey != voteTeamDto.PublicKey).ToList();
         if (!duplicateNames.IsNullOrEmpty())
         {
             return new GrainResultDto<string>
