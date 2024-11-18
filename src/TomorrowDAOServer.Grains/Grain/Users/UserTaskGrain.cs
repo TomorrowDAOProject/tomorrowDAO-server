@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Orleans;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.State.Users;
@@ -11,8 +12,17 @@ public interface IUserTaskGrain : IGrainWithStringKey
 
 public class UserTaskGrain : Grain<UserTaskState>, IUserTaskGrain
 {
+    private readonly ILogger<UserTaskGrain> _logger;
+
+    public UserTaskGrain(ILogger<UserTaskGrain> logger)
+    {
+        _logger = logger;
+    }
+
     public async Task<bool> UpdateUserTaskCompleteTimeAsync(DateTime completeTime, UserTask userTask)
     {
+        _logger.LogInformation("UpdateUserTaskCompleteTimeAsync completeTime {0}, userTask {1} completeTime {2}", 
+            completeTime, userTask, State.CompleteTime);
         switch (userTask)
         {
             case UserTask.Daily:
