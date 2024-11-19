@@ -113,7 +113,8 @@ public class ReferralService : ApplicationService, IReferralService
 
     public async Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
-        var (address, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), input.ChainId);
+        var (address, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.IsAuthenticated ? 
+            CurrentUser.GetId() : Guid.Empty, input.ChainId);
         if (input.StartTime == 0 || input.EndTime == 0)
         {
             var (startTime, endTime) = await GetLeaderBoardTime();
@@ -127,19 +128,11 @@ public class ReferralService : ApplicationService, IReferralService
         var addressList = userList.Where(x => x.AddressInfos != null)
             .Where(x => x.AddressInfos.Any(ai => ai.ChainId == input.ChainId))
             .Select(x => x.AddressInfos.First().Address).Distinct().ToList();
-        InviteLeaderBoardDto me;
         if (!addressList.Contains(address))
         {
             addressList.Add(address);
-            me =  new InviteLeaderBoardDto
-            {
-                Rank = -1, Inviter = address, InviterCaHash = addressCaHash, InviteAndVoteCount = 0
-            };
         }
-        else
-        {
-            me = inviterList.Find(x => x.InviterCaHash == addressCaHash);
-        }
+        var me = inviterList.Find(x => x.InviterCaHash == addressCaHash);
         var tgInfoList = await _telegramUserInfoProvider.GetByAddressListAsync(addressList);
         var tgInfoDIc = tgInfoList.ToDictionary(x => x.Address, x => x);
         FillTgInfo(tgInfoDIc, me);
@@ -253,6 +246,10 @@ public class ReferralService : ApplicationService, IReferralService
 
     private void FillTgInfo(Dictionary<string, TelegramUserInfoIndex> infoDic, InviteLeaderBoardDto dto)
     {
+        if (dto == null || string.IsNullOrEmpty(dto.Inviter))
+        {
+            return;
+        }
         var address = dto.Inviter;
         if (infoDic.TryGetValue(address, out var info))
         {
