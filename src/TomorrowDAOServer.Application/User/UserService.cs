@@ -35,13 +35,15 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IReferralInviteProvider _referralInviteProvider;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
+    private readonly ITelegramUserInfoProvider _telegramUserInfoProvider;
     private readonly ILogger<UserService> _logger;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
         IUserPointsRecordProvider userPointsRecordProvider,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider,
-        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger)
+        IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger, 
+        ITelegramUserInfoProvider telegramUserInfoProvider)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -53,6 +55,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _rankingAppPointsCalcProvider = rankingAppPointsCalcProvider;
         _telegramAppsProvider = telegramAppsProvider;
         _logger = logger;
+        _telegramUserInfoProvider = telegramUserInfoProvider;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -238,6 +241,18 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var adTime = DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).UtcDateTime;
         await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyViewAds, adTime, information);
         return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+    }
+
+    public async Task<bool> SaveTgInfoAsync(SaveTgInfoInput input)
+    {
+        var chainId = input.ChainId;
+        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        await _telegramUserInfoProvider.AddOrUpdateAsync(new TelegramUserInfoIndex
+        {
+            Id = GuidHelper.GenerateGrainId(chainId, address), ChainId = chainId, Address = address, 
+            Icon = input.Icon, FirstName = input.FirstName, LastName = input.LastName, UserName = input.UserName
+        });
+        return true;
     }
 
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)

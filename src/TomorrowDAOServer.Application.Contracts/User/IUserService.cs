@@ -11,4 +11,5 @@ public interface IUserService
     Task<VoteHistoryPagedResultDto<MyPointsDto>> GetMyPointsAsync(GetMyPointsInput input);
     Task<TaskListDto> GetTaskListAsync(string chainId);
     Task<long> ViewAdAsync(ViewAdInput input);
+    Task<bool> SaveTgInfoAsync(SaveTgInfoInput input);
 }
