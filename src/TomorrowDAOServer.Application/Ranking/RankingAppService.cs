@@ -1036,5 +1036,4 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
         throw new UserFriendlyException($"Invalid rankingType {type}.");
     }
-    
 }
