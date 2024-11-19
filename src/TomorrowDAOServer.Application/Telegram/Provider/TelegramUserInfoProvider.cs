@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
+using Nest;
 using TomorrowDAOServer.Entities;
 using Volo.Abp.DependencyInjection;
 
@@ -26,8 +28,13 @@ public class TelegramUserInfoProvider : ITelegramUserInfoProvider, ISingletonDep
         await _telegramUserInfoRepository.AddOrUpdateAsync(index);
     }
 
-    public Task<List<TelegramUserInfoIndex>> GetByAddressListAsync(List<string> addressList)
+    public async Task<List<TelegramUserInfoIndex>> GetByAddressListAsync(List<string> addressList)
     {
-        throw new System.NotImplementedException();
+        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramUserInfoIndex>, QueryContainer>>
+        {
+            q => q.Terms(i => i.Field(f => f.Address).Terms(addressList)) 
+        };
+        QueryContainer Filter(QueryContainerDescriptor<TelegramUserInfoIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _telegramUserInfoRepository.GetListAsync(Filter)).Item2;
     }
 }
