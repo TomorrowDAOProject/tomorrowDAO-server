@@ -36,6 +36,6 @@ public class TomorrowDAOServerOrleansSiloModule : AbpModule
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
         
-        context.Services.AddOrleansExceptionHandler();
+        //context.Services.AddOrleansExceptionHandler();
     }
 }
