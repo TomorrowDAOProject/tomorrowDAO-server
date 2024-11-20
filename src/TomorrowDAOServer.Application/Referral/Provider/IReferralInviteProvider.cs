@@ -175,9 +175,13 @@ public class ReferralInviteProvider : IReferralInviteProvider, ISingletonDepende
                 .Field(f => f.InviterCaHash)
                 .Size(int.MaxValue)
                 .Order(o => o
-                    .Descending("invite_count"))
-                .Aggregations(aa => aa.ValueCount("invite_count", vc => vc
-                    .Field(f => f.Id)))));
+                    .Descending("invite_count")
+                    .Ascending("max_first_vote_time")) 
+                .Aggregations(aa => aa
+                    .ValueCount("invite_count", vc => vc
+                        .Field(f => f.Id))
+                    .Max("max_first_vote_time", m => m 
+                        .Field(f => f.FirstVoteTime)))));
 
         var response = await _referralInviteRepository.SearchAsync(query, 0, int.MaxValue);
         return response.Aggregations.Terms("inviter_agg").Buckets;

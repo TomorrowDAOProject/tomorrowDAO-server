@@ -171,7 +171,7 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             var todayEnd = todayStart.AddDays(1).AddTicks(-1); 
             mustQuery.Add(q => q.DateRange(r => r
                 .Field(f => f.PointsTime).GreaterThanOrEquals(todayStart).LessThanOrEquals(todayEnd)));
-            mustQuery.Add(q => q.Term(i => i
+            mustQuery.Add(q => !q.Term(i => i
                 .Field(t => t.PointsType).Value(PointsType.DailyViewAds)));
         }
 
