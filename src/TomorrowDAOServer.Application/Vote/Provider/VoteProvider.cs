@@ -440,7 +440,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
             q => q.LongRange(i => i.Field(f => f.BlockHeight).GreaterThanOrEquals(blockHeight))
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
-        return (await _voteRecordIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<ProposalIndex>().Ascending(index => index.BlockHeight),
+        return (await _voteRecordIndexRepository.GetSortListAsync(Filter, sortFunc: _ => new SortDescriptor<VoteRecordIndex>().Ascending(index => index.BlockHeight),
             skip: skipCount, limit: maxResultCount)).Item2;
     }
 
