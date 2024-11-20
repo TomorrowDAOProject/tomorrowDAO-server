@@ -129,7 +129,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 Aliases = aliases
             })).Item2;
-            var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(telegramApps);
+            var distinctTelegramApps = telegramApps.GroupBy(app => app.Alias)
+                .Select(group => group.First()).ToList();
+            var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(distinctTelegramApps);
             foreach (var rankingApp in rankingApps)
             {
                 _objectMapper.Map(proposal, rankingApp);
