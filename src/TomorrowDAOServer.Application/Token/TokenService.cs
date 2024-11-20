@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
 using AElf.ExceptionHandler;
+using JetBrains.Annotations;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Token.Dto;
@@ -161,7 +162,15 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         exchange.ExchangeInfos = new Dictionary<string, TokenExchangeDto>();
         foreach (var (providerName, exchangeTask) in asyncTasks)
         {
-            await UpdateExchangeInfosAsync(exchange, providerName, exchangeTask);
+            //await UpdateExchangeInfosAsync(exchange, providerName, exchangeTask);
+            try
+            {
+                exchange.ExchangeInfos.Add(providerName, await exchangeTask);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Query exchange failed, providerName={ProviderName}", providerName);
+            }
         }
         
         await exchangeGrain.SetAsync(exchange);
@@ -186,10 +195,10 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
-        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = default)]
-    public static async Task<decimal> AvgPrice(TokenExchangeGrainDto exchange)
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleAvgPrice))]
+    public static async Task<decimal> AvgPrice([CanBeNull] TokenExchangeGrainDto exchange)
     {
-        if (exchange == null || !exchange.ExchangeInfos.Any())
+        if (exchange == null || exchange.ExchangeInfos == null || !exchange.ExchangeInfos.Any())
         {
             return 0;
         }
