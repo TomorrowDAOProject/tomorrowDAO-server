@@ -250,7 +250,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         await _telegramUserInfoProvider.AddOrUpdateAsync(new TelegramUserInfoIndex
         {
             Id = GuidHelper.GenerateGrainId(chainId, address), ChainId = chainId, Address = address, 
-            Icon = input.Icon, FirstName = input.FirstName, LastName = input.LastName, UserName = input.UserName,
+            Icon = input.Icon, FirstName = input.FirstName, LastName = input.LastName, UserName = input.UserName, TrackId = input.TrackId,
             UpdateTime = DateTime.UtcNow
         });
         return true;

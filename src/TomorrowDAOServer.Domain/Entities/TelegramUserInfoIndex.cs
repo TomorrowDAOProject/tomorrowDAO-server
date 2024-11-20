@@ -13,5 +13,6 @@ public class TelegramUserInfoIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string FirstName { get; set; }
     [Keyword] public string LastName { get; set; }
     [Keyword] public string UserName { get; set; }
+    [Keyword] public string TrackId { get; set; }
     public DateTime UpdateTime { get; set; }
 }
