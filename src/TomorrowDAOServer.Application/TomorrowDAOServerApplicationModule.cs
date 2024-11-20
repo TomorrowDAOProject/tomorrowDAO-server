@@ -13,6 +13,7 @@ using TomorrowDAOServer.Referral;
 using TomorrowDAOServer.Spider;
 using TomorrowDAOServer.ThirdPart.Exchange;
 using TomorrowDAOServer.Token;
+using TomorrowDAOServer.TonGift;
 using TomorrowDAOServer.User;
 using TomorrowDAOServer.Vote;
 using Volo.Abp.Account;
@@ -53,6 +54,8 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
+        context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();
+        context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskGenerateService>();
         context.Services.AddTransient<IScheduleSyncDataService, FindminiAppsSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, TelegramAppsSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, TopProposalGenerateService>();

@@ -66,6 +66,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         var hostingEnvironment = context.Services.GetHostingEnvironment();
         Configure<WorkerOptions>(configuration);
         Configure<WorkerLastHeightOptions>(configuration);
+        Configure<TonGiftTaskOptions>(configuration.GetSection("TonGiftTaskOptions"));
         Configure<WorkerReRunProposalOptions>(configuration.GetSection("WorkerReRunProposalOptions"));
         Configure<TmrwdaoOption>(configuration.GetSection("TmrwdaoOption"));
         Configure<SyncDataOptions>(configuration.GetSection("SyncData"));

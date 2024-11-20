@@ -9,7 +9,7 @@ public class HolderInfoIndexerDto
 
 public class HolderInfoDto
 {
-    public string CreateChainId { get; set; }
+    public string OriginChainId { get; set; }
     public string CaHash { get; set; }
     public string CaAddress { get; set; }
     public string ChainId { get; set; }
