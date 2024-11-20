@@ -31,9 +31,9 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         await base.OnActivateAsync(cancellationToken);
     }
 
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
+    /*[ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
         MethodName = nameof(DaoAliasGrainExceptionHandler.HandleSaveDaoAliasInfoAsync),
-        Message = "Save dao alias info error", LogTargets = new []{"daoAliasDto"})]
+        Message = "Save dao alias info error", LogTargets = new []{"daoAliasDto"})]*/
     public async Task<GrainResultDto<int>> SaveDaoAliasInfoAsync(DaoAliasDto daoAliasDto)
     {
         if (daoAliasDto == null)
@@ -72,9 +72,9 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         };
     }
 
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
-        MethodName = nameof(DaoAliasGrainExceptionHandler.HandleGetDaoAliasInfoAsync),
-        Message = "Get dao alias info error")]
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
+    //     MethodName = nameof(DaoAliasGrainExceptionHandler.HandleGetDaoAliasInfoAsync),
+    //     Message = "Get dao alias info error")]
     public Task<GrainResultDto<List<DaoAliasDto>>> GetDaoAliasInfoAsync()
     {
         var daoAliasList = State.DaoList ?? new List<DaoAlias>();

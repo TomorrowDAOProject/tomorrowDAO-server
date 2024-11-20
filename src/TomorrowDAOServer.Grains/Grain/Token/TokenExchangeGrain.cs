@@ -11,7 +11,19 @@ public interface ITokenExchangeGrain : IGrainWithStringKey
 }
 
 public class TokenExchangeGrain : Grain<TokenExchangeState>, ITokenExchangeGrain
-{ 
+{
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        await ReadStateAsync();
+        await base.OnActivateAsync(cancellationToken);
+    }
+    
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
+    }
+    
     public async Task<TokenExchangeGrainDto> GetAsync()
     {
         return await Task.FromResult(new TokenExchangeGrainDto
