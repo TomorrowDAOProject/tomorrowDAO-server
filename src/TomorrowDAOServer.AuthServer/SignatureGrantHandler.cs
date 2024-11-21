@@ -389,25 +389,34 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         return addressInfos;
     }
 
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(SignatureGrantHandlerExceptionHandler),
-        MethodName = nameof(SignatureGrantHandlerExceptionHandler.HandleGetAddressInfoAsync), Message = "get holder from chain error",
-        LogTargets = new []{"caHash"})]
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(SignatureGrantHandlerExceptionHandler),
+    //     MethodName = nameof(SignatureGrantHandlerExceptionHandler.HandleGetAddressInfoAsync), Message = "get holder from chain error",
+    //     LogTargets = new []{"caHash"})]
     private async Task<AddressInfo> GetAddressInfoAsync(string chainId, string caHash)
     {
-        var param = new GetHolderInfoInput
+        try
         {
-            CaHash = Hash.LoadFromHex(caHash),
-            LoginGuardianIdentifierHash = Hash.Empty
-        };
+            var param = new GetHolderInfoInput
+            {
+                CaHash = Hash.LoadFromHex(caHash),
+                LoginGuardianIdentifierHash = Hash.Empty
+            };
 
-        var output = await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
-            _chainOptions.CurrentValue);
+            var output = await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
+                _chainOptions.CurrentValue);
 
-        return new AddressInfo()
+            return new AddressInfo()
+            {
+                Address = output.CaAddress.ToBase58(),
+                ChainId = chainId
+            };
+        }
+        catch (Exception e)
         {
-            Address = output.CaAddress.ToBase58(),
-            ChainId = chainId
-        };
+            _logger.LogError("GetAddressInfoAsyncException chainId {0} caHash {1}", chainId, caHash);
+            return null;
+        }
+        
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
