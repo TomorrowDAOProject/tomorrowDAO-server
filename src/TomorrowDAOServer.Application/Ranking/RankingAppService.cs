@@ -24,6 +24,7 @@ using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.LuckyBox.Provider;
 using TomorrowDAOServer.MQ;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
@@ -77,6 +78,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
     private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
     private readonly IUserViewAppProvider _userViewAppProvider;
+    private readonly IOptionsMonitor<LuckyboxOptions> _luckyboxOptions;
+    private readonly ILuckboxTaskProvider _luckboxTaskProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -90,7 +93,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IOptionsMonitor<TelegramOptions> telegramOptions, IReferralInviteProvider referralInviteProvider,
         IUserAppService userAppService, IPortkeyProvider portkeyProvider, IUserBalanceProvider userBalanceProvider,
         IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider, 
-        IRankingAppPointsProvider rankingAppPointsProvider, IUserViewAppProvider userViewAppProvider)
+        IRankingAppPointsProvider rankingAppPointsProvider, IUserViewAppProvider userViewAppProvider, 
+        IOptionsMonitor<LuckyboxOptions> luckyboxOptions, ILuckboxTaskProvider luckboxTaskProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -115,6 +119,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _discoverChoiceProvider = discoverChoiceProvider;
         _rankingAppPointsProvider = rankingAppPointsProvider;
         _userViewAppProvider = userViewAppProvider;
+        _luckyboxOptions = luckyboxOptions;
+        _luckboxTaskProvider = luckboxTaskProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -334,7 +340,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
                 var _ = UpdateVotingStatusAsync(input.ChainId, address, votingItemId,
                     sendTransactionOutput.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash,
-                    proposalIndex);
+                    proposalIndex, input.TrackId);
 
                 return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, sendTransactionOutput.TransactionId);
             }
@@ -889,7 +895,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
         Message = "Ranking vote, update transaction status error", LogTargets = new []{"transactionId"})]
     public virtual async Task UpdateVotingStatusAsync(string chainId, string address, string votingItemId,
-        string transactionId, string memo, long amount, string addressCaHash, ProposalIndex proposalIndex)
+        string transactionId, string memo, long amount, string addressCaHash, ProposalIndex proposalIndex, string trackId)
     {
         Log.Information("Ranking vote, update transaction status start.{0}", address);
         var transactionResult = await _contractProvider.QueryTransactionResultAsync(transactionId, chainId);
@@ -965,6 +971,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     await _referralInviteProvider.AddOrUpdateAsync(referral);
                 }
                 
+                await ProcessCallBack(address, proposalIndex.ProposalId, trackId, voteTime);
                 var alias = match.Groups[1].Value;
                 var information = InformationHelper.GetDailyVoteInformation(proposalIndex, alias);
                 await _rankingAppPointsRedisProvider.IncrementVotePointsAsync(chainId, votingItemId, address, alias, amount);
@@ -1037,5 +1044,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             return rankingType;
         }
         throw new UserFriendlyException($"Invalid rankingType {type}.");
+    }
+
+    private async Task ProcessCallBack(string address, string proposalId, string trackId, DateTime voteTime)
+    {
+        var callBackProposalId = _luckyboxOptions.CurrentValue.ProposalId;
+        if (callBackProposalId == proposalId && !string.IsNullOrEmpty(trackId))
+        { 
+            await _luckboxTaskProvider.GenerateTaskAsync(address, proposalId, trackId, voteTime);
+        }
     }
 }
