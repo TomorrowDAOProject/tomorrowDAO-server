@@ -1,9 +1,5 @@
-using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Orleans;
-using Serilog;
-using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Grains.State.Dao;
 using Volo.Abp.ObjectMapping;
@@ -18,10 +14,12 @@ public interface IDaoAliasGrain : IGrainWithStringKey
 
 public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
 {
+    private readonly ILogger<DaoAliasGrain> _logger;
     private readonly IObjectMapper _objectMapper;
 
-    public DaoAliasGrain(IObjectMapper objectMapper)
+    public DaoAliasGrain(ILogger<DaoAliasGrain> logger, IObjectMapper objectMapper)
     {
+        _logger = logger;
         _objectMapper = objectMapper;
     }
 
@@ -29,6 +27,12 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
     {
         await ReadStateAsync();
         await base.OnActivateAsync(cancellationToken);
+    }
+    
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     /*[ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
@@ -43,33 +47,45 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
                 Message = "The parameter is null",
             };
         }
-        if (State.DaoList.IsNullOrEmpty())
+        try
         {
-            State.DaoList = new List<DaoAlias>();
-        }
+            if (State.DaoList.IsNullOrEmpty())
+            {
+                State.DaoList = new List<DaoAlias>();
+            }
             
-        var daoAlias = State.DaoList.Find(alias => alias.DaoId == daoAliasDto.DaoId);
-        if (daoAlias != null)
-        {
+            var daoAlias = State.DaoList.Find(alias => alias.DaoId == daoAliasDto.DaoId);
+            if (daoAlias != null)
+            {
+                return new GrainResultDto<int>
+                {
+                    Success = true,
+                    Data = daoAlias.Serial
+                };
+            }
+
+            var serial = State.DaoList.Count;
+            daoAlias = _objectMapper.Map<DaoAliasDto, DaoAlias>(daoAliasDto);
+            daoAlias.Serial = serial;
+            daoAlias.CreateTime = DateTime.Now;
+            
+            State.DaoList.Add(daoAlias);
+            await WriteStateAsync();
             return new GrainResultDto<int>
             {
                 Success = true,
-                Data = daoAlias.Serial
+                Data = serial
             };
         }
-
-        var serial = State.DaoList.Count;
-        daoAlias = _objectMapper.Map<DaoAliasDto, DaoAlias>(daoAliasDto);
-        daoAlias.Serial = serial;
-        daoAlias.CreateTime = DateTime.Now;
-            
-        State.DaoList.Add(daoAlias);
-        await WriteStateAsync();
-        return new GrainResultDto<int>
+        catch (Exception e)
         {
-            Success = true,
-            Data = serial
-        };
+            _logger.LogError(e, "Save dao alias info error, daoAliasDto={0}",
+                JsonConvert.SerializeObject(daoAliasDto));
+            return new GrainResultDto<int>
+            {
+                Message = $"Save dao alias info error. {e.Message}",
+            };
+        }
     }
 
     // [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
@@ -77,14 +93,25 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
     //     Message = "Get dao alias info error")]
     public Task<GrainResultDto<List<DaoAliasDto>>> GetDaoAliasInfoAsync()
     {
-        var daoAliasList = State.DaoList ?? new List<DaoAlias>();
-
-        var daoAliasDtoList = _objectMapper.Map<List<DaoAlias>, List<DaoAliasDto>>(daoAliasList);
-
-        return Task.FromResult(new GrainResultDto<List<DaoAliasDto>>
+        try
         {
-            Success = true,
-            Data = daoAliasDtoList
-        });
+            var daoAliasList = State.DaoList ?? new List<DaoAlias>();
+
+            var daoAliasDtoList = _objectMapper.Map<List<DaoAlias>, List<DaoAliasDto>>(daoAliasList);
+
+            return Task.FromResult(new GrainResultDto<List<DaoAliasDto>>
+            {
+                Success = true,
+                Data = daoAliasDtoList
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Get dao alias info error");
+            return Task.FromResult(new GrainResultDto<List<DaoAliasDto>>
+            {
+                Message = $"Get dao alias info error. {e.Message}"
+            });
+        }
     }
 }

@@ -1,14 +1,23 @@
 using System.Net;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using Newtonsoft.Json;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using Orleans.Providers.MongoDB.Configuration;
+using Orleans.Providers.MongoDB.StorageProviders;
+using Orleans.Providers.MongoDB.StorageProviders.Serializers;
+using Orleans.Providers.MongoDB.Utils;
+using Orleans.Runtime;
 using Orleans.Statistics;
+using Orleans.Storage;
 using Serilog;
+using TomorrowDAOServer.Silo.MongoDB;
 
 namespace TomorrowDAOServer.Silo.Extensions;
 
@@ -43,17 +52,36 @@ public static class OrleansHostExtensions
                 options.DatabaseName = configSection.GetValue<string>("DataBase");
                 options.Strategy = MongoDBMembershipStrategy.SingleDocument;
             })
-            .AddMongoDBGrainStorage("Default", (MongoDBGrainStorageOptions op) =>
+            .Configure<GrainCollectionNameOptions>(options =>
+            {
+                var collectionName = configSection
+                    .GetSection(nameof(GrainCollectionNameOptions.GrainSpecificCollectionName)).GetChildren();
+                options.GrainSpecificCollectionName = collectionName.ToDictionary(o => o.Key, o => o.Value);
+            })
+            .ConfigureServices(services =>
+                services.AddSingleton<IGrainStateSerializer, TomorrowDAOJsonGrainStateSerializer>())
+            .AddTomorrowDAOMongoDBGrainStorage("Default", (MongoDBGrainStorageOptions op) =>
             {
                 op.CollectionPrefix = "GrainStorage";
                 op.DatabaseName = configSection.GetValue<string>("DataBase");
-                op.ConfigureJsonSerializerSettings = jsonSettings =>
+                var grainIdPrefix = configSection
+                    .GetSection("GrainSpecificIdPrefix").GetChildren().ToDictionary(o => o.Key.ToLower(), o => o.Value);
+                foreach (var kv in grainIdPrefix)
                 {
-                    // jsonSettings.ContractResolver = new PrivateSetterContractResolver();
-                    jsonSettings.NullValueHandling = NullValueHandling.Include;
-                    jsonSettings.DefaultValueHandling = DefaultValueHandling.Populate;
-                    jsonSettings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+                    Log.Information($"GrainSpecificIdPrefix, key: {kv.Key}, Value: {kv.Value}");
+                }
+
+                op.KeyGenerator = id =>
+                {
+                    var grainType = id.Type.ToString();
+                    if (grainIdPrefix.TryGetValue(grainType, out var prefix))
+                    {
+                        return prefix.StartsWith("GrainReference=000000") ? $"{prefix}+{id.Key}" : prefix;
+                    }
+
+                    return id.ToString();
                 };
+                op.CreateShardKeyForCosmos = configSection.GetValue<bool>("CreateShardKeyForMongoDB", false);
             })
             .UseMongoDBReminders(options =>
             {
@@ -73,15 +101,6 @@ public static class OrleansHostExtensions
                 {
                     opt.CollectionAge = TimeSpan.FromSeconds(collectionAge);
                 }
-            })
-            .UseDashboard(options =>
-            {
-                options.Username = configSection.GetValue<string>("DashboardUserName");
-                options.Password = configSection.GetValue<string>("DashboardPassword");
-                options.Host = "*";
-                options.Port = configSection.GetValue<int>("DashboardPort");
-                options.HostSelf = true;
-                options.CounterUpdateIntervalMs = configSection.GetValue<int>("DashboardCounterUpdateIntervalMs");
             })
             .ConfigureLogging(logging => { logging.SetMinimumLevel(LogLevel.Debug).AddConsole(); });
         });

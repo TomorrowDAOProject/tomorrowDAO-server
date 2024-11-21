@@ -18,7 +18,12 @@ public class TokenGrain : Grain<ExplorerTokenState>, ITokenGrain
         await base.OnActivateAsync(cancellationToken);
     }
     
-
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
+    }
+    
     public Task<TokenInfoDto> GetTokenInfoAsync()
     {
         return Task.FromResult(new TokenInfoDto

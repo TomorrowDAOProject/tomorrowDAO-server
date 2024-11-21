@@ -39,8 +39,8 @@
         <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="5.1.0" />
 <!--        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />-->
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="Microsoft.Orleans.Client" Version="7.0.0" />
-        <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Orleans.Client" Version="8.1.0" />
+        <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
     </ItemGroup>
 
     <ItemGroup>

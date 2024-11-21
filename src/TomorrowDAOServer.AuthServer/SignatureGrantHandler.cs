@@ -413,10 +413,9 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         }
         catch (Exception e)
         {
-            _logger.LogError("GetAddressInfoAsyncException chainId {0} caHash {1}", chainId, caHash);
+            _logger.LogError(e, "get holder from chain error. CaHash={0},ChainId={1}", caHash, chainId);
             return null;
         }
-        
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
