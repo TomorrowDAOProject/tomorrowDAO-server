@@ -35,8 +35,7 @@ namespace TomorrowDAOServer;
     typeof(AbpTenantManagementApplicationModule),
     typeof(AbpFeatureManagementApplicationModule),
     typeof(TomorrowDAOServerGrainsModule),
-    typeof(AbpSettingManagementApplicationModule),
-    typeof(AOPExceptionModule)
+    typeof(AbpSettingManagementApplicationModule)
 )]
 public class TomorrowDAOServerApplicationModule : AbpModule
 {
