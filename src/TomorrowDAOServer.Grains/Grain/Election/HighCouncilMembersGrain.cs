@@ -1,6 +1,3 @@
-using Orleans;
-using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Grains.State.ApplicationHandler;
 using TomorrowDAOServer.Grains.State.Election;
 
 namespace TomorrowDAOServer.Grains.Grain.Election;
@@ -17,6 +14,12 @@ public class HighCouncilMembersGrain : Grain<HighCouncilMembersState>, IHighCoun
     {
         await ReadStateAsync();
         await base.OnActivateAsync(cancellationToken);
+    }
+    
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     public async Task SaveHighCouncilMembersAsync(List<string> addressList)

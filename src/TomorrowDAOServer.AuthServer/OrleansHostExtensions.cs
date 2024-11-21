@@ -1,12 +1,7 @@
-using System;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Orleans;
 using Orleans.Configuration;
-using Orleans.Hosting;
 using Orleans.Providers.MongoDB.Configuration;
 
-namespace TomorrowDAOServer.EntityEventHandler.Extension;
+namespace TomorrowDAOServer.Auth;
 
 public static class OrleansHostExtensions
 {

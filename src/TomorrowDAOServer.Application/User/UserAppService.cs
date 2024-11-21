@@ -32,14 +32,21 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         _objectMapper = objectMapper;
     }
 
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
-        Message = "Create user error", LogTargets = new []{"user"})]
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
+    //     Message = "Create user error", LogTargets = new []{"user"})]
     public virtual async Task CreateUserAsync(UserDto user)
     {
-        var userIndex = _objectMapper.Map<UserDto, UserIndex>(user);
-        await _userIndexRepository.AddOrUpdateAsync(userIndex);
-        Log.Information("Create user success, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
+        try
+        {
+            var userIndex = _objectMapper.Map<UserDto, UserIndex>(user);
+            await _userIndexRepository.AddOrUpdateAsync(userIndex);
+            _logger.LogInformation("Create user success, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Create user error, userId:{userId}, appId:{appId}", user.UserId, user.AppId);
+        }
     }
 
     public async Task<UserDto> GetUserByIdAsync(string userId)

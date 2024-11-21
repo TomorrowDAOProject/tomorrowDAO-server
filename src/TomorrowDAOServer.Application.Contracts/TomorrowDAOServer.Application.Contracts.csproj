@@ -25,8 +25,8 @@
     <PackageReference Include="Volo.Abp.SettingManagement.Application.Contracts" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.Localization.Abstractions" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.MultiTenancy" Version="8.2.0" />
-    <PackageReference Include="Microsoft.Orleans.Core" Version="7.0.0" />
-    <PackageReference Include="Orleans.Providers.MongoDB" Version="7.0.0" />
+<!--    <PackageReference Include="Microsoft.Orleans.Core" Version="8.1.0" />-->
+    <PackageReference Include="Orleans.Providers.MongoDB" Version="8.0.3" />
     <PackageReference Include="AetherlinkPriceServer" Version="1.0.5" />
     <PackageReference Include="AElf.Client" Version="1.2.3" />
     <PackageReference Include="AElf.CSharp.Core" Version="1.6.0" />

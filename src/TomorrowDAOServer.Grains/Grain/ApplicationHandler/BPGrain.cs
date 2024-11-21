@@ -1,5 +1,4 @@
 using TomorrowDAOServer.Grains.State.ApplicationHandler;
-using Orleans;
 using TomorrowDAOServer.Common;
 
 namespace TomorrowDAOServer.Grains.Grain.ApplicationHandler;
@@ -17,6 +16,12 @@ public class BPGrain : Grain<BPState>, IBPGrain
     {
         await ReadStateAsync();
         await base.OnActivateAsync(cancellationToken);
+    }
+    
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     public async Task SetBPAsync(List<string> addressList, long round)

@@ -6,7 +6,7 @@ using Orleans.Configuration;
 using Orleans.Hosting;
 using Orleans.Providers.MongoDB.Configuration;
 
-namespace TomorrowDAOServer.Extension;
+namespace TomorrowDAOServer;
 
 public static class OrleansHostExtensions
 {
@@ -14,6 +14,12 @@ public static class OrleansHostExtensions
     {
         return hostBuilder.UseOrleansClient((context, clientBuilder) =>
         {
+            bool isTelemetryEnabled = context.Configuration.GetValue<bool>("OpenTelemetry:Enabled");
+            if (isTelemetryEnabled)
+            {
+                clientBuilder.AddActivityPropagation();
+            }
+            
             var configSection = context.Configuration.GetSection("Orleans");
             if (configSection == null)
                 throw new ArgumentNullException(nameof(configSection), "The Orleans config node is missing");
@@ -27,7 +33,22 @@ public static class OrleansHostExtensions
                 {
                     options.ClusterId = configSection.GetValue<string>("ClusterId");
                     options.ServiceId = configSection.GetValue<string>("ServiceId");
-                });
+                })
+                .Configure<ClientMessagingOptions>(options =>
+                {
+                    var responseTimeoutValue = configSection.GetValue<int?>("GrainResponseTimeOut");
+                    if (responseTimeoutValue.HasValue)
+                    {
+                        options.ResponseTimeout = TimeSpan.FromSeconds(responseTimeoutValue.Value);
+                    }
+
+                    var maxMessageBodySizeValue = configSection.GetValue<int?>("GrainMaxMessageBodySize");
+                    if (maxMessageBodySizeValue.HasValue)
+                    {
+                        options.MaxMessageBodySize = maxMessageBodySizeValue.Value;
+                    }
+                })
+                .AddActivityPropagation();;
             
         });
     }

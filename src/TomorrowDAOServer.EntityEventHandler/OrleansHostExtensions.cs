@@ -1,7 +1,12 @@
+using System;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Orleans;
 using Orleans.Configuration;
+using Orleans.Hosting;
 using Orleans.Providers.MongoDB.Configuration;
 
-namespace TomorrowDAOServer.Auth.Extension;
+namespace TomorrowDAOServer.EntityEventHandler;
 
 public static class OrleansHostExtensions
 {
@@ -22,7 +27,22 @@ public static class OrleansHostExtensions
                 {
                     options.ClusterId = configSection.GetValue<string>("ClusterId");
                     options.ServiceId = configSection.GetValue<string>("ServiceId");
-                });
+                })
+                .Configure<ClientMessagingOptions>(options =>
+                {
+                    var responseTimeoutValue = configSection.GetValue<int?>("GrainResponseTimeOut");
+                    if (responseTimeoutValue.HasValue)
+                    {
+                        options.ResponseTimeout = TimeSpan.FromSeconds(responseTimeoutValue.Value);
+                    }
+
+                    var maxMessageBodySizeValue = configSection.GetValue<int?>("GrainMaxMessageBodySize");
+                    if (maxMessageBodySizeValue.HasValue)
+                    {
+                        options.MaxMessageBodySize = maxMessageBodySizeValue.Value;
+                    }
+                })
+                .AddActivityPropagation();
             
         });
     }
