@@ -49,8 +49,8 @@ namespace TomorrowDAOServer.Auth;
     typeof(TomorrowDAOServerDomainModule),
     typeof(AbpAspNetCoreSerilogModule),
     //typeof(AbpEventBusRabbitMqModule),
-    typeof(TomorrowDAOServerGrainsModule),
-    typeof(AOPExceptionModule)
+    typeof(TomorrowDAOServerGrainsModule)
+    // typeof(AOPExceptionModule)
 )]
 public class TomorrowDAOServerAuthServerModule : AbpModule
 {

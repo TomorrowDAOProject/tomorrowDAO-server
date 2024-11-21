@@ -45,7 +45,6 @@ using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict.Tokens;
 using Volo.Abp.Swashbuckle;
-using Volo.Abp.Threading;
 using Volo.Abp.VirtualFileSystem;
 
 namespace TomorrowDAOServer
@@ -60,10 +59,10 @@ namespace TomorrowDAOServer
         typeof(TomorrowDAOServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
-        typeof(AbpEventBusKafkaModule),
+        typeof(AbpEventBusKafkaModule)
         // typeof(AbpCachingModule),
-        typeof(AbpBlobStoringAliyunModule),
-        typeof(AOPExceptionModule)
+        // typeof(AbpBlobStoringAliyunModule),
+        // typeof(AOPExceptionModule)
     )]
     public class TomorrowDAOServerHttpApiHostModule : AbpModule
     {

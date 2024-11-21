@@ -35,7 +35,7 @@ namespace TomorrowDAOServer
                     .UseApollo()
                     .UseOrleansClient()
                     .UseAutofac()
-                    .UseAElfExceptionHandler()
+                    //.UseAElfExceptionHandler()
                     .UseSerilog();
 
                 await builder.AddApplicationAsync<TomorrowDAOServerHttpApiHostModule>();
