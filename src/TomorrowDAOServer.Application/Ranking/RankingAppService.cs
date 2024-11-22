@@ -125,7 +125,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 Aliases = aliases
             })).Item2;
-            var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(telegramApps);
+            var distinctTelegramApps = telegramApps.GroupBy(app => app.Alias)
+                .Select(group => group.First()).ToList();
+            var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(distinctTelegramApps);
             foreach (var rankingApp in rankingApps)
             {
                 _objectMapper.Map(proposal, rankingApp);
@@ -176,7 +178,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 if (string.IsNullOrEmpty(goldRankingId))
                 {
                     result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount,
-                        input.MaxResultCount, rankingType, topRankingAddress, false, excludeIds);
+                        input.MaxResultCount, rankingType, topRankingAddress, true, excludeIds);
                 }
                 else
                 {
@@ -190,7 +192,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     {
                         input.SkipCount -= 1;
                     }
-                    var officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, false, excludeIds);
+                    var officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, true, excludeIds);
                     res.AddRange(officialProposals.Item2);
                     result = new Tuple<long, List<ProposalIndex>>(officialProposals.Item1 + 1, res);
                 }
