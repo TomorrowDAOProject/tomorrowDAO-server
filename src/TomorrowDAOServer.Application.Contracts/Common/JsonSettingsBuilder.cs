@@ -152,13 +152,37 @@ public class TimestampConverter : JsonConverter<Timestamp>
 {  
     public override Timestamp ReadJson(JsonReader reader, Type objectType, Timestamp existingValue, bool hasExistingValue, JsonSerializer serializer)  
     {  
-        if (reader.TokenType == JsonToken.Null)  
-        {  
-            return null;  
-        }  
-        string dateString = reader.Value.ToString();  
-        DateTime dateTime = DateTime.Parse(dateString, null, DateTimeStyles.RoundtripKind);  
-        return Timestamp.FromDateTime(dateTime);  
+        if (reader.TokenType == JsonToken.Null)
+        {
+            return null;
+        }
+
+        if (reader.TokenType == JsonToken.Date)
+        {
+            var dateTime = (DateTime)reader.Value;
+            if (dateTime.Kind == DateTimeKind.Unspecified)
+            {
+                dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+            }
+            else if (dateTime.Kind != DateTimeKind.Utc)
+            {
+                dateTime = dateTime.ToUniversalTime();
+            }
+            return Timestamp.FromDateTime(dateTime);
+        }
+        
+        var dateString = reader.Value.ToString();
+        var dateTimeParsed = DateTime.Parse(dateString, null, DateTimeStyles.RoundtripKind);
+
+        if (dateTimeParsed.Kind == DateTimeKind.Unspecified)
+        {
+            dateTimeParsed = DateTime.SpecifyKind(dateTimeParsed, DateTimeKind.Utc);
+        }
+        else if (dateTimeParsed.Kind != DateTimeKind.Utc)
+        {
+            dateTimeParsed = dateTimeParsed.ToUniversalTime();
+        }
+        return Timestamp.FromDateTime(dateTimeParsed);
     }  
  
     public override void WriteJson(JsonWriter writer, Timestamp value, JsonSerializer serializer)  
