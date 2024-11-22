@@ -14,14 +14,18 @@ using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Token;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Auditing;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp.Threading;
 
 namespace TomorrowDAOServer.NetworkDao;
 
-public class NetworkDaoTreasuryService : INetworkDaoTreasuryService, ITransientDependency
+[RemoteService(IsEnabled = false)]
+[DisableAuditing]
+public class NetworkDaoTreasuryService : TomorrowDAOServerAppService, INetworkDaoTreasuryService
 {
     private readonly ILogger<NetworkDaoTreasuryService> _logger;
     private readonly IClusterClient _clusterClient;

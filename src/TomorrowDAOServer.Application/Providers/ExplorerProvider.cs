@@ -13,6 +13,7 @@ using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
+using TomorrowDAOServer.NetworkDao;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
@@ -25,11 +26,15 @@ public interface IExplorerProvider
     Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request);
     Task<List<ExplorerBalanceOutput>> GetBalancesAsync(string chainId, ExplorerBalanceRequest request);
     Task<ExplorerTokenInfoResponse> GetTokenInfoAsync(string chainId, ExplorerTokenInfoRequest request);
+
     Task<ExplorerPagerResult<ExplorerTransactionResponse>> GetTransactionPagerAsync(string chainId,
         ExplorerTransactionRequest request);
 
     Task<ExplorerPagerResult<ExplorerTransferResult>> GetTransferListAsync(string chainId,
         ExplorerTransferRequest request);
+    
+    //Call before migration, do not delete
+    Task<List<ExplorerVoteTeamDescDto>> GetAllTeamDescAsync(string chainId, bool isActive);
 }
 
 public static class ExplorerApi
@@ -41,6 +46,10 @@ public static class ExplorerApi
     public static readonly ApiInfo TokenInfo = new(HttpMethod.Get, "/api/viewer/tokenInfo");
     public static readonly ApiInfo Transactions = new(HttpMethod.Get, "/api/all/transaction");
     public static readonly ApiInfo TransferList = new(HttpMethod.Get, "/api/viewer/transferList");
+
+
+    //Call before migration, do not delete
+    public static readonly ApiInfo GetAllTeamDesc = new(HttpMethod.Get, "/api/vote/getAllTeamDesc");
 }
 
 public class ExplorerProvider : IExplorerProvider, ISingletonDependency
@@ -76,6 +85,17 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         return baseUrl!.TrimEnd('/');
     }
 
+    //Call before migration, do not delete
+    public async Task<List<ExplorerVoteTeamDescDto>> GetAllTeamDescAsync(string chainId, bool isActive)
+    {
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<List<ExplorerVoteTeamDescDto>>>(
+            BaseUrl(chainId), ExplorerApi.GetAllTeamDesc,
+            param: new Dictionary<string, string>() { { "isActive", isActive ? "true" : "false" } },
+            settings: DefaultJsonSettings);
+        AssertHelper.IsTrue(resp.Success, resp.Msg);
+        return resp.Data;
+    }
+
     /// <summary>
     ///     GetProposalPagerAsync
     /// </summary>
@@ -92,7 +112,8 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         return resp.Data;
     }
 
-    public async Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request)
+    public async Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId,
+        ExplorerProposalInfoRequest request)
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerProposalInfoResponse>>(BaseUrl(chainId),
             ExplorerApi.ProposalInfo, param: ToDictionary(request), withInfoLog: false, withDebugLog: false,

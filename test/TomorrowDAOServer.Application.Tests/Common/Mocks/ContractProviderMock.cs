@@ -104,7 +104,7 @@ public class ContractProviderMock
     {
         mock.Setup(e =>
                 e.CreateCallTransactionAsync(It.IsAny<string>(), It.IsAny<string>(),
-                    It.IsAny<string>(), It.IsAny<IMessage>()))
+                    It.IsAny<string>(), It.IsAny<IMessage>(), It.IsAny<string>()))
             .ReturnsAsync((string chainId, string contractName, string methodName, IMessage param) =>
             {
                 var transaction = new Transaction();
@@ -128,7 +128,7 @@ public class ContractProviderMock
     {
         mock.Setup(e =>
                 e.CreateTransactionAsync(It.IsAny<string>(), It.IsAny<string>(),
-                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IMessage>()))
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IMessage>(), It.IsAny<string>()))
             .ReturnsAsync((string chainId, string senderPublicKey, string contractName, string methodName,
                 IMessage param) =>
             {

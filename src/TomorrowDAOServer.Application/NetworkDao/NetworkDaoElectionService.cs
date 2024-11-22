@@ -20,7 +20,7 @@ namespace TomorrowDAOServer.NetworkDao;
 
 [RemoteService(IsEnabled = false)]
 [DisableAuditing]
-public class NetworkDaoElectionService : INetworkDaoElectionService, ISingletonDependency
+public class NetworkDaoElectionService : TomorrowDAOServerAppService, INetworkDaoElectionService
 {
     private readonly IContractProvider _contractProvider;
     private const long RefreshTime = CommonConstant.TenMinutes;
