@@ -5,6 +5,7 @@ namespace TomorrowDAOServer.Common;
 
 public static class CommonConstant
 {
+    public const int MaxResultCount = 500;
     public const string DateFormat = "yyyy-MM-dd HH:mm:ss";
     
     public const long LongError = -1;
