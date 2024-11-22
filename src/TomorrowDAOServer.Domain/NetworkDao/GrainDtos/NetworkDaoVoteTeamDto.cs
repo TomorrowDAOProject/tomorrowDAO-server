@@ -1,21 +1,23 @@
 using System;
 using System.Collections.Generic;
+using Orleans;
 
 namespace TomorrowDAOServer.NetworkDao.GrainDtos;
 
+[GenerateSerializer]
 public class NetworkDaoVoteTeamDto
 {
-    public string Id { get; set; }
-    public string PublicKey { get; set; }
-    public string Address { get; set; }
-    public string Name { get; set; }
-    public string Avatar { get; set; }
-    public string Intro { get; set; }
-    public string TxId { get; set; }
-    public bool IsActive { get; set; }
-    public List<string> Socials { get; set; }
-    public string OfficialWebsite { get; set; }
-    public string Location { get; set; }
-    public string Mail { get; set; }
-    public DateTime? UpdateTime { get; set; }
+    [Id(0)] public string Id { get; set; }
+    [Id(1)] public string PublicKey { get; set; }
+    [Id(2)] public string Address { get; set; }
+    [Id(3)] public string Name { get; set; }
+    [Id(4)] public string Avatar { get; set; }
+    [Id(5)] public string Intro { get; set; }
+    [Id(6)] public string TxId { get; set; }
+    [Id(7)] public bool IsActive { get; set; }
+    [Id(8)] public List<string> Socials { get; set; }
+    [Id(9)] public string OfficialWebsite { get; set; }
+    [Id(10)] public string Location { get; set; }
+    [Id(11)] public string Mail { get; set; }
+    [Id(12)] public DateTime? UpdateTime { get; set; }
 }
