@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Orleans;
 
 namespace TomorrowDAOServer.User.Dtos;
 
@@ -15,8 +16,9 @@ public class UserDto
     public long ModificationTime { get; set; }
 }
 
+[GenerateSerializer]
 public class AddressInfo
 {
-    public string ChainId { get; set; }
-    public string Address { get; set; }
+    [Id(0)] public string ChainId { get; set; }
+    [Id(1)] public string Address { get; set; }
 }

@@ -6,8 +6,11 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Common.HttpClient;
@@ -85,14 +88,7 @@ public class HttpProvider : IHttpProvider
     {
         var resp = await InvokeAsync(apiInfo.Method, domain + apiInfo.Path, pathParams, param, body, header, timeout,
             withInfoLog, withDebugLog);
-        try
-        {
-            return JsonConvert.DeserializeObject<T>(resp, settings ?? DefaultJsonSettings);
-        }
-        catch (Exception ex)
-        {
-            throw new HttpRequestException($"Error deserializing service [{apiInfo.Path}] response body: {resp}", ex);
-        }
+        return await DeserializeResponseAsync<T>(apiInfo, settings, resp);
     }
 
     public async Task<T> InvokeAsync<T>(HttpMethod method, string url,
@@ -103,16 +99,9 @@ public class HttpProvider : IHttpProvider
         bool withInfoLog = false, bool withDebugLog = true)
     {
         var resp = await InvokeAsync(method, url, pathParams, param, body, header, timeout, withInfoLog, withDebugLog);
-        try
-        {
-            return JsonConvert.DeserializeObject<T>(resp, settings ?? DefaultJsonSettings);
-        }
-        catch (Exception ex)
-        {
-            throw new HttpRequestException($"Error deserializing service [{url}] response body: {resp}", ex);
-        }
+        return await DeserializeResponseAsync<T>(url, settings, resp);
     }
-
+    
     public async Task<HttpResponseMessage> InvokeResponseAsync(string domain, ApiInfo apiInfo,
         Dictionary<string, string> pathParams = null,
         Dictionary<string, string> param = null,
@@ -191,15 +180,15 @@ public class HttpProvider : IHttpProvider
         var time = stopwatch.ElapsedMilliseconds;
         // log
         if (withLog)
-            _logger.LogInformation(
+            Log.Information(
                 "Request To {FullUrl}, statusCode={StatusCode}, time={Time}, query={Query}, body={Body}, resp={Content}",
                 fullUrl, response.StatusCode, time, builder.Query, body, content);
         else if (debugLog)
-            _logger.LogDebug(
+            Log.Debug(
                 "Request To {FullUrl}, statusCode={StatusCode}, time={Time}, query={Query}, header={Header}, body={Body}, resp={Content}",
                 fullUrl, response.StatusCode, time, builder.Query, request.Headers.ToString(), body, content);
         else
-            _logger.LogDebug(
+            Log.Debug(
                 "Request To {FullUrl}, statusCode={StatusCode}, time={Time}", fullUrl, response.StatusCode, time);
         return response;
     }
@@ -210,5 +199,23 @@ public class HttpProvider : IHttpProvider
         return pathParams.IsNullOrEmpty()
             ? url
             : pathParams.Aggregate(url, (current, param) => current.Replace($"{{{param.Key}}}", param.Value));
+    }
+    
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, 
+        Message = "Error deserializing service api.path response",
+        LogTargets = new []{"apiInfo", "resp"})]
+    public async Task<T> DeserializeResponseAsync<T>(ApiInfo apiInfo, JsonSerializerSettings settings, string resp)
+    {
+        return JsonConvert.DeserializeObject<T>(resp, settings ?? DefaultJsonSettings);
+    }
+    
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, 
+        Message = "Error deserializing service url response",
+        LogTargets = new []{"url", "resp"})]
+    public virtual async Task<T> DeserializeResponseAsync<T>(string url, JsonSerializerSettings settings, string resp)
+    {
+        return JsonConvert.DeserializeObject<T>(resp, settings ?? DefaultJsonSettings);
     }
 }

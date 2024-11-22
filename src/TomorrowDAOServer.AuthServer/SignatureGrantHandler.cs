@@ -4,6 +4,7 @@ using AElf;
 using AElf.Client;
 using AElf.Client.Dto;
 using AElf.Cryptography;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using GraphQL;
 using GraphQL.Client.Http;
@@ -13,14 +14,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
-using Orleans;
 using TomorrowDAOServer.Auth.Options;
 using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.User.Dtos;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Identity;
 using Portkey.Contracts.CA;
+using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using Volo.Abp.DistributedLocking;
 using Volo.Abp.Identity;
 using Volo.Abp.OpenIddict;
@@ -40,165 +42,166 @@ public class SignatureGrantHandler : ITokenExtensionGrant
     private IOptionsMonitor<ChainOptions> _chainOptions;
     private const string LockKeyPrefix = "TomorrowDAOServer:Auth:SignatureGrantHandler:";
 
-    public async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(SignatureGrantHandlerExceptionHandler),
+        MethodName = nameof(SignatureGrantHandlerExceptionHandler.HandleExceptionAsync), Message = "generate token error")]
+    public virtual async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
     {
-        try
+        var publicKeyVal = context.Request.GetParameter("publickey").ToString();
+        var signatureVal = context.Request.GetParameter("signature").ToString();
+        var chainId = context.Request.GetParameter("chain_id").ToString();
+        var caHash = context.Request.GetParameter("ca_hash").ToString();
+        var timestampVal = context.Request.GetParameter("timestamp").ToString();
+        var address = context.Request.GetParameter("address").ToString();
+        var source = context.Request.GetParameter("source").ToString();
+
+        var invalidParamResult = CheckParams(publicKeyVal, signatureVal, chainId, address, timestampVal);
+        if (invalidParamResult != null)
         {
-            var publicKeyVal = context.Request.GetParameter("publickey").ToString();
-            var signatureVal = context.Request.GetParameter("signature").ToString();
-            var chainId = context.Request.GetParameter("chain_id").ToString();
-            var caHash = context.Request.GetParameter("ca_hash").ToString();
-            var timestampVal = context.Request.GetParameter("timestamp").ToString();
-            var address = context.Request.GetParameter("address").ToString();
-            var source = context.Request.GetParameter("source").ToString();
-
-            var invalidParamResult = CheckParams(publicKeyVal, signatureVal, chainId, address, timestampVal);
-            if (invalidParamResult != null)
-            {
-                return invalidParamResult;
-            }
-
-            var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
-            var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
-            var signAddress = Address.FromPublicKey(publicKey).ToBase58();
-
-            var timestamp = long.Parse(timestampVal!);
-            var time = DateTime.UnixEpoch.AddMilliseconds(timestamp);
-            var timeRangeConfig = context.HttpContext.RequestServices
-                .GetRequiredService<IOptionsSnapshot<TimeRangeOption>>()
-                .Value;
-
-            if (time < DateTime.UtcNow.AddMinutes(-timeRangeConfig.TimeRange) ||
-                time > DateTime.UtcNow.AddMinutes(timeRangeConfig.TimeRange))
-            {
-                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest,
-                    $"The time should be {timeRangeConfig.TimeRange} minutes before and after the current time.");
-            }
-
-            // var plantText = string.Join("-", address, timestampVal);
-            // if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(plantText).ToByteArray(), out var managerPublicKey))
-            // {
-            //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed.");
-            // }
-            //
-            // if (managerPublicKey.ToHex() != publicKeyVal)
-            // {
-            //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
-            // }
-            
-            _logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<SignatureGrantHandler>>();
-            var newSignText = """
-                              Welcome to TMRWDAO! Click to sign in to the TMRWDAO platform! This request will not trigger any blockchain transaction or cost any gas fees.
-
-                              signature: 
-                              """+string.Join("-", address, timestampVal);
-            _logger.LogInformation("newSignText:{newSignText}",newSignText);
-            if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
-                    out var managerPublicKey))
-            {
-                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed new.");
-            }
-
-            if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
-                    out var managerPublicKeyOld))
-            {
-                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed old.");
-            }
-
-            if (!(managerPublicKey.ToHex() == publicKeyVal || managerPublicKeyOld.ToHex() == publicKeyVal))
-            {
-                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
-            }
-
-            _distributedLock = context.HttpContext.RequestServices.GetRequiredService<IAbpDistributedLock>();
-            _clusterClient = context.HttpContext.RequestServices.GetRequiredService<IClusterClient>();
-            _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
-            _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
-            _contractOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ContractOptions>>();
-            _logger.LogInformation(
-                "publicKeyVal:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
-                publicKeyVal, signatureVal, address, caHash, chainId, timestamp);
-
-            List<AddressInfo> addressInfos;
-            if (!string.IsNullOrWhiteSpace(caHash))
-            {
-                var managerCheck = await CheckAddressAsync(chainId, _graphQlOptions.CurrentValue.Url, caHash, signAddress,
-                    _chainOptions.CurrentValue);
-                if (!managerCheck.HasValue || !managerCheck.Value)
-                {
-                    _logger.LogError("Manager validation failed. caHash:{0}, address:{2}, chainId:{3}",
-                        caHash, address, chainId);
-                    return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Manager validation failed.");
-                }
-
-                addressInfos = await GetAddressInfosAsync(caHash);
-            }
-            else
-            {
-                if (address != signAddress)
-                {
-                    return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid address or pubkey.");
-                }
-
-                addressInfos = new List<AddressInfo>
-                {
-                    new()
-                    {
-                        ChainId = chainId,
-                        Address = address
-                    }
-                };
-            }
-
-            caHash = string.IsNullOrWhiteSpace(caHash) ? string.Empty : caHash;
-            var userManager = context.HttpContext.RequestServices.GetRequiredService<IdentityUserManager>();
-            var user = string.IsNullOrWhiteSpace(caHash)
-                ? await userManager.FindByNameAsync(address!)
-                : await userManager.FindByNameAsync(caHash);
-
-            if (user == null)
-            {
-                var userId = Guid.NewGuid();
-                var createUserResult = await CreateUserAsync(userManager, userId, caHash, address, addressInfos);
-                if (!createUserResult)
-                {
-                    return GetForbidResult(OpenIddictConstants.Errors.ServerError, "Create user failed.");
-                }
-
-                user = await userManager.GetByIdAsync(userId);
-            }
-            else
-            {
-                var grain = _clusterClient.GetGrain<IUserGrain>(user.Id);
-                await grain.CreateUser(new UserGrainDto
-                {
-                    UserId = user.Id,
-                    UserName = user.UserName,
-                    CaHash = caHash,
-                    AppId = string.IsNullOrEmpty(caHash) ? AuthConstant.NightElfAppId : AuthConstant.PortKeyAppId,
-                    AddressInfos = addressInfos,
-                });
-            }
-
-            var userClaimsPrincipalFactory = context.HttpContext.RequestServices
-                .GetRequiredService<IUserClaimsPrincipalFactory<IdentityUser>>();
-            var signInManager = context.HttpContext.RequestServices.GetRequiredService<SignInManager<IdentityUser>>();
-            var principal = await signInManager.CreateUserPrincipalAsync(user);
-            var claimsPrincipal = await userClaimsPrincipalFactory.CreateAsync(user);
-            claimsPrincipal.SetScopes("TomorrowDAOServer");
-            claimsPrincipal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
-            claimsPrincipal.SetAudiences("TomorrowDAOServer");
-
-            await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
-                .SetAsync(principal);
-
-            return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
+            return invalidParamResult;
         }
-        catch (Exception e)
+
+        var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
+        var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
+        var signAddress = Address.FromPublicKey(publicKey).ToBase58();
+
+        var timestamp = long.Parse(timestampVal!);
+        var time = DateTime.UnixEpoch.AddMilliseconds(timestamp);
+        var timeRangeConfig = context.HttpContext.RequestServices
+            .GetRequiredService<IOptionsSnapshot<TimeRangeOption>>()
+            .Value;
+
+        if (time < DateTime.UtcNow.AddMinutes(-timeRangeConfig.TimeRange) ||
+            time > DateTime.UtcNow.AddMinutes(timeRangeConfig.TimeRange))
         {
-            _logger.LogError(e, "generate token error");
-            return GetForbidResult(OpenIddictConstants.Errors.ServerError, "Internal error.");
+            return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest,
+                $"The time should be {timeRangeConfig.TimeRange} minutes before and after the current time.");
         }
+
+        // var plantText = string.Join("-", address, timestampVal);
+        // if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(plantText).ToByteArray(), out var managerPublicKey))
+        // {
+        //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed.");
+        // }
+        //
+        // if (managerPublicKey.ToHex() != publicKeyVal)
+        // {
+        //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
+        // }
+        
+        _logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<SignatureGrantHandler>>();
+        var newSignText = """
+                          Welcome to TMRWDAO! Click to sign in to the TMRWDAO platform! This request will not trigger any blockchain transaction or cost any gas fees.
+
+                          signature: 
+                          """+string.Join("-", address, timestampVal);
+        Log.Information("newSignText:{newSignText}",newSignText);
+        if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
+                out var managerPublicKey))
+        {
+            return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed new.");
+        }
+
+        if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
+                out var managerPublicKeyOld))
+        {
+            return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed old.");
+        }
+
+        if (!(managerPublicKey.ToHex() == publicKeyVal || managerPublicKeyOld.ToHex() == publicKeyVal))
+        {
+            return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid publicKey or signature.");
+        }
+
+        _distributedLock = context.HttpContext.RequestServices.GetRequiredService<IAbpDistributedLock>();
+        _clusterClient = context.HttpContext.RequestServices.GetRequiredService<IClusterClient>();
+        _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
+        _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
+        _contractOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ContractOptions>>();
+        _distributedLock = context.HttpContext.RequestServices.GetRequiredService<IAbpDistributedLock>();
+        _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
+        _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
+
+        Log.Information(
+            "publicKeyVal:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
+            publicKeyVal, signatureVal, address, caHash, chainId, timestamp);
+
+        List<AddressInfo> addressInfos;
+        if (!string.IsNullOrWhiteSpace(caHash))
+        {
+            var managerCheck = await CheckAddressAsync(chainId, _graphQlOptions.CurrentValue.Url, caHash, signAddress,
+                _chainOptions.CurrentValue);
+            if (!managerCheck.HasValue || !managerCheck.Value)
+            {
+                Log.Error("Manager validation failed. caHash:{0}, address:{2}, chainId:{3}",
+                    caHash, address, chainId);
+                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Manager validation failed.");
+            }
+
+            addressInfos = await GetAddressInfosAsync(caHash);
+        }
+        else
+        {
+            if (address != signAddress)
+            {
+                return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Invalid address or pubkey.");
+            }
+
+            addressInfos = new List<AddressInfo>
+            {
+                new()
+                {
+                    ChainId = chainId,
+                    Address = address
+                }
+            };
+        }
+
+        caHash = string.IsNullOrWhiteSpace(caHash) ? string.Empty : caHash;
+        var userManager = context.HttpContext.RequestServices.GetRequiredService<IdentityUserManager>();
+        var user = string.IsNullOrWhiteSpace(caHash)
+            ? await userManager.FindByNameAsync(address!)
+            : await userManager.FindByNameAsync(caHash);
+
+        if (user == null)
+        {
+            var userId = Guid.NewGuid();
+            var createUserResult = await CreateUserAsync(userManager, userId, caHash, address, addressInfos);
+            if (!createUserResult)
+            {
+                return GetForbidResult(OpenIddictConstants.Errors.ServerError, "Create user failed.");
+            }
+
+            user = await userManager.GetByIdAsync(userId);
+        }
+        else
+        {
+            var grain = _clusterClient.GetGrain<IUserGrain>(user.Id);
+            await grain.CreateUser(new UserGrainDto
+            {
+                UserId = user.Id,
+                UserName = user.UserName,
+                CaHash = caHash,
+                AppId = string.IsNullOrEmpty(caHash) ? AuthConstant.NightElfAppId : AuthConstant.PortKeyAppId,
+                AddressInfos = addressInfos,
+            });
+        }
+
+        var userClaimsPrincipalFactory = context.HttpContext.RequestServices
+            .GetRequiredService<IUserClaimsPrincipalFactory<IdentityUser>>();
+        var signInManager = context.HttpContext.RequestServices.GetRequiredService<SignInManager<IdentityUser>>();
+        var principal = await signInManager.CreateUserPrincipalAsync(user);
+        var claimsPrincipal = await userClaimsPrincipalFactory.CreateAsync(user);
+        claimsPrincipal.SetScopes("TomorrowDAOServer");
+        claimsPrincipal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
+        claimsPrincipal.SetAudiences("TomorrowDAOServer");
+
+        var abpOpenIddictClaimDestinationsManager = context.HttpContext.RequestServices
+            .GetRequiredService<AbpOpenIddictClaimsPrincipalManager>();
+        // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
+        //     .SetAsync(principal);
+        await abpOpenIddictClaimDestinationsManager.HandleAsync(context.Request, principal);
+
+        return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
     }
 
     private ForbidResult CheckParams(string publicKeyVal, string signatureVal, string chainId, string address,
@@ -250,7 +253,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         var graphQlResult = await CheckAddressFromGraphQlAsync(graphQlUrl, caHash, manager);
         if (!graphQlResult.HasValue || !graphQlResult.Value)
         {
-            _logger.LogDebug("graphql is invalid.");
+            Log.Debug("graphql is invalid.");
             return await CheckAddressFromContractAsync(chainId, caHash, manager, chainOptions);
         }
 
@@ -294,7 +297,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
             if (identityResult.Succeeded)
             {
-                _logger.LogInformation("save user info into grain, userId:{userId}", userId.ToString());
+                Log.Information("save user info into grain, userId:{userId}", userId.ToString());
                 var grain = _clusterClient.GetGrain<IUserGrain>(userId);
 
                 await grain.CreateUser(new UserGrainDto
@@ -305,14 +308,14 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     AppId = string.IsNullOrEmpty(caHash) ? AuthConstant.NightElfAppId : AuthConstant.PortKeyAppId,
                     AddressInfos = addressInfos,
                 });
-                _logger.LogInformation("create user success, userId:{userId}", userId.ToString());
+                Log.Information("create user success, userId:{userId}", userId.ToString());
             }
 
             result = identityResult.Succeeded;
         }
         else
         {
-            _logger.LogError("do not get lock, keys already exits, userId:{userId}", userId.ToString());
+            Log.Error("do not get lock, keys already exits, userId:{userId}", userId.ToString());
         }
 
         return result;
@@ -327,7 +330,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         return message.Contains(',') ? message.TrimEnd().TrimEnd(',') : message;
     }
 
-    private ForbidResult GetForbidResult(string errorType, string errorDescription)
+    public ForbidResult GetForbidResult(string errorType, string errorDescription)
     {
         return new ForbidResult(
             new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme },
@@ -374,80 +377,75 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
         foreach (var chainId in chains)
         {
-            try
+            var addressInfo = await GetAddressInfoAsync(chainId, caHash);
+            if (addressInfo != null)
             {
-                var addressInfo = await GetAddressInfoAsync(chainId, caHash);
                 addressInfos.Add(addressInfo);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "get holder from chain error, caHash:{caHash}", caHash);
             }
         }
 
         return addressInfos;
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(SignatureGrantHandlerExceptionHandler),
+    //     MethodName = nameof(SignatureGrantHandlerExceptionHandler.HandleGetAddressInfoAsync), Message = "get holder from chain error",
+    //     LogTargets = new []{"caHash"})]
     private async Task<AddressInfo> GetAddressInfoAsync(string chainId, string caHash)
-    {
-        var param = new GetHolderInfoInput
-        {
-            CaHash = Hash.LoadFromHex(caHash),
-            LoginGuardianIdentifierHash = Hash.Empty
-        };
-
-        var output = await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
-            _chainOptions.CurrentValue);
-
-        return new AddressInfo()
-        {
-            Address = output.CaAddress.ToBase58(),
-            ChainId = chainId
-        };
-    }
-
-    private async Task<T> CallTransactionAsync<T>(string chainId, string methodName, IMessage param,
-        bool isCrossChain, ChainOptions chainOptions) where T : class, IMessage<T>, new()
     {
         try
         {
-            var chainInfo = chainOptions.ChainInfos[chainId];
-
-            var client = new AElfClient(chainInfo.BaseUrl);
-            await client.IsConnectedAsync();
-            var address = client.GetAddressFromPrivateKey(_contractOptions.CurrentValue.CommonPrivateKeyForCallTx);
-
-            var contractAddress = isCrossChain
-                ? (await client.GetContractAddressByNameAsync(HashHelper.ComputeFrom(ContractName.CrossChain)))
-                .ToBase58()
-                : chainInfo.ContractAddress;
-
-            var transaction =
-                await client.GenerateTransactionAsync(address, contractAddress,
-                    methodName, param);
-
-            var txWithSign = client.SignTransaction(_contractOptions.CurrentValue.CommonPrivateKeyForCallTx, transaction);
-            var result = await client.ExecuteTransactionAsync(new ExecuteTransactionDto
+            var param = new GetHolderInfoInput
             {
-                RawTransaction = txWithSign.ToByteArray().ToHex()
-            });
+                CaHash = Hash.LoadFromHex(caHash),
+                LoginGuardianIdentifierHash = Hash.Empty
+            };
 
-            var value = new T();
-            value.MergeFrom(ByteArrayHelper.HexStringToByteArray(result));
-            return value;
+            var output = await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
+                _chainOptions.CurrentValue);
+
+            return new AddressInfo()
+            {
+                Address = output.CaAddress.ToBase58(),
+                ChainId = chainId
+            };
         }
         catch (Exception e)
         {
-            if (methodName != AuthConstant.GetHolderInfo)
-            {
-                _logger.LogError(e, "CallTransaction error, chain id:{chainId}, methodName:{methodName}", chainId,
-                    methodName);
-            }
-
-            _logger.LogError(e, "CallTransaction error, chain id:{chainId}, methodName:{methodName}", chainId,
-                methodName);
+            _logger.LogError(e, "get holder from chain error. CaHash={0},ChainId={1}", caHash, chainId);
             return null;
         }
+    }
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "CallTransaction error",
+        LogTargets = new []{"chainId", "methodName"}, ReturnDefault = default)]
+    public virtual async Task<T> CallTransactionAsync<T>(string chainId, string methodName, IMessage param,
+        bool isCrossChain, ChainOptions chainOptions) where T : class, IMessage<T>, new()
+    {
+        var chainInfo = chainOptions.ChainInfos[chainId];
+
+        var client = new AElfClient(chainInfo.BaseUrl);
+        await client.IsConnectedAsync();
+        var address = client.GetAddressFromPrivateKey(_contractOptions.CurrentValue.CommonPrivateKeyForCallTx);
+
+        var contractAddress = isCrossChain
+            ? (await client.GetContractAddressByNameAsync(HashHelper.ComputeFrom(ContractName.CrossChain)))
+            .ToBase58()
+            : chainInfo.ContractAddress;
+
+        var transaction =
+            await client.GenerateTransactionAsync(address, contractAddress,
+                methodName, param);
+
+        var txWithSign = client.SignTransaction(_contractOptions.CurrentValue.CommonPrivateKeyForCallTx, transaction);
+        var result = await client.ExecuteTransactionAsync(new ExecuteTransactionDto
+        {
+            RawTransaction = txWithSign.ToByteArray().ToHex()
+        });
+
+        var value = new T();
+        value.MergeFrom(ByteArrayHelper.HexStringToByteArray(result));
+        return value;
     }
 
     private async Task<HolderInfoIndexerDto> GetHolderInfosAsync(string url, string caHash)

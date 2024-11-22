@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
@@ -139,32 +142,27 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     /// <param name="chainId"></param>
     /// <param name="request"></param>
     /// <returns></returns>
-    public async Task<ExplorerTokenInfoResponse> GetTokenInfoAsync(string chainId, ExplorerTokenInfoRequest request)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        Message = "get token from explorer error", ReturnDefault = ReturnDefault.New,
+        LogTargets = new []{"chainId", "request"})]
+    public virtual async Task<ExplorerTokenInfoResponse> GetTokenInfoAsync(string chainId, ExplorerTokenInfoRequest request)
     {
         if (request == null || request.Symbol.IsNullOrWhiteSpace())
         {
             return new ExplorerTokenInfoResponse();
         }
 
-        try
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerTokenInfoResponse>>(
+            BaseUrl(chainId),
+            ExplorerApi.TokenInfo, param: ToDictionary(request), settings: DefaultJsonSettings);
+        AssertHelper.IsTrue(resp.Success, resp.Msg);
+        if (!resp.Success)
         {
-            var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerTokenInfoResponse>>(
-                BaseUrl(chainId),
-                ExplorerApi.TokenInfo, param: ToDictionary(request), settings: DefaultJsonSettings);
-            AssertHelper.IsTrue(resp.Success, resp.Msg);
-            if (!resp.Success)
-            {
-                _logger.LogError("get token from explorer fail, code={0},message={1}", resp.Code, resp.Msg);
-            }
-
-            return resp.Data ?? new ExplorerTokenInfoResponse();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "get token from explorer error, chainId={0},symbol={1}", chainId, request.Symbol);
+            Log.Error("get token from explorer fail, code={0},message={1}", resp.Code, resp.Msg);
         }
 
-        return new ExplorerTokenInfoResponse();
+        return resp.Data ?? new ExplorerTokenInfoResponse();
     }
 
     /// <summary>

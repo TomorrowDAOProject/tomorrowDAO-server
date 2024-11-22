@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
-using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Election.Dto;
 using TomorrowDAOServer.Election.Index;
@@ -51,17 +52,19 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
         _highCouncilManagedDaoRepository = highCouncilManagedDaoRepository;
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReThrow), 
+        Message = "GetCandidateElectedRecordsAsync error",
+        LogTargets = new []{"input"})]
     public async Task<ElectionPageResultDto<ElectionCandidateElectedDto>> GetCandidateElectedRecordsAsync(
         GetCandidateElectedRecordsInput input)
     {
-        try
-        {
-            var graphQlResponse = await _graphQlHelper
-                .QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionCandidateElectedDto>>>(
-                    new GraphQLRequest
-                    {
-                        Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
+        var graphQlResponse = await _graphQlHelper
+            .QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionCandidateElectedDto>>>(
+                new GraphQLRequest
+                {
+                    Query =
+                        @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
             data:getElectionCandidateElected(input:{skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,daoId:$daoId})
             {
                 items {
@@ -69,37 +72,32 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
                 },
                 totalCount
             }}",
-                        Variables = new
-                        {
-                            skipCount = input.SkipCount,
-                            maxResultCount = input.MaxResultCount,
-                            startBlockHeight = input.StartBlockHeight,
-                            endBlockHeight = input.EndBlockHeight,
-                            chainId = input.ChainId,
-                            daoId = input.DaoId ?? string.Empty
-                        }
-                    });
-            return graphQlResponse?.Data ?? new ElectionPageResultDto<ElectionCandidateElectedDto>();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetCandidateElectedRecordsAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
-                input.ChainId, input.DaoId, JsonConvert.SerializeObject(input));
-            throw;
-        }
+                    Variables = new
+                    {
+                        skipCount = input.SkipCount,
+                        maxResultCount = input.MaxResultCount,
+                        startBlockHeight = input.StartBlockHeight,
+                        endBlockHeight = input.EndBlockHeight,
+                        chainId = input.ChainId,
+                        daoId = input.DaoId ?? string.Empty
+                    }
+                });
+        return graphQlResponse?.Data ?? new ElectionPageResultDto<ElectionCandidateElectedDto>();
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReThrow), 
+        Message = "GetHighCouncilConfigAsync error",
+        LogTargets = new []{"input"})]
     public async Task<ElectionPageResultDto<ElectionHighCouncilConfigDto>> GetHighCouncilConfigAsync(
         GetHighCouncilConfigInput input)
     {
-        try
-        {
-            var graphQlResponse = await _graphQlHelper
-                .QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionHighCouncilConfigDto>>>(
-                    new GraphQLRequest
-                    {
-                        Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
+        var graphQlResponse = await _graphQlHelper
+            .QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionHighCouncilConfigDto>>>(
+                new GraphQLRequest
+                {
+                    Query =
+                        @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
             data:getElectionHighCouncilConfig(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,daoId:$daoId})
             {            
                 items {
@@ -107,36 +105,30 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
                 },
                 totalCount
             }}",
-                        Variables = new
-                        {
-                            skipCount = input.SkipCount,
-                            maxResultCount = input.MaxResultCount,
-                            startBlockHeight = input.StartBlockHeight,
-                            endBlockHeight = input.EndBlockHeight,
-                            chainId = input.ChainId,
-                            daoId = input.DaoId ?? string.Empty
-                        }
-                    });
-            return graphQlResponse?.Data ?? new ElectionPageResultDto<ElectionHighCouncilConfigDto>();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetHighCouncilConfigAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
-                input.ChainId, input.DaoId, JsonConvert.SerializeObject(input));
-            throw;
-        }
+                    Variables = new
+                    {
+                        skipCount = input.SkipCount,
+                        maxResultCount = input.MaxResultCount,
+                        startBlockHeight = input.StartBlockHeight,
+                        endBlockHeight = input.EndBlockHeight,
+                        chainId = input.ChainId,
+                        daoId = input.DaoId ?? string.Empty
+                    }
+                });
+        return graphQlResponse?.Data ?? new ElectionPageResultDto<ElectionHighCouncilConfigDto>();
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReThrow), 
+        Message = "GetVotingItemAsync error", LogTargets = new []{"input"})]
     public async Task<ElectionPageResultDto<ElectionVotingItemDto>> GetVotingItemAsync(GetVotingItemInput input)
     {
-        try
-        {
-            var graphQlResponse =
-                await _graphQlHelper.QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionVotingItemDto>>>(
-                    new GraphQLRequest
-                    {
-                        Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
+        var graphQlResponse =
+            await _graphQlHelper.QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionVotingItemDto>>>(
+                new GraphQLRequest
+                {
+                    Query =
+                        @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$daoId:String!){
             data:getElectionVotingItem(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,daoId:$daoId})
             {    
                 items {
@@ -144,24 +136,17 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
                 },
                 totalCount
             }}",
-                        Variables = new
-                        {
-                            skipCount = input.SkipCount,
-                            maxResultCount = input.MaxResultCount,
-                            startBlockHeight = input.StartBlockHeight,
-                            endBlockHeight = input.EndBlockHeight,
-                            chainId = input.ChainId,
-                            daoId = input.DaoId ?? string.Empty
-                        }
-                    });
-            return graphQlResponse?.Data ?? new ElectionPageResultDto<ElectionVotingItemDto>();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetVotingItemAsync error, chainId={chainId}, DAOId={DAOId},Param={Param}",
-                input.ChainId, input.DaoId, JsonConvert.SerializeObject(input));
-            throw;
-        }
+                    Variables = new
+                    {
+                        skipCount = input.SkipCount,
+                        maxResultCount = input.MaxResultCount,
+                        startBlockHeight = input.StartBlockHeight,
+                        endBlockHeight = input.EndBlockHeight,
+                        chainId = input.ChainId,
+                        daoId = input.DaoId ?? string.Empty
+                    }
+                });
+        return graphQlResponse?.Data ?? new ElectionPageResultDto<ElectionVotingItemDto>();
     }
 
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)

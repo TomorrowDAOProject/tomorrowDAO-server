@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AElf;
 using AElf.Client;
 using AElf.Client.Dto;
+using AElf.ExceptionHandler;
 using AElf.CSharp.Core.Extension;
 using AElf.Types;
 using Google.Protobuf;
@@ -14,7 +15,9 @@ using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Threading;
@@ -84,7 +87,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         foreach (var node in _chainOptions.CurrentValue.ChainInfos)
         {
             _clients[node.Key] = new AElfClient(node.Value.BaseUrl);
-            _logger.LogInformation("init AElfClient: {ChainId}, {Node}", node.Key, node.Value.BaseUrl);
+            Log.Information("init AElfClient: {ChainId}, {Node}", node.Key, node.Value.BaseUrl);
         }
     }
 
@@ -139,33 +142,27 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         return Client(chainId).GetTransactionResultAsync(transactionId);
     }
 
-    public async Task<string> GetTreasuryAddressAsync(string chainId, string daoId)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGetTreasuryAddressAsync), Message = "get treasury address error",
+        LogTargets = new []{"chainId", "daoId"})]
+    public virtual async Task<string> GetTreasuryAddressAsync(string chainId, string daoId)
     {
-        try
+        if (chainId.IsNullOrWhiteSpace() || daoId.IsNullOrWhiteSpace())
         {
-            if (chainId.IsNullOrWhiteSpace() || daoId.IsNullOrWhiteSpace())
-            {
-                return string.Empty;
-            }
-
-            var sw = Stopwatch.StartNew();
-
-            var (_, transaction) = await CreateCallTransactionAsync(chainId,
-                "TreasuryContractAddress", CommonConstant.TreasuryMethodGetTreasuryAccountAddress,
-                Hash.LoadFromHex(daoId));
-            var treasuryAddress =
-                await CallTransactionAsync<Address>(chainId, transaction);
-
-            sw.Stop();
-            _logger.LogInformation("GetDAOByIdDuration: GetTreasuryAddress {0}", sw.ElapsedMilliseconds);
-
-            return treasuryAddress == null ? string.Empty : treasuryAddress.ToBase58();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "get treasury address error. daoId={0}, chainId={1}", daoId, chainId);
             return string.Empty;
         }
+            
+        var sw = Stopwatch.StartNew();
+            
+        var (_, transaction) = await CreateCallTransactionAsync(chainId,
+            "TreasuryContractAddress", CommonConstant.TreasuryMethodGetTreasuryAccountAddress, Hash.LoadFromHex(daoId));
+        var treasuryAddress =
+            await CallTransactionAsync<Address>(chainId, transaction);
+            
+        sw.Stop();
+        Log.Information("GetDAOByIdDuration: GetTreasuryAddress {0}", sw.ElapsedMilliseconds);
+            
+        return treasuryAddress == null ? string.Empty : treasuryAddress.ToBase58();
     }
     
     public async Task<(Hash transactionId, Transaction transaction)> CreateCallTransactionAsync(string chainId,

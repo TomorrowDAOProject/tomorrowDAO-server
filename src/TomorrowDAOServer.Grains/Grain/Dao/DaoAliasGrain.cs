@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Orleans;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Grains.State.Dao;
 using Volo.Abp.ObjectMapping;
@@ -24,12 +23,21 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         _objectMapper = objectMapper;
     }
 
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
+    }
+    
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
+    /*[ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
+        MethodName = nameof(DaoAliasGrainExceptionHandler.HandleSaveDaoAliasInfoAsync),
+        Message = "Save dao alias info error", LogTargets = new []{"daoAliasDto"})]*/
     public async Task<GrainResultDto<int>> SaveDaoAliasInfoAsync(DaoAliasDto daoAliasDto)
     {
         if (daoAliasDto == null)
@@ -80,6 +88,9 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
+    //     MethodName = nameof(DaoAliasGrainExceptionHandler.HandleGetDaoAliasInfoAsync),
+    //     Message = "Get dao alias info error")]
     public Task<GrainResultDto<List<DaoAliasDto>>> GetDaoAliasInfoAsync()
     {
         try

@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.Election.Dto;
@@ -40,7 +43,7 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        _logger.LogInformation("high council member sync start: chainId={0}, lastEndHeight={1}, newIndexHeight={2}",
+        Log.Information("high council member sync start: chainId={0}, lastEndHeight={1}, newIndexHeight={2}",
             chainId, lastEndHeight, newIndexHeight);
 
         var daoIds = new HashSet<string>();
@@ -49,90 +52,88 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         var configChangedBlockHeight =
             await GetHighCouncilConfigChangedDaoId(daoIds, chainId, lastEndHeight, newIndexHeight);
 
-        _logger.LogInformation(
+        Log.Information(
             "high council member sync, changed daoIds={0}, chainId={1}, lastEndHeight={2}, newIndexHeight={3}",
             JsonConvert.SerializeObject(daoIds), chainId, lastEndHeight, newIndexHeight);
 
         foreach (var daoId in daoIds)
         {
-            try
-            {
-                var addressList = await _scriptService.GetCurrentHCAsync(chainId, daoId);
-                _logger.LogInformation("high council member count: daoId={0}, chaiId={1}, count={2}", daoId, chainId,
-                    addressList.IsNullOrEmpty() ? 0 : addressList.Count);
-                if (!addressList.IsNullOrEmpty())
-                {
-                    await _graphQlProvider.SetHighCouncilMembersAsync(chainId, daoId, addressList);
-                }
-                
-                await UpdateHighCouncilManagedDaoIndexAsync(chainId, daoId,
-                    new HashSet<string>(addressList ?? new List<string>()));
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("high council member sync error, chainId={0}, daoId={1}", chainId, daoId);
-            }
+            await SyncHighCouncilMemberRecordsAsync(chainId, daoId);
         }
 
         newIndexHeight = Math.Min(candidateElectedBlockHeight, configChangedBlockHeight);
 
-        _logger.LogInformation("high council member sync end: newIndexHeight={0}", newIndexHeight);
+        Log.Information("high council member sync end: newIndexHeight={0}", newIndexHeight);
 
         return newIndexHeight;
     }
 
-    private async Task UpdateHighCouncilManagedDaoIndexAsync(string chainId, string daoId, ISet<string> addressList)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), 
+        Message = "high council member sync error", LogTargets = new []{"chainId", "daoId", "addressList"})]
+    public virtual async Task SyncHighCouncilMemberRecordsAsync(string chainId, string daoId)
     {
-        _logger.LogInformation("Update HighCouncilManagedDAOIndex start... chain={0},daoId={1},current members={2}",
-            chainId, daoId, JsonConvert.SerializeObject(addressList));
-        try
+        var addressList = await _scriptService.GetCurrentHCAsync(chainId, daoId);
+        Log.Information("high council member count: daoId={0}, chaiId={1}, count={2}", daoId, chainId,
+            addressList.IsNullOrEmpty() ? 0 : addressList.Count);
+        if (!addressList.IsNullOrEmpty())
         {
-            var managedDaoIndices =
-                await _electionProvider.GetHighCouncilManagedDaoIndexAsync(new GetHighCouncilMemberManagedDaoInput
-                {
-                    MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
-                    SkipCount = 0,
-                    ChainId = chainId,
-                    DaoId = daoId
-                });
-            _logger.LogInformation("Update HighCouncilManangedDAOIndex, historical members:{0}",
-                JsonConvert.SerializeObject(managedDaoIndices ?? new List<HighCouncilManagedDaoIndex>()));
-
-            var deleteIndices = new List<HighCouncilManagedDaoIndex>();
-            foreach (var managedDaoIndex in managedDaoIndices)
-            {
-                if (addressList.Contains(managedDaoIndex.MemberAddress))
-                {
-                    addressList.Remove(managedDaoIndex.MemberAddress);
-                    continue;
-                }
-                deleteIndices.Add(managedDaoIndex);
-            }
-
-            var addIndices = addressList.Select(address => new HighCouncilManagedDaoIndex
-                {
-                    Id = GuidHelper.GenerateId(chainId, daoId, address),
-                    MemberAddress = address,
-                    DaoId = daoId,
-                    ChainId = chainId,
-                    CreateTime = DateTime.Now
-                })
-                .ToList();
-            _logger.LogInformation("Update HighCouncilManagedDAOIndex, add members={0}, delete members={1}",
-                JsonConvert.SerializeObject(addIndices), JsonConvert.SerializeObject(deleteIndices));
-            if (!deleteIndices.IsNullOrEmpty())
-            {
-                await _electionProvider.DeleteHighCouncilManagedDaoIndexAsync(deleteIndices);
-            }
-
-            if (!addIndices.IsNullOrEmpty())
-            {
-                await _electionProvider.SaveOrUpdateHighCouncilManagedDaoIndexAsync(addIndices);
-            }
+            await _graphQlProvider.SetHighCouncilMembersAsync(chainId, daoId, addressList);
         }
-        catch (Exception e)
+
+        await UpdateHighCouncilManagedDaoIndexAsync(chainId, daoId,
+            new HashSet<string>(addressList ?? new List<string>()));
+    }
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), 
+        Message = "Update HighCouncilManagedDAOIndex error")]
+    public virtual async Task UpdateHighCouncilManagedDaoIndexAsync(string chainId, string daoId, ISet<string> addressList)
+    {
+        Log.Information("Update HighCouncilManagedDAOIndex start... chain={0},daoId={1},current members={2}",
+            chainId, daoId, JsonConvert.SerializeObject(addressList));
+        
+        var managedDaoIndices =
+            await _electionProvider.GetHighCouncilManagedDaoIndexAsync(new GetHighCouncilMemberManagedDaoInput
+            {
+                MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+                SkipCount = 0,
+                ChainId = chainId,
+                DaoId = daoId
+            });
+        Log.Information("Update HighCouncilManangedDAOIndex, historical members:{0}",
+            JsonConvert.SerializeObject(managedDaoIndices ?? new List<HighCouncilManagedDaoIndex>()));
+
+        var deleteIndices = new List<HighCouncilManagedDaoIndex>();
+        foreach (var managedDaoIndex in managedDaoIndices)
         {
-            _logger.LogError(e, "Update HighCouncilManagedDAOIndex error.");
+            if (addressList.Contains(managedDaoIndex.MemberAddress))
+            {
+                addressList.Remove(managedDaoIndex.MemberAddress);
+                continue;
+            }
+            deleteIndices.Add(managedDaoIndex);
+        }
+
+        var addIndices = addressList.Select(address => new HighCouncilManagedDaoIndex
+            {
+                Id = GuidHelper.GenerateId(chainId, daoId, address),
+                MemberAddress = address,
+                DaoId = daoId,
+                ChainId = chainId,
+                CreateTime = DateTime.Now
+            })
+            .ToList();
+        Log.Information("Update HighCouncilManagedDAOIndex, add members={0}, delete members={1}",
+            JsonConvert.SerializeObject(addIndices), JsonConvert.SerializeObject(deleteIndices));
+        if (!deleteIndices.IsNullOrEmpty())
+        {
+            await _electionProvider.DeleteHighCouncilManagedDaoIndexAsync(deleteIndices);
+        }
+
+        if (!addIndices.IsNullOrEmpty())
+        {
+            await _electionProvider.SaveOrUpdateHighCouncilManagedDaoIndexAsync(addIndices);
         }
     }
 
@@ -147,52 +148,14 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
         return WorkerBusinessType.HighCouncilMemberSync;
     }
 
-    private async Task<long> GetCandidateElectedDaoId(ISet<string> daoIds, string chainId, long lastEndHeight,
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGetCandidateElectedDaoId), 
+        Message = "query candidate elected daoId error", LogTargets = new []{"daoIds", "chainId", "lastEndHeight", "newIndexHeight"})]
+    public virtual async Task<long> GetCandidateElectedDaoId(ISet<string> daoIds, string chainId, long lastEndHeight,
         long newIndexHeight)
     {
-        try
-        {
-            var candidateElectedRecords = await _electionProvider.GetCandidateElectedRecordsAsync(
-                input: new GetCandidateElectedRecordsInput
-                {
-                    ChainId = chainId,
-                    SkipCount = 0,
-                    MaxResultCount = MaxResultCount,
-                    StartBlockHeight = lastEndHeight,
-                    EndBlockHeight = newIndexHeight
-                });
-
-            var maxBlockHeight = lastEndHeight;
-            if (!candidateElectedRecords.Items.IsNullOrEmpty())
-            {
-                foreach (var electedRecord in candidateElectedRecords.Items)
-                {
-                    daoIds.Add(electedRecord.DaoId);
-                    maxBlockHeight = Math.Max(maxBlockHeight, electedRecord.BlockHeight);
-                }
-            }
-
-            return !candidateElectedRecords.Items.IsNullOrEmpty() &&
-                   candidateElectedRecords.Items.Count >= MaxResultCount
-                ? Math.Min(maxBlockHeight, newIndexHeight)
-                : newIndexHeight;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e,
-                "query candidate elected daoId error: chainId={0}, lastEndHeight={1}, newIndexHeight={2}", chainId,
-                lastEndHeight, newIndexHeight);
-        }
-
-        return newIndexHeight;
-    }
-
-    private async Task<long> GetHighCouncilConfigChangedDaoId(ISet<string> daoIds, string chainId, long lastEndHeight,
-        long newIndexHeight)
-    {
-        try
-        {
-            var highCouncilConfig = await _electionProvider.GetHighCouncilConfigAsync(new GetHighCouncilConfigInput
+        var candidateElectedRecords = await _electionProvider.GetCandidateElectedRecordsAsync(
+            input: new GetCandidateElectedRecordsInput
             {
                 ChainId = chainId,
                 SkipCount = 0,
@@ -201,28 +164,50 @@ public class HighCouncilMemberSyncService : ScheduleSyncDataService
                 EndBlockHeight = newIndexHeight
             });
 
-            long maxBlockHeight = lastEndHeight;
-            if (!highCouncilConfig.Items.IsNullOrEmpty())
-            {
-                foreach (var electedRecord in highCouncilConfig.Items)
-                {
-                    daoIds.Add(electedRecord.DaoId);
-                    maxBlockHeight = Math.Max(maxBlockHeight, electedRecord.BlockHeight);
-                }
-            }
-
-            return !highCouncilConfig.Items.IsNullOrEmpty() &&
-                   highCouncilConfig.Items.Count >= MaxResultCount
-                ? Math.Min(maxBlockHeight, newIndexHeight)
-                : newIndexHeight;
-        }
-        catch (Exception e)
+        var maxBlockHeight = lastEndHeight;
+        if (!candidateElectedRecords.Items.IsNullOrEmpty())
         {
-            _logger.LogError(e,
-                "query high council config changed daoId error: chainId={0}, lastEndHeight={1}, newIndexHeight={2}",
-                chainId, lastEndHeight, newIndexHeight);
+            foreach (var electedRecord in candidateElectedRecords.Items)
+            {
+                daoIds.Add(electedRecord.DaoId);
+                maxBlockHeight = Math.Max(maxBlockHeight, electedRecord.BlockHeight);
+            }
         }
 
-        return newIndexHeight;
+        return !candidateElectedRecords.Items.IsNullOrEmpty() &&
+               candidateElectedRecords.Items.Count >= MaxResultCount
+            ? Math.Min(maxBlockHeight, newIndexHeight)
+            : newIndexHeight;
+    }
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGetHighCouncilConfigChangedDaoId), 
+        Message = "query high council config changed daoId error", LogTargets = new []{"daoIds", "chainId", "lastEndHeight", "newIndexHeight"})]
+    public virtual async Task<long> GetHighCouncilConfigChangedDaoId(ISet<string> daoIds, string chainId, long lastEndHeight,
+        long newIndexHeight)
+    {
+        var highCouncilConfig = await _electionProvider.GetHighCouncilConfigAsync(new GetHighCouncilConfigInput
+        {
+            ChainId = chainId,
+            SkipCount = 0,
+            MaxResultCount = MaxResultCount,
+            StartBlockHeight = lastEndHeight,
+            EndBlockHeight = newIndexHeight
+        });
+
+        long maxBlockHeight = lastEndHeight;
+        if (!highCouncilConfig.Items.IsNullOrEmpty())
+        {
+            foreach (var electedRecord in highCouncilConfig.Items)
+            {
+                daoIds.Add(electedRecord.DaoId);
+                maxBlockHeight = Math.Max(maxBlockHeight, electedRecord.BlockHeight);
+            }
+        }
+
+        return !highCouncilConfig.Items.IsNullOrEmpty() &&
+               highCouncilConfig.Items.Count >= MaxResultCount
+            ? Math.Min(maxBlockHeight, newIndexHeight)
+            : newIndexHeight;
     }
 }

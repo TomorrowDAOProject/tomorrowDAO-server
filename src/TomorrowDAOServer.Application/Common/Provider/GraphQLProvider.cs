@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+// using AElf.ExceptionHandler;
 using GraphQL;
 using GraphQL.Client.Abstractions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common.GraphQL;
+// using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Enums;
@@ -16,7 +19,9 @@ using TomorrowDAOServer.Grains.Grain.ApplicationHandler;
 using TomorrowDAOServer.Grains.Grain.Dao;
 using TomorrowDAOServer.Grains.Grain.Election;
 using TomorrowDAOServer.Grains.Grain.Proposal;
+using TomorrowDAOServer.Grains.Grain.Sequence;
 using TomorrowDAOServer.Grains.Grain.Token;
+using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.Providers;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -63,6 +68,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         _indexerProvider = indexerProvider;
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleGetTokenInfoAsync), ReturnDefault = ReturnDefault.New)]
     public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
     {
         try
@@ -77,6 +84,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleSetTokenInfoAsync))]
     public async Task SetTokenInfoAsync(TokenInfoDto tokenInfo)
     {
         try
@@ -90,6 +99,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetBPAsync Error", ReturnDefault = ReturnDefault.New)]
     public async Task<List<string>> GetBPAsync(string chainId)
     {
         try
@@ -104,6 +115,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetBPWithRoundAsync Error", ReturnDefault = ReturnDefault.New)]
     public async Task<BpInfoDto> GetBPWithRoundAsync(string chainId)
     {
         Stopwatch sw = Stopwatch.StartNew();
@@ -124,6 +137,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleSetBPAsync))]
     public async Task SetBPAsync(string chainId, List<string> addressList, long round)
     {
         try
@@ -137,6 +152,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetProposalNumAsync Error", ReturnDefault = ReturnDefault.Default)]
     public async Task<long> GetProposalNumAsync(string chainId)
     {
         try
@@ -151,7 +168,10 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
-    public async Task SetProposalNumAsync(string chainId, long parliamentCount, long associationCount, long referendumCount)
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn))]
+    public async Task SetProposalNumAsync(string chainId, long parliamentCount, long associationCount,
+        long referendumCount)
     {
         try
         {
@@ -164,8 +184,51 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleGetLastEndHeightAsync))]
     public async Task<long> GetLastEndHeightAsync(string chainId, WorkerBusinessType queryChainType)
     {
+        //TestCode
+        // {
+        //     var userGrain = _clusterClient.GetGrain<IUserGrain>(Guid.Parse("cdba8eca-dde5-4b1f-8ea4-2e70f8f12d7e"));
+        //     var grainResultDto = await userGrain.GetUser();
+        //     _logger.LogInformation("grainResultDto={0}", JsonConvert.SerializeObject(grainResultDto));
+        //
+        //     var proposalNumGrain = _clusterClient.GetGrain<IProposalNumGrain>("tDVW");
+        //     var proposalNumAsync = await proposalNumGrain.GetProposalNumAsync();
+        //     _logger.LogInformation("proposalNumAsync={0}", JsonConvert.SerializeObject(proposalNumAsync));
+        //
+        //     var sequenceGrain = _clusterClient.GetGrain<ISequenceGrain>("TelegramAppSequence");
+        //     var nextValAsync = await sequenceGrain.GetNextValAsync();
+        //     _logger.LogInformation("nextValAsync={0}", JsonConvert.SerializeObject(nextValAsync));
+        //
+        //     var tokenExchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>("ONEONEONE_USD");
+        //     var tokenExchangeGrainDto = await tokenExchangeGrain.GetAsync();
+        //     _logger.LogInformation("tokenExchangeGrainDto={0}", JsonConvert.SerializeObject(tokenExchangeGrainDto));
+        //
+        //     var tokenGrain = _clusterClient.GetGrain<ITokenGrain>("tDVW-ELF");
+        //     var tokenInfoAsync = await tokenGrain.GetTokenInfoAsync();
+        //     _logger.LogInformation("tokenInfoAsync={0}", JsonConvert.SerializeObject(tokenInfoAsync));
+        //
+        //     var highCouncilMembersGrain = _clusterClient.GetGrain<IHighCouncilMembersGrain>("tDVW_c83c2c3bb8487e278a20becf49ce5b6f6cc4d31f6175ac6c1ae1fdc21b18d76a");
+        //     var highCouncilMembersAsync = await highCouncilMembersGrain.GetHighCouncilMembersAsync();
+        //     _logger.LogInformation("highCouncilMembersAsync={0}", JsonConvert.SerializeObject(highCouncilMembersAsync));
+        //
+        //     var daoAliasGrain = _clusterClient.GetGrain<IDaoAliasGrain>("tDVW_18-17");
+        //     var daoAliasInfoAsync = await daoAliasGrain.GetDaoAliasInfoAsync();
+        //     _logger.LogInformation("daoAliasInfoAsync={0}", JsonConvert.SerializeObject(daoAliasInfoAsync));
+        //
+        //     var graphQlGrain = _clusterClient.GetGrain<IContractServiceGraphQLGrain>(WorkerBusinessType.BPInfoUpdate.ToString() + "tDVW");
+        //     //await graphQlGrain.SetStateAsync(100);
+        //     var stateAsync = await graphQlGrain.GetStateAsync();
+        //     _logger.LogInformation("stateAsync={0}", JsonConvert.SerializeObject(stateAsync));
+        //     
+        //     var bpGrain = _clusterClient.GetGrain<IBPGrain>("tDVW");
+        //     //await bpGrain.SetBPAsync(new List<string>() {"address1", "address2", "address3"}, 1);
+        //     var bpList = await bpGrain.GetBPAsync();
+        //     _logger.LogInformation("bpList={0}", JsonConvert.SerializeObject(bpList));
+        // }
+        
         try
         {
             var grain = _clusterClient.GetGrain<IContractServiceGraphQLGrain>(queryChainType + chainId);
@@ -178,6 +241,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleSetLastEndHeightAsync))]
     public async Task SetLastEndHeightAsync(string chainId, WorkerBusinessType queryChainType, long height)
     {
         try
@@ -191,6 +256,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.Default)]
     public async Task<long> GetIndexBlockHeightAsync(string chainId)
     {
         try
@@ -203,8 +270,11 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
             return 0;
         }
     }
-
-    public async Task<Dictionary<string, long>> GetHoldersAsync(List<string> symbols, string chainId, int skipCount, int maxResultCount)
+    
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleGetHoldersAsync))]
+    public async Task<Dictionary<string, long>> GetHoldersAsync(List<string> symbols, string chainId, int skipCount,
+        int maxResultCount)
     {
         try
         {
@@ -235,6 +305,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         return new Dictionary<string, long>();
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.New)]
     public async Task<List<DAOAmount>> GetDAOAmountAsync(string chainId)
     {
         try
@@ -263,6 +335,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         return new List<DAOAmount>();
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleSetHighCouncilMembersAsync))]
     public async Task SetHighCouncilMembersAsync(string chainId, string daoId, List<string> addressList)
     {
         try
@@ -277,6 +351,8 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         }
     }
 
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.New)]
     public async Task<List<string>> GetHighCouncilMembersAsync(string chainId, string daoId)
     {
         Stopwatch sw = Stopwatch.StartNew();
