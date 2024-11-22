@@ -31,7 +31,7 @@ public abstract class TomorrowDAOServerWorkBase : AsyncPeriodicBackgroundWorkerB
         _workerOptions = optionsMonitor;
         timer.Period = optionsMonitor.CurrentValue.GetWorkerSettings(BusinessType).TimePeriod;
 
-        //to change timer Period if the WorkerOptions has changed.
+        //to change timer Period if the WorkerOptions has changed. 
         optionsMonitor.OnChange((newOptions, _) =>
         {
             var workerSetting = newOptions.GetWorkerSettings(BusinessType);
