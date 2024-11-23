@@ -196,7 +196,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleAvgPrice))]
-    public static async Task<decimal> AvgPrice([CanBeNull] TokenExchangeGrainDto exchange)
+    public virtual async Task<decimal> AvgPrice([CanBeNull] TokenExchangeGrainDto exchange)
     {
         if (exchange == null || exchange.ExchangeInfos == null || !exchange.ExchangeInfos.Any())
         {

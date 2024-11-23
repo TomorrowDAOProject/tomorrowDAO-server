@@ -40,7 +40,7 @@ public class DaoAliasProvider : IDaoAliasProvider, ISingletonDependency
     //     MethodName = nameof(TmrwDaoExceptionHandler.HandleGenerateDaoAliasAsync), 
     //     Message = "Generate dao alias error",
     //     LogTargets = new []{"daoIndex"})]
-    public async Task<string> GenerateDaoAliasAsync(DAOIndex daoIndex)
+    public virtual async Task<string> GenerateDaoAliasAsync(DAOIndex daoIndex)
     {
         if (daoIndex == null)
         {

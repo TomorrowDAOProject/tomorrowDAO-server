@@ -35,7 +35,7 @@ public class ElectionService : TomorrowDAOServerAppService, IElectionService
         MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, 
         Message = "System exception occurred during querying High Council member list",
         LogTargets = new []{"input"})]
-    public async Task<List<string>> GetHighCouncilMembersAsync(HighCouncilMembersInput input)
+    public virtual async Task<List<string>> GetHighCouncilMembersAsync(HighCouncilMembersInput input)
     {
         if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
         {
