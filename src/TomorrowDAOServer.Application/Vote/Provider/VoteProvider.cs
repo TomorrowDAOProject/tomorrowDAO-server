@@ -65,7 +65,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleGetVoteItemsAsync))]
-    public async Task<Dictionary<string, IndexerVote>> GetVoteItemsAsync(string chainId, List<string> votingItemIds)
+    public virtual async Task<Dictionary<string, IndexerVote>> GetVoteItemsAsync(string chainId, List<string> votingItemIds)
     {
         Stopwatch sw = Stopwatch.StartNew();
         if (votingItemIds.IsNullOrEmpty())
@@ -107,7 +107,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetVoteWithdrawnAsync error",
         ReturnDefault = ReturnDefault.New, LogTargets = new []{"chainId", "daoId", "voter"})]
-    public async Task<List<WithdrawnDto>> GetVoteWithdrawnAsync(string chainId, string daoId, string voter)
+    public virtual async Task<List<WithdrawnDto>> GetVoteWithdrawnAsync(string chainId, string daoId, string voter)
     {
         var result = await _graphQlHelper.QueryAsync<IndexerVoteWithdrawn>(new GraphQLRequest
         {
@@ -131,7 +131,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetLimitVoteRecordInput error",
         ReturnDefault = ReturnDefault.New, LogTargets = new []{"input"})]
-    public async Task<List<IndexerVoteRecord>> GetLimitVoteRecordAsync(GetLimitVoteRecordInput input)
+    public virtual async Task<List<IndexerVoteRecord>> GetLimitVoteRecordAsync(GetLimitVoteRecordInput input)
     {
         var result = await _graphQlHelper.QueryAsync<IndexerVoteRecords>(new GraphQLRequest
         {
@@ -164,7 +164,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetAllVoteRecordAsync error",
         ReturnDefault = ReturnDefault.New, LogTargets = new []{"input"})]
-    public async Task<List<IndexerVoteRecord>> GetAllVoteRecordAsync(GetAllVoteRecordInput input)
+    public virtual async Task<List<IndexerVoteRecord>> GetAllVoteRecordAsync(GetAllVoteRecordInput input)
     {
         var result = await _graphQlHelper.QueryAsync<IndexerVoteRecords>(new GraphQLRequest
         {
@@ -224,7 +224,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetSyncVoteRecordListAsync error",
         ReturnDefault = ReturnDefault.New, LogTargets = new []{"input"})]
-    public async Task<List<IndexerVoteRecord>> GetSyncVoteRecordListAsync(GetChainBlockHeightInput input)
+    public virtual async Task<List<IndexerVoteRecord>> GetSyncVoteRecordListAsync(GetChainBlockHeightInput input)
     {
         var result = await _graphQlHelper.QueryAsync<IndexerVoteRecords>(new GraphQLRequest
         {
@@ -259,7 +259,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "GetSyncVoteWithdrawListAsync error",
         ReturnDefault = ReturnDefault.New, LogTargets = new []{"input"})]
-    public async Task<List<WithdrawnDto>> GetSyncVoteWithdrawListAsync(GetChainBlockHeightInput input)
+    public virtual async Task<List<WithdrawnDto>> GetSyncVoteWithdrawListAsync(GetChainBlockHeightInput input)
     {
         var result = await _graphQlHelper.QueryAsync<IndexerVoteWithdrawn>(new GraphQLRequest
         {

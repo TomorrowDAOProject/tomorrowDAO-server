@@ -279,7 +279,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.New,
         LogTargets = new []{"str", "index", "splitSymbol"})]
-    public async Task<string> GetIndexStringAsync(string str, int index, string splitSymbol)
+    public virtual async Task<string> GetIndexStringAsync(string str, int index, string splitSymbol)
     {
         return str.Split(splitSymbol)[index];
     }

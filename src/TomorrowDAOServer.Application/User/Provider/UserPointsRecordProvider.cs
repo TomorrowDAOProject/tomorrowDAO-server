@@ -142,7 +142,7 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.Default,
         Message = "GetUserTaskCompleteTime error", LogTargets = new []{"chainId", "address", "userTask", "userTaskDetail"})]
-    public async Task<bool> UpdateUserTaskCompleteTimeAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail,
+    public virtual async Task<bool> UpdateUserTaskCompleteTimeAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail,
         DateTime completeTime)
     {
         var id = GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, address);

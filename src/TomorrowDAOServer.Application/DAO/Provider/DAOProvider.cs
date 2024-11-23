@@ -238,7 +238,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
         Message = "GetMyParticipatedDaoListAsync error", ReturnDefault = ReturnDefault.New,
         LogTargets = new []{"input"})]
-    public async Task<PageResultDto<IndexerDAOInfo>> GetMyParticipatedDaoListAsync(GetParticipatedInput input)
+    public virtual async Task<PageResultDto<IndexerDAOInfo>> GetMyParticipatedDaoListAsync(GetParticipatedInput input)
     {
         var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<IndexerDAOInfo>>>(
                 new GraphQLRequest
@@ -304,7 +304,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
         Message = "GetMemberListAsync error", ReturnDefault = ReturnDefault.New,
         LogTargets = new []{"input"})]
-    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
+    public virtual async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput listInput)
     {
         var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<PageResultDto<MemberDto>>>(
             new GraphQLRequest
@@ -339,7 +339,7 @@ public class DAOProvider : IDAOProvider, ISingletonDependency
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
         Message = "GetIsMemberAsync error", ReturnDefault = ReturnDefault.New,
         LogTargets = new []{"input"})]
-    public async Task<MemberDto> GetMemberAsync(GetMemberInput input)
+    public virtual async Task<MemberDto> GetMemberAsync(GetMemberInput input)
     {
         var response = await _graphQlHelper.QueryAsync<IndexerCommonResult<MemberDto>>(new GraphQLRequest
         {

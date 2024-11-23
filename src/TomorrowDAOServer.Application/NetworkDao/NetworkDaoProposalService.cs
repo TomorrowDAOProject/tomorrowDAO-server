@@ -75,7 +75,7 @@ public class NetworkDaoProposalService : INetworkDaoProposalService, ISingletonD
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndThrow), Message = "Failed to query the proposal list.",
         LogTargets = new []{"request"})]
-    public async Task<ExplorerProposalResponse> GetProposalListAsync(ProposalListRequest request)
+    public virtual async Task<ExplorerProposalResponse> GetProposalListAsync(ProposalListRequest request)
     {
         var explorerResp = await _explorerProvider.GetProposalPagerAsync(request.ChainId,
             new ExplorerProposalListRequest

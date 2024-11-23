@@ -37,7 +37,7 @@ public class DeviceInfoMiddleware
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = ReturnDefault.Default, Message = "Decode device info error")]
-    public async Task<DeviceInfo> ExtractDeviceInfoAsync(HttpContext context)
+    public virtual async Task<DeviceInfo> ExtractDeviceInfoAsync(HttpContext context)
     {
         var headers = context.Request.Headers;
         if (headers.IsNullOrEmpty()) return null;

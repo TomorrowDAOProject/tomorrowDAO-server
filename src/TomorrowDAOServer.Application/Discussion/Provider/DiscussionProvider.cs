@@ -44,7 +44,7 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
         MethodName = nameof(TmrwDaoExceptionHandler.HandleGetCommentCountAsync))]
-    public async Task<long> GetCommentCountAsync(string proposalId)
+    public virtual async Task<long> GetCommentCountAsync(string proposalId)
     {
         var grain = _clusterClient.GetGrain<ICommentCountGrain>(proposalId);
         return await grain.GetNextCount();

@@ -38,7 +38,7 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
     /*[ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
         MethodName = nameof(DaoAliasGrainExceptionHandler.HandleSaveDaoAliasInfoAsync),
         Message = "Save dao alias info error", LogTargets = new []{"daoAliasDto"})]*/
-    public async Task<GrainResultDto<int>> SaveDaoAliasInfoAsync(DaoAliasDto daoAliasDto)
+    public virtual async Task<GrainResultDto<int>> SaveDaoAliasInfoAsync(DaoAliasDto daoAliasDto)
     {
         if (daoAliasDto == null)
         {
@@ -91,7 +91,7 @@ public class DaoAliasGrain : Grain<DaoAliasState>, IDaoAliasGrain
     // [ExceptionHandler(typeof(Exception), TargetType = typeof(DaoAliasGrainExceptionHandler),
     //     MethodName = nameof(DaoAliasGrainExceptionHandler.HandleGetDaoAliasInfoAsync),
     //     Message = "Get dao alias info error")]
-    public Task<GrainResultDto<List<DaoAliasDto>>> GetDaoAliasInfoAsync()
+    public virtual Task<GrainResultDto<List<DaoAliasDto>>> GetDaoAliasInfoAsync()
     {
         try
         {
