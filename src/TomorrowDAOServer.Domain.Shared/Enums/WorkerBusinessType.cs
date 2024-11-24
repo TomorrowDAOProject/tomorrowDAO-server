@@ -21,4 +21,5 @@ public enum WorkerBusinessType
     FindminiAppsSync,
     TonGiftTaskGenerate,
     TonGiftTaskComplete,
+    AppUrlUpload,
 }

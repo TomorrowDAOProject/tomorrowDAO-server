@@ -250,8 +250,9 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                     .Type("number")
                     .Order(SortOrder.Descending)
                     .Script(s => s
-                            .Source("doc['activeEndTime'].value.toInstant().toEpochMilli() > ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() ? 1 : 0")
-                            .Params(p => p.Add("currentUtcTime", currentUtcTime)) 
+                        .Source("doc['activeEndTime'].value.toInstant().toEpochMilli() > ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() " +
+                                "&& doc['activeStartTime'].value.toInstant().toEpochMilli() < ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() ? 1 : 0")
+                        .Params(p => p.Add("currentUtcTime", currentUtcTime))
                     )
                 )
                 .Descending(a => a.DeployTime),

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -22,11 +23,16 @@ public class FileService : TomorrowDAOServerAppService, IFileService
     private readonly IAwsS3Client _awsS3Client;
     private readonly IUserProvider _userProvider;
     private readonly IUserBalanceProvider _userBalanceProvider;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<FileService> _logger;
 
-    public FileService(IAwsS3Client awsS3Client, IUserProvider userProvider, IUserBalanceProvider userBalanceProvider)
+    public FileService(IAwsS3Client awsS3Client, IUserProvider userProvider, IUserBalanceProvider userBalanceProvider, 
+        IHttpClientFactory httpClientFactory, ILogger<FileService> logger)
     {
         _awsS3Client = awsS3Client;
         _userBalanceProvider = userBalanceProvider;
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
         _userProvider = userProvider;
     }
 
@@ -56,5 +62,28 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         var url = await _awsS3Client.UpLoadFileAsync(new MemoryStream(utf8Bytes), 
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + CommonConstant.Underline + file.FileName);
         return url;
+    }
+
+    public async Task<string> UploadAsync(string url, string fileName)
+    {
+        var stream = await DownloadImageAsync(url);
+        return await _awsS3Client.UpLoadFileAsync(stream, fileName);
+    }
+
+    public async Task<Stream> DownloadImageAsync(string url)
+    {
+        var client = _httpClientFactory.CreateClient();
+
+        try
+        {
+            var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStreamAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "DownloadImageAsyncException imageUrl {0}", url);
+            return null;
+        }
     }
 }

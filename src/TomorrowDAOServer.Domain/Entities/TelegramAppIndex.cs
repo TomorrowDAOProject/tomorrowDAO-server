@@ -27,4 +27,6 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public SourceType SourceType { get; set; } = SourceType.Telegram;
     [Keyword] public string Creator { get; set; }
     public DateTime LoadTime { get; set; }
+    public string BackUrl { get; set; }
+    public List<string> BackScreenshots { get; set; }
 }
