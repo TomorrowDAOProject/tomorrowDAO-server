@@ -172,7 +172,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var category = CheckCategory(input.Category);
         var aliases = _discoverOptions.CurrentValue.TopApps;
         var topApps = new List<TelegramAppIndex>();
-        if (aliases.IsNullOrEmpty())
+        if (!aliases.IsNullOrEmpty())
         {
             var (_, list) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput { Aliases = aliases });
             topApps = list.Where(x => x.Categories.Contains(category)).Distinct().ToList();
