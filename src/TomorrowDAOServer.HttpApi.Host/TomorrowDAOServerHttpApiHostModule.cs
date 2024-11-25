@@ -85,6 +85,7 @@ namespace TomorrowDAOServer
             Configure<UserOptions>(configuration.GetSection("UserOptions"));
             Configure<EmojiOptions>(configuration.GetSection("Emoji"));
             Configure<LuckyboxOptions>(configuration.GetSection("LuckyboxOptions"));
+            Configure<DiscoverOptions>(configuration.GetSection("DiscoverOptions"));
             
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
