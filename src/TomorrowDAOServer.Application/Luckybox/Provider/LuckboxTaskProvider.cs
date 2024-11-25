@@ -16,7 +16,7 @@ public interface ILuckboxTaskProvider
     Task BulkAddOrUpdateAsync(List<LuckyBoxTaskIndex> list);
     Task<LuckyBoxTaskIndex> GetByAddressAndProposalIdAsync(string address, string proposalId);
     Task GenerateTaskAsync(string address, string proposalId, string trackId, DateTime voteTime);
-    Task<List<LuckyBoxTaskIndex>> GetNeedReportAsync(int skipCount);
+    Task<List<LuckyBoxTaskIndex>> GetNeedReportAsync(int skipCount, string proposalId);
 }
 
 public class LuckboxTaskProvider : ILuckboxTaskProvider, ISingletonDependency
@@ -66,11 +66,12 @@ public class LuckboxTaskProvider : ILuckboxTaskProvider, ISingletonDependency
         }
     }
 
-    public async Task<List<LuckyBoxTaskIndex>> GetNeedReportAsync(int skipCount)
+    public async Task<List<LuckyBoxTaskIndex>> GetNeedReportAsync(int skipCount, string proposalId)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<LuckyBoxTaskIndex>, QueryContainer>>
         {
             q => !q.Term(i => i.Field(f => f.UpdateTaskStatus).Value(UpdateTaskStatus.Completed)),
+            q => q.Term(i => i.Field(f => f.ProposalId).Value(proposalId))
         };
         QueryContainer Filter(QueryContainerDescriptor<LuckyBoxTaskIndex> f) => f.Bool(b => b.Must(mustQuery));
         var (_, list) = await _luckyboxTaskRepository.GetListAsync(Filter, sortType: SortOrder.Ascending,

@@ -28,10 +28,11 @@ public class LuckyboxApiProvider : ILuckyboxApiProvider, ISingletonDependency
         .IgnoreNullValue()
         .Build();
 
-    public LuckyboxApiProvider(IHttpProvider httpProvider, IOptionsMonitor<LuckyboxOptions> luckyboxOptions)
+    public LuckyboxApiProvider(IHttpProvider httpProvider, IOptionsMonitor<LuckyboxOptions> luckyboxOptions, ILogger<LuckyboxApiProvider> logger)
     {
         _httpProvider = httpProvider;
         _luckyboxOptions = luckyboxOptions;
+        _logger = logger;
     }
 
     public async Task<bool> ReportAsync(string trackId)
