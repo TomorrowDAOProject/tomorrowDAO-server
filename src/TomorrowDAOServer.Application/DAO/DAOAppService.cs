@@ -136,7 +136,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, ReturnDefault = ReturnDefault.Default,
         Message = "System exception occurred during querying member list",
         LogTargets = new []{"input"})]
-    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput input)
+    public virtual async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput input)
     {
         if (input == null || (input.DAOId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
         {

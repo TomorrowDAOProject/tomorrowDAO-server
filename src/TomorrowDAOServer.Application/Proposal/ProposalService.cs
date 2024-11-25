@@ -256,7 +256,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleGetProposalListAsync), Message = "GetProposalListAsync error",
         LogTargets = new []{"daoId"}, ReturnDefault = default)]
-    private async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
+    public virtual async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
     {
         var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
         var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input, excludeIds);

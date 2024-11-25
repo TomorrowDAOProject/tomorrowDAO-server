@@ -47,7 +47,7 @@ public class IssueTokenService : TomorrowDAOServerAppService, IIssueTokenService
         MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,
         Message = "IssueTokensAsync error", 
         LogTargets = new []{"input"})]
-    public async Task<IssueTokenResponse> IssueTokensAsync(IssueTokensInput input)
+    public virtual async Task<IssueTokenResponse> IssueTokensAsync(IssueTokensInput input)
     {
         if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.Symbol.IsNullOrWhiteSpace())
         {

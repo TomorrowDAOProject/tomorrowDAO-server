@@ -875,7 +875,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = default,
         Message = "GetRankingVoteRecordEsAsync error", LogTargets = new []{"chainId", "address", "proposalId"})]
-    public async Task<VoteRecordIndex> GetRankingVoteRecordEsAsync(string chainId, string address, string proposalId)
+    public virtual async Task<VoteRecordIndex> GetRankingVoteRecordEsAsync(string chainId, string address, string proposalId)
     {
         return (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, address,
                 new List<string> { proposalId }))

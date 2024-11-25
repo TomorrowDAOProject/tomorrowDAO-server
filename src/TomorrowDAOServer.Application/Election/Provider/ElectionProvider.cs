@@ -56,7 +56,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReThrow), 
         Message = "GetCandidateElectedRecordsAsync error",
         LogTargets = new []{"input"})]
-    public async Task<ElectionPageResultDto<ElectionCandidateElectedDto>> GetCandidateElectedRecordsAsync(
+    public virtual async Task<ElectionPageResultDto<ElectionCandidateElectedDto>> GetCandidateElectedRecordsAsync(
         GetCandidateElectedRecordsInput input)
     {
         var graphQlResponse = await _graphQlHelper
@@ -89,7 +89,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReThrow), 
         Message = "GetHighCouncilConfigAsync error",
         LogTargets = new []{"input"})]
-    public async Task<ElectionPageResultDto<ElectionHighCouncilConfigDto>> GetHighCouncilConfigAsync(
+    public virtual async Task<ElectionPageResultDto<ElectionHighCouncilConfigDto>> GetHighCouncilConfigAsync(
         GetHighCouncilConfigInput input)
     {
         var graphQlResponse = await _graphQlHelper
@@ -121,7 +121,7 @@ public class ElectionProvider : IElectionProvider, ISingletonDependency
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReThrow), 
         Message = "GetVotingItemAsync error", LogTargets = new []{"input"})]
-    public async Task<ElectionPageResultDto<ElectionVotingItemDto>> GetVotingItemAsync(GetVotingItemInput input)
+    public virtual async Task<ElectionPageResultDto<ElectionVotingItemDto>> GetVotingItemAsync(GetVotingItemInput input)
     {
         var graphQlResponse =
             await _graphQlHelper.QueryAsync<IndexerCommonResult<ElectionPageResultDto<ElectionVotingItemDto>>>(

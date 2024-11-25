@@ -32,7 +32,11 @@ public class ElectionService : TomorrowDAOServerAppService, IElectionService
     }
 
 
-    public async Task<List<string>> GetHighCouncilMembersAsync(HighCouncilMembersInput input)
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, 
+    //     Message = "System exception occurred during querying High Council member list",
+    //     LogTargets = new []{"input"})]
+    public virtual async Task<List<string>> GetHighCouncilMembersAsync(HighCouncilMembersInput input)
     {
         Stopwatch sw = Stopwatch.StartNew();
         if (input == null || (input.DaoId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))

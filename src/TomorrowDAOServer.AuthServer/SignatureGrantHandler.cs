@@ -392,7 +392,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
     // [ExceptionHandler(typeof(Exception), TargetType = typeof(SignatureGrantHandlerExceptionHandler),
     //     MethodName = nameof(SignatureGrantHandlerExceptionHandler.HandleGetAddressInfoAsync), Message = "get holder from chain error",
     //     LogTargets = new []{"caHash"})]
-    private async Task<AddressInfo> GetAddressInfoAsync(string chainId, string caHash)
+    public virtual async Task<AddressInfo> GetAddressInfoAsync(string chainId, string caHash)
     {
         try
         {

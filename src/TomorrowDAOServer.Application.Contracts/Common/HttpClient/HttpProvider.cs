@@ -205,7 +205,7 @@ public class HttpProvider : IHttpProvider
         MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, 
         Message = "Error deserializing service api.path response",
         LogTargets = new []{"apiInfo", "resp"})]
-    public async Task<T> DeserializeResponseAsync<T>(ApiInfo apiInfo, JsonSerializerSettings settings, string resp)
+    public virtual async Task<T> DeserializeResponseAsync<T>(ApiInfo apiInfo, JsonSerializerSettings settings, string resp)
     {
         return JsonConvert.DeserializeObject<T>(resp, settings ?? DefaultJsonSettings);
     }

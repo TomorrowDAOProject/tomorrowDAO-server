@@ -40,7 +40,7 @@ public class UserBalanceProvider : IUserBalanceProvider, ISingletonDependency
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.New,
         Message = "GetSyncUserBalanceList error", LogTargets = new []{"input"})]
-    public async Task<List<UserBalance>> GetSyncUserBalanceListAsync(GetChainBlockHeightInput input)
+    public virtual async Task<List<UserBalance>> GetSyncUserBalanceListAsync(GetChainBlockHeightInput input)
     {
         var response = await _graphQlHelper.QueryAsync<IndexerUserBalance>(new GraphQLRequest
         {

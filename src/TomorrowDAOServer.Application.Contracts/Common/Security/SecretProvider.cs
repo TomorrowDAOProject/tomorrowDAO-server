@@ -59,7 +59,7 @@ public class SecretProvider : ISecretProvider, ITransientDependency
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,  ReturnDefault = default,
         Message = "CallSignatureService error",
         LogTargets = new []{"publicKey", "hash"})]
-    public async Task<string> GetSignatureFromHashAsync(string publicKey, Hash hash)
+    public virtual async Task<string> GetSignatureFromHashAsync(string publicKey, Hash hash)
     {
         var signatureSend = new SendSignatureDto
         {

@@ -66,7 +66,7 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
         Message = "GetSyncReferralListAsync error", ReturnDefault = ReturnDefault.New,
         LogTargets = new []{"methodName", "startTime", "endTime", "skipCount", "maxResultCount"})]
-    public async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
+    public virtual async Task<List<IndexerReferral>> GetSyncReferralListAsync(string methodName, long startTime, long endTime, int skipCount, int maxResultCount)
     {
         var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
         using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());

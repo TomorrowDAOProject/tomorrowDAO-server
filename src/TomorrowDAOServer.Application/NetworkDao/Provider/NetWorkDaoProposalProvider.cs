@@ -34,7 +34,7 @@ public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingleto
         MethodName = TmrwDaoExceptionHandler.DefaultReThrowMethodName, 
         Message = "GetNetworkDaoProposalsAsync error",
         LogTargets = new []{"input"})]
-    public async Task<NetworkDaoPagedResultDto<NetworkDaoProposalDto>> GetNetworkDaoProposalsAsync(
+    public virtual async Task<NetworkDaoPagedResultDto<NetworkDaoProposalDto>> GetNetworkDaoProposalsAsync(
         GetNetworkDaoProposalsInput input)
     {
         var graphQlResponse = await _graphQlHelper

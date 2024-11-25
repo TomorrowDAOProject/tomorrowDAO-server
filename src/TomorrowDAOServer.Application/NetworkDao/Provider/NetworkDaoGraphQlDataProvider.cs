@@ -44,8 +44,8 @@ public class NetworkDaoGraphQlDataProvider : INetworkDaoGraphQlDataProvider, ISi
                     new GraphQLRequest
                     {
                         Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String,$orgAddresses:[String!],$orgType:NetworkDaoOrgType!,$proposalIds:[String!],$title:String){
-            data:getNetworkDaoProposalIndex(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,orgAddresses:$orgAddresses,orgType:$orgType,proposalIds:$proposalIds,title:$title})
+                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String,$orgAddresses:[String!],$orgType:NetworkDaoOrgType!,$proposalIds:[String!],$title:String,$contractNames:[String!],$methodNames:[String!]){
+            data:getNetworkDaoProposalIndex(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,orgAddresses:$orgAddresses,orgType:$orgType,proposalIds:$proposalIds,title:$title,contractNames:$contractNames,methodNames:$methodNames})
             {
                 data {
                     id,proposalId,organizationAddress,title,description,orgType,isReleased,saveTime,symbol,totalAmount,chainId,blockHash,blockHeight,blockTime,previousBlockHash,isDeleted,
@@ -65,7 +65,9 @@ public class NetworkDaoGraphQlDataProvider : INetworkDaoGraphQlDataProvider, ISi
                             orgAddresses = input.OrgAddresses,
                             orgType = input.OrgType,
                             proposalIds = input.ProposalIds,
-                            title = input.Title
+                            title = input.Title,
+                            contractNames = input.ContractNames,
+                            methodNames = input.MethodNames
                         }
                     });
             return graphQlResponse?.Data ?? new PageResultDto<IndexerProposal>();
