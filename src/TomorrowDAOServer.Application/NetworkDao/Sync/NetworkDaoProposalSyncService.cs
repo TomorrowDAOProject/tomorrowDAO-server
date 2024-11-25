@@ -69,7 +69,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
 
     public async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var skipCount = 0;
+        var skipCount = 1000;
         List<IndexerProposal> queryList;
         do
         {
@@ -375,31 +375,46 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
 
     private async Task SetProposalExpiredTimeAsync(string chainId, NetworkDaoProposalIndex proposalIndex)
     {
-        var proposalOutput =
-            await _networkDaoContractProvider.GetProposalAsync(chainId, proposalIndex.OrgType,
-                proposalIndex.ProposalId);
-        if (proposalOutput != null && proposalOutput.ProposalId != null && proposalOutput.ProposalId != Hash.Empty)
+        try
         {
-            proposalIndex.ExpiredTime = proposalOutput.ExpiredTime.ToDateTime();
-            return;
-        }
-
-        if (_migratorOptions.CurrentValue.QueryExplorerProposal)
-        {
-            var explorerResp = await _explorerProvider.GetProposalPagerAsync(chainId,
-                new ExplorerProposalListRequest
-                {
-                    ProposalType = proposalIndex.OrgType.ToString(),
-                    Search = proposalIndex.ProposalId
-                });
-
-            if (explorerResp == null || explorerResp.List.IsNullOrEmpty())
+            var proposalOutput =
+                await _networkDaoContractProvider.GetProposalAsync(chainId, proposalIndex.OrgType,
+                    proposalIndex.ProposalId);
+            if (proposalOutput != null && proposalOutput.ProposalId != null && proposalOutput.ProposalId != Hash.Empty)
             {
+                if (proposalOutput.ExpiredTime != null)
+                {
+                    proposalIndex.ExpiredTime = proposalOutput.ExpiredTime.ToDateTime();
+                }
                 return;
             }
 
-            var explorerProposalResult = explorerResp.List.FirstOrDefault();
-            proposalIndex.ExpiredTime = explorerProposalResult!.ExpiredTime;
+            if (_migratorOptions.CurrentValue.QueryExplorerProposal)
+            {
+                var explorerResp = await _explorerProvider.GetProposalPagerAsync(chainId,
+                    new ExplorerProposalListRequest
+                    {
+                        ProposalType = proposalIndex.OrgType.ToString(),
+                        Search = proposalIndex.ProposalId
+                    });
+
+                if (explorerResp == null || explorerResp.List.IsNullOrEmpty())
+                {
+                    return;
+                }
+
+                var explorerProposalResult = explorerResp.List.FirstOrDefault();
+                proposalIndex.ExpiredTime = explorerProposalResult!.ExpiredTime;
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Query Proposal ExpiredTime fail. proposalId={0}, orgType={1}",
+                proposalIndex.ProposalId, proposalIndex.OrgType.ToString());
+            if (proposalIndex.SaveTime != null)
+            {
+                proposalIndex.ExpiredTime = proposalIndex.SaveTime.AddMinutes(10);
+            }
         }
     }
 
