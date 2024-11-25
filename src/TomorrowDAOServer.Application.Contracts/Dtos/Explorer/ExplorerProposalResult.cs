@@ -4,8 +4,8 @@ namespace TomorrowDAOServer.Dtos.Explorer;
 
 public class ExplorerProposalResult
 {
-    public int Abstentions { get; set; }
-    public int Approvals { get; set; }
+    public decimal Abstentions { get; set; }
+    public decimal Approvals { get; set; }
     public bool CanVote { get; set; }
     public string ContractAddress { get; set; }
     public string ContractMethod { get; set; }
@@ -24,7 +24,7 @@ public class ExplorerProposalResult
     public DateTime UpdatedAt { get; set; }
     public string ProposalId { get; set; }
     public string Proposer { get; set; }
-    public int Rejections { get; set; }
+    public decimal Rejections { get; set; }
     public DateTime ReleasedTime { get; set; }
     public string ReleasedTxId { get; set; }
     public string Status { get; set; }
