@@ -156,6 +156,11 @@ public class TimestampConverter : JsonConverter<Timestamp>
         {
             return null;
         }
+        
+        if (reader.Value == null)
+        {
+            return null;
+        }
 
         if (reader.TokenType == JsonToken.Date)
         {

@@ -86,7 +86,9 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                     StartBlockHeight = lastEndHeight,
                     EndBlockHeight = newIndexHeight,
                     SkipCount = skipCount,
-                    MaxResultCount = MaxResultCount
+                    MaxResultCount = MaxResultCount,
+                    ContractNames = _migratorOptions.CurrentValue.FilterGraphQLToAddresses,
+                    MethodNames = _migratorOptions.CurrentValue.FilterGraphQLMethodNames
                 })).Data;
             _logger.LogInformation("[NetworkDaoMigrator]Sync proposal,count:{count}", queryList?.Count);
             if (queryList.IsNullOrEmpty())
@@ -98,7 +100,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             var proposalList = await BuildProposalIndexAsync(chainId, queryList);
 
             //query and merge local data（release、vote）
-            await UpdateAndMergeLocalProposalDataAsync(chainId, proposalList);
+            await UpdateAndMergeLocalProposalDataAsync(chainId, proposalList, lastEndHeight);
 
             //query the vote data of changed
             var voteRecords = await BuildProposalVoteIndexAsync(chainId, lastEndHeight, newIndexHeight, proposalList);
@@ -176,8 +178,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     }
 
     private async Task<List<IndexerProposalVoteRecord>> BuildProposalVoteIndexAsync(string chainId, long lastEndHeight,
-        long newIndexHeight,
-        List<NetworkDaoProposalIndex> proposalList)
+        long newIndexHeight, List<NetworkDaoProposalIndex> proposalList)
     {
         var stopwatch = Stopwatch.StartNew();
         var voteRecordList = new List<IndexerProposalVoteRecord>();
@@ -216,7 +217,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         return voteRecordList;
     }
 
-    private async Task UpdateAndMergeLocalProposalDataAsync(string chainId, List<NetworkDaoProposalIndex> proposalList)
+    private async Task UpdateAndMergeLocalProposalDataAsync(string chainId, List<NetworkDaoProposalIndex> proposalList, long lastEndHeight)
     {
         if (proposalList.IsNullOrEmpty())
         {
@@ -226,7 +227,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         var stopwatch = Stopwatch.StartNew();
 
         var proposalIds = proposalList.Select(t => t.ProposalId).ToList();
-        var releasedProposalIds = proposalList.Where(t => t.IsReleased && t.ReleasedTxId.IsNullOrWhiteSpace())
+        var releasedProposalIds = proposalList.Where(t => t.IsReleased)
             .Select(t => t.ProposalId).ToList();
 
         var localProposalDic = await GetLocalProposalDicAsync(chainId, proposalIds);
@@ -237,11 +238,16 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         {
             if (localProposalDic.ContainsKey(proposalIndex.ProposalId))
             {
-                //update voting info
                 var localProposalIndex = localProposalDic[proposalIndex.ProposalId];
-                proposalIndex.Approvals = localProposalIndex.Approvals;
-                proposalIndex.Abstentions = localProposalIndex.Abstentions;
-                proposalIndex.Rejections = localProposalIndex.Rejections;
+                //Update voting info
+                //Initialize synchronization, no need to update the number of votes
+                //Determine whether it is initialization by lastEndHeight
+                if (lastEndHeight < 1000)
+                {
+                    proposalIndex.Approvals = localProposalIndex.Approvals;
+                    proposalIndex.Abstentions = localProposalIndex.Abstentions;
+                    proposalIndex.Rejections = localProposalIndex.Rejections;
+                }
 
                 proposalIndex.BlockHash = localProposalIndex.BlockHash;
                 proposalIndex.BlockHeight = localProposalIndex.BlockHeight;
@@ -301,9 +307,9 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             
             var proposalIndex = await BuildProposalIndexAsync(chainId, indexerProposal);
             proposalList.Add(proposalIndex);
-            if (count % 10 == 0)
+            if (++count % 10 == 0)
             {
-                _logger.LogDebug("[NetworkDaoMigrator]");
+                _logger.LogInformation("[NetworkDaoMigrator] processed proposal count {0}", count);
             }
         }
 
