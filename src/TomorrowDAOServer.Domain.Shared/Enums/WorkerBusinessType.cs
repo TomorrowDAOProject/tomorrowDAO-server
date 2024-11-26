@@ -1,8 +1,11 @@
+using System;
+
 namespace TomorrowDAOServer.Enums;
 
 public enum WorkerBusinessType
 {
     ProposalSync,
+    [Obsolete]
     ProposalExpired,
     DAOSync,
     BPInfoUpdate,

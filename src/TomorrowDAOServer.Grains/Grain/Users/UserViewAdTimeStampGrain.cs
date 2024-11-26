@@ -1,4 +1,3 @@
-using Orleans;
 using TomorrowDAOServer.Grains.State.Users;
 
 namespace TomorrowDAOServer.Grains.Grain.Users;
@@ -16,6 +15,12 @@ public class UserViewAdTimeStampGrain : Grain<UserViewAdTimeStampState>, IUserVi
     {
         await ReadStateAsync();
         await base.OnActivateAsync(cancellationToken);
+    }
+
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     public async Task<bool> UpdateUserViewAdTimeStampAsync(long timeStamp)

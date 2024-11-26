@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TomorrowDAOServer.Extension;
 using Serilog;
-using Serilog.Events;
 using TomorrowDAOServer.Hubs;
 
 namespace TomorrowDAOServer
@@ -35,7 +34,7 @@ namespace TomorrowDAOServer
                     .UseApollo()
                     .UseOrleansClient()
                     .UseAutofac()
-                    //.UseAElfExceptionHandler()
+                    .UseAElfExceptionHandler()
                     .UseSerilog();
 
                 await builder.AddApplicationAsync<TomorrowDAOServerHttpApiHostModule>();

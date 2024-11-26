@@ -60,9 +60,8 @@ public class ScriptService : IScriptService, ITransientDependency
         return result?.Value ?? new List<string>();
     }
 
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
-        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), ReturnDefault = default,
-        LogTargets = new []{"chainId", "proposalId"})]
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "GetProposalInfoAsync Exception", LogTargets = new []{"chainId", "proposalId"})]
     public virtual async Task<GetProposalInfoDto> GetProposalInfoAsync(string chainId, string proposalId)
     {
         var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
