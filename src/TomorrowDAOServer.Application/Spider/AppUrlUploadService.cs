@@ -9,6 +9,7 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.File;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 
 namespace TomorrowDAOServer.Spider;
@@ -36,7 +37,12 @@ public class AppUrlUploadService : ScheduleSyncDataService
         List<TelegramAppIndex> queryList;
         do
         {
-            queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
+            // todo change later
+            // queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
+            queryList = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput()
+            {
+                Aliases = new List<string>() { "ton-doom" }
+            })).Item2;
             if (queryList == null || queryList.IsNullOrEmpty())
             {
                 break;
@@ -86,6 +92,8 @@ public class AppUrlUploadService : ScheduleSyncDataService
             
             await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
             skipCount += queryList.Count;
+            // todo move later
+            break;
         } while (!queryList.IsNullOrEmpty());
         return -1L;
     }
