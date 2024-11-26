@@ -388,11 +388,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             new()
             {
-                UserTaskDetail = UserTaskDetail.DailyCreatePoll.ToString(),
-                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyCreatePoll),
-            },
-            new()
-            {
                 UserTaskDetail = UserTaskDetail.DailyViewAds.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds),
                 CompleteCount = adCount, TaskCount = 20
@@ -411,7 +406,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 UserTaskDetail = UserTaskDetail.DailyViewAsset.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAsset)
-            }
+            },
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.DailyCreatePoll.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyCreatePoll),
+            },
         };
     }
 
