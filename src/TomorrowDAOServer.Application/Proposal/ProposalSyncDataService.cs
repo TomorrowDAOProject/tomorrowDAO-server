@@ -11,6 +11,7 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking;
+using TomorrowDAOServer.User;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.Caching;
 using Volo.Abp.ObjectMapping;
@@ -28,6 +29,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
     private readonly IOptionsMonitor<SyncDataOptions> _syncDataOptionsMonitor;
     private readonly IProposalAssistService _proposalAssistService;
     private readonly IRankingAppService _rankingAppService;
+    private readonly IUserService _userService;
     private const int MaxResultCount = 1000;
 
     public ProposalSyncDataService(ILogger<ProposalSyncDataService> logger,
@@ -38,7 +40,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
         IOptionsMonitor<SyncDataOptions> syncDataOptionsMonitor,
         IObjectMapper objectMapper, IVoteProvider voteProvider,
         IProposalAssistService proposalAssistService,
-        IRankingAppService rankingAppService)
+        IRankingAppService rankingAppService, IUserService userService)
         : base(logger, graphQlProvider)
     {
         _logger = logger;
@@ -50,6 +52,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
         _voteProvider = voteProvider;
         _proposalAssistService = proposalAssistService;
         _rankingAppService = rankingAppService;
+        _userService = userService;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
@@ -74,6 +77,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
             var (convertProposalList, rankingProposalList) = await _proposalAssistService.ConvertProposalList(chainId, queryList);
             await _proposalProvider.BulkAddOrUpdateAsync(convertProposalList);
             await _rankingAppService.GenerateRankingApp(chainId, rankingProposalList);
+            await _userService.GenerateDailyCreatePollPointsAsync(chainId, rankingProposalList);
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
 

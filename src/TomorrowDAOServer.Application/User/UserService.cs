@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
-using AElf;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,6 +10,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
+using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
@@ -256,6 +254,23 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         return true;
     }
 
+    public async Task GenerateDailyCreatePollPointsAsync(string chainId, List<IndexerProposal> proposalList)
+    {
+        foreach (var proposal in proposalList)
+        {
+            var completeTime = proposal.DeployTime;
+            var address = proposal.Proposer;
+            var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, address, UserTask.Daily,
+                UserTaskDetail.DailyCreatePoll, completeTime);
+            if (!success)
+            {
+                continue;
+            }
+            await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, UserTaskDetail.DailyCreatePoll);
+            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyCreatePoll, completeTime);
+        }
+    }
+
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
     {
         if (!Enum.TryParse<UserTask>(input.UserTask, out var userTask) || UserTask.None == userTask)
@@ -330,18 +345,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         }
     }
 
-    private string GetIndexString(string str, int index, string splitSymbol)
-    {
-        try
-        {
-            return str.Split(splitSymbol)[index];
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
-    }
-
     private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string address,
         List<UserPointsIndex> taskList, UserTask userTask)
     {
@@ -375,6 +378,11 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             new()
             {
+                UserTaskDetail = UserTaskDetail.DailyCreatePoll.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyCreatePoll),
+            },
+            new()
+            {
                 UserTaskDetail = UserTaskDetail.DailyViewAds.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds),
                 CompleteCount = adCount, TaskCount = 20
@@ -401,6 +409,21 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     {
         return new List<TaskInfoDetail>
         {
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.ExploreJoinVotigram.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinVotigram)
+            },
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.ExploreFollowVotigramX.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreFollowVotigramX)
+            },
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.ExploreForwardVotigramX.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreForwardVotigramX)
+            },
             new()
             {
                 UserTaskDetail = UserTaskDetail.ExploreJoinTgChannel.ToString(),
