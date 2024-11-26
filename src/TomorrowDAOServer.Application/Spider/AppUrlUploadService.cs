@@ -80,7 +80,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     if (newBackScreenshots.Any())
                     {
                         needUpdate = true;
-                        index.Screenshots = backScreenshots;
+                        index.BackScreenshots = newBackScreenshots;
                     }
                 }
 
