@@ -46,7 +46,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
             {
                 var needUpdate = false;
                 var url = index.Url;
-                var screendhots = index.Screenshots ?? new List<string>();
+                var screenshots = index.Screenshots ?? new List<string>();
                 var backScreenshots = index.BackScreenshots ?? new List<string>();
                 if (!string.IsNullOrEmpty(url) && string.IsNullOrEmpty(index.BackUrl))
                 {
@@ -58,9 +58,8 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     }
                 }
 
-                if (screendhots.Any() && !backScreenshots.Any())
+                if (screenshots.Any() && !backScreenshots.Any())
                 {
-                    var screenshots = screendhots;
                     var newBackScreenshots = new List<string>();
                     foreach (var screenshot in screenshots)
                     {
