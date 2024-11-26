@@ -42,7 +42,7 @@ public class NetworkDaoController
         _networkDaoOrgService = networkDaoOrgService;
     }
 
-    [HttpGet("proposal")]
+    [HttpGet("proposals")]
     public async Task<GetProposalListPageResult> GetProposalListAsync(GetProposalListInput input)
     {
         return await _networkDaoProposalService.GetProposalListAsync(input);
