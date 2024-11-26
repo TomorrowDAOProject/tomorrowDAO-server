@@ -71,7 +71,7 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
                 Key = _awsS3Option.CurrentValue.S3KeyFrontEnd + "/" + fileName,
                 CannedACL = S3CannedACL.PublicRead,
             };
-            var putObjectResponse = await _amazonS3Client.PutObjectAsync(putObjectRequest);
+            var putObjectResponse = await _amazonS3ClientFrontEnd.PutObjectAsync(putObjectRequest);
             return putObjectResponse.HttpStatusCode == HttpStatusCode.OK
                 ? $"https://{_awsS3Option.CurrentValue.BucketNameFrontEnd}.s3.amazonaws.com/{putObjectRequest.Key}"
                 : string.Empty;
