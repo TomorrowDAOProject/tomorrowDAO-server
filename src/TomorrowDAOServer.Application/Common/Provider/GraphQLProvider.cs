@@ -188,46 +188,46 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     //     MethodName = nameof(TmrwDaoExceptionHandler.HandleGetLastEndHeightAsync))]
     public virtual async Task<long> GetLastEndHeightAsync(string chainId, WorkerBusinessType queryChainType)
     {
-        //TestCode
-        // {
-        //     var userGrain = _clusterClient.GetGrain<IUserGrain>(Guid.Parse("cdba8eca-dde5-4b1f-8ea4-2e70f8f12d7e"));
-        //     var grainResultDto = await userGrain.GetUser();
-        //     _logger.LogInformation("grainResultDto={0}", JsonConvert.SerializeObject(grainResultDto));
-        //
-        //     var proposalNumGrain = _clusterClient.GetGrain<IProposalNumGrain>("tDVW");
-        //     var proposalNumAsync = await proposalNumGrain.GetProposalNumAsync();
-        //     _logger.LogInformation("proposalNumAsync={0}", JsonConvert.SerializeObject(proposalNumAsync));
-        //
-        //     var sequenceGrain = _clusterClient.GetGrain<ISequenceGrain>("TelegramAppSequence");
-        //     var nextValAsync = await sequenceGrain.GetNextValAsync();
-        //     _logger.LogInformation("nextValAsync={0}", JsonConvert.SerializeObject(nextValAsync));
-        //
-        //     var tokenExchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>("ONEONEONE_USD");
-        //     var tokenExchangeGrainDto = await tokenExchangeGrain.GetAsync();
-        //     _logger.LogInformation("tokenExchangeGrainDto={0}", JsonConvert.SerializeObject(tokenExchangeGrainDto));
-        //
-        //     var tokenGrain = _clusterClient.GetGrain<ITokenGrain>("tDVW-ELF");
-        //     var tokenInfoAsync = await tokenGrain.GetTokenInfoAsync();
-        //     _logger.LogInformation("tokenInfoAsync={0}", JsonConvert.SerializeObject(tokenInfoAsync));
-        //
-        //     var highCouncilMembersGrain = _clusterClient.GetGrain<IHighCouncilMembersGrain>("tDVW_c83c2c3bb8487e278a20becf49ce5b6f6cc4d31f6175ac6c1ae1fdc21b18d76a");
-        //     var highCouncilMembersAsync = await highCouncilMembersGrain.GetHighCouncilMembersAsync();
-        //     _logger.LogInformation("highCouncilMembersAsync={0}", JsonConvert.SerializeObject(highCouncilMembersAsync));
-        //
-        //     var daoAliasGrain = _clusterClient.GetGrain<IDaoAliasGrain>("tDVW_18-17");
-        //     var daoAliasInfoAsync = await daoAliasGrain.GetDaoAliasInfoAsync();
-        //     _logger.LogInformation("daoAliasInfoAsync={0}", JsonConvert.SerializeObject(daoAliasInfoAsync));
-        //
-        //     var graphQlGrain = _clusterClient.GetGrain<IContractServiceGraphQLGrain>(WorkerBusinessType.BPInfoUpdate.ToString() + "tDVW");
-        //     //await graphQlGrain.SetStateAsync(100);
-        //     var stateAsync = await graphQlGrain.GetStateAsync();
-        //     _logger.LogInformation("stateAsync={0}", JsonConvert.SerializeObject(stateAsync));
-        //     
-        //     var bpGrain = _clusterClient.GetGrain<IBPGrain>("tDVW");
-        //     //await bpGrain.SetBPAsync(new List<string>() {"address1", "address2", "address3"}, 1);
-        //     var bpList = await bpGrain.GetBPAsync();
-        //     _logger.LogInformation("bpList={0}", JsonConvert.SerializeObject(bpList));
-        // }
+            // TestCode 
+            //  {
+            //      var userGrain = _clusterClient.GetGrain<IUserGrain>(Guid.Parse("cdba8eca-dde5-4b1f-8ea4-2e70f8f12d7e"));
+            //      var grainResultDto = await userGrain.GetUser();
+            //      _logger.LogInformation("grainResultDto={0}", JsonConvert.SerializeObject(grainResultDto));
+            //
+            //      var proposalNumGrain = _clusterClient.GetGrain<IProposalNumGrain>("tDVW");
+            //      var proposalNumAsync = await proposalNumGrain.GetProposalNumAsync();
+            //      _logger.LogInformation("proposalNumAsync={0}", JsonConvert.SerializeObject(proposalNumAsync));
+            //
+            //      var sequenceGrain = _clusterClient.GetGrain<ISequenceGrain>("TelegramAppSequence");
+            //      var nextValAsync = await sequenceGrain.GetNextValAsync();
+            //      _logger.LogInformation("nextValAsync={0}", JsonConvert.SerializeObject(nextValAsync));
+            //
+            //      var tokenExchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>("ONEONEONE_USD");
+            //      var tokenExchangeGrainDto = await tokenExchangeGrain.GetAsync();
+            //      _logger.LogInformation("tokenExchangeGrainDto={0}", JsonConvert.SerializeObject(tokenExchangeGrainDto));
+            //
+            //      var tokenGrain = _clusterClient.GetGrain<ITokenGrain>("tDVW-ELF");
+            //      var tokenInfoAsync = await tokenGrain.GetTokenInfoAsync();
+            //      _logger.LogInformation("tokenInfoAsync={0}", JsonConvert.SerializeObject(tokenInfoAsync));
+            //
+            //      var highCouncilMembersGrain = _clusterClient.GetGrain<IHighCouncilMembersGrain>("tDVW_c83c2c3bb8487e278a20becf49ce5b6f6cc4d31f6175ac6c1ae1fdc21b18d76a");
+            //      var highCouncilMembersAsync = await highCouncilMembersGrain.GetHighCouncilMembersAsync();
+            //      _logger.LogInformation("highCouncilMembersAsync={0}", JsonConvert.SerializeObject(highCouncilMembersAsync));
+            //
+            //      var daoAliasGrain = _clusterClient.GetGrain<IDaoAliasGrain>("tDVW_18-17");
+            //      var daoAliasInfoAsync = await daoAliasGrain.GetDaoAliasInfoAsync();
+            //      _logger.LogInformation("daoAliasInfoAsync={0}", JsonConvert.SerializeObject(daoAliasInfoAsync));
+            //
+            //      var graphQlGrain = _clusterClient.GetGrain<IContractServiceGraphQLGrain>(WorkerBusinessType.BPInfoUpdate.ToString() + "tDVW");
+            //      //await graphQlGrain.SetStateAsync(100);
+            //      var stateAsync = await graphQlGrain.GetStateAsync();
+            //      _logger.LogInformation("stateAsync={0}", JsonConvert.SerializeObject(stateAsync));
+            //      
+            //      var bpGrain = _clusterClient.GetGrain<IBPGrain>("tDVW");
+            //      //await bpGrain.SetBPAsync(new List<string>() {"address1", "address2", "address3"}, 1);
+            //      var bpList = await bpGrain.GetBPAsync();
+            //      _logger.LogInformation("bpList={0}", JsonConvert.SerializeObject(bpList));
+            //  }
         
         try
         {
