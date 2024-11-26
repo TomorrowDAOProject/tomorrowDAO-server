@@ -72,6 +72,11 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
                 BucketName = _awsS3Option.CurrentValue.BucketNameFrontEnd,
                 Key = _awsS3Option.CurrentValue.S3KeyFrontEnd + "/" + fileName,
                 CannedACL = S3CannedACL.PublicRead,
+                ContentType = "image/webp",
+                Headers =
+                {
+                    ContentDisposition = "inline" 
+                }
             };
             var putObjectResponse = await _amazonS3ClientFrontEnd.PutObjectAsync(putObjectRequest);
             return putObjectResponse.HttpStatusCode == HttpStatusCode.OK
@@ -82,7 +87,6 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
         {
             return string.Empty;
         }
-
     }
 
     public async Task<string> UpLoadBase64FileAsync(string base64Image, string fileName)
