@@ -267,7 +267,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 continue;
             }
             await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, UserTaskDetail.DailyCreatePoll);
-            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyCreatePoll, completeTime);
+            var information = InformationHelper.GetDailyCreatePollInformation(proposal);
+            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyCreatePoll, completeTime, information);
         }
     }
 
@@ -340,6 +341,15 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             case PointsType.DailyViewAds:
                 var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
                 return new Tuple<string, string>("Watch Ads", adPlatform);
+            case PointsType.DailyCreatePoll:
+                var pollTitle = information.GetValueOrDefault(CommonConstant.ProposalTitle, string.Empty);
+                return new Tuple<string, string>("Create Poll", pollTitle);
+            case PointsType.ExploreJoinVotigram:
+                return new Tuple<string, string>("Task", "Join Votigram channel");
+            case PointsType.ExploreFollowVotigramX:
+                return new Tuple<string, string>("Task", "Follow Votigram on X");
+            case PointsType.ExploreForwardVotigramX:
+                return new Tuple<string, string>("Task", "RT Votigram Post");
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
