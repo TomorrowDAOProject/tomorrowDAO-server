@@ -331,6 +331,21 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
         };
     }
 
+    public async Task<bool> AddAppAsync(AddAppInput input)
+    {
+        var address = await CheckAddress(input.ChainId);
+        var title = input.Title;
+        await _telegramAppsProvider.AddOrUpdateAsync(new TelegramAppIndex
+        {
+            Id = HashHelper.ComputeFrom(title).ToHex(),
+            Alias = await _daoAliasProvider.GenerateDaoAliasAsync(title), Title = title, Icon = input.Icon, 
+            Description = input.Description, EditorChoice = false, Url = input.Url, LongDescription = input.LongDescription,
+            Screenshots = input.Screenshots, Categories = input.Categories, CreateTime = DateTime.UtcNow, UpdateTime = DateTime.UtcNow,
+            SourceType = SourceType.Telegram, Creator = address, LoadTime = DateTime.UtcNow
+        });
+        return true;
+    }
+
     private async Task<string> CheckAddress(string chainId)
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(
