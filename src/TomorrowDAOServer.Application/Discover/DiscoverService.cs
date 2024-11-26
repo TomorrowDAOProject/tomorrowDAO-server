@@ -175,7 +175,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
         if (!aliases.IsNullOrEmpty())
         {
             var (_, list) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput { Aliases = aliases });
-            topApps = list.Where(x => x.Categories.Contains(category)).Distinct().ToList();
+            topApps = list.Where(x => x.Categories.Contains(category))
+                .OrderBy(app => aliases.IndexOf(app.Alias)).ToList();
         }
         var availableTopApps = topApps.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
         var availableTopAppCount = availableTopApps.Count;
