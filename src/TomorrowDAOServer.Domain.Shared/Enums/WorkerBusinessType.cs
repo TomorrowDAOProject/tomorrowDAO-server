@@ -28,6 +28,6 @@ public enum WorkerBusinessType
     NetworkDaoMainChainSync,
     NetworkDaoSideChainSync,
     NetworkDaoMainChainOrgSync,
-    NetworkDaoSideChainOrgSync
+    NetworkDaoSideChainOrgSync,
     AppUrlUpload,
 }
