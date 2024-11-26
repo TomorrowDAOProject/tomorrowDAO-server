@@ -140,4 +140,9 @@ public static class CommonConstant
     //Findmini
     public const string FindminiUrlPrefix = "https://www.findmini.app";
     public const string FindminiCategoryPrefix = "https://www.findmini.app/category/";
+    
+    //Upload
+    public const string DownloadFail = "DownloadFail";
+    public const string ConvertFail = "ConvertFail";
+    public const string UploadFail = "UploadFail";
 }

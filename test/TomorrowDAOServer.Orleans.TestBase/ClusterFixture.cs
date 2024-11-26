@@ -227,6 +227,11 @@ public class ClusterFixture : IDisposable, ISingletonDependency
             return "UpLoadFileAsync";
         }
 
+        public async Task<string> UpLoadFileFrontEndAsync(Stream steam, string fileName)
+        {
+            return "UpLoadFileFrontEndAsync";
+        }
+
         public async Task<string> UpLoadBase64FileAsync(string base64Image, string fileName)
         {
             return Address1;
