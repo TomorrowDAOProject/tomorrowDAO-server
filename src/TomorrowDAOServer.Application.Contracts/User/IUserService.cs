@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Proposal.Dto;
+using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.User.Dtos;
 
 namespace TomorrowDAOServer.User;
@@ -14,4 +16,5 @@ public interface IUserService
     Task<bool> SaveTgInfoAsync(SaveTgInfoInput input);
     Task<string> GetAdHashAsync(long timeStamp);
     Task<long> ClearAdCountAsync(string chainId, string address);
+    Task GenerateDailyCreatePollPointsAsync(string chainId, List<IndexerProposal> proposalList);
 }

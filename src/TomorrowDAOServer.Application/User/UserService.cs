@@ -13,6 +13,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
+using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
@@ -268,6 +269,24 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         return await _userPointsRecordProvider.GetDailyViewAdCountAsync(chainId, address);
     }
 
+    public async Task GenerateDailyCreatePollPointsAsync(string chainId, List<IndexerProposal> proposalList)
+    {
+        foreach (var proposal in proposalList)
+        {
+            var completeTime = proposal.DeployTime;
+            var address = proposal.Proposer;
+            var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, address, UserTask.Daily,
+                UserTaskDetail.DailyCreatePoll, completeTime);
+            if (!success)
+            {
+                continue;
+            }
+            await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, UserTaskDetail.DailyCreatePoll);
+            var information = InformationHelper.GetDailyCreatePollInformation(proposal);
+            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyCreatePoll, completeTime, information);
+        }
+    }
+
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
     {
         if (!Enum.TryParse<UserTask>(input.UserTask, out var userTask) || UserTask.None == userTask)
@@ -337,6 +356,15 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             case PointsType.DailyViewAds:
                 var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
                 return new Tuple<string, string>("Watch Ads", adPlatform);
+            case PointsType.DailyCreatePoll:
+                var pollTitle = information.GetValueOrDefault(CommonConstant.ProposalTitle, string.Empty);
+                return new Tuple<string, string>("Create Poll", pollTitle);
+            case PointsType.ExploreJoinVotigram:
+                return new Tuple<string, string>("Task", "Join Votigram channel");
+            case PointsType.ExploreFollowVotigramX:
+                return new Tuple<string, string>("Task", "Follow Votigram on X");
+            case PointsType.ExploreForwardVotigramX:
+                return new Tuple<string, string>("Task", "RT Votigram Post");
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
@@ -383,6 +411,11 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             new()
             {
+                UserTaskDetail = UserTaskDetail.DailyCreatePoll.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyCreatePoll),
+            },
+            new()
+            {
                 UserTaskDetail = UserTaskDetail.DailyViewAds.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAds),
                 CompleteCount = adCount, TaskCount = 20
@@ -409,6 +442,21 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     {
         return new List<TaskInfoDetail>
         {
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.ExploreJoinVotigram.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinVotigram)
+            },
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.ExploreFollowVotigramX.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreFollowVotigramX)
+            },
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.ExploreForwardVotigramX.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreForwardVotigramX)
+            },
             new()
             {
                 UserTaskDetail = UserTaskDetail.ExploreJoinTgChannel.ToString(),
