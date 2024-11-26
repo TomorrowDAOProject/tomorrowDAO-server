@@ -70,23 +70,19 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         var uri = new Uri(url);
         var extension = Path.GetExtension(uri.LocalPath).ToLower(); 
         await using var stream = await DownloadImageAsync(url);
-        MemoryStream memoryStream;
-
-        if (extension == ".webp")
+        if (stream == null)
         {
-            memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-            memoryStream.Seek(0, SeekOrigin.Begin);
-        }
-        else
-        {
-            using var image = await Image.LoadAsync(stream);
-            memoryStream = new MemoryStream();
-            await image.SaveAsWebpAsync(memoryStream);
-            memoryStream.Seek(0, SeekOrigin.Begin);
+            return CommonConstant.DownloadFail;
         }
 
-        return await _awsS3Client.UpLoadFileFrontEndAsync(memoryStream, fileName);
+        var memoryStream = await ConvertToWebp(extension, stream);
+        if (memoryStream == null)
+        {
+            return CommonConstant.ConvertFail;
+        }
+
+        var result =  await _awsS3Client.UpLoadFileFrontEndAsync(memoryStream, fileName);
+        return string.IsNullOrEmpty(result) ? CommonConstant.UploadFail : result;
     }
 
     public async Task<Stream> DownloadImageAsync(string url)
@@ -101,6 +97,30 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         catch (Exception e)
         {
             _logger.LogError(e, "DownloadImageAsyncException imageUrl {0}", url);
+            return null;
+        }
+    }
+
+    private async Task<MemoryStream> ConvertToWebp(string extension, Stream stream)
+    {
+        try
+        {
+            var memoryStream = new MemoryStream();
+            if (extension == ".webp")
+            {
+                await stream.CopyToAsync(memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+            }
+            else
+            {
+                using var image = await Image.LoadAsync(stream);
+                await image.SaveAsWebpAsync(memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+            }
+            return memoryStream;
+        }
+        catch (Exception)
+        {
             return null;
         }
     }
