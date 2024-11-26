@@ -143,7 +143,8 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {
-            q => !q.Exists(i => i.Field(f => f.Categories))
+            q => !q.Exists(i => i.Field(f => f.Categories)),
+            q => !q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao))
         };
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await IndexHelper.GetAllIndex(Filter, _telegramAppIndexRepository);

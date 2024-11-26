@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Serilog;
+using MongoDB.Driver.Linq;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Entities;
@@ -14,6 +15,7 @@ using TomorrowDAOServer.Providers;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Provider;
+using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
@@ -36,11 +38,13 @@ public class ReferralService : ApplicationService, IReferralService
     private readonly IPortkeyProvider _portkeyProvider;
     private readonly IReferralCycleProvider _referralCycleProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
+    private readonly ITelegramUserInfoProvider _telegramUserInfoProvider;
 
     public ReferralService(IReferralInviteProvider referralInviteProvider, IUserProvider userProvider, 
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, IUserAppService userAppService, 
         IOptionsMonitor<RankingOptions> rankingOptions, ILogger<IReferralService> logger, IPortkeyProvider portkeyProvider,
-        IReferralCycleProvider referralCycleProvider, IOptionsMonitor<TelegramOptions> telegramOptions)
+        IReferralCycleProvider referralCycleProvider, IOptionsMonitor<TelegramOptions> telegramOptions, 
+        ITelegramUserInfoProvider telegramUserInfoProvider)
     {
         _referralInviteProvider = referralInviteProvider;
         _userProvider = userProvider;
@@ -51,6 +55,7 @@ public class ReferralService : ApplicationService, IReferralService
         _portkeyProvider = portkeyProvider;
         _referralCycleProvider = referralCycleProvider;
         _telegramOptions = telegramOptions;
+        _telegramUserInfoProvider = telegramUserInfoProvider;
     }
 
     // public async Task<GetLinkDto> GetLinkAsync(string token, string chainId)
@@ -110,7 +115,8 @@ public class ReferralService : ApplicationService, IReferralService
 
     public async Task<InviteBoardPageResultDto<InviteLeaderBoardDto>> InviteLeaderBoardAsync(InviteLeaderBoardInput input)
     {
-        var (_, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.GetId(), input.ChainId);
+        var (address, addressCaHash) = await _userProvider.GetAndValidateUserAddressAndCaHashAsync(CurrentUser.IsAuthenticated ? 
+            CurrentUser.GetId() : Guid.Empty, input.ChainId);
         if (input.StartTime == 0 || input.EndTime == 0)
         {
             var (startTime, endTime) = await GetLeaderBoardTime();
@@ -121,7 +127,21 @@ public class ReferralService : ApplicationService, IReferralService
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var inviterList = RankHelper.GetRankedList(input.ChainId, userList, inviterBuckets);
+        var addressList = userList.Where(x => x.AddressInfos != null)
+            .Where(x => x.AddressInfos.Any(ai => ai.ChainId == input.ChainId))
+            .Select(x => x.AddressInfos.First().Address).Distinct().ToList();
+        if (!addressList.Contains(address))
+        {
+            addressList.Add(address);
+        }
         var me = inviterList.Find(x => x.InviterCaHash == addressCaHash);
+        var tgInfoList = await _telegramUserInfoProvider.GetByAddressListAsync(addressList);
+        var tgInfoDIc = tgInfoList.ToDictionary(x => x.Address, x => x);
+        FillTgInfo(tgInfoDIc, me);
+        foreach (var dto in inviterList)
+        {
+            FillTgInfo(tgInfoDIc, dto);
+        }
         return new InviteBoardPageResultDto<InviteLeaderBoardDto>
         {
             TotalCount = inviterList.Count,
@@ -224,5 +244,18 @@ public class ReferralService : ApplicationService, IReferralService
     private bool IsCycleValid(ReferralCycleIndex cycle)
     {
         return cycle != null && cycle.StartTime != 0 && cycle.EndTime != 0;
+    }
+
+    private void FillTgInfo(Dictionary<string, TelegramUserInfoIndex> infoDic, InviteLeaderBoardDto dto)
+    {
+        if (dto == null || string.IsNullOrEmpty(dto.Inviter))
+        {
+            return;
+        }
+        var address = dto.Inviter;
+        if (infoDic.TryGetValue(address, out var info))
+        {
+            ObjectMapper.Map(info, dto);
+        }
     }
 }

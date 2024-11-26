@@ -128,7 +128,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 Aliases = aliases
             })).Item2;
-            var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(telegramApps);
+            var distinctTelegramApps = telegramApps.GroupBy(app => app.Alias)
+                .Select(group => group.First()).ToList();
+            var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(distinctTelegramApps);
             foreach (var rankingApp in rankingApps)
             {
                 _objectMapper.Map(proposal, rankingApp);
@@ -179,11 +181,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 if (string.IsNullOrEmpty(goldRankingId))
                 {
                     result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount,
-                        input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
+                        input.MaxResultCount, rankingType, topRankingAddress, true, excludeIds);
                 }
                 else
                 {
-                    if (input.SkipCount == 0 && !string.IsNullOrEmpty(goldRankingId))
+                    if (input.SkipCount == 0)
                     {
                         var goldProposal = await _proposalProvider.GetProposalByIdAsync(chainId, goldRankingId);
                         res.Add(goldProposal);
@@ -193,24 +195,19 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     {
                         input.SkipCount -= 1;
                     }
-                    var officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, excludeIds);
+                    var officialProposals = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, topRankingAddress, true, excludeIds);
                     res.AddRange(officialProposals.Item2);
                     result = new Tuple<long, List<ProposalIndex>>(officialProposals.Item1 + 1, res);
                 }
                 break;
             case RankingType.All:
-                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty);
+                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty, false);
                 break;
             case RankingType.Community:
-                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty, excludeIds);
+                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, rankingType, string.Empty, false, excludeIds);
                 break;
             case RankingType.Top:
-                if (!string.IsNullOrEmpty(goldRankingId))
-                {
-                    topRankingIds.Add(goldRankingId);
-                }
-                var topProposals = await _proposalProvider.GetProposalByIdsAsync(chainId, topRankingIds);
-                result = new Tuple<long, List<ProposalIndex>>(topProposals.Count, topProposals);
+                result = await _proposalProvider.GetRankingProposalListAsync(chainId, input.SkipCount, input.MaxResultCount, RankingType.Verified, string.Empty, true, excludeIds);
                 break;
         }
         
@@ -725,7 +722,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 rankingAppDetailDto.Icon = CommonConstant.FindminiUrlPrefix + icon;
             }
-            _logger.LogInformation("OriginIcon :{0}, needPrefix {1} newIcon {2}", icon, needPrefix, rankingAppDetailDto.Icon);
         }
         var rankingType = proposal.RankingType == RankingType.All ? RankingType.Verified : proposal.RankingType;
         if (rankingType == RankingType.Verified)
