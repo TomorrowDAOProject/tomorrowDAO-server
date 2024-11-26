@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Chains;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -45,16 +46,17 @@ public class AppUrlUploadService : ScheduleSyncDataService
             foreach (var index in queryList)
             {
                 var needUpdate = false;
-                var url = index.Url;
+                var icon = index.Icon;
                 var screenshots = index.Screenshots ?? new List<string>();
                 var backScreenshots = index.BackScreenshots ?? new List<string>();
-                if (!string.IsNullOrEmpty(url) && string.IsNullOrEmpty(index.BackUrl))
+                if (!string.IsNullOrEmpty(icon) && string.IsNullOrEmpty(index.BackIcon))
                 {
-                    var backUrl = await _fileService.UploadFrontEndAsync(url, Guid.NewGuid().ToString());
-                    if (!string.IsNullOrEmpty(backUrl))
+                    icon = GetUrl(icon);
+                    var backIcon = await _fileService.UploadFrontEndAsync(icon, Guid.NewGuid().ToString());
+                    if (!string.IsNullOrEmpty(backIcon))
                     {
                         needUpdate = true;
-                        index.BackUrl = backUrl;
+                        index.BackIcon = backIcon;
                     }
                 }
 
@@ -97,5 +99,10 @@ public class AppUrlUploadService : ScheduleSyncDataService
     public override WorkerBusinessType GetBusinessType()
     {
         return WorkerBusinessType.AppUrlUpload;
+    }
+
+    public string GetUrl(string url)
+    {
+        return url.StartsWith("/") ? CommonConstant.FindminiUrlPrefix + url : url;
     }
 }

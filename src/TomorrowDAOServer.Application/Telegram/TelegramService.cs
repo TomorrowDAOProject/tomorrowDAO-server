@@ -237,7 +237,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             telegramAppIndex.CreateTime = existApp.CreateTime != default && existApp.CreateTime != null ? existApp.CreateTime : now;
             telegramAppIndex.UpdateTime = existApp.UpdateTime != default && existApp.UpdateTime != null ? existApp.UpdateTime : now;
             telegramAppIndex.Categories = existApp.Categories;
-            telegramAppIndex.BackUrl = existApp.BackUrl;
+            telegramAppIndex.BackIcon = existApp.BackIcon;
             telegramAppIndex.BackScreenshots = existApp.BackScreenshots;
             if (SourceType.Telegram == telegramAppIndex.SourceType)
             {
