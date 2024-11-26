@@ -49,7 +49,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                 var icon = index.Icon;
                 var screenshots = index.Screenshots ?? new List<string>();
                 var backScreenshots = index.BackScreenshots ?? new List<string>();
-                if (!string.IsNullOrEmpty(icon) && string.IsNullOrEmpty(index.BackIcon))
+                if (NeedUpload(icon, index.BackIcon))
                 {
                     icon = GetUrl(icon);
                     var backIcon = await _fileService.UploadFrontEndAsync(icon, Guid.NewGuid().ToString());
@@ -60,7 +60,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     }
                 }
 
-                if (screenshots.Any() && !backScreenshots.Any())
+                if (NeedUpload(screenshots, backScreenshots))
                 {
                     var newBackScreenshots = new List<string>();
                     foreach (var screenshot in screenshots)
@@ -104,5 +104,30 @@ public class AppUrlUploadService : ScheduleSyncDataService
     public string GetUrl(string url)
     {
         return url.StartsWith("/") ? CommonConstant.FindminiUrlPrefix + url : url;
+    }
+
+    public bool NeedUpload(string icon, string backIcon)
+    {
+        if (string.IsNullOrEmpty(icon))
+        {
+            return false;
+        }
+
+        return string.IsNullOrEmpty(backIcon);
+    }
+
+    public bool NeedUpload(List<string> screenshots, List<string> backScreenshots)
+    {
+        if (screenshots == null || !screenshots.Any())
+        {
+            return false;
+        }
+
+        if (backScreenshots == null || !backScreenshots.Any())
+        {
+            return true;
+        }
+
+        return false;
     }
 }

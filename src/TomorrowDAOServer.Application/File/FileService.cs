@@ -67,22 +67,24 @@ public class FileService : TomorrowDAOServerAppService, IFileService
 
     public async Task<string> UploadFrontEndAsync(string url, string fileName)
     {
-        var uri = new Uri(url);
-        var extension = Path.GetExtension(uri.LocalPath).ToLower(); 
-        await using var stream = await DownloadImageAsync(url);
+        var (baseUrl, extension) = ParseUrl(url);
+        await using var stream = await DownloadImageAsync(baseUrl);
         if (stream == null)
         {
-            return CommonConstant.DownloadFail;
+            _logger.LogInformation("UploadFrontEndAsyncDownloadFail url {0}", url);
+            return string.Empty;
         }
 
         var memoryStream = await ConvertToWebp(extension, stream);
         if (memoryStream == null)
         {
-            return CommonConstant.ConvertFail;
+            _logger.LogInformation("UploadFrontEndAsyncConvertFail url {0}", url);
+            return string.Empty;
         }
 
         var result =  await _awsS3Client.UpLoadFileFrontEndAsync(memoryStream, fileName);
-        return string.IsNullOrEmpty(result) ? CommonConstant.UploadFail : result;
+        _logger.LogInformation("UploadFrontEndAsyncResult url {0} result {result}", url, result);
+        return result;
     }
 
     public async Task<Stream> DownloadImageAsync(string url)
@@ -122,6 +124,22 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         catch (Exception)
         {
             return null;
+        }
+    }
+
+    private Tuple<string, string> ParseUrl(string url)
+    {
+        try
+        {
+            var uri = new Uri(url);
+            var baseUri = new UriBuilder(uri) { Query = string.Empty }.Uri;
+            var extension = Path.GetExtension(baseUri.LocalPath).ToLower();
+            return new Tuple<string, string>(baseUri.ToString(), extension);
+        }
+        catch (Exception)
+        {
+            _logger.LogInformation("UploadFrontEndAsyncParseUrlFail url {0}", url);
+            return new Tuple<string, string>(string.Empty, string.Empty);
         }
     }
 }
