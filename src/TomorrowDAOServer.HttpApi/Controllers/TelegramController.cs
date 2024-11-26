@@ -90,4 +90,11 @@ public class TelegramController : AbpController
     {
         return await _telegramService.SearchAppAsync(title);
     }
+    
+    [HttpPost("add-app")]
+    [Authorize]
+    public async Task<bool> AddAppAsync(AddAppInput input)
+    {
+        return await _telegramService.AddAppAsync(input);
+    }
 }
