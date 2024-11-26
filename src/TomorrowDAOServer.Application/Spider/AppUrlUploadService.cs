@@ -40,31 +40,50 @@ public class AppUrlUploadService : ScheduleSyncDataService
             {
                 break;
             }
-            foreach (var index in queryList.Where(x => !string.IsNullOrEmpty(x.Url) && string.IsNullOrEmpty(x.BackUrl)))
+            
+            var toUpdate = new List<TelegramAppIndex>();
+            foreach (var index in queryList)
             {
+                var needUpdate = false;
                 var url = index.Url;
-                var uri = new Uri(url);
-                var extension = System.IO.Path.GetExtension(uri.LocalPath);
-                var backUrl = await _fileService.UploadAsync(url, "url_" + index.Id + extension);
-                index.BackUrl = backUrl;
+                var screendhots = index.Screenshots ?? new List<string>();
+                var backScreenshots = index.BackScreenshots ?? new List<string>();
+                if (!string.IsNullOrEmpty(url) && string.IsNullOrEmpty(index.BackUrl))
+                {
+                    var backUrl = await _fileService.UploadFrontEndAsync(url, Guid.NewGuid().ToString());
+                    if (!string.IsNullOrEmpty(backUrl))
+                    {
+                        needUpdate = true;
+                        index.BackUrl = backUrl;
+                    }
+                }
+
+                if (screendhots.Any() && !backScreenshots.Any())
+                {
+                    var screenshots = screendhots;
+                    var newBackScreenshots = new List<string>();
+                    foreach (var screenshot in screenshots)
+                    {
+                        var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, Guid.NewGuid().ToString());
+                        if (!string.IsNullOrEmpty(backScreenshot))
+                        {
+                            newBackScreenshots.Add(backScreenshot);
+                        }
+                    }
+                    if (newBackScreenshots.Any())
+                    {
+                        needUpdate = true;
+                        index.Screenshots = backScreenshots;
+                    }
+                }
+
+                if (needUpdate)
+                {
+                    toUpdate.Add(index);
+                }
             }
             
-            foreach (var index in queryList.Where(x => x.Screenshots != null && x.Screenshots.Any() 
-                       && (x.BackScreenshots == null || !x.BackScreenshots.Any())))
-            {
-                var screenshots = index.Screenshots;
-                var backScreenshots = new List<string>();
-                for (var i = 0; i < screenshots.Count; i++)
-                {
-                    var screenshot = screenshots[i];
-                    var uri = new Uri(screenshot);
-                    var extension = System.IO.Path.GetExtension(uri.LocalPath);
-                    var backScreenshot = await _fileService.UploadAsync(screenshot, "screenshot_"+ i + "_" + index.Id  + extension);
-                    backScreenshots.Add(backScreenshot);
-                }
-                index.Screenshots = backScreenshots;
-            }
-            await _telegramAppsProvider.BulkAddOrUpdateAsync(queryList);
+            await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
         return -1L;

@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.File.Provider;
@@ -64,16 +65,33 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         return url;
     }
 
-    public async Task<string> UploadAsync(string url, string fileName)
+    public async Task<string> UploadFrontEndAsync(string url, string fileName)
     {
-        var stream = await DownloadImageAsync(url);
-        return await _awsS3Client.UpLoadFileAsync(stream, fileName);
+        var uri = new Uri(url);
+        var extension = Path.GetExtension(uri.LocalPath).ToLower(); 
+        await using var stream = await DownloadImageAsync(url);
+        MemoryStream memoryStream;
+
+        if (extension == ".webp")
+        {
+            memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+        }
+        else
+        {
+            using var image = await Image.LoadAsync(stream);
+            memoryStream = new MemoryStream();
+            await image.SaveAsWebpAsync(memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+        }
+
+        return await _awsS3Client.UpLoadFileFrontEndAsync(memoryStream, fileName);
     }
 
     public async Task<Stream> DownloadImageAsync(string url)
     {
         var client = _httpClientFactory.CreateClient();
-
         try
         {
             var response = await client.GetAsync(url);

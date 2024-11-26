@@ -258,13 +258,11 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
                 .Should(
                     s => s.Bool(bs => bs
                         .Must(
-                            m => m.Exists(e => e.Field(f => f.Url)),
-                            m => !m.Exists(e => e.Field(f => f.BackUrl))
+                            m => m.Exists(e => e.Field(f => f.Url))
                         )),
                     s => s.Bool(bs => bs
                         .Must(
-                            m => m.Exists(e => e.Field(f => f.Screenshots)),
-                            m => !m.Exists(e => e.Field(f => f.BackScreenshots))
+                            m => m.Exists(e => e.Field(f => f.Screenshots))
                         ))
                 )
                 .MinimumShouldMatch(1)
@@ -274,7 +272,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
     
-        return (await _telegramAppIndexRepository.GetListAsync(Filter, skip: skipCount, limit: 10)).Item2;
+        return (await _telegramAppIndexRepository.GetListAsync(Filter, skip: skipCount, limit: 1000)).Item2;
     }
 
     private List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>> TimePeriodQuery(DateTime start, DateTime end)
