@@ -561,8 +561,11 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
                 i.Field(f => f.OrganizationAddress).Value(input.Address)));
         }
 
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.IsContractDeployed).Value(input.IsContract)));
+        if (input.IsContract != null)
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.IsContractDeployed).Value(input.IsContract)));
+        }
 
         if (input.Status != NetworkDaoProposalStatusEnum.All)
         {

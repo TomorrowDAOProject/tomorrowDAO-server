@@ -9,6 +9,7 @@ using TomorrowDAOServer.Discover.Dto;
 using TomorrowDAOServer.Discussion;
 using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Dtos;
+using TomorrowDAOServer.Dtos.AelfScan;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Entities;
@@ -179,7 +180,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<IndexerVoteSchemeInfo, VoteSchemeInfoDto>()
             .ForMember(des => des.VoteMechanismName, opt => opt.MapFrom(src => src.VoteMechanism.ToString()))
             ;
-        CreateMap<ExplorerTokenInfoResponse, TokenDto>().ReverseMap();
         CreateMap<IndexerGovernanceSchemeDto, GovernanceSchemeDto>();
         CreateMap<IndexerGovernanceScheme, GovernanceScheme>()
             .ForMember(des => des.GovernanceMechanism, opt
@@ -295,7 +295,14 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.Title))
             ;
 
-        CreateMap<ExplorerTokenInfoResponse, TokenInfoDto>();
+        CreateMap<GetTokenInfoFromAelfScanResponse, TokenInfoDto>()
+            .ForMember(des => des.Transfers, opt
+                => opt.MapFrom(source => source.TransferCount))
+            .ForMember(des => des.Name, opt
+                => opt.MapFrom(source => source.TokenName))
+            .ForMember(des => des.Holders, opt
+                => opt.MapFrom(source => source.HolderCount));
+        
         CreateMap<ProposalIndex, CommentIndex>();
         CreateMap<NewCommentInput, CommentIndex>();
         CreateMap<CommentIndex, CommentDto>();

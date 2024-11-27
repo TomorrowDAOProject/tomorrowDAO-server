@@ -2,7 +2,6 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using TomorrowDAOServer.Enums;
 using Volo.Abp.Application.Dtos;
-using ProposalType = TomorrowDAOServer.Common.Enum.ProposalType;
 
 namespace TomorrowDAOServer.NetworkDao.Dtos;
 

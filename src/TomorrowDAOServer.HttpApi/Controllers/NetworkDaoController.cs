@@ -12,7 +12,6 @@ using TomorrowDAOServer.NetworkDao.Dto;
 using TomorrowDAOServer.NetworkDao.Dtos;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using Volo.Abp;
-using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.Controllers;
 
@@ -147,13 +146,6 @@ public class NetworkDaoController
     public async Task<TreasuryBalanceResponse> TreasuryBalanceAsync(TreasuryBalanceRequest request)
     {
         return await _networkDaoTreasuryService.GetBalanceAsync(request);
-    }
-
-    [HttpGet("treasury/transactions-records")]
-    public async Task<PagedResultDto<TreasuryTransactionDto>> TreasuryTransactionRecordsAsync(
-        TreasuryTransactionRequest request)
-    {
-        return await _networkDaoTreasuryService.GetTreasuryTransactionAsync(request);
     }
 
     [HttpGet("staking")]
