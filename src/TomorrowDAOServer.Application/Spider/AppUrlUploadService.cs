@@ -85,7 +85,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                 }
             }
             
-            _logger.LogInformation("AppUrlUploadNeedUpdate count {count}", toUpdate.Count);
+            _logger.LogInformation("AppUrlUploadNeedUpdate allCount {0} updateCount {1}", queryList.Count, toUpdate.Count);
             await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
