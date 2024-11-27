@@ -8,6 +8,4 @@ public interface INetworkDaoTreasuryService
 {
 
     Task<TreasuryBalanceResponse> GetBalanceAsync(TreasuryBalanceRequest request);
-
-    Task<PagedResultDto<TreasuryTransactionDto>> GetTreasuryTransactionAsync(TreasuryTransactionRequest request);
 }

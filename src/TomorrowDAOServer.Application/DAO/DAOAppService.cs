@@ -364,13 +364,4 @@ public class DAOAppService : ApplicationService, IDAOAppService
             Type = type, TotalCount = originResult.Item1, List = (await FillDaoListAsync(chainId, originResult)).Item2
         };
     }
-
-    private Task<ExplorerProposalResponse> GetCountTask(Common.Enum.ProposalType type)
-    {
-        return _explorerProvider.GetProposalPagerAsync(CommonConstant.MainChainId, new ExplorerProposalListRequest
-        {
-            ProposalType = type.ToString(),
-            Status = "all", IsContract = 0
-        });
-    }
 }

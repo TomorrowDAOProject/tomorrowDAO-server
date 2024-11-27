@@ -9,6 +9,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Dtos;
+using TomorrowDAOServer.Dtos.AelfScan;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Options;
@@ -56,27 +57,30 @@ public class NetworkDaoTreasuryService : TomorrowDAOServerAppService, INetworkDa
     {
         var treasuryContractAddress =
             _contractProvider.ContractAddress(request.ChainId, SystemContractName.TreasuryContract);
-        var balance = await _explorerProvider.GetBalancesAsync(request.ChainId, new ExplorerBalanceRequest
+        var balance = await _explorerProvider.GetBalancesAsync(new GetBalanceFromAelfScanRequest()
         {
+            ChainId = request.ChainId,
             Address = treasuryContractAddress
         });
 
         var balanceItems = balance.Select(b =>
         {
-            var token = AsyncHelper.RunSync(() => _tokenService.GetTokenInfoAsync(request.ChainId, b.Symbol));
-            var exchange = _networkDaoOptions.CurrentValue.PopularSymbols.Contains(b.Symbol)
-                ? AsyncHelper.RunSync(() => _tokenService.GetTokenPriceAsync(b.Symbol, CommonConstant.USDT))
+            var symbol = b?.Token?.Symbol ?? string.Empty;
+            var balance = b?.Quantity ?? decimal.Zero;
+            var token = AsyncHelper.RunSync(() => _tokenService.GetTokenInfoAsync(request.ChainId, symbol));
+            var exchange = _networkDaoOptions.CurrentValue.PopularSymbols.Contains(symbol)
+                ? AsyncHelper.RunSync(() => _tokenService.GetTokenPriceAsync(symbol, CommonConstant.USDT))
                 : null;
             return new TreasuryBalanceResponse.BalanceItem
             {
-                TotalCount = b.Balance,
-                DollarValue = exchange == null ? null : (b.Balance.SafeToDecimal() * exchange.Price).ToString(2),
+                TotalCount = balance.ToString(),
+                DollarValue = exchange == null ? null : (balance * exchange.Price).ToString(2),
                 Token = new TokenDto
                 {
-                    Symbol = b.Symbol,
+                    Symbol = symbol,
                     Name = token.Name,
                     Decimals = Convert.ToInt32(token.Decimals),
-                    ImageUrl = _tokenOptions.CurrentValue.TokenInfos.TryGetValue(b.Symbol, out var img)
+                    ImageUrl = _tokenOptions.CurrentValue.TokenInfos.TryGetValue(symbol, out var img)
                         ? img.ImageUrl
                         : null
                 }
@@ -89,28 +93,4 @@ public class NetworkDaoTreasuryService : TomorrowDAOServerAppService, INetworkDa
             Items = balanceItems
         };
     }
-
-
-    public async Task<PagedResultDto<TreasuryTransactionDto>> GetTreasuryTransactionAsync(
-        TreasuryTransactionRequest request)
-    {
-        var treasuryContractAddress =
-            _contractProvider.ContractAddress(request.ChainId, SystemContractName.TreasuryContract);
-        AssertHelper.NotEmpty(treasuryContractAddress, "Treasury contract address empty");
-        
-        var explorerResult = await _explorerProvider.GetTransferListAsync(request.ChainId,
-            new ExplorerTransferRequest(request)
-            {
-                Address = treasuryContractAddress
-            });
-        var items =
-            _objectMapper.Map<List<ExplorerTransferResult>, List<TreasuryTransactionDto>>(explorerResult.List);
-        
-        return new PagedResultDto<TreasuryTransactionDto>
-        {
-            TotalCount = explorerResult.Total,
-            Items = items
-        };
-    }
-    
 }

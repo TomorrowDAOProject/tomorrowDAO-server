@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
 using AElf.ExceptionHandler;
+using Aetherlink.PriceServer.Common;
 using JetBrains.Annotations;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.Grain.Token;
@@ -19,6 +20,7 @@ using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
+using TomorrowDAOServer.Dtos.AelfScan;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
@@ -79,16 +81,21 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
             return tokenInfo;
         }
 
-        var tokenResponse = await _explorerProvider.GetTokenInfoAsync(chainId, new ExplorerTokenInfoRequest { Symbol = symbol.ToUpper() });
+        var tokenResponse = await _explorerProvider.GetTokenInfoAsync(new GetTokenInfoFromAelfScanRequest
+        {
+            ChainId = chainId,
+            Symbol = symbol.ToUpper()
+        });
         if (tokenResponse == null || tokenResponse.Symbol.IsNullOrWhiteSpace())
         {
             sw.Stop();
             Log.Information("ProposalListDuration: ExplorerGetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
-            
             return tokenInfo;
         }
 
-        tokenInfo = _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(tokenResponse);
+        tokenResponse.ChainId = chainId;
+        tokenResponse.Id = IdGeneratorHelper.GenerateId(chainId, symbol);
+        tokenInfo = _objectMapper.Map<GetTokenInfoFromAelfScanResponse, TokenInfoDto>(tokenResponse);
         tokenInfo.LastUpdateTime = DateTime.UtcNow.ToUtcMilliSeconds();
         await _graphQlProvider.SetTokenInfoAsync(tokenInfo);
         

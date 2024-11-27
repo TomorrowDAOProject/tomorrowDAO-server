@@ -12,7 +12,7 @@ public class GetProposalListInput : PagedResultRequestDto
     public string Address { get; set; }
     //ProposalId, ContractAddress, Proposer
     public string Search { get; set; }
-    public bool IsContract { get; set; } = false;
+    public bool? IsContract { get; set; }
     public NetworkDaoProposalStatusEnum Status { get; set; } = NetworkDaoProposalStatusEnum.All;
     public NetworkDaoOrgType ProposalType { get; set; } = NetworkDaoOrgType.Parliament;
 
