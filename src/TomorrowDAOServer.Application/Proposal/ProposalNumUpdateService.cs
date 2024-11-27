@@ -25,7 +25,8 @@ public class ProposalNumUpdateService : ScheduleSyncDataService
     private readonly INetworkDaoEsDataProvider _networkDaoEsDataProvider;
     
     public ProposalNumUpdateService(ILogger<ProposalNumUpdateService> logger,
-        IGraphQLProvider graphQlProvider, IChainAppService chainAppService, IExplorerProvider explorerProvider, INetworkDaoEsDataProvider networkDaoEsDataProvider)
+        IGraphQLProvider graphQlProvider, IChainAppService chainAppService, IExplorerProvider explorerProvider,
+        INetworkDaoEsDataProvider networkDaoEsDataProvider)
         : base(logger, graphQlProvider)
     {
         _logger = logger;

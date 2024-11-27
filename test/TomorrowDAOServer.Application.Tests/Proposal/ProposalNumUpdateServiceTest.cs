@@ -6,6 +6,7 @@ using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.NetworkDao.Provider;
 using TomorrowDAOServer.Providers;
 using Xunit;
 
@@ -18,6 +19,7 @@ public class ProposalNumUpdateServiceTest
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IScheduleSyncDataService _service;
+    private readonly INetworkDaoEsDataProvider _networkDaoEsDataProvider;
 
     public ProposalNumUpdateServiceTest()
     {
@@ -25,7 +27,8 @@ public class ProposalNumUpdateServiceTest
         _chainAppService = Substitute.For<IChainAppService>();
         _explorerProvider = Substitute.For<IExplorerProvider>();
         _graphQlProvider = Substitute.For<IGraphQLProvider>();
-        _service = new ProposalNumUpdateService(_logger, _graphQlProvider, _chainAppService, _explorerProvider);
+        _networkDaoEsDataProvider = Substitute.For<INetworkDaoEsDataProvider>();
+        _service = new ProposalNumUpdateService(_logger, _graphQlProvider, _chainAppService, _explorerProvider, _networkDaoEsDataProvider);
     }
     
     [Fact]
