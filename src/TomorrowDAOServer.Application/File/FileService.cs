@@ -9,7 +9,6 @@ using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.File.Provider;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
-using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.Users;
 
@@ -17,22 +16,17 @@ namespace TomorrowDAOServer.File;
 
 [RemoteService(IsEnabled = false)]
 [DisableAuditing]
-public class FileService : ApplicationService, IFileService
+public class FileService : TomorrowDAOServerAppService, IFileService
 {
     private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
-    private readonly ILogger<FileService> _logger;
-    private readonly AwsS3Client _awsS3Client;
+    private readonly IAwsS3Client _awsS3Client;
     private readonly IUserProvider _userProvider;
     private readonly IUserBalanceProvider _userBalanceProvider;
-    private readonly IFileUploadProvider _fileUploadProvider;
 
-    public FileService(ILogger<FileService> logger, AwsS3Client awsS3Client, IUserProvider userProvider, 
-        IUserBalanceProvider userBalanceProvider, IFileUploadProvider fileUploadProvider)
+    public FileService(IAwsS3Client awsS3Client, IUserProvider userProvider, IUserBalanceProvider userBalanceProvider)
     {
-        _logger = logger;
         _awsS3Client = awsS3Client;
         _userBalanceProvider = userBalanceProvider;
-        _fileUploadProvider = fileUploadProvider;
         _userProvider = userProvider;
     }
 

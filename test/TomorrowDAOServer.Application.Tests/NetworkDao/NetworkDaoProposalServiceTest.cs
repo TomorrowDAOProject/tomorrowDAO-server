@@ -36,4 +36,12 @@ public partial class NetworkDaoTest
         proposal1.Title.ShouldBe("ProposalId1 Title");
         proposal1.Description.ShouldBe("ProposalId1 Description");
     }
+
+    [Fact]
+    public async Task GetProposalInfoAsyncTest()
+    {
+        var proposalDto = await _networkDaoProposalService.GetProposalInfoAsync(new ProposalInfoRequest());
+        proposalDto.ShouldNotBeNull();
+        proposalDto.Id.ShouldBeNull();
+    }
 }

@@ -12,6 +12,7 @@ using TomorrowDAOServer.Dtos;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Dtos.NetworkDao;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Governance.Dto;
 using TomorrowDAOServer.NetworkDao.Dto;
 using TomorrowDAOServer.Options;
@@ -253,11 +254,20 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => 0))
             ;
         CreateMap<IndexerProposal, RankingAppIndex>();
-        CreateMap<RankingAppIndex, RankingAppDetailDto>();
+        CreateMap<RankingAppIndex, RankingAppDetailDto>()
+            .ForMember(des => des.Icon, opt
+                => opt.MapFrom(source => MapIcon(SourceType.FindMini, source.Icon)))
+            .ForMember(des => des.Screenshots, opt
+                => opt.MapFrom(source => MapScreenshots(SourceType.FindMini, source.Screenshots)))
+            ;
         CreateMap<ProposalIndex, RankingListDto>()
             .ForMember(des => des.Active, opt
                 => opt.MapFrom(source =>
                     DateTime.UtcNow <= source.ActiveEndTime && DateTime.UtcNow >= source.ActiveStartTime))
+            .ForMember(des => des.ActiveStartEpochTime, opt
+                => opt.MapFrom(source => source.ActiveStartTime.ToUtcMilliSeconds()))
+            .ForMember(des => des.ActiveEndEpochTime, opt
+                => opt.MapFrom(source => source.ActiveEndTime.ToUtcMilliSeconds()))
             ;
         CreateMap<VoteAndLikeMessageEto, RankingAppUserPointsIndex>()
             .ForMember(des => des.DAOId, opt
@@ -288,7 +298,13 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Categories, opt
                 => opt.MapFrom(source => MapCategories(source.Categories)))
             .ForMember(des => des.AppType, opt
-                => opt.MapFrom(source => source.SourceType.ToString()));
+                => opt.MapFrom(source => source.SourceType.ToString()))
+            .ForMember(des => des.Icon, opt
+                => opt.MapFrom(source => MapIcon(SourceType.FindMini, source.Icon)))
+            .ForMember(des => des.Screenshots, opt
+                => opt.MapFrom(source => MapScreenshots(SourceType.FindMini, source.Screenshots)))
+            ;
+        CreateMap<TelegramUserInfoIndex, InviteLeaderBoardDto>();
         CreateMap<IndexerResourceTokenDto, ResourceTokenIndex>()
             .ForMember(des => des.Address, opt
                 => opt.MapFrom(source => CommonConstant.NeedParse))

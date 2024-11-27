@@ -5,6 +5,7 @@ namespace TomorrowDAOServer.Common;
 
 public static class CommonConstant
 {
+    public const int MaxResultCount = 500;
     public const string DateFormat = "yyyy-MM-dd HH:mm:ss";
     
     public const long LongError = -1;
@@ -115,9 +116,12 @@ public static class CommonConstant
     public const string Rank = "Rank";
     public const string Inviter = "Inviter";
     public const string Invitee = "Invitee";
+    public const string AdPlatform = "AdPlatform";
+    public const string AdTime = "AdTime";
     
     // Discover
     public const string Recommend = "Recommend";
+    public const string New = "New";
     public const double InterestedPercent = 0.75;
     
     // App
@@ -126,6 +130,10 @@ public static class CommonConstant
     
     //GrainId
     public const string GrainIdTelegramAppSequence = "TelegramAppSequence";
+    
+    //Findmini
+    public const string FindminiUrlPrefix = "https://www.findmini.app";
+    public const string FindminiCategoryPrefix = "https://www.findmini.app/category/";
     
     //Resource token
     public const string BuyMethod = "Buy";

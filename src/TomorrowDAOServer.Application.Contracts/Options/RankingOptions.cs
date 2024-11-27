@@ -32,6 +32,7 @@ public class RankingOptions
     public long PointsExploreCumulateTwentyInvite { get; set; } = 50_0000;
     
     public long PointsExploreForwardX { get; set; } = 1_0000;
+    public long PointsViewAd { get; set; } = 5000;
     
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
@@ -47,6 +48,7 @@ public class RankingOptions
     public string TopRankingVoteSchemeId { get; set; }
     public string TopRankingBanner { get; set; }
     public DayOfWeek TopRankingGenerateTime { get; set; } = DayOfWeek.Sunday;
+    public List<string> RankingExcludeIds { get; set; } = new();
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {

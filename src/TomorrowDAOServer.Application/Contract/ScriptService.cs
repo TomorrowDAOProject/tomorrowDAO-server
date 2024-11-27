@@ -67,7 +67,7 @@ public class ScriptService : IScriptService, ITransientDependency
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "GetProposalInfoAsync Exception chainId {chainId} proposalId {proposalId}", chainId, proposalId);
+            _logger.LogError(e, "GetProposalInfoAsyncException chainId {chainId} proposalId {proposalId}", chainId, proposalId);
             return null;
         }
         

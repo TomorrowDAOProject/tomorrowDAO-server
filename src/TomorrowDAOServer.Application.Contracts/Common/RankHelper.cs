@@ -14,9 +14,7 @@ public class RankHelper
     public static List<InviteLeaderBoardDto> GetRankedList(string chainId, IEnumerable<UserIndex> userList, 
         IEnumerable<KeyedBucket<string>> inviterBuckets)
     {
-        long rank = 1;           
-        long lastInviteCount = -1;  
-        long currentRank = 1;
+        long rank = 1; 
         var userDic = userList
             .Where(x => x.AddressInfos.Any(ai => ai.ChainId == chainId))
             .GroupBy(ui => ui.CaHash)
@@ -28,19 +26,13 @@ public class RankHelper
         return inviterBuckets.Where(bucket => !string.IsNullOrEmpty(bucket.Key)).Select((bucket, _) =>
         {
             var inviteCount = (long)(bucket.ValueCount("invite_count").Value ?? 0);
-            if (inviteCount != lastInviteCount)
-            {
-                currentRank = rank;
-                lastInviteCount = inviteCount;
-            }
             var referralInvite = new InviteLeaderBoardDto
             {
                 InviterCaHash = bucket.Key,
                 Inviter = userDic.GetValueOrDefault(bucket.Key, string.Empty),
                 InviteAndVoteCount = inviteCount,
-                Rank = currentRank  
+                Rank = rank++  
             };
-            rank++;  
             return referralInvite;
         }).ToList();
     }

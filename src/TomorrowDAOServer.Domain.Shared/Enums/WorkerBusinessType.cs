@@ -17,6 +17,11 @@ public enum WorkerBusinessType
     TopInviterGenerate,
     ProposalRedisUpdate,
     TopProposalGenerate,
+    TelegramAppsSync,
+    FindminiAppsSync,
+    TonGiftTaskGenerate,
+    TonGiftTaskComplete,
+    LuckyboxTaskComplete,
     ResourceTokenSync,
     ResourceTokenParse
 }
