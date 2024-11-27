@@ -58,7 +58,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                 if (NeedUpload(icon, index.BackIcon))
                 {
                     icon = GetUrl(icon);
-                    var backIcon = await _fileService.UploadFrontEndAsync(icon, Guid.NewGuid().ToString());
+                    var backIcon = await _fileService.UploadFrontEndAsync(icon, Guid.NewGuid().ToString("N").ToUpper());
                     if (!string.IsNullOrEmpty(backIcon))
                     {
                         needUpdate = true;
@@ -71,7 +71,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     var newBackScreenshots = new List<string>();
                     foreach (var screenshot in screenshots)
                     {
-                        var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, Guid.NewGuid().ToString());
+                        var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, Guid.NewGuid().ToString("N").ToUpper());
                         if (!string.IsNullOrEmpty(backScreenshot))
                         {
                             newBackScreenshots.Add(backScreenshot);
