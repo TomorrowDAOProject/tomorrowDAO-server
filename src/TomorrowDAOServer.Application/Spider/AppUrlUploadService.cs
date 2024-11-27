@@ -37,12 +37,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
         List<TelegramAppIndex> queryList;
         do
         {
-            // todo change later
-            // queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
-            queryList = (await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput()
-            {
-                Aliases = new List<string>() { "ton-doom" }
-            })).Item2;
+            queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
             if (queryList == null || queryList.IsNullOrEmpty())
             {
                 break;
@@ -90,10 +85,9 @@ public class AppUrlUploadService : ScheduleSyncDataService
                 }
             }
             
+            _logger.LogInformation("AppUrlUploadNeedUpdate count {count}", toUpdate.Count);
             await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
             skipCount += queryList.Count;
-            // todo move later
-            break;
         } while (!queryList.IsNullOrEmpty());
         return -1L;
     }
