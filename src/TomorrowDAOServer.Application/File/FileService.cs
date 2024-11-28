@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Aws;
-using TomorrowDAOServer.File.Provider;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Auditing;
@@ -26,6 +25,7 @@ public class FileService : TomorrowDAOServerAppService, IFileService
     private readonly IUserBalanceProvider _userBalanceProvider;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<FileService> _logger;
+    private readonly HttpClient _httpClient;
 
     public FileService(IAwsS3Client awsS3Client, IUserProvider userProvider, IUserBalanceProvider userBalanceProvider, 
         IHttpClientFactory httpClientFactory, ILogger<FileService> logger)
@@ -35,6 +35,7 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _userProvider = userProvider;
+        _httpClient = httpClientFactory.CreateClient();
     }
 
     public async Task<string> UploadAsync(string chainId, IFormFile file)
@@ -89,10 +90,9 @@ public class FileService : TomorrowDAOServerAppService, IFileService
 
     public async Task<Stream> DownloadImageAsync(string url)
     {
-        var client = _httpClientFactory.CreateClient();
         try
         {
-            var response = await client.GetAsync(url);
+            var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStreamAsync();
         }
