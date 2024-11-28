@@ -12,6 +12,7 @@ using TomorrowDAOServer.NetworkDao.Sync;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Referral;
+using TomorrowDAOServer.ResourceToken;
 using TomorrowDAOServer.Spider;
 using TomorrowDAOServer.ThirdPart.Exchange;
 using TomorrowDAOServer.Token;
@@ -55,6 +56,8 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
+        context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenParseService>();
+        context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, LuckyboxTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, AppUrlUploadService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();

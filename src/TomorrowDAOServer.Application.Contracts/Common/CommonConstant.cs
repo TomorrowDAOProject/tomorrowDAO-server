@@ -141,6 +141,15 @@ public static class CommonConstant
     public const string FindminiUrlPrefix = "https://www.findmini.app";
     public const string FindminiCategoryPrefix = "https://www.findmini.app/category/";
     
+    //Resource token
+    public const string BuyMethod = "Buy";
+    public const string SellMethod = "Sell";
+    public const string NeedParse = "NeedParse";
+    
+    //Order
+    public const string Desc = "desc";
+    public const string Asc = "asc";
+    
     //Upload
     public const string DownloadFail = "DownloadFail";
     public const string ConvertFail = "ConvertFail";

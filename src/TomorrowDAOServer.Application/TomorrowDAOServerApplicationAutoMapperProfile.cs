@@ -30,6 +30,8 @@ using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Eto;
 using TomorrowDAOServer.Referral.Dto;
 using TomorrowDAOServer.Referral.Indexer;
+using TomorrowDAOServer.ResourceToken.Dtos;
+using TomorrowDAOServer.ResourceToken.Indexer;
 using TomorrowDAOServer.Spider.Dto;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Token;
@@ -364,5 +366,29 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => MapScreenshots(SourceType.FindMini, source.Screenshots)))
             ;
         CreateMap<TelegramUserInfoIndex, InviteLeaderBoardDto>();
+        CreateMap<IndexerResourceTokenDto, ResourceTokenIndex>()
+            .ForMember(des => des.Address, opt
+                => opt.MapFrom(source => CommonConstant.NeedParse))
+            ;
+        CreateMap<ResourceTokenIndex, RecordDto>()
+            .ForMember(des => des.Tx_id, opt
+                => opt.MapFrom(source => source.TransactionId))
+            .ForMember(des => des.Type, opt
+                => opt.MapFrom(source => source.Symbol))
+            .ForMember(des => des.Resource, opt
+                => opt.MapFrom(source => source.ResourceAmount))
+            .ForMember(des => des.Elf, opt
+                => opt.MapFrom(source => source.BaseAmount))
+            .ForMember(des => des.Fee, opt
+                => opt.MapFrom(source => source.FeeAmount))
+            .ForMember(des => des.Chain_id, opt
+                => opt.MapFrom(source => source.ChainId))
+            .ForMember(des => des.Block_height, opt
+                => opt.MapFrom(source => source.BlockHeight))
+            .ForMember(des => des.Tx_status, opt
+                => opt.MapFrom(source => source.TransactionStatus))
+            .ForMember(des => des.Time, opt
+                => opt.MapFrom(source => source.OperateTime))
+            ;
     }
 }

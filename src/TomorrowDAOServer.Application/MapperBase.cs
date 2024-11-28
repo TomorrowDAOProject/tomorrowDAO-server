@@ -6,6 +6,7 @@ using AElf.Types;
 using AutoMapper;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer;
@@ -51,6 +52,16 @@ public class MapperBase : Profile
         }
 
         return list.Select(x => x.ToString()).ToList();
+    }
+
+    protected static string MapResourceTokenAddress(TransactionInfo? transactionInfo)
+    {
+        if (transactionInfo == null)
+        {
+            return string.Empty;
+        }
+
+        return transactionInfo.From ?? string.Empty;
     }
 
     protected static string MapIcon(SourceType sourceType, string icon)
