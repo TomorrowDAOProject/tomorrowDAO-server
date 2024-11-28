@@ -43,17 +43,19 @@ public class AppUrlUploadService : ScheduleSyncDataService
                 break;
             }
             
+            _logger.LogInformation("AppUrlUploadNeedUpdate allCount {0} skipCount {2}", queryList.Count, skipCount);
             var toUpdate = new List<TelegramAppIndex>();
             foreach (var index in queryList)
             {
                 var needUpdate = false;
+                var id = index.Id;
                 var icon = index.Icon;
                 var screenshots = index.Screenshots ?? new List<string>();
                 var backScreenshots = index.BackScreenshots ?? new List<string>();
                 if (NeedUpload(icon, index.BackIcon))
                 {
                     icon = GetUrl(icon);
-                    var backIcon = await _fileService.UploadFrontEndAsync(icon, Guid.NewGuid().ToString("N").ToUpper());
+                    var backIcon = await _fileService.UploadFrontEndAsync(icon, id);
                     if (!string.IsNullOrEmpty(backIcon))
                     {
                         needUpdate = true;
@@ -64,9 +66,10 @@ public class AppUrlUploadService : ScheduleSyncDataService
                 if (NeedUpload(screenshots, backScreenshots))
                 {
                     var newBackScreenshots = new List<string>();
-                    foreach (var screenshot in screenshots)
+                    for (var i = 0; i < screenshots.Count; i++)
                     {
-                        var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, Guid.NewGuid().ToString("N").ToUpper());
+                        var screenshot = screenshots[i];
+                        var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, id + "_" + i);
                         if (!string.IsNullOrEmpty(backScreenshot))
                         {
                             newBackScreenshots.Add(backScreenshot);
