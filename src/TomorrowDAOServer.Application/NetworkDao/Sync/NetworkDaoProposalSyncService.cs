@@ -69,7 +69,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
 
     public async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var skipCount = 1000;
+        var skipCount = 0;
         List<IndexerProposal> queryList;
         do
         {
