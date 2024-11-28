@@ -68,7 +68,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     var newBackScreenshots = new List<string>();
                     for (var i = 0; i < screenshots.Count; i++)
                     {
-                        var screenshot = screenshots[i];
+                        var screenshot = GetUrl(screenshots[i]);
                         var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, id + "_" + i);
                         if (!string.IsNullOrEmpty(backScreenshot))
                         {
