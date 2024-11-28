@@ -45,7 +45,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     break;
                 }
                 
-                _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {2}", queryList.Count, skipCount);
+                _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {1}", queryList.Count, skipCount);
                 var toUpdate = new List<TelegramAppIndex>();
                 foreach (var index in queryList)
                 {
