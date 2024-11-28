@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.NetworkDao.Index;
@@ -40,6 +41,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     private readonly INetworkDaoContractProvider _networkDaoContractProvider;
     private readonly IOptionsMonitor<MigratorOptions> _migratorOptions;
     private readonly IExplorerProvider _explorerProvider;
+    private readonly INetworkDaoProposalProvider _networkDaoProposalProvider;
+    private readonly IGraphQLProvider _graphQlProvider;
 
     private static readonly int MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount;
     private const int MaxVoteResultCount = 5000;
@@ -55,7 +58,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         INetworkDaoGraphQlDataProvider networkDaoGraphQlDataProvider,
         INetworkDaoEsDataProvider networkDaoEsDataProvider, IObjectMapper objectMapper,
         IContractProvider contractProvider, INetworkDaoContractProvider networkDaoContractProvider,
-        IOptionsMonitor<MigratorOptions> migratorOptions, IExplorerProvider explorerProvider)
+        IOptionsMonitor<MigratorOptions> migratorOptions, IExplorerProvider explorerProvider,
+        INetworkDaoProposalProvider networkDaoProposalProvider, IGraphQLProvider graphQlProvider)
     {
         _logger = logger;
         _networkDaoGraphQlDataProvider = networkDaoGraphQlDataProvider;
@@ -65,6 +69,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         _networkDaoContractProvider = networkDaoContractProvider;
         _migratorOptions = migratorOptions;
         _explorerProvider = explorerProvider;
+        _networkDaoProposalProvider = networkDaoProposalProvider;
+        _graphQlProvider = graphQlProvider;
     }
 
     public async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
@@ -109,6 +115,9 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
 
             //update voting info of proposal
             UpdateProposalVoteInfo(proposalList, voteRecords);
+            
+            //set proposal status
+            await SetProposalStatus(chainId, proposalList);
 
             //builder proposal List index data
             var proposalListList = await BuildProposalListIndexAsync(chainId, proposalList);
@@ -125,6 +134,68 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         } while (queryList.Count == MaxResultCount);
 
         return newIndexHeight;
+    }
+
+    private async Task SetProposalStatus(string chainId, List<NetworkDaoProposalIndex> proposalList)
+    {
+        var now = DateTime.UtcNow;
+        var filteredProposals = proposalList
+            .Where(proposal => proposal.ExpiredTime > now && proposal.Status != NetworkDaoProposalStatusEnum.Released)
+            .ToList();
+        var orgAddresses = filteredProposals.Select(t => t.OrganizationAddress).ToList();
+        var bpList = await _graphQlProvider.GetBPAsync(chainId);
+        var (orgCount, orgIndices) = await _networkDaoEsDataProvider.GetOrgIndexAsync(new GetOrgListInput
+        {
+            MaxResultCount = MaxVoteResultCount,
+            SkipCount = 0,
+            ChainId = chainId,
+            OrgAddresses = orgAddresses
+        });
+        var (memberCount, orgMemberIndices) = await _networkDaoEsDataProvider.GetOrgMemberListAsync(new GetOrgMemberListInput
+        {
+            MaxResultCount = MaxVoteResultCount,
+            SkipCount = 0,
+            ChainId = chainId,
+            OrgAddresses = orgAddresses
+        });
+        var orgAddressToMembers = orgMemberIndices.GroupBy(t => t.OrgAddress)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        
+        orgIndices ??= new List<NetworkDaoOrgIndex>();
+        var orgAddressToOrg = orgIndices.ToDictionary(t => t.OrgAddress, t => t);
+        foreach (var proposalIndex in filteredProposals)
+        {
+            var orgIndex = orgAddressToOrg.GetValueOrDefault(proposalIndex.OrganizationAddress, null);
+            if (orgIndex == null)
+            { _logger.LogError("[NetworkDaoMigrator] Set Proposal Status, Not found Org. proposalId={0},OrgAddres={1}", proposalIndex.ProposalId, proposalIndex.OrganizationAddress);
+                continue;
+            }
+
+            switch (proposalIndex.OrgType)
+            {
+                case NetworkDaoOrgType.Parliament:
+                {
+                    proposalIndex.Status =
+                        await _networkDaoProposalProvider.GetNetworkDaoProposalStatusAsync(chainId, proposalIndex,
+                            orgIndex, bpList);
+                    break;
+                }
+                case NetworkDaoOrgType.Association:
+                {
+                    var memberIndices = orgAddressToMembers.GetValueOrDefault(proposalIndex.OrganizationAddress,
+                        new List<NetworkDaoOrgMemberIndex>());
+                    var memberList = memberIndices.Select(t => t.Member).ToList();
+                    proposalIndex.Status = await _networkDaoProposalProvider.GetNetworkDaoProposalStatusAsync(chainId, proposalIndex, orgIndex, memberList);
+                    break;
+                }
+                default:
+                {
+                    proposalIndex.Status = await _networkDaoProposalProvider.GetNetworkDaoProposalStatusAsync(chainId, proposalIndex, orgIndex, new List<string>());
+                    break;
+                }
+            }
+            
+        }
     }
 
     private async Task<List<NetworkDaoProposalListIndex>> BuildProposalListIndexAsync(string chainId,

@@ -16,21 +16,7 @@ public class GetOrganizationsInput : PagedAndSortedResultRequestDto
     public string Search { get; set; } = string.Empty;
 }
 
-public class GetOrganizationsPagedResult : PagedResultDto<GetOrganizationsResultDto>
+public class GetOrganizationsPagedResult : PagedResultDto<NetworkDaoOrgDto>
 {
     
-}
-
-public class GetOrganizationsResultDto
-{
-    public string Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-    public GetProposalListResultDto.ReleaseThresholdDto ReleaseThreshold { get; set; }
-    public LeftOrgInfo LeftOrgInfo { get; set; }
-    public string OrgAddress { get; set; }
-    public string OrgHash { get; set; }
-    public string TxId { get; set; }
-    public string Creator { get; set; }
-    public NetworkDaoOrgType ProposalType { get; set; }
 }

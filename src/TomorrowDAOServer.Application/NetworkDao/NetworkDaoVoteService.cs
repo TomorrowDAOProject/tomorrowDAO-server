@@ -6,6 +6,7 @@ using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Options;
 using Orleans;
 using TomorrowDAOServer.Dtos.Explorer;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.NetworkDao;
 using TomorrowDAOServer.NetworkDao.Dtos;
 using TomorrowDAOServer.NetworkDao.GrainDtos;
@@ -34,7 +35,7 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
 
     public NetworkDaoVoteService(INetworkDaoEsDataProvider networkDaoEsDataProvider, IObjectMapper objectMapper,
-        IClusterClient clusterClient, IUserProvider userProvider, IExplorerProvider explorerProvider, 
+        IClusterClient clusterClient, IUserProvider userProvider, IExplorerProvider explorerProvider,
         IOptionsMonitor<TelegramOptions> telegramOptions)
     {
         _networkDaoEsDataProvider = networkDaoEsDataProvider;
@@ -196,7 +197,7 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
         {
             throw new UserFriendlyException("Access denied");
         }
-        
+
         if (!_telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address))
         {
             throw new UserFriendlyException("Access denied.");
@@ -258,5 +259,24 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
 
         voteTeamIndices = voteTeamIndices.GroupBy(t => t.PublicKey).Select(g => g.First()).ToList();
         return _objectMapper.Map<List<NetworkDaoVoteTeamIndex>, List<GetTeamDescResultDto>>(voteTeamIndices);
+    }
+
+    public async Task<Dictionary<string, NetworkDaoProposalVoteIndex>> GetPersonVotedDictionaryAsync(string chainId,
+        string address, List<string> proposalIds)
+    {
+        if (address.IsNullOrWhiteSpace())
+        {
+            return new Dictionary<string, NetworkDaoProposalVoteIndex>();
+        }
+        
+        var (totalCount, votedList) = await _networkDaoEsDataProvider.GetProposalVotedListAsync(new GetVotedListInput
+        {
+            MaxResultCount = GetVotedListInput.MaxMaxResultCount,
+            ChainId = chainId,
+            ProposalIds = proposalIds,
+            Address = address
+        });
+        votedList ??= new List<NetworkDaoProposalVoteIndex>();
+        return votedList.GroupBy(t => t.ProposalId).ToDictionary(t => t.Key, t => t.FirstOrDefault());
     }
 }

@@ -244,16 +244,16 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<TomorrowDAOServer.NetworkDao.Dtos.GetOrganizationsInput, TomorrowDAOServer.NetworkDao.Migrator.ES.GetOrgListInput>()
             .ForMember(des => des.OrgType, opt => opt.MapFrom(src => src.ProposalType))
             .ForMember(des => des.OrgAddress, opt => opt.MapFrom(src => src.Search));
-        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex, TomorrowDAOServer.NetworkDao.Dtos.GetOrganizationsResultDto>()
+        CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoOrgIndex, TomorrowDAOServer.NetworkDao.Dtos.NetworkDaoOrgDto>()
             .ForPath(des => des.ReleaseThreshold.MinimalApprovalThreshold, opt => opt.MapFrom(src => src.MinimalApprovalThreshold))
             .ForPath(des => des.ReleaseThreshold.MaximalAbstentionThreshold, opt => opt.MapFrom(src => src.MaximalAbstentionThreshold))
             .ForPath(des => des.ReleaseThreshold.MaximalRejectionThreshold, opt => opt.MapFrom(src => src.MaximalRejectionThreshold))
             .ForPath(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
             .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType))
-            .ForPath(des => des.LeftOrgInfo.ParliamentMemberProposingAllowed, opt => opt.MapFrom(src => src.ParliamentMemberProposingAllowed))
-            .ForPath(des => des.LeftOrgInfo.CreationToken, opt => opt.MapFrom(src => src.CreationToken))
-            .ForPath(des => des.LeftOrgInfo.ProposerAuthorityRequired, opt => opt.MapFrom(src => src.ProposerAuthorityRequired))
-            .ForPath(des => des.LeftOrgInfo.TokenSymbol, opt => opt.MapFrom(src => src.TokenSymbol));
+            .ForPath(des => des.NetworkDaoOrgLeftOrgInfoDto.ParliamentMemberProposingAllowed, opt => opt.MapFrom(src => src.ParliamentMemberProposingAllowed))
+            .ForPath(des => des.NetworkDaoOrgLeftOrgInfoDto.CreationToken, opt => opt.MapFrom(src => src.CreationToken))
+            .ForPath(des => des.NetworkDaoOrgLeftOrgInfoDto.ProposerAuthorityRequired, opt => opt.MapFrom(src => src.ProposerAuthorityRequired))
+            .ForPath(des => des.NetworkDaoOrgLeftOrgInfoDto.TokenSymbol, opt => opt.MapFrom(src => src.TokenSymbol));
         CreateMap<AddTeamDescInput, NetworkDaoVoteTeamDto>();
         CreateMap<AddTeamDescInput, NetworkDaoVoteTeamIndex>();
         CreateMap<NetworkDaoVoteTeamIndex, GetTeamDescResultDto>();

@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.NetworkDao.Dtos;
 using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.NetworkDao.Migrator.ES;
 
 public class GetProposalListInput : PagedResultRequestDto
 {
+    [Required]
     public string ChainId { get; set; }
     //OrgAddress
     public string Address { get; set; }
@@ -28,8 +31,8 @@ public class GetProposalListPageResult : PagedResultDto<GetProposalListResultDto
 
 public class GetProposalListResultDto
 {
-    public int Abstentions { get; set; }
-    public int Approvals { get; set; }
+    public decimal Abstentions { get; set; }
+    public decimal Approvals { get; set; }
     public bool CanVote { get; set; }
     public string ContractAddress { get; set; }
     public string ContractMethod { get; set; }
@@ -41,13 +44,13 @@ public class GetProposalListResultDto
     public bool IsContractDeployed { get; set; }
     public LeftInfoDto LeftInfo { get; set; }
     public string OrgAddress { get; set; }
-    public OrganizationInfoDto OrganizationInfo { get; set; }
+    public NetworkDaoOrgDto OrganizationInfo { get; set; }
     public string ProposalType { get; set; }
     public string TxId { get; set; }
     public DateTime UpdatedAt { get; set; }
     public string ProposalId { get; set; }
     public string Proposer { get; set; }
-    public int Rejections { get; set; }
+    public decimal Rejections { get; set; }
     public DateTime ReleasedTime { get; set; }
     public string ReleasedTxId { get; set; }
     public string Status { get; set; }
@@ -58,34 +61,5 @@ public class GetProposalListResultDto
     public class LeftInfoDto
     {
         public string OrganizationAddress { get; set; }
-    }
-
-    public class OrganizationInfoDto
-    {
-        public DateTime CreatedAt { get; set; }
-        public string Creator { get; set; }
-        public LeftOrgInfo LeftOrgInfo { get; set; }
-        public string OrgAddress { get; set; }
-        public string OrgHash { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        public ReleaseThresholdDto ReleaseThreshold { get; set; }
-        public string TxId { get; set; }
-        public string ProposalType { get; set; }
-    }
-
-
-    public class LeftOrgInfo
-    {
-        public bool ProposerAuthorityRequired { get; set; }
-        public bool ParliamentMemberProposingAllowed { get; set; }
-        public object CreationToken { get; set; }
-    }
-
-    public class ReleaseThresholdDto
-    {
-        public string MinimalApprovalThreshold { get; set; }
-        public string MaximalRejectionThreshold { get; set; }
-        public string MaximalAbstentionThreshold { get; set; }
-        public string MinimalVoteThreshold { get; set; }
     }
 }

@@ -28,8 +28,8 @@ public class GetOrgOfProposerListResultDto
 {
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public GetProposalListResultDto.ReleaseThresholdDto ReleaseThreshold { get; set; }
-    public LeftOrgInfo LeftOrgInfo { get; set; }
+    public NetworkDaoOrgReleaseThresholdDto ReleaseThreshold { get; set; }
+    public NetworkDaoOrgLeftOrgInfoDto LeftOrgInfo { get; set; }
     public string OrgAddress { get; set; }
     public string OrgHash { get; set; }
     public string TxId { get; set; }
