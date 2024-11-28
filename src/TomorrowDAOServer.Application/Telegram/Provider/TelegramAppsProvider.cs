@@ -276,11 +276,13 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
                 .Should(
                     s => s.Bool(bs => bs
                         .Must(
-                            m => m.Exists(e => e.Field(f => f.Url))
+                            m => m.Exists(e => e.Field(f => f.Icon)),
+                            m => !m.Exists(e => e.Field(f => f.BackIcon))
                         )),
                     s => s.Bool(bs => bs
                         .Must(
-                            m => m.Exists(e => e.Field(f => f.Screenshots))
+                            m => m.Exists(e => e.Field(f => f.Screenshots)), 
+                            m => !m.Exists(e => e.Field(f => f.BackScreenshots))
                         ))
                 )
                 .MinimumShouldMatch(1)
