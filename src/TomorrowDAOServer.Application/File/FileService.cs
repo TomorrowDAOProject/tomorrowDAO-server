@@ -71,14 +71,14 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         await using var stream = await DownloadImageAsync(baseUrl);
         if (stream == null)
         {
-            _logger.LogInformation("UploadFrontEndAsyncDownloadFail url {0}", url);
+            _logger.LogInformation("UploadFrontEndAsyncDownloadFail url {0} fileName {1}", url, fileName);
             return string.Empty;
         }
 
         await using var memoryStream = await ConvertToWebp(extension, stream);
         if (memoryStream == null)
         {
-            _logger.LogInformation("UploadFrontEndAsyncConvertFail url {0}", url);
+            _logger.LogInformation("UploadFrontEndAsyncConvertFail url {0} fileName {1}", url, fileName);
             return string.Empty;
         }
 
@@ -98,7 +98,6 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "DownloadImageAsyncException imageUrl {0}", url);
             return null;
         }
     }
@@ -138,7 +137,6 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         }
         catch (Exception)
         {
-            _logger.LogInformation("UploadFrontEndAsyncParseUrlFail url {0}", url);
             return new Tuple<string, string>(string.Empty, string.Empty);
         }
     }
