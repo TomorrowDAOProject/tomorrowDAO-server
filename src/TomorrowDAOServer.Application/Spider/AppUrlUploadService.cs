@@ -33,66 +33,74 @@ public class AppUrlUploadService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var skipCount = 0;
-        List<TelegramAppIndex> queryList;
-        do
+        try
         {
-            queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
-            if (queryList == null || queryList.IsNullOrEmpty())
+            var skipCount = 0;
+            List<TelegramAppIndex> queryList;
+            do
             {
-                break;
-            }
-            
-            _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {1}", queryList.Count, skipCount);
-            var toUpdate = new List<TelegramAppIndex>();
-            foreach (var index in queryList)
-            {
-                var needUpdate = false;
-                var id = index.Id;
-                var icon = index.Icon;
-                var screenshots = index.Screenshots ?? new List<string>();
-                var backScreenshots = index.BackScreenshots ?? new List<string>();
-                if (NeedUpload(icon, index.BackIcon))
+                queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
+                if (queryList == null || queryList.IsNullOrEmpty())
                 {
-                    icon = GetUrl(icon);
-                    var backIcon = await _fileService.UploadFrontEndAsync(icon, id);
-                    if (!string.IsNullOrEmpty(backIcon))
-                    {
-                        needUpdate = true;
-                        index.BackIcon = backIcon;
-                    }
+                    break;
                 }
-
-                if (NeedUpload(screenshots, backScreenshots))
+                
+                _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {1}", queryList.Count, skipCount);
+                var toUpdate = new List<TelegramAppIndex>();
+                foreach (var index in queryList)
                 {
-                    var newBackScreenshots = new List<string>();
-                    for (var i = 0; i < screenshots.Count; i++)
+                    var needUpdate = false;
+                    var id = index.Id;
+                    var icon = index.Icon;
+                    var screenshots = index.Screenshots ?? new List<string>();
+                    var backScreenshots = index.BackScreenshots ?? new List<string>();
+                    if (NeedUpload(icon, index.BackIcon))
                     {
-                        var screenshot = GetUrl(screenshots[i]);
-                        var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, id + "_" + i);
-                        if (!string.IsNullOrEmpty(backScreenshot))
+                        icon = GetUrl(icon);
+                        var backIcon = await _fileService.UploadFrontEndAsync(icon, id);
+                        if (!string.IsNullOrEmpty(backIcon))
                         {
-                            newBackScreenshots.Add(backScreenshot);
+                            needUpdate = true;
+                            index.BackIcon = backIcon;
                         }
                     }
-                    if (newBackScreenshots.Any())
+
+                    if (NeedUpload(screenshots, backScreenshots))
                     {
-                        needUpdate = true;
-                        index.BackScreenshots = newBackScreenshots;
+                        var newBackScreenshots = new List<string>();
+                        for (var i = 0; i < screenshots.Count; i++)
+                        {
+                            var screenshot = GetUrl(screenshots[i]);
+                            var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, id + "_" + i);
+                            if (!string.IsNullOrEmpty(backScreenshot))
+                            {
+                                newBackScreenshots.Add(backScreenshot);
+                            }
+                        }
+                        if (newBackScreenshots.Any())
+                        {
+                            needUpdate = true;
+                            index.BackScreenshots = newBackScreenshots;
+                        }
+                    }
+
+                    if (needUpdate)
+                    {
+                        toUpdate.Add(index);
                     }
                 }
-
-                if (needUpdate)
-                {
-                    toUpdate.Add(index);
-                }
-            }
-            
-            _logger.LogInformation("AppUrlUploadNeedUpdateAfter allCount {0} updateCount {1} skipCount {2}", queryList.Count, toUpdate.Count, skipCount);
-            await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
-            skipCount += queryList.Count;
-        } while (!queryList.IsNullOrEmpty());
-        return -1L;
+                
+                _logger.LogInformation("AppUrlUploadNeedUpdateAfter allCount {0} updateCount {1} skipCount {2}", queryList.Count, toUpdate.Count, skipCount);
+                await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
+                skipCount += queryList.Count;
+            } while (!queryList.IsNullOrEmpty());
+            return -1L;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "AppUrlUploadException");
+            return -2L;
+        }
     }
 
     public override async Task<List<string>> GetChainIdsAsync()
