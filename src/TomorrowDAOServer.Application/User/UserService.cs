@@ -342,8 +342,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 var adPlatform = information.GetValueOrDefault(CommonConstant.AdPlatform, string.Empty);
                 return new Tuple<string, string>("Watch Ads", adPlatform);
             case PointsType.DailyCreatePoll:
-                var pollTitle = information.GetValueOrDefault(CommonConstant.ProposalTitle, string.Empty);
-                return new Tuple<string, string>("Create Poll", pollTitle);
+                return new Tuple<string, string>("Task", "Create your poll");
             case PointsType.ExploreJoinVotigram:
                 return new Tuple<string, string>("Task", "Join Votigram channel");
             case PointsType.ExploreFollowVotigramX:
