@@ -88,6 +88,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     {
                         toUpdate.Add(index);
                     }
+                    _logger.LogInformation("AppUrlUploadNeedUpdateMid id {0} needUpdate {0}", id, needUpdate);
                 }
                 
                 _logger.LogInformation("AppUrlUploadNeedUpdateAfter allCount {0} updateCount {1} skipCount {2}", queryList.Count, toUpdate.Count, skipCount);
