@@ -37,7 +37,7 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
     }
 
     [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
-        Message = "DealDataAsync error", LogTargets = new []{"chainId", "businessType"})]
+        Message = "DealDataAsyncError", LogTargets = new []{"chainId", "businessType"})]
     public virtual async Task DealDataAsync(string chainId, WorkerBusinessType businessType)
     {
         var lastEndHeight = await _graphQlProvider.GetLastEndHeightAsync(chainId, businessType);
