@@ -15,4 +15,7 @@ public interface INetworkDaoVoteService
     Task<int> LoadVoteTeamHistoryDateAsync(LoadVoteTeamDescHistoryInput input);
     Task<GetTeamDescResultDto> GetTeamDescAsync(GetTeamDescInput input);
     Task<List<GetTeamDescResultDto>> GetAllTeamDescAsync(GetAllTeamDescInput input);
+
+    Task<Dictionary<string, NetworkDaoProposalVoteIndex>> GetPersonVotedDictionaryAsync(string chainId,
+        string address, List<string> proposalIds);
 }

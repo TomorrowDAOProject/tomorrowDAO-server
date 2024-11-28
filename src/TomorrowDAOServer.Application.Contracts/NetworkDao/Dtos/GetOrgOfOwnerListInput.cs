@@ -29,23 +29,13 @@ public class GetOrgOfOwnerListResultDto
     public string Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public GetProposalListResultDto.ReleaseThresholdDto ReleaseThreshold { get; set; }
-    public LeftOrgInfo LeftOrgInfo { get; set; }
+    public NetworkDaoOrgReleaseThresholdDto ReleaseThreshold { get; set; }
+    public NetworkDaoOrgLeftOrgInfoDto LeftOrgInfo { get; set; }
     public string OrgAddress { get; set; }
     public string OrgHash { get; set; }
     public string TxId { get; set; }
     public string Creator { get; set; }
     public NetworkDaoOrgType ProposalType { get; set; }
-}
-
-public class LeftOrgInfo
-{
-    public string TokenSymbol { get; set; }
-    public bool ProposerAuthorityRequired { get; set; }
-    public bool ParliamentMemberProposingAllowed { get; set; }
-    public OrganizationMemberList OrganizationMemberList { get; set; }
-    public ProposerWhiteList ProposerWhiteList { get; set; }
-    public string CreationToken { get; set; }
 }
 
 public class OrganizationMemberList

@@ -222,6 +222,12 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
             q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId)),
             q => q.Term(i => i.Field(t => t.ProposalId).Value(input.ProposalId))
         };
+
+        if (!input.Address.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.Proposer).Value(input.Address)));
+        }
+        
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _proposalIndexRepository.GetAsync(Filter);
     }
@@ -366,7 +372,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         if (input.Sorting.IsNullOrWhiteSpace())
         {
             sortDescriptor =
-                _ => new SortDescriptor<NetworkDaoOrgMemberIndex>().Descending(a => a.CreatedAt);
+                _ => new SortDescriptor<NetworkDaoOrgProposerIndex>().Descending(a => a.Proposer);
         }
         else
         {

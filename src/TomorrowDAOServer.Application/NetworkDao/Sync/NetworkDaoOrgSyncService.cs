@@ -237,7 +237,7 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
         }
 
         var orgProposerIndices = new List<NetworkDaoOrgProposerIndex>();
-        if (organization.ProposerWhiteList != null && organization.ProposerWhiteList.Proposers.IsNullOrEmpty())
+        if (organization.ProposerWhiteList != null && !organization.ProposerWhiteList.Proposers.IsNullOrEmpty())
         {
             orgProposerIndices.AddRange(organization.ProposerWhiteList.Proposers.Select(proposer =>
                 new NetworkDaoOrgProposerIndex
@@ -276,7 +276,7 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
 
         var orgMemberIndices = new List<NetworkDaoOrgMemberIndex>();
         var orgProposerIndices = new List<NetworkDaoOrgProposerIndex>();
-        if (organization.ProposerWhiteList != null && organization.ProposerWhiteList.Proposers.IsNullOrEmpty())
+        if (organization.ProposerWhiteList != null && !organization.ProposerWhiteList.Proposers.IsNullOrEmpty())
         {
             orgProposerIndices.AddRange(organization.ProposerWhiteList.Proposers.Select(proposer =>
                 new NetworkDaoOrgProposerIndex

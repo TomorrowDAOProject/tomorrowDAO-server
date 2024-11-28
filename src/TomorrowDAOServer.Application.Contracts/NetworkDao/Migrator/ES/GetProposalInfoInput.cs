@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TomorrowDAOServer.NetworkDao.Dtos;
 
 namespace TomorrowDAOServer.NetworkDao.Migrator.ES;
 
@@ -13,6 +14,6 @@ public class GetProposalInfoResultDto
 {
     public GetProposalListResultDto Proposal { get; set; }
     public List<string> BpList { get; set; }
-    public GetProposalListResultDto.OrganizationInfoDto Organization { get; set; }
+    public NetworkDaoOrgDto Organization { get; set; }
     public List<string> ParliamentProposerList { get; set; }
 }
