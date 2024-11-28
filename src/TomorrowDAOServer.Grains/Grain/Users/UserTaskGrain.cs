@@ -11,6 +11,12 @@ public interface IUserTaskGrain : IGrainWithStringKey
 
 public class UserTaskGrain : Grain<UserTaskState>, IUserTaskGrain
 {
+    public override async Task OnActivateAsync()
+    {
+        await ReadStateAsync();
+        await base.OnActivateAsync();
+    }
+    
     public async Task<bool> UpdateUserTaskCompleteTimeAsync(DateTime completeTime, UserTask userTask)
     {
         switch (userTask)
