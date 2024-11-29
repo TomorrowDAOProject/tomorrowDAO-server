@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Chains;
@@ -9,7 +9,6 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.File;
-using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 
 namespace TomorrowDAOServer.Spider;
@@ -20,6 +19,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly ILogger<ScheduleSyncDataService> _logger;
     private readonly IFileService _fileService;
+    private int _isRunning = 0; 
     
     public AppUrlUploadService(ILogger<ScheduleSyncDataService> logger, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, ITelegramAppsProvider telegramAppsProvider, IFileService fileService) 
@@ -33,74 +33,74 @@ public class AppUrlUploadService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        try
+        if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0)
         {
-            var skipCount = 0;
-            List<TelegramAppIndex> queryList;
-            do
-            {
-                queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
-                _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {1}", queryList?.Count, skipCount);
-                if (queryList == null || queryList.IsNullOrEmpty())
-                {
-                    break;
-                }
-                
-                var toUpdate = new List<TelegramAppIndex>();
-                foreach (var index in queryList)
-                {
-                    var needUpdate = false;
-                    var id = index.Id;
-                    var icon = index.Icon;
-                    var screenshots = index.Screenshots ?? new List<string>();
-                    var backScreenshots = index.BackScreenshots ?? new List<string>();
-                    if (NeedUpload(icon, index.BackIcon))
-                    {
-                        icon = GetUrl(icon);
-                        var backIcon = await _fileService.UploadFrontEndAsync(icon, id);
-                        if (!string.IsNullOrEmpty(backIcon))
-                        {
-                            needUpdate = true;
-                            index.BackIcon = backIcon;
-                        }
-                    }
-
-                    if (NeedUpload(screenshots, backScreenshots))
-                    {
-                        var newBackScreenshots = new List<string>();
-                        for (var i = 0; i < screenshots.Count; i++)
-                        {
-                            var screenshot = GetUrl(screenshots[i]);
-                            var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, id + "_" + i);
-                            if (!string.IsNullOrEmpty(backScreenshot))
-                            {
-                                newBackScreenshots.Add(backScreenshot);
-                            }
-                        }
-                        if (newBackScreenshots.Any())
-                        {
-                            needUpdate = true;
-                            index.BackScreenshots = newBackScreenshots;
-                        }
-                    }
-
-                    if (needUpdate)
-                    {
-                        toUpdate.Add(index);
-                    }
-                }
-                
-                _logger.LogInformation("AppUrlUploadNeedUpdateAfter allCount {0} updateCount {1} skipCount {2}", queryList.Count, toUpdate.Count, skipCount);
-                await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
-                skipCount += queryList.Count;
-            } while (!queryList.IsNullOrEmpty());
+            _logger.LogWarning("AppUrlUploadIsRunning");
             return 1L;
         }
-        catch (Exception e)
+        
+        var skipCount = 0;
+        List<TelegramAppIndex> queryList;
+        do
         {
-            _logger.LogError(e, "AppUrlUploadException");
-            return 2L;
-        }
+            queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
+            _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {1}", queryList?.Count, skipCount);
+            if (queryList == null || queryList.IsNullOrEmpty())
+            {
+                break;
+            }
+            
+            var toUpdate = new List<TelegramAppIndex>();
+            foreach (var index in queryList)
+            {
+                var needUpdate = false;
+                var id = index.Id;
+                var icon = index.Icon;
+                var screenshots = index.Screenshots ?? new List<string>();
+                var backScreenshots = index.BackScreenshots ?? new List<string>();
+                if (NeedUpload(icon, index.BackIcon))
+                {
+                    icon = GetUrl(icon);
+                    var backIcon = await _fileService.UploadFrontEndAsync(icon, id);
+                    if (!string.IsNullOrEmpty(backIcon))
+                    {
+                        needUpdate = true;
+                        index.BackIcon = backIcon;
+                    }
+                }
+
+                if (NeedUpload(screenshots, backScreenshots))
+                {
+                    var newBackScreenshots = new List<string>();
+                    for (var i = 0; i < screenshots.Count; i++)
+                    {
+                        var screenshot = GetUrl(screenshots[i]);
+                        var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, id + "_" + i);
+                        if (!string.IsNullOrEmpty(backScreenshot))
+                        {
+                            newBackScreenshots.Add(backScreenshot);
+                        }
+                    }
+                    if (newBackScreenshots.Any())
+                    {
+                        needUpdate = true;
+                        index.BackScreenshots = newBackScreenshots;
+                    }
+                }
+
+                if (needUpdate)
+                {
+                    toUpdate.Add(index);
+                }
+            }
+            
+            _logger.LogInformation("AppUrlUploadNeedUpdateAfter allCount {0} updateCount {1} skipCount {2}", queryList.Count, toUpdate.Count, skipCount);
+            await _telegramAppsProvider.BulkAddOrUpdateAsync(toUpdate);
+            skipCount += queryList.Count;
+        } while (!queryList.IsNullOrEmpty());
+        
+        Interlocked.Exchange(ref _isRunning, 0);
+        return 1L;
     }
 
     public override async Task<List<string>> GetChainIdsAsync()
