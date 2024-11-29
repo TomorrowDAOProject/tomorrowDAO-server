@@ -9,7 +9,7 @@ namespace TomorrowDAOServer.Worker.Jobs;
 
 public class AppUrlUploadWorker : TomorrowDAOServerWorkBase
 {
-    protected override WorkerBusinessType BusinessType => WorkerBusinessType.AppUrlUpload;
+    protected override WorkerBusinessType BusinessType => WorkerBusinessType.AppUrlUploadTask;
 
     public AppUrlUploadWorker(ILogger<ScheduleSyncDataContext> logger,
         AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,

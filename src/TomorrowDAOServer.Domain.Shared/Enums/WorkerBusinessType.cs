@@ -31,5 +31,5 @@ public enum WorkerBusinessType
     NetworkDaoSideChainSync,
     NetworkDaoMainChainOrgSync,
     NetworkDaoSideChainOrgSync,
-    AppUrlUpload,
+    AppUrlUploadTask,
 }
