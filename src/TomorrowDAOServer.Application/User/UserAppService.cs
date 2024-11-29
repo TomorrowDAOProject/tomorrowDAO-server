@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
+using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
@@ -29,7 +32,10 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         _objectMapper = objectMapper;
     }
 
-    public async Task CreateUserAsync(UserDto user)
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
+    //     Message = "Create user error", LogTargets = new []{"user"})]
+    public virtual async Task CreateUserAsync(UserDto user)
     {
         try
         {

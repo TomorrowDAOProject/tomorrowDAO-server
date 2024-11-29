@@ -7,6 +7,7 @@ public class RankingVoteInput
     public string ChainId { get; set; }
     public string RawTransaction { get; set; }
     public string TrackId { get; set; } = string.Empty;
+    public string TransactionId { get; set; } = string.Empty;
 }
 
 public class GetVoteStatusInput

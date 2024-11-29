@@ -33,6 +33,10 @@ public class RankingOptions
     
     public long PointsExploreForwardX { get; set; } = 1_0000;
     public long PointsViewAd { get; set; } = 5000;
+    public long PointsDailyCreatePoll { get; set; } = 10_0000;
+    public long PointsExploreJoinVotigram{ get; set; } = 1_0000;
+    public long PointsExploreFollowVotigramX { get; set; } = 1_0000;
+    public long PointsExploreForwardVotigramX { get; set; } = 1_0000;
     
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }

@@ -4,16 +4,20 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Contracts.MultiToken;
+using AElf.ExceptionHandler;
+using JetBrains.Annotations;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Grains.Grain.Token;
 using TomorrowDAOServer.Token.Dto;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver.Linq;
+using Newtonsoft.Json;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Common.Aws;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Options;
@@ -70,7 +74,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         if (DateTime.UtcNow.ToUtcMilliSeconds() - tokenInfo.LastUpdateTime <= CommonConstant.OneDay)
         {
             sw.Stop();
-            _logger.LogInformation("ProposalListDuration: GetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            Log.Information("ProposalListDuration: GetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
             
             return tokenInfo;
         }
@@ -79,7 +83,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         if (tokenResponse == null || tokenResponse.Symbol.IsNullOrWhiteSpace())
         {
             sw.Stop();
-            _logger.LogInformation("ProposalListDuration: ExplorerGetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
+            Log.Information("ProposalListDuration: ExplorerGetTokenInfoAsync {0}", sw.ElapsedMilliseconds);
             
             return tokenInfo;
         }
@@ -132,7 +136,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         }
         var exchangeGrain = _clusterClient.GetGrain<ITokenExchangeGrain>(string.Join(CommonConstant.Underline, baseCoin, quoteCoin));
         var exchange = await exchangeGrain.GetAsync();
-        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = AvgPrice(exchange) };
+        return new TokenPriceDto { BaseCoin = baseCoin, QuoteCoin = quoteCoin, Price = await AvgPrice(exchange) };
     }
 
     public async Task UpdateExchangePriceAsync(string baseCoin, string quoteCoin,  List<ExchangeProviderName> providerNames)
@@ -158,6 +162,7 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         exchange.ExchangeInfos = new Dictionary<string, TokenExchangeDto>();
         foreach (var (providerName, exchangeTask) in asyncTasks)
         {
+            //await UpdateExchangeInfosAsync(exchange, providerName, exchangeTask);
             try
             {
                 exchange.ExchangeInfos.Add(providerName, await exchangeTask);
@@ -169,69 +174,38 @@ public class TokenService : TomorrowDAOServerAppService, ITokenService
         }
         
         await exchangeGrain.SetAsync(exchange);
-        _logger.LogInformation("UpdateExchangePriceAsync pair {pair}, price {price}, exchange {exchange}", 
-            pair, AvgPrice(exchange), exchange.ExchangeInfos.Keys);
+        Log.Debug("UpdateExchangePriceAsync pair {pair}, exchange {exchange}", 
+            pair, JsonConvert.SerializeObject(exchange));
     }
-    
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), 
+        Message = "Query exchange failed", LogTargets = new []{"providerName"})]
+    public virtual async Task UpdateExchangeInfosAsync(TokenExchangeGrainDto exchange, string providerName,
+        Task<TokenExchangeDto> exchangeTask)
+    {
+        exchange.ExchangeInfos.Add(providerName, await exchangeTask);
+    }
+
+
     private string MappingSymbol(string sourceSymbol)
     {
         return _netWorkReflectionOption.CurrentValue.SymbolItems.TryGetValue(sourceSymbol, out var targetSymbol)
             ? targetSymbol : sourceSymbol;
     }
-    
-    private async Task<string> FixImageAsync(string chainId, string symbol, BlockChainTokenInfo tokenInfo = null)
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleAvgPrice))]
+    public virtual async Task<decimal> AvgPrice([CanBeNull] TokenExchangeGrainDto exchange)
     {
-        try
+        if (exchange == null || exchange.ExchangeInfos == null || !exchange.ExchangeInfos.Any())
         {
-            tokenInfo ??= await GetBlockChainTokenInfo(chainId, symbol);
-            var externalInfo = tokenInfo.ExternalInfo.Value.ToDictionary(f => f.Key, f => f.Value);
-            if (externalInfo.TryGetValue("__nft_image_url", out var nftImage))
-            {
-                // for common nft, save image url directly
-                return nftImage;
-            }
-
-            if (externalInfo.TryGetValue("inscription_image", out var inscriptionImage))
-            {
-                // for inscription nft, upload image to AwsS3 and save image url
-                return await _awsS3Client.UpLoadBase64FileAsync(inscriptionImage, symbol + ".png");
-            }
+            return 0;
         }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "FixImageAsyncError, chainId {} symbol {}", chainId, symbol);
-        }
+        var validExchanges = exchange.ExchangeInfos.Values
+            .Where(ex => ex.Exchange > 0)
+            .ToList();
 
-        return string.Empty;
-    }
-
-    private async Task<BlockChainTokenInfo> GetBlockChainTokenInfo(string chainId, string symbol)
-    {
-        var (_, tx) = await _contractProvider.CreateCallTransactionAsync(chainId,
-            SystemContractName.TokenContract, CommonConstant.TokenMethodGetTokenInfo, new GetTokenInfoInput { Symbol = symbol });
-        var tokenInfo = await _contractProvider.CallTransactionAsync<BlockChainTokenInfo>(chainId, tx);
-        return tokenInfo;
-    }
-
-    private static decimal AvgPrice(TokenExchangeGrainDto exchange)
-    {
-        try
-        {
-            if (exchange == null || !exchange.ExchangeInfos.Any())
-            {
-                return 0;
-            }
-            var validExchanges = exchange.ExchangeInfos.Values
-                .Where(ex => ex.Exchange > 0)
-                .ToList();
-
-            return validExchanges.Any() ? validExchanges.Average(ex => ex.Exchange) : 0;
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
-
-        return 0;
+        return validExchanges.Any() ? validExchanges.Average(ex => ex.Exchange) : 0;
     }
 }

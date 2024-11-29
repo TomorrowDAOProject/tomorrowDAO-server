@@ -1,10 +1,13 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.NetworkDao.Dto;
 using Volo.Abp.DependencyInjection;
 
@@ -27,17 +30,19 @@ public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingleto
         _graphQlHelper = graphQlHelper;
     }
 
-    public async Task<NetworkDaoPagedResultDto<NetworkDaoProposalDto>> GetNetworkDaoProposalsAsync(
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReThrowMethodName, 
+        Message = "GetNetworkDaoProposalsAsync error",
+        LogTargets = new []{"input"})]
+    public virtual async Task<NetworkDaoPagedResultDto<NetworkDaoProposalDto>> GetNetworkDaoProposalsAsync(
         GetNetworkDaoProposalsInput input)
     {
-        try
-        {
-            var graphQlResponse = await _graphQlHelper
-                .QueryAsync<IndexerCommonResult<NetworkDaoPagedResultDto<NetworkDaoProposalDto>>>(
-                    new GraphQLRequest
-                    {
-                        Query =
-                            @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$proposalIds:[String]!,$proposalType:NetworkDaoProposalType!){
+        var graphQlResponse = await _graphQlHelper
+            .QueryAsync<IndexerCommonResult<NetworkDaoPagedResultDto<NetworkDaoProposalDto>>>(
+                new GraphQLRequest
+                {
+                    Query =
+                        @"query($skipCount:Int!,$maxResultCount:Int!,$startBlockHeight:Long!,$endBlockHeight:Long!,$chainId:String!,$proposalIds:[String]!,$proposalType:NetworkDaoProposalType!){
             data:getNetworkDaoProposals(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,proposalIds:$proposalIds,proposalType:$proposalType})
             {            
                 items {
@@ -45,24 +50,17 @@ public class NetworkDaoProposalProvider : INetworkDaoProposalProvider, ISingleto
                 },
                 totalCount
             }}",
-                        Variables = new
-                        {
-                            skipCount = input.SkipCount,
-                            maxResultCount = input.MaxResultCount,
-                            startBlockHeight = input.StartBlockHeight,
-                            endBlockHeight = input.EndBlockHeight,
-                            chainId = input.ChainId,
-                            proposalIds = input.ProposalIds,
-                            proposalType = input.ProposalType
-                        }
-                    });
-            return graphQlResponse?.Data ?? new NetworkDaoPagedResultDto<NetworkDaoProposalDto>();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetNetworkDaoProposalsAsync error, Param={Param}",
-                JsonConvert.SerializeObject(input));
-            throw;
-        }
+                    Variables = new
+                    {
+                        skipCount = input.SkipCount,
+                        maxResultCount = input.MaxResultCount,
+                        startBlockHeight = input.StartBlockHeight,
+                        endBlockHeight = input.EndBlockHeight,
+                        chainId = input.ChainId,
+                        proposalIds = input.ProposalIds,
+                        proposalType = input.ProposalType
+                    }
+                });
+        return graphQlResponse?.Data ?? new NetworkDaoPagedResultDto<NetworkDaoProposalDto>();
     }
 }

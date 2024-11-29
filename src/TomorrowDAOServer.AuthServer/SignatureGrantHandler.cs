@@ -13,13 +13,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
-using Orleans;
 using TomorrowDAOServer.Auth.Options;
 using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.User.Dtos;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Identity;
 using Portkey.Contracts.CA;
+using Serilog;
 using TomorrowDAOServer.Common;
 using Volo.Abp.DistributedLocking;
 using Volo.Abp.Identity;
@@ -40,10 +40,11 @@ public class SignatureGrantHandler : ITokenExtensionGrant
     private IOptionsMonitor<ChainOptions> _chainOptions;
     private const string LockKeyPrefix = "TomorrowDAOServer:Auth:SignatureGrantHandler:";
 
-    public async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(SignatureGrantHandlerExceptionHandler),
+    //     MethodName = nameof(SignatureGrantHandlerExceptionHandler.HandleExceptionAsync), Message = "generate token error")]
+    public virtual async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
     {
-        try
-        {
+        try {
             var publicKeyVal = context.Request.GetParameter("publickey").ToString();
             var signatureVal = context.Request.GetParameter("signature").ToString();
             var chainId = context.Request.GetParameter("chain_id").ToString();
@@ -92,7 +93,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
                               signature: 
                               """+string.Join("-", address, timestampVal);
-            _logger.LogInformation("newSignText:{newSignText}",newSignText);
+            Log.Information("newSignText:{newSignText}",newSignText);
             if (!CryptoHelper.RecoverPublicKey(signature, HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
                     out var managerPublicKey))
             {
@@ -115,7 +116,11 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
             _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
             _contractOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ContractOptions>>();
-            _logger.LogInformation(
+            _distributedLock = context.HttpContext.RequestServices.GetRequiredService<IAbpDistributedLock>();
+            _graphQlOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GraphQlOption>>();
+            _chainOptions = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<ChainOptions>>();
+
+            Log.Information(
                 "publicKeyVal:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
                 publicKeyVal, signatureVal, address, caHash, chainId, timestamp);
 
@@ -189,8 +194,11 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             claimsPrincipal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
             claimsPrincipal.SetAudiences("TomorrowDAOServer");
 
-            await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
-                .SetAsync(principal);
+            var abpOpenIddictClaimDestinationsManager = context.HttpContext.RequestServices
+                .GetRequiredService<AbpOpenIddictClaimsPrincipalManager>();
+            // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
+            //     .SetAsync(principal);
+            await abpOpenIddictClaimDestinationsManager.HandleAsync(context.Request, principal);
 
             return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
         }
@@ -250,7 +258,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         var graphQlResult = await CheckAddressFromGraphQlAsync(graphQlUrl, caHash, manager);
         if (!graphQlResult.HasValue || !graphQlResult.Value)
         {
-            _logger.LogDebug("graphql is invalid.");
+            Log.Debug("graphql is invalid.");
             return await CheckAddressFromContractAsync(chainId, caHash, manager, chainOptions);
         }
 
@@ -294,7 +302,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
             if (identityResult.Succeeded)
             {
-                _logger.LogInformation("save user info into grain, userId:{userId}", userId.ToString());
+                Log.Information("save user info into grain, userId:{userId}", userId.ToString());
                 var grain = _clusterClient.GetGrain<IUserGrain>(userId);
 
                 await grain.CreateUser(new UserGrainDto
@@ -305,14 +313,14 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     AppId = string.IsNullOrEmpty(caHash) ? AuthConstant.NightElfAppId : AuthConstant.PortKeyAppId,
                     AddressInfos = addressInfos,
                 });
-                _logger.LogInformation("create user success, userId:{userId}", userId.ToString());
+                Log.Information("create user success, userId:{userId}", userId.ToString());
             }
 
             result = identityResult.Succeeded;
         }
         else
         {
-            _logger.LogError("do not get lock, keys already exits, userId:{userId}", userId.ToString());
+            Log.Error("do not get lock, keys already exits, userId:{userId}", userId.ToString());
         }
 
         return result;
@@ -327,7 +335,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         return message.Contains(',') ? message.TrimEnd().TrimEnd(',') : message;
     }
 
-    private ForbidResult GetForbidResult(string errorType, string errorDescription)
+    public ForbidResult GetForbidResult(string errorType, string errorDescription)
     {
         return new ForbidResult(
             new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme },
@@ -374,39 +382,49 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
         foreach (var chainId in chains)
         {
-            try
+            var addressInfo = await GetAddressInfoAsync(chainId, caHash);
+            if (addressInfo != null)
             {
-                var addressInfo = await GetAddressInfoAsync(chainId, caHash);
                 addressInfos.Add(addressInfo);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "get holder from chain error, caHash:{caHash}", caHash);
             }
         }
 
         return addressInfos;
     }
 
-    private async Task<AddressInfo> GetAddressInfoAsync(string chainId, string caHash)
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(SignatureGrantHandlerExceptionHandler),
+    //     MethodName = nameof(SignatureGrantHandlerExceptionHandler.HandleGetAddressInfoAsync), Message = "get holder from chain error",
+    //     LogTargets = new []{"caHash"})]
+    public virtual async Task<AddressInfo> GetAddressInfoAsync(string chainId, string caHash)
     {
-        var param = new GetHolderInfoInput
+        try
         {
-            CaHash = Hash.LoadFromHex(caHash),
-            LoginGuardianIdentifierHash = Hash.Empty
-        };
+            var param = new GetHolderInfoInput
+            {
+                CaHash = Hash.LoadFromHex(caHash),
+                LoginGuardianIdentifierHash = Hash.Empty
+            };
 
-        var output = await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
-            _chainOptions.CurrentValue);
+            var output = await CallTransactionAsync<GetHolderInfoOutput>(chainId, AuthConstant.GetHolderInfo, param, false,
+                _chainOptions.CurrentValue);
 
-        return new AddressInfo()
+            return new AddressInfo()
+            {
+                Address = output.CaAddress.ToBase58(),
+                ChainId = chainId
+            };
+        }
+        catch (Exception e)
         {
-            Address = output.CaAddress.ToBase58(),
-            ChainId = chainId
-        };
+            _logger.LogError(e, "get holder from chain error. CaHash={0},ChainId={1}", caHash, chainId);
+            return null;
+        }
     }
 
-    private async Task<T> CallTransactionAsync<T>(string chainId, string methodName, IMessage param,
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "CallTransaction error",
+    //     LogTargets = new []{"chainId", "methodName"}, ReturnDefault = default)]
+    public virtual async Task<T> CallTransactionAsync<T>(string chainId, string methodName, IMessage param,
         bool isCrossChain, ChainOptions chainOptions) where T : class, IMessage<T>, new()
     {
         try

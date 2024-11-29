@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using Orleans;
 
 namespace TomorrowDAOServer.Common;
 
+[GenerateSerializer]
 public class BpInfoDto
 {
-    public List<string> AddressList { get; set; }
-    public long Round { get; set; }
+    [Id(0)] public List<string> AddressList { get; set; }
+    [Id(1)] public long Round { get; set; }
 }

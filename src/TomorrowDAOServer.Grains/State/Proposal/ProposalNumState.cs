@@ -1,8 +1,9 @@
 namespace TomorrowDAOServer.Grains.State.Proposal;
 
+[GenerateSerializer]
 public class ProposalNumState
 {
-    public long ParliamentCount { get; set; }
-    public long AssociationCount { get; set; }
-    public long ReferendumCount { get; set; }
+    [Id(0)] public long ParliamentCount { get; set; }
+    [Id(1)] public long AssociationCount { get; set; }
+    [Id(2)] public long ReferendumCount { get; set; }
 }
