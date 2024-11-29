@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -37,7 +38,7 @@ public class ProposalNumUpdateService : ScheduleSyncDataService
         var parliamentCount = parliamentTask.Result.Total;
         var associationCount = associationTask.Result.Total;
         var referendumCount = referendumTask.Result.Total;
-        _logger.LogInformation("ProposalNumUpdate parliamentCount {parliamentCount}, associationCount {associationCount}, referendumCount {referendumCount}",
+        Log.Information("ProposalNumUpdate parliamentCount {parliamentCount}, associationCount {associationCount}, referendumCount {referendumCount}",
             parliamentCount, associationCount, referendumCount);
         await _graphQlProvider.SetProposalNumAsync(chainId, parliamentCount, associationCount, referendumCount);
         return -1;

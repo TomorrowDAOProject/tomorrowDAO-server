@@ -2,6 +2,7 @@ using TomorrowDAOServer.Work;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Enums;
 using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.Threading;
@@ -44,7 +45,7 @@ public abstract class TomorrowDAOServerWorkBase : AsyncPeriodicBackgroundWorkerB
                 timer.Stop();
             }
 
-            _logger.LogInformation(
+            Log.Information(
                 "The workerSetting of Worker {BusinessType} has changed to Period = {Period} ms, OpenSwitch = {OpenSwitch}.",
                 BusinessType, timer.Period, workerSetting.OpenSwitch);
         });
@@ -55,12 +56,12 @@ public abstract class TomorrowDAOServerWorkBase : AsyncPeriodicBackgroundWorkerB
             {
                 var heightSettings = newOptions.GetHeightSettings(BusinessType);
                 _scheduleSyncDataContext.ResetLastEndHeightAsync(BusinessType, heightSettings);
-                _logger.LogInformation(
+                Log.Information(
                     "The WorkerLastHeightOptions of Worker {BusinessType} has changed.", BusinessType.ToString());
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "change WorkerLastHeightOptions of Worker {BusinessType} error.",
+                Log.Error(e, "change WorkerLastHeightOptions of Worker {BusinessType} error.",
                     BusinessType.ToString());
             }
         });
@@ -73,9 +74,9 @@ public abstract class TomorrowDAOServerWorkBase : AsyncPeriodicBackgroundWorkerB
         {
             return;
         }
-        _logger.LogInformation("Background worker [{0}] start ...", BusinessType);
+        Log.Information("Background worker [{0}] start ...", BusinessType);
         await _scheduleSyncDataContext.DealAsync(BusinessType);
-        _logger.LogInformation("Background worker [{0}] finished ...", BusinessType);
+        Log.Information("Background worker [{0}] finished ...", BusinessType);
     }
     
 }

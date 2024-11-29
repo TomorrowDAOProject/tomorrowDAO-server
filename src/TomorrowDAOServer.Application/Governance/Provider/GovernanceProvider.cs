@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using GraphQL;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Governance.Dto;
 using Volo.Abp.DependencyInjection;
@@ -57,7 +58,7 @@ public class GovernanceProvider : IGovernanceProvider, ISingletonDependency
         });
         
         sw.Stop();
-        _logger.LogInformation("GetDAOByIdDuration: GetGovernanceScheme {0}", sw.ElapsedMilliseconds);
+        Log.Information("GetDAOByIdDuration: GetGovernanceScheme {0}", sw.ElapsedMilliseconds);
         
         return graphQlResponse ?? new IndexerGovernanceSchemeDto();
     }

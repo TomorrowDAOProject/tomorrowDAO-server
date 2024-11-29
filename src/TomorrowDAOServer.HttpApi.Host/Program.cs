@@ -1,12 +1,12 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler.ABP;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TomorrowDAOServer.Extension;
 using Serilog;
-using Serilog.Events;
 using TomorrowDAOServer.Hubs;
 
 namespace TomorrowDAOServer
@@ -32,7 +32,9 @@ namespace TomorrowDAOServer
                 builder.Configuration.AddJsonFile("apollo.appsettings.json");
                 builder.Host.AddAppSettingsSecretsJson()
                     .UseApollo()
+                    .UseOrleansClient()
                     .UseAutofac()
+                    .UseAElfExceptionHandler()
                     .UseSerilog();
 
                 await builder.AddApplicationAsync<TomorrowDAOServerHttpApiHostModule>();
