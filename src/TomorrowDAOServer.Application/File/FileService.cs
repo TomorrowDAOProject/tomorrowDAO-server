@@ -73,15 +73,18 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         await using var stream = await DownloadImageAsync(baseUrl);
         if (stream == null)
         {
-            _logger.LogInformation("UploadFrontEndAsyncDownloadFail url {0} fileName {1}", url, fileName);
+            _logger.LogInformation($"UploadFrontEndAsyncDownloadFail url {url} fileName {fileName}");
             return string.Empty;
         }
 
         await using var memoryStream = await ConvertToWebp(extension, stream);
-        _logger.LogInformation("UploadFrontEndAsyncConvertFail url {0} fileName {1}", url, fileName);
+        _logger.LogInformation($"UploadFrontEndAsyncConvertFail url {url} fileName {fileName}");
         if (memoryStream == null)
         {
-            return string.Empty;
+            stream.Seek(0, SeekOrigin.Begin); 
+            var originResult = await _awsS3Client.UpLoadFileFrontEndAsync(stream, fileName + extension);
+            _logger.LogInformation($"UploadFrontEndAsyncOriginResult url {url} result {originResult}");
+            return originResult;
         }
 
         var result = await _awsS3Client.UpLoadFileFrontEndAsync(memoryStream, fileName + ".webp");
