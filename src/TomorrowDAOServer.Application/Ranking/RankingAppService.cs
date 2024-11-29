@@ -4,17 +4,20 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Portkey.Contracts.CA;
+using Serilog;
 using TomorrowDAO.Contracts.Vote;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Discover.Provider;
@@ -266,12 +269,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
     {
-        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.RawTransaction.IsNullOrWhiteSpace())
+        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.RawTransaction.IsNullOrWhiteSpace() || input.TransactionId.IsNullOrEmpty())
         {
             ExceptionHelper.ThrowArgumentException();
         }
 
-        _logger.LogInformation("Ranking vote, start...");
+        Log.Information("Ranking vote, start...");
         var (address, addressCaHash) =
             await _userProvider.GetAndValidateUserAddressAndCaHashAsync(
                 CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input!.ChainId);
@@ -280,8 +283,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             throw new UserFriendlyException("User Address Not Found.");
         }
 
-        _logger.LogInformation("Ranking vote, parse rawTransaction. {0}", address);
-        var (voteInput, transaction) = ParseRawTransaction(input.ChainId, input.RawTransaction);
+        Log.Information("Ranking vote, parse rawTransaction. {0}", address);
+        var (voteInput, transaction) = await ParseRawTransaction(input.ChainId, input.RawTransaction);
         var votingItemId = voteInput.VotingItemId.ToHex();
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, votingItemId);
         if (!IsVoteDuring(proposalIndex))
@@ -289,18 +292,18 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             throw new UserFriendlyException("Can not vote now.");
         }
 
-        _logger.LogInformation("Ranking vote, query voting record.{0}", address);
+        Log.Information("Ranking vote, query voting record.{0}", address);
         var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, votingItemId);
         if (votingRecord != null)
         {
-            _logger.LogInformation("Ranking vote, vote exist. {0}", address);
+            Log.Information("Ranking vote, vote exist. {0}", address);
             return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId);
         }
 
         IAbpDistributedLockHandle lockHandle = null;
         try
         {
-            _logger.LogInformation("Ranking vote, lock. {0}", address);
+            Log.Information("Ranking vote, lock. {0}", address);
             var distributedLockKey =
                 RedisHelper.GenerateDistributedLockKey(input.ChainId, address, voteInput.VotingItemId?.ToHex());
             lockHandle = await _distributedLock.TryAcquireAsync(distributedLockKey,
@@ -308,41 +311,41 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 if (lockHandle == null)
                 {
-                    _logger.LogInformation("Ranking vote, lock failed. {0}", address);
+                    Log.Information("Ranking vote, lock failed. {0}", address);
                     return BuildRankingVoteResponse(RankingVoteStatusEnum.Failed);
                 }
 
-                _logger.LogInformation("Ranking vote, query voting record again.{0}", address);
+                Log.Information("Ranking vote, query voting record again.{0}", address);
                 votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, votingItemId);
                 if (votingRecord != null)
                 {
-                    _logger.LogInformation("Ranking vote, vote exist. {0}", address);
+                    Log.Information("Ranking vote, vote exist. {0}", address);
                     return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId);
                 }
 
                 _logger.LogInformation("Ranking vote, send transaction. {0}", address);
-                var sendTransactionOutput = await _contractProvider.SendTransactionAsync(input.ChainId, transaction);
-                if (sendTransactionOutput.TransactionId.IsNullOrWhiteSpace())
-                {
-                    _logger.LogError("Ranking vote, send transaction error, {0}",
-                        JsonConvert.SerializeObject(sendTransactionOutput));
-                    return BuildRankingVoteResponse(RankingVoteStatusEnum.Failed);
-                }
+                // var sendTransactionOutput = await _contractProvider.SendTransactionAsync(input.ChainId, transaction);
+                // if (sendTransactionOutput.TransactionId.IsNullOrWhiteSpace())
+                // {
+                //     _logger.LogError("Ranking vote, send transaction error, {0}",
+                //         JsonConvert.SerializeObject(sendTransactionOutput));
+                //     return BuildRankingVoteResponse(RankingVoteStatusEnum.Failed);
+                // }
 
-                _logger.LogInformation("Ranking vote, send transaction success. {0}", address);
+                Log.Information("Ranking vote, send transaction success. {0}", address);
                 await SaveVotingRecordAsync(input.ChainId, address, votingItemId, RankingVoteStatusEnum.Voting,
-                    sendTransactionOutput.TransactionId, _rankingOptions.CurrentValue.GetVoteTimoutTimeSpan());
+                    input.TransactionId, _rankingOptions.CurrentValue.GetVoteTimoutTimeSpan());
 
                 var _ = UpdateVotingStatusAsync(input.ChainId, address, votingItemId,
-                    sendTransactionOutput.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash,
+                    input.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash,
                     proposalIndex, input.TrackId);
 
-                return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, sendTransactionOutput.TransactionId);
+                return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, input.TransactionId);
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Ranking vote, error. {0}", JsonConvert.SerializeObject(input));
+            Log.Error(e, "Ranking vote, error. {0}", JsonConvert.SerializeObject(input));
             ExceptionHelper.ThrowSystemException("voting", e);
             return new RankingVoteResponse();
         }
@@ -386,7 +389,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task MoveHistoryDataAsync(string chainId, string type, string key, string value)
     {
         var address = await CheckAddress(chainId);
-        _logger.LogInformation("MoveHistoryDataAsync address {address} chainId {chainId} type {type}", address, chainId,
+        Log.Information("MoveHistoryDataAsync address {address} chainId {chainId} type {type}", address, chainId,
             type);
         string searchValue;
         switch (type)
@@ -411,11 +414,11 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 break;
             case "9":
                 searchValue = await _rankingAppPointsRedisProvider.GetAsync(key);
-                _logger.LogInformation("RedisValue key {key} value {value}", key, searchValue);
+                Log.Information("RedisValue key {key} value {value}", key, searchValue);
                 break;
             case "10":
                 searchValue = await _distributedCache.GetAsync(key);
-                _logger.LogInformation("RedisDistributedCacheValue key {key} value {value}", key, searchValue);
+                Log.Information("RedisDistributedCacheValue key {key} value {value}", key, searchValue);
                 break;
             case "11":
                 await _rankingAppPointsRedisProvider.SetAsync(key, value);
@@ -425,7 +428,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     private async Task VoteRecordToPointsRecord(string chainId)
     {
-        _logger.LogInformation("VoteRecordToPointsRecordBegin chainId {chainId}", chainId);
+        Log.Information("VoteRecordToPointsRecordBegin chainId {chainId}", chainId);
         var voteRecordList = await _voteProvider.GetNeedMoveVoteRecordListAsync();
         var proposalIdList = voteRecordList.Select(x => x.VotingItemId).Distinct().ToList();
         var proposalDic = (await _proposalProvider.GetProposalByIdsAsync(chainId, proposalIdList))
@@ -448,12 +451,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         await _userPointsRecordProvider.BulkAddOrUpdateAsync(toAdd);
-        _logger.LogInformation("VoteRecordToPointsRecordEnd chainId {chainId} count {count}", chainId, toAdd.Count);
+        Log.Information("VoteRecordToPointsRecordEnd chainId {chainId} count {count}", chainId, toAdd.Count);
     }
 
     private async Task ReferralInviteToPointsRecord(string chainId)
     {
-        _logger.LogInformation("ReferralInviteToPointsRecordBegin chainId {chainId}", chainId);
+        Log.Information("ReferralInviteToPointsRecordBegin chainId {chainId}", chainId);
         var invitePair = _rankingOptions.CurrentValue.ReferralPointsAddressList;
         var inviter = invitePair[0];
         var invitee = invitePair[1];
@@ -466,29 +469,29 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, invitee, UserTaskDetail.None, PointsType.BeInviteVote, voteRecord.VoteTime,
                 InformationHelper.GetBeInviteVoteInformation(inviter));
         }
-        _logger.LogInformation("ReferralInviteToPointsRecordEnd chainId {chainId} voteRecordIsNull {voteRecordIsNull}", 
+        Log.Information("ReferralInviteToPointsRecordEnd chainId {chainId} voteRecordIsNull {voteRecordIsNull}", 
             chainId, voteRecord == null);
     }
     
     private async Task GetReferralInviteCountToGrain(string chainId)
     {
-        _logger.LogInformation("GetReferralInviteCountToGrainBegin chainId {chainId}", chainId);
+        Log.Information("GetReferralInviteCountToGrainBegin chainId {chainId}", chainId);
         var inviter = _rankingOptions.CurrentValue.ReferralPointsAddressList[0];
         var count = await _referralInviteProvider.GetInviteCountAsync(chainId, inviter);
-        _logger.LogInformation("GetReferralInviteCountToGrainEnd chainId {chainId} count {count}", chainId, count);
+        Log.Information("GetReferralInviteCountToGrainEnd chainId {chainId} count {count}", chainId, count);
     }
 
     private async Task ReferralInviteCountToGrain(string chainId)
     {
-        _logger.LogInformation("ReferralInviteCountToGrainBegin chainId {chainId}", chainId);
+        Log.Information("ReferralInviteCountToGrainBegin chainId {chainId}", chainId);
         var inviter = _rankingOptions.CurrentValue.ReferralPointsAddressList[0];
         await _referralInviteProvider.IncrementInviteCountAsync(chainId, inviter, 1);
-        _logger.LogInformation("ReferralInviteCountToGrainEnd chainId {chainId}", chainId);
+        Log.Information("ReferralInviteCountToGrainEnd chainId {chainId}", chainId);
     }
 
     private async Task VoteToCategory(string chainId)
     {
-        // _logger.LogInformation("VoteToCategoryBegin chainId {chainId}", chainId);
+        // Log.LogInformation("VoteToCategoryBegin chainId {chainId}", chainId);
         // var appList = await _telegramAppsProvider.GetAllAsync();
         // var voteRecordList = await _voteProvider.GetNeedMoveVoteRecordListAsync();
         // var appDictionary = appList.ToDictionary(app => app.Alias, app => app.Categories);
@@ -519,7 +522,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         // }
         //
         // await _discoverChoiceProvider.BulkAddOrUpdateAsync(toAdd);
-        // _logger.LogInformation("VoteToCategoryEnd chainId {chainId} count {count}", chainId, toAdd.Count);
+        // Log.LogInformation("VoteToCategoryEnd chainId {chainId} count {count}", chainId, toAdd.Count);
     }
 
     private async Task UpdateRankingAppInfo()
@@ -545,7 +548,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
     }
 
-    public async Task<long> LikeAsync(RankingAppLikeInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, ReturnDefault = default)]
+    public virtual async Task<long> LikeAsync(RankingAppLikeInput input)
     {
         if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.ProposalId.IsNullOrWhiteSpace() ||
             input.LikeList.IsNullOrEmpty())
@@ -561,31 +566,22 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             throw new UserFriendlyException("User Address Not Found.");
         }
 
-        try
+        var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
+        if (proposalIndex == null)
         {
-            var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
-            if (proposalIndex == null)
-            {
-                throw new UserFriendlyException($"Cannot be liked.{input.ProposalId}");
-            }
-            // var defaultProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(input.ChainId);
-            // if (input.ProposalId != defaultProposalId)
-            // {
-            //     throw new UserFriendlyException($"Cannot be liked.{defaultProposalId}");
-            // }
+            throw new UserFriendlyException($"Cannot be liked.{input.ProposalId}");
+        }
+        // var defaultProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(input.ChainId);
+        // if (input.ProposalId != defaultProposalId)
+        // {
+        //     throw new UserFriendlyException($"Cannot be liked.{defaultProposalId}");
+        // }
             
-            await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
+        await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
             
-            var _ = _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
+        var _ = _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
 
-            return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Ranking like, error. {0}", JsonConvert.SerializeObject(input));
-            ExceptionHelper.ThrowSystemException("liking", e);
-            return 0;
-        }
+        return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
     }
 
     public async Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId, int count)
@@ -825,43 +821,37 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return await GetRankingProposalDetailAsync(userAddress, chainId, proposalId);
     }
 
-    private Tuple<VoteInput, Transaction> ParseRawTransaction(string chainId, string rawTransaction)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleParseRawTransaction),
+        Message = "VoteAsync error", LogTargets = new []{"chainId", "rawTransaction"})]
+    public virtual async Task<Tuple<VoteInput, Transaction>> ParseRawTransaction(string chainId, string rawTransaction)
     {
-        try
+        var bytes = ByteArrayHelper.HexStringToByteArray(rawTransaction);
+        var transaction = Transaction.Parser.ParseFrom(bytes);
+
+        VoteInput voteInput = null;
+        var caAddress = _contractProvider.ContractAddress(chainId, CommonConstant.CaContractAddressName);
+        var voteAddress = _contractProvider.ContractAddress(chainId, CommonConstant.VoteContractAddressName);
+        if (transaction.To.ToBase58() == caAddress && transaction.MethodName == "ManagerForwardCall")
         {
-            var bytes = ByteArrayHelper.HexStringToByteArray(rawTransaction);
-            var transaction = Transaction.Parser.ParseFrom(bytes);
-
-            VoteInput voteInput = null;
-            var caAddress = _contractProvider.ContractAddress(chainId, CommonConstant.CaContractAddressName);
-            var voteAddress = _contractProvider.ContractAddress(chainId, CommonConstant.VoteContractAddressName);
-            if (transaction.To.ToBase58() == caAddress && transaction.MethodName == "ManagerForwardCall")
+            var managerForwardCallInput = ManagerForwardCallInput.Parser.ParseFrom(transaction.Params);
+            if (managerForwardCallInput.MethodName == "Vote" &&
+                managerForwardCallInput.ContractAddress.ToBase58() == voteAddress)
             {
-                var managerForwardCallInput = ManagerForwardCallInput.Parser.ParseFrom(transaction.Params);
-                if (managerForwardCallInput.MethodName == "Vote" &&
-                    managerForwardCallInput.ContractAddress.ToBase58() == voteAddress)
-                {
-                    voteInput = VoteInput.Parser.ParseFrom(managerForwardCallInput.Args);
-                }
+                voteInput = VoteInput.Parser.ParseFrom(managerForwardCallInput.Args);
             }
-            else if (transaction.To.ToBase58() == voteAddress && transaction.MethodName == "Vote")
-            {
-                voteInput = VoteInput.Parser.ParseFrom(transaction.Params);
-            }
-
-            if (voteInput == null)
-            {
-                ExceptionHelper.ThrowArgumentException();
-            }
-
-            return new Tuple<VoteInput, Transaction>(voteInput, transaction);
         }
-        catch (Exception e)
+        else if (transaction.To.ToBase58() == voteAddress && transaction.MethodName == "Vote")
         {
-            _logger.LogError(e, "VoteAsync error. {0}", rawTransaction);
+            voteInput = VoteInput.Parser.ParseFrom(transaction.Params);
+        }
+
+        if (voteInput == null)
+        {
             ExceptionHelper.ThrowArgumentException();
-            return new Tuple<VoteInput, Transaction>(new VoteInput(), new Transaction());
         }
+
+        return new Tuple<VoteInput, Transaction>(voteInput, transaction);
     }
 
     private RankingVoteResponse BuildRankingVoteResponse(RankingVoteStatusEnum status, string TranscationId = null)
@@ -880,21 +870,16 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return cache.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<RankingVoteRecord>(cache);
     }
 
-    public async Task<VoteRecordIndex> GetRankingVoteRecordEsAsync(string chainId, string address, string proposalId)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = default,
+        Message = "GetRankingVoteRecordEsAsync error", LogTargets = new []{"chainId", "address", "proposalId"})]
+    public virtual async Task<VoteRecordIndex> GetRankingVoteRecordEsAsync(string chainId, string address, string proposalId)
     {
-        try
-        {
-            return (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, address,
-                    new List<string> { proposalId }))
-                .Where(x => x.VoteTime.ToString(CommonConstant.DayFormatString) ==
-                            DateTime.UtcNow.ToString(CommonConstant.DayFormatString))
-                .ToList().SingleOrDefault();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetRankingVoteRecordEsAsyncException");
-            return null;
-        }
+        return (await _voteProvider.GetByVoterAndVotingItemIdsAsync(chainId, address,
+                new List<string> { proposalId }))
+            .Where(x => x.VoteTime.ToString(CommonConstant.DayFormatString) ==
+                        DateTime.UtcNow.ToString(CommonConstant.DayFormatString))
+            .ToList().SingleOrDefault();
     }
 
     private TimeSpan GetCacheExpireTimeSpan()
@@ -904,79 +889,80 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return nextDay - nowUtc;
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
+        Message = "Ranking vote, update transaction status error", LogTargets = new []{"transactionId"})]
     private async Task UpdateVotingStatusAsync(string chainId, string address, string votingItemId,
         string transactionId, string memo, long amount, string addressCaHash, ProposalIndex proposalIndex, string trackId)
     {
-        try
+        Log.Information("Ranking vote, update transaction status start.{0}", address);
+        var transactionResult = await _contractProvider.QueryTransactionResultAsync(transactionId, chainId);
+        var times = 0;
+        while (transactionResult.Status is CommonConstant.TransactionStatePending or CommonConstant.TransactionStateNotExisted 
+               && times < _rankingOptions.CurrentValue.RetryTimes)
         {
-            _logger.LogInformation("Ranking vote, update transaction status start.{0}", address);
-            var transactionResult = await _contractProvider.QueryTransactionResultAsync(transactionId, chainId);
-            var times = 0;
-            while (transactionResult.Status is CommonConstant.TransactionStatePending or CommonConstant.TransactionStateNotExisted 
-                   && times < _rankingOptions.CurrentValue.RetryTimes)
-            {
-                times++;
-                await Task.Delay(_rankingOptions.CurrentValue.RetryDelay);
-                transactionResult = await _contractProvider.QueryTransactionResultAsync(transactionId, chainId);
-            }
+            times++;
+            await Task.Delay(_rankingOptions.CurrentValue.RetryDelay);
+            transactionResult = await _contractProvider.QueryTransactionResultAsync(transactionId, chainId);
+        }
 
-            if (transactionResult.Status == CommonConstant.TransactionStateMined && transactionResult.Logs
-                    .Select(l => l.Name).Contains(CommonConstant.VoteEventVoted))
+        if (transactionResult.Status == CommonConstant.TransactionStateMined && transactionResult.Logs
+                .Select(l => l.Name).Contains(CommonConstant.VoteEventVoted))
+        {
+            Log.Information("Ranking vote, transaction success.{0}", transactionId);
+            await SaveVotingRecordAsync(chainId, address, votingItemId, RankingVoteStatusEnum.Voted,
+                transactionId);
+            Log.Information("Ranking vote, update app vote.{0}", address);
+            var match = Regex.Match(memo ?? string.Empty, CommonConstant.MemoPattern);
+            if (match.Success)
             {
-                _logger.LogInformation("Ranking vote, transaction success.{0}", transactionId);
-                await SaveVotingRecordAsync(chainId, address, votingItemId, RankingVoteStatusEnum.Voted,
-                    transactionId);
-                _logger.LogInformation("Ranking vote, update app vote.{0}", address);
-                var match = Regex.Match(memo ?? string.Empty, CommonConstant.MemoPattern);
-                if (match.Success)
+                var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
+                var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<Voted>(voteEventLog);
+                var voteTime = voteEvent.VoteTimestamp.ToDateTime();
+                var referral = await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, addressCaHash);
+                if (referral != null)
                 {
-                    var voteEventLog = transactionResult.Logs.First(l => l.Name == CommonConstant.VoteEventVoted);
-                    var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<Voted>(voteEventLog);
-                    var voteTime = voteEvent.VoteTimestamp.ToDateTime();
-                    var referral = await _referralInviteProvider.GetByNotVoteInviteeCaHashAsync(chainId, addressCaHash);
-                    if (referral != null)
+                    Log.Information("Ranking vote, referralRelationFirstVote.{0} {1}", address, addressCaHash);
+                    referral.FirstVoteTime = voteTime;
+                    var inviter = await GetAddressFromCaHash(chainId, referral.InviterCaHash);
+                    if (IsValidReferral(referral))
                     {
-                        _logger.LogInformation("Ranking vote, referralRelationFirstVote.{0} {1}", address, addressCaHash);
-                        referral.FirstVoteTime = voteTime;
-                        var inviter = await GetAddressFromCaHash(chainId, referral.InviterCaHash);
-                        if (IsValidReferral(referral))
+                        var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Daily,
+                            UserTaskDetail.DailyFirstInvite, voteTime);
+                        var inviteCount = await _referralInviteProvider.IncrementInviteCountAsync(chainId, inviter, 1);
+                        Log.Information("RankingVoteInviteCount inviter {inviter} invitee {invitee} inviteCount {inviteCount} success {success}", 
+                            inviter, address, inviteCount, success);
+                        if (success)
                         {
-                            var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Daily,
-                                UserTaskDetail.DailyFirstInvite, voteTime);
-                            var inviteCount = await _referralInviteProvider.IncrementInviteCountAsync(chainId, inviter, 1);
-                            _logger.LogInformation("RankingVoteInviteCount inviter {inviter} invitee {invitee} inviteCount {inviteCount} success {success}", 
-                                inviter, address, inviteCount, success);
-                            if (success)
-                            {
-                                await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(inviter, UserTaskDetail.DailyFirstInvite);
-                                await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, UserTaskDetail.DailyFirstInvite, voteTime,
-                                    InformationHelper.GetDailyFirstInviteInformation(address));
-                            }
+                            await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(inviter, UserTaskDetail.DailyFirstInvite);
+                            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, UserTaskDetail.DailyFirstInvite, voteTime,
+                                InformationHelper.GetDailyFirstInviteInformation(address));
+                        }
 
-                            if (inviteCount is > 0 and (5 or 10 or 20))
-                            {
-                                var userTaskDetail = inviteCount switch
-                                {
-                                    5 => UserTaskDetail.ExploreCumulateFiveInvite,
-                                    10 => UserTaskDetail.ExploreCumulateTenInvite,
-                                    20 => UserTaskDetail.ExploreCumulateTwentyInvite,
-                                };
-                                await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(inviter, userTaskDetail);
-                                await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, userTaskDetail, voteTime);
-                                await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Explore,
-                                    userTaskDetail, voteTime);
-                            }
-                        }
-                        if (IsValidReferralActivity(referral))
+                        if (inviteCount is > 0 and (5 or 10 or 20))
                         {
-                            referral.IsReferralActivity = true;
-                            _logger.LogInformation("Ranking vote, referralRelationFirstVoteInActive.{0} {1}", address, inviter);
-                            await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(inviter, address, 1);
-                            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, UserTaskDetail.None, PointsType.InviteVote, voteTime, 
-                                InformationHelper.GetInviteVoteInformation(address));
-                            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.None, PointsType.BeInviteVote, voteTime,
-                                InformationHelper.GetBeInviteVoteInformation(inviter));
+                            var userTaskDetail = inviteCount switch
+                            {
+                                5 => UserTaskDetail.ExploreCumulateFiveInvite,
+                                10 => UserTaskDetail.ExploreCumulateTenInvite,
+                                20 => UserTaskDetail.ExploreCumulateTwentyInvite,
+                            };
+                            await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(inviter, userTaskDetail);
+                            await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, userTaskDetail, voteTime);
+                            await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Explore,
+                                userTaskDetail, voteTime);
                         }
+                    }
+                    if (IsValidReferralActivity(referral))
+                    {
+                        referral.IsReferralActivity = true;
+                        Log.Information("Ranking vote, referralRelationFirstVoteInActive.{0} {1}", address, inviter);
+                        await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync(inviter, address, 1);
+                        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, UserTaskDetail.None, PointsType.InviteVote, voteTime, 
+                            InformationHelper.GetInviteVoteInformation(address));
+                        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.None, PointsType.BeInviteVote, voteTime,
+                            InformationHelper.GetBeInviteVoteInformation(inviter));
+                    }
 
                         await _referralInviteProvider.AddOrUpdateAsync(referral);
                     }
@@ -996,12 +982,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
             }
 
-            _logger.LogInformation("Ranking vote, update transaction status finished.{0}", address);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Ranking vote, update transaction status error.{0}", transactionId);
-        }
+        Log.Information("Ranking vote, update transaction status finished.{0}", address);
     }
 
     private bool IsVoteDuring(ProposalIndex index)

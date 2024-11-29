@@ -1,3 +1,4 @@
+using AElf.ExceptionHandler.ABP;
 using Serilog;
 using Serilog.Events;
 using TomorrowDAOServer.Auth.Extension;
@@ -34,7 +35,9 @@ public class Program
             builder.Configuration.AddJsonFile("apollo.appsettings.json");
             builder.Host.AddAppSettingsSecretsJson()
                 .UseApollo()
+                .UseOrleansClient()
                 .UseAutofac()
+                .UseAElfExceptionHandler()
                 .UseSerilog();
             await builder.AddApplicationAsync<TomorrowDAOServerAuthServerModule>();
             var app = builder.Build();

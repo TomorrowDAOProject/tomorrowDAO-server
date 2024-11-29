@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
@@ -42,7 +43,7 @@ public class ProposalNewUpdateService : ScheduleSyncDataService
         do
         {
             queryList = await _proposalProvider.GetNeedChangeProposalListAsync(skipCount);
-            _logger.LogInformation("NeedChangeProposalList skipCount {skipCount} count: {count}", skipCount, queryList?.Count);
+            Log.Information("NeedChangeProposalList skipCount {skipCount} count: {count}", skipCount, queryList?.Count);
             var result = await _proposalAssistService.NewConvertProposalList(chainId, queryList);
             if (!result.IsNullOrEmpty())
             {

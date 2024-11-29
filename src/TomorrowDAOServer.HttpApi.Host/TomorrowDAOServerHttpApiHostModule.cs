@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using AElf.ExceptionHandler.ABP;
 using AutoResponseWrapper;
 using Confluent.Kafka;
 using GraphQL.Client.Abstractions;
@@ -19,7 +20,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Orleans;
 using Orleans.Configuration;
-using Orleans.Providers.MongoDB.Configuration;
 using StackExchange.Redis;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.Middleware;
@@ -45,7 +45,6 @@ using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict.Tokens;
 using Volo.Abp.Swashbuckle;
-using Volo.Abp.Threading;
 using Volo.Abp.VirtualFileSystem;
 
 namespace TomorrowDAOServer
@@ -61,6 +60,7 @@ namespace TomorrowDAOServer
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
         typeof(AbpEventBusKafkaModule),
+        typeof(AOPExceptionModule),
         // typeof(AbpCachingModule),
         typeof(AbpBlobStoringAliyunModule)
     )]
@@ -95,7 +95,6 @@ namespace TomorrowDAOServer
             ConfigureCors(context, configuration);
             ConfigureSwaggerServices(context, configuration);
             ConfigureTokenCleanupService();
-            ConfigureOrleans(context, configuration);
             ConfigureGraphQl(context, configuration);
             ConfigureDistributedLocking(context, configuration);
             ConfigureKafka(context, configuration);
@@ -226,8 +225,8 @@ namespace TomorrowDAOServer
                 options.Languages.Add(new LanguageInfo("en-GB", "en-GB", "English (UK)"));
                 options.Languages.Add(new LanguageInfo("fi", "fi", "Finnish"));
                 options.Languages.Add(new LanguageInfo("fr", "fr", "Français"));
-                options.Languages.Add(new LanguageInfo("hi", "hi", "Hindi", "in"));
-                options.Languages.Add(new LanguageInfo("it", "it", "Italian", "it"));
+                options.Languages.Add(new LanguageInfo("hi", "hi", "Hindi"));
+                options.Languages.Add(new LanguageInfo("it", "it", "Italian"));
                 options.Languages.Add(new LanguageInfo("hu", "hu", "Magyar"));
                 options.Languages.Add(new LanguageInfo("pt-BR", "pt-BR", "Português"));
                 options.Languages.Add(new LanguageInfo("ru", "ru", "Русский"));
@@ -235,8 +234,8 @@ namespace TomorrowDAOServer
                 options.Languages.Add(new LanguageInfo("tr", "tr", "Türkçe"));
                 options.Languages.Add(new LanguageInfo("zh-Hans", "zh-Hans", "简体中文"));
                 options.Languages.Add(new LanguageInfo("zh-Hant", "zh-Hant", "繁體中文"));
-                options.Languages.Add(new LanguageInfo("de-DE", "de-DE", "Deutsch", "de"));
-                options.Languages.Add(new LanguageInfo("es", "es", "Español", "es"));
+                options.Languages.Add(new LanguageInfo("de-DE", "de-DE", "Deutsch"));
+                options.Languages.Add(new LanguageInfo("es", "es", "Español"));
             });
         }
 
@@ -278,41 +277,6 @@ namespace TomorrowDAOServer
         private void ConfigureTokenCleanupService()
         {
             Configure<TokenCleanupOptions>(x => x.IsCleanupEnabled = false);
-        }
-
-        private static void ConfigureOrleans(ServiceConfigurationContext context, IConfiguration configuration)
-        {
-            context.Services.AddSingleton<IClusterClient>(o =>
-            {
-                return new ClientBuilder()
-                    .ConfigureDefaults()
-                    .UseMongoDBClient(configuration["Orleans:MongoDBClient"])
-                    .UseMongoDBClustering(options =>
-                    {
-                        options.DatabaseName = configuration["Orleans:DataBase"];
-                        options.Strategy = MongoDBMembershipStrategy.SingleDocument;
-                    })
-                    .Configure<ClusterOptions>(options =>
-                    {
-                        options.ClusterId = configuration["Orleans:ClusterId"];
-                        options.ServiceId = configuration["Orleans:ServiceId"];
-                    })
-                    .Configure<ClientMessagingOptions>(options =>
-                    {
-                        var timeout = MessagingOptions.DEFAULT_RESPONSE_TIMEOUT.Seconds;
-                        if (int.TryParse(configuration["Orleans:ResponseTimeout"], out int settings))
-                        {
-                            timeout = settings;
-                        }
-
-                        options.ResponseTimeout = TimeSpan.FromSeconds(timeout);
-                    })
-                    .ConfigureApplicationParts(parts =>
-                        parts.AddApplicationPart(typeof(TomorrowDAOServerGrainsModule).Assembly).WithReferences())
-                    .ConfigureLogging(builder => builder.AddProvider(o.GetService<ILoggerProvider>()))
-                    .AddMethodFilter(o)
-                    .Build();
-            });
         }
 
         private void ConfigureGraphQl(ServiceConfigurationContext context,
@@ -370,14 +334,14 @@ namespace TomorrowDAOServer
 
         private static void StartOrleans(IServiceProvider serviceProvider)
         {
-            var client = serviceProvider.GetRequiredService<IClusterClient>();
-            AsyncHelper.RunSync(async () => await client.Connect());
+            // var client = serviceProvider.GetRequiredService<IClusterClient>();
+            // AsyncHelper.RunSync(async () => await client.Connect());
         }
 
         private static void StopOrleans(IServiceProvider serviceProvider)
         {
-            var client = serviceProvider.GetRequiredService<IClusterClient>();
-            AsyncHelper.RunSync(client.Close);
+            // var client = serviceProvider.GetRequiredService<IClusterClient>();
+            // AsyncHelper.RunSync(client.Close);
         }
 
         private void ConfigureAuthentication(ServiceConfigurationContext context, IConfiguration configuration)

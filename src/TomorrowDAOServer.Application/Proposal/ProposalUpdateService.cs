@@ -39,7 +39,7 @@
 //         do
 //         {
 //             queryList = await _proposalProvider.GetNonFinishedProposalListAsync(skipCount, new List<ProposalStage> { ProposalStage.Finished });
-//             _logger.LogInformation(
+//             Log.Information(
 //                 "ExpiredProposal queryList skipCount {skipCount} count: {count}", skipCount, queryList?.Count);
 //             if (queryList== null || queryList.IsNullOrEmpty())
 //             {

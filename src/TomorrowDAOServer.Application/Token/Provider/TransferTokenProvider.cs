@@ -3,11 +3,14 @@ using System.Threading.Tasks;
 using AElf;
 using AElf.Client.Dto;
 using AElf.Contracts.MultiToken;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
+using TomorrowDAOServer.Common.Handler;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Token.Provider;
@@ -35,33 +38,28 @@ public class TransferTokenProvider : ITransferTokenProvider, ISingletonDependenc
         _contractProvider = contractProvider;
     }
 
-    public async Task<GetBalanceOutput> GetBalanceAsync(string chainId, string symbol, string address)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.New,
+        Message = "GetBalanceAsync error", 
+        LogTargets = new []{"chainId", "symbol", "address"})]
+    public virtual async Task<GetBalanceOutput> GetBalanceAsync(string chainId, string symbol, string address)
     {
-        try
+        if (chainId.IsNullOrWhiteSpace() || symbol.IsNullOrWhiteSpace() || address.IsNullOrWhiteSpace())
         {
-            if (chainId.IsNullOrWhiteSpace() || symbol.IsNullOrWhiteSpace() || address.IsNullOrWhiteSpace())
-            {
-                return new GetBalanceOutput();
-            }
-
-            var (_, transaction) = await _contractProvider.CreateCallTransactionAsync(chainId,
-                SystemContractName.TokenContract, CommonConstant.TokenMethodGetBalance,
-                new GetBalanceInput
-                {
-                    Symbol = symbol,
-                    Owner = Address.FromBase58(address)
-                });
-            var getBalanceOutput =
-                await _contractProvider.CallTransactionAsync<GetBalanceOutput>(chainId, transaction);
-
-            return getBalanceOutput ?? new GetBalanceOutput();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Call {0} error. {1},{2},{3}",
-                CommonConstant.TokenMethodGetBalance, chainId, symbol, address);
             return new GetBalanceOutput();
         }
+
+        var (_, transaction) = await _contractProvider.CreateCallTransactionAsync(chainId,
+            SystemContractName.TokenContract, CommonConstant.TokenMethodGetBalance,
+            new GetBalanceInput
+            {
+                Symbol = symbol,
+                Owner = Address.FromBase58(address)
+            });
+        var getBalanceOutput =
+            await _contractProvider.CallTransactionAsync<GetBalanceOutput>(chainId, transaction);
+
+        return getBalanceOutput ?? new GetBalanceOutput();
     }
 
     public async Task<SendTransactionOutput> TransferTokenAsync(SenderAccount account, string chainId, string symbol,

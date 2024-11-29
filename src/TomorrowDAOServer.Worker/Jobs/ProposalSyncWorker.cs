@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal;
@@ -34,18 +35,18 @@ public class ProposalSyncWorker : TomorrowDAOServerWorkBase
                 var pattern = newOptions.DescriptionPattern;
                 if (string.IsNullOrEmpty(pattern))
                 {
-                    _logger.LogInformation(
+                    Log.Information(
                         "RankingOptionsChangeNoNeedToChangeRegex pattern {pattern}", pattern);
                 }
                 else
                 {
                     _proposalAssistService.ChangeRegex(pattern);
-                    _logger.LogInformation("RankingOptionsChangeChangeRegex pattern {pattern}", pattern);
+                    Log.Information("RankingOptionsChangeChangeRegex pattern {pattern}", pattern);
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "RankingOptionsChangeException pattern {pattern}", newOptions.DescriptionPattern);
+                Log.Error(e, "RankingOptionsChangeException pattern {pattern}", newOptions.DescriptionPattern);
             }
         });
     }

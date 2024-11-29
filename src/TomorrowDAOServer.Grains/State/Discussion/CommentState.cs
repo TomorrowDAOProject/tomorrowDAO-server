@@ -1,6 +1,7 @@
 namespace TomorrowDAOServer.Grains.State.Discussion;
 
+[GenerateSerializer]
 public class CommentState
 {
-    public long Count { get; set; }
+    [Id(0)] public long Count { get; set; }
 }

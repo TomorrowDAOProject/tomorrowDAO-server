@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
@@ -41,7 +42,7 @@ public class ProposalRedisUpdateService : ScheduleSyncDataService
         {
             await _rankingAppPointsRedisProvider.GenerateRedisDefaultProposal(defaultProposal.ProposalId,
                 defaultProposal.ProposalDescription, chainId);
-            _logger.LogInformation("DefaultProposalRedisChange from {from} to {to}", proposalId, defaultProposal.ProposalId);
+            Log.Information("DefaultProposalRedisChange from {from} to {to}", proposalId, defaultProposal.ProposalId);
         }
 
         return -1L;

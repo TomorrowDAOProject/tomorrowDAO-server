@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
@@ -30,7 +31,7 @@ public class BPInfoUpdateService : ScheduleSyncDataService
     {
         var bpList = await _scriptService.GetCurrentBPAsync(chainId);
         var round = await _scriptService.GetCurrentBPRoundAsync(chainId);
-        _logger.LogInformation("bpList count {count} round {round}", bpList.Count, round);
+        Log.Information("bpList count {count} round {round}", bpList.Count, round);
         await _graphQlProvider.SetBPAsync(chainId, bpList, round);
         return newIndexHeight;
     }

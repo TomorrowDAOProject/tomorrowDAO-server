@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Serilog;
 using MongoDB.Driver.Linq;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
@@ -186,7 +188,7 @@ public class ReferralService : ApplicationService, IReferralService
         var createTime = caHolder.Timestamp;
         if (DateTime.UtcNow.ToUtcSeconds() - createTime > 60)
         {
-            _logger.LogInformation("ReferralBindingStatusAsyncOldUser address {0} caHash {1}", userAddress, addressCaHash);
+            Log.Information("ReferralBindingStatusAsyncOldUser address {0} caHash {1}", userAddress, addressCaHash);
             return new ReferralBindingStatusDto { NeedBinding = false, BindingSuccess = false };
         }
         
@@ -199,7 +201,7 @@ public class ReferralService : ApplicationService, IReferralService
                 : new ReferralBindingStatusDto { NeedBinding = true, BindingSuccess = true };
         }
 
-        _logger.LogInformation("ReferralBindingStatusAsyncNewUserWaitingBind address {0} caHash {1}", userAddress, addressCaHash);
+        Log.Information("ReferralBindingStatusAsyncNewUserWaitingBind address {0} caHash {1}", userAddress, addressCaHash);
         return new ReferralBindingStatusDto { NeedBinding = true, BindingSuccess = false };
     }
 

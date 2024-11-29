@@ -1,4 +1,5 @@
 using System;
+using AElf.ExceptionHandler.ABP;
 using AElf.Indexing.Elasticsearch.Options;
 using Confluent.Kafka;
 using TomorrowDAOServer.EntityEventHandler.Core;
@@ -52,7 +53,8 @@ namespace TomorrowDAOServer.EntityEventHandler;
     //typeof(AbpEventBusRabbitMqModule),
     typeof(AbpEventBusKafkaModule),
     typeof(TomorrowDAOServerWorkerModule),
-    typeof(AbpBackgroundJobsHangfireModule)
+    typeof(AbpBackgroundJobsHangfireModule),
+    typeof(AOPExceptionModule)
     // typeof(AbpBackgroundJobsRabbitMqModule)
 )]
 public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
@@ -79,27 +81,6 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         ConfigureHangfire(context, configuration);
         // Configure<AbpRabbitMqBackgroundJobOptions>(configuration.GetSection("AbpRabbitMqBackgroundJob"));
         context.Services.AddHostedService<TomorrowDAOServerHostedService>();
-        context.Services.AddSingleton<IClusterClient>(o =>
-        {
-            return new ClientBuilder()
-                .ConfigureDefaults()
-                .UseMongoDBClient(configuration["Orleans:MongoDBClient"])
-                .UseMongoDBClustering(options =>
-                {
-                    options.DatabaseName = configuration["Orleans:DataBase"];;
-                    options.Strategy = MongoDBMembershipStrategy.SingleDocument;
-                })
-                .Configure<ClusterOptions>(options =>
-                {
-                    options.ClusterId = configuration["Orleans:ClusterId"];
-                    options.ServiceId = configuration["Orleans:ServiceId"];
-                })
-                .ConfigureApplicationParts(parts =>
-                    parts.AddApplicationPart(typeof(TomorrowDAOServerGrainsModule).Assembly).WithReferences())
-                //.AddSimpleMessageStreamProvider(AElfIndexerApplicationConsts.MessageStreamName)
-                .ConfigureLogging(builder => builder.AddProvider(o.GetService<ILoggerProvider>()))
-                .Build();
-        });
         ConfigureEsIndexCreation();
         ConfigureGraphQl(context, configuration);
         // ConfigureBackgroundJob(configuration);
@@ -113,14 +94,14 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
     }
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
-        var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
-        AsyncHelper.RunSync(async ()=> await client.Connect());
+        // var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
+        // AsyncHelper.RunSync(async ()=> await client.Connect());
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
     {
-        var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
-        AsyncHelper.RunSync(client.Close);
+        // var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
+        // AsyncHelper.RunSync(client.Close);
     }
 
     //Create the ElasticSearch Index based on Domain Entity

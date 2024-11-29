@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Options;
@@ -33,44 +36,40 @@ public class DaoAliasProvider : IDaoAliasProvider, ISingletonDependency
         _daoAliasOptions = daoAliasOptions;
     }
 
-    public async Task<string> GenerateDaoAliasAsync(DAOIndex daoIndex)
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleGenerateDaoAliasAsync), 
+    //     Message = "Generate dao alias error",
+    //     LogTargets = new []{"daoIndex"})]
+    public virtual async Task<string> GenerateDaoAliasAsync(DAOIndex daoIndex)
     {
-        try
+        if (daoIndex == null)
         {
-            if (daoIndex == null)
-            {
-                return string.Empty;
-            }
-
-            var alias = await GenerateDaoAliasAsync(daoIndex.Metadata?.Name);
-            if (alias.IsNullOrEmpty())
-            {
-                _logger.LogInformation("Generate dao alias fail, empty alias. daoIndex={0}",
-                    JsonConvert.SerializeObject(daoIndex));
-                return daoIndex.Id;
-            }
-
-            var serial = await _graphQlProvider.SetDaoAliasInfoAsync(daoIndex.ChainId, alias, new DaoAliasDto
-            {
-                DaoId = daoIndex.Id,
-                DaoName = daoIndex.Metadata?.Name,
-                Alias = alias,
-                CharReplacements = JsonConvert.SerializeObject(_daoAliasOptions.CurrentValue.CharReplacements),
-                FilteredChars = JsonConvert.SerializeObject(_daoAliasOptions.CurrentValue.FilteredChars),
-            });
-
-            if (serial != 0)
-            {
-                alias = alias + serial;
-            }
-
-            return alias;
+            return string.Empty;
         }
-        catch (Exception e)
+
+        var alias = await GenerateDaoAliasAsync(daoIndex.Metadata?.Name);
+        if (alias.IsNullOrEmpty())
         {
-            _logger.LogError(e, "Generate dao alias error, daoIndo={0}", JsonConvert.SerializeObject(daoIndex));
-            return daoIndex!.Id;
+            Log.Information("Generate dao alias fail, empty alias. daoIndex={0}",
+                JsonConvert.SerializeObject(daoIndex));
+            return daoIndex.Id;
         }
+
+        var serial = await _graphQlProvider.SetDaoAliasInfoAsync(daoIndex.ChainId, alias, new DaoAliasDto
+        {
+            DaoId = daoIndex.Id,
+            DaoName = daoIndex.Metadata?.Name,
+            Alias = alias,
+            CharReplacements = JsonConvert.SerializeObject(_daoAliasOptions.CurrentValue.CharReplacements),
+            FilteredChars = JsonConvert.SerializeObject(_daoAliasOptions.CurrentValue.FilteredChars),
+        });
+
+        if (serial != 0)
+        {
+            alias = alias + serial;
+        }
+
+        return alias;
     }
 
     public Task<string> GenerateDaoAliasAsync(string daoName)
