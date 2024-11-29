@@ -1,4 +1,3 @@
-using Orleans;
 using TomorrowDAOServer.Grains.State.Proposal;
 
 namespace TomorrowDAOServer.Grains.Grain.Proposal;
@@ -11,10 +10,16 @@ public interface IProposalNumGrain : IGrainWithStringKey
 
 public class ProposalNumGrain : Grain<ProposalNumState>, IProposalNumGrain
 {
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
+    }
+    
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     public async Task SetProposalNumAsync(long parliamentCount, long associationCount, long referendumCount)

@@ -11,16 +11,16 @@ public interface IReferralInviteCountGrain : IGrainWithStringKey
 
 public class ReferralInviteCountGrain : Grain<InviteCountState>, IReferralInviteCountGrain
 {
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
     
-    public override async Task OnDeactivateAsync()
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
     {
         await WriteStateAsync();
-        await base.OnDeactivateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     public Task<long> GetInviteCountAsync()

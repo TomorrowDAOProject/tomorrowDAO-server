@@ -1,6 +1,9 @@
 using System;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using AElf;
+using AElf.ExceptionHandler;
+using TomorrowDAOServer.Common.Handler;
 
 namespace TomorrowDAOServer.Common;
 
@@ -27,20 +30,15 @@ public static class ValidHelper
         return symbol.MatchesPattern(UppercaseNumericHyphen);
     }
     
-    public static bool MatchesAddress(this string address)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.Default)]
+    public static async Task<bool> MatchesAddress(this string address)
     {
-        try
+        if (address.IndexOf(Underline) > -1)
         {
-            if (address.IndexOf(Underline) > -1)
-            {
-                var parts = address.Split(Underline);
-                address = parts[1];
-            }
-            return Base58CheckEncoding.Verify(address);
+            var parts = address.Split(Underline);
+            address = parts[1];
         }
-        catch (Exception)
-        {
-            return false;
-        }
+        return Base58CheckEncoding.Verify(address);
     }
 }

@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Monitor.Common;
 
 namespace TomorrowDAOServer.Monitor.Http;
@@ -25,7 +27,7 @@ public class PerformanceMonitorMiddleware
         _logger = logger;
         _monitor = monitor;
     }
-
+    
     public async Task InvokeAsync(HttpContext context)
     {
         if (!_optionsMonitor.CurrentValue.IsEnabled)
@@ -35,40 +37,33 @@ public class PerformanceMonitorMiddleware
         }
 
         var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            await _next(context);
-            await Track(context, stopwatch, false);
-        }
-        catch (Exception)
-        {
-            await Track(context, stopwatch, true);
-            throw;
-        }
+        await InvokeTrackAsync(_monitor, context, stopwatch);
     }
 
-    private Task Track(HttpContext context, Stopwatch stopwatch, bool isException)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleInvokeAsync))]
+    public virtual async Task InvokeTrackAsync(IMonitor monitor, HttpContext context, Stopwatch stopwatch)
     {
-        if (_monitor == null)
+        await _next(context);
+        await Track(monitor, context, stopwatch, false);
+    }
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, Message = "error recording http request")]
+    public static async Task Track(IMonitor monitor, HttpContext context, Stopwatch stopwatch, bool isException)
+    {
+        if (monitor == null)
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        try
+        stopwatch.Stop();
+        var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
+        var path = context.Request.Path;
+        IDictionary<string, string> properties = new Dictionary<string, string>()
         {
-            stopwatch.Stop();
-            var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
-            var path = context.Request.Path;
-            IDictionary<string, string> properties = new Dictionary<string, string>()
-            {
-                { MonitorConstant.LabelSuccess, (!isException).ToString() }
-            };
-            _monitor.TrackMetric(chart: MonitorConstant.Api, type: path, duration: elapsedMs, properties: properties);
-        }
-        catch (Exception e)
-        {
-            _logger?.LogError(e, "error recording http request");
-        }
-        return Task.CompletedTask;
+            { MonitorConstant.LabelSuccess, (!isException).ToString() }
+        };
+        monitor.TrackMetric(chart: MonitorConstant.Api, type: path, duration: elapsedMs, properties: properties);
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.DAO.Dtos;
@@ -18,7 +19,9 @@ using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.ObjectMapping;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Contract;
 using TomorrowDAOServer.DAO;
@@ -87,7 +90,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             Alias = input.Alias
         });
         sw.Stop();
-        _logger.LogInformation("ProposalListDuration: GetDAO {0}", sw.ElapsedMilliseconds);
+        Log.Information("ProposalListDuration: GetDAO {0}", sw.ElapsedMilliseconds);
         if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
         {
             throw new UserFriendlyException("No DAO information found.");
@@ -106,7 +109,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
         
         sw.Stop();
-        _logger.LogInformation("ProposalListDuration: GetProposalList {0}", sw.ElapsedMilliseconds);
+        Log.Information("ProposalListDuration: GetProposalList {0}", sw.ElapsedMilliseconds);
 
         sw.Restart();
         //3. parallel exec: 
@@ -124,7 +127,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         await Task.WhenAll(councilMemberCountTask, tokenInfoTask, getVoteSchemeTask, voteItemsMapTask);
         
         sw.Stop();
-        _logger.LogInformation("ProposalListDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
+        Log.Information("ProposalListDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
         
         var councilMemberCount = councilMemberCountTask.Result;
         var tokenInfo = tokenInfoTask.Result;
@@ -171,7 +174,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         };
         
         sw.Stop();
-        _logger.LogInformation("ProposalListDuration: foreach {0}", sw.ElapsedMilliseconds);
+        Log.Information("ProposalListDuration: foreach {0}", sw.ElapsedMilliseconds);
 
         return proposalPagedResultDto;
     }
@@ -187,47 +190,43 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
     }
 
-    private async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId,
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleExceptionAndReturn), Message = "get High Council member count error",
+        LogTargets = new []{"daoId"}, ReturnDefault = default)]
+    public virtual async Task<int> GetHighCouncilMemberCountAsync(bool isNetworkDao, string chainId, string daoId,
         string governanceMechanism)
     {
         Stopwatch sw = Stopwatch.StartNew();
         var count = 0;
-        try
+        if (isNetworkDao)
         {
-            if (isNetworkDao)
-            {
-                var bpList = await _graphQlProvider.GetBPAsync(chainId);
-                count = bpList.IsNullOrEmpty() ? 0 : bpList.Count;
+            var bpList = await _graphQlProvider.GetBPAsync(chainId);
+            count = bpList.IsNullOrEmpty() ? 0 : bpList.Count;
                 
+            sw.Stop();
+            Log.Information("ProposalListDuration: GetBPA {0}", sw.ElapsedMilliseconds);
+        }
+        else
+        {
+            if (GovernanceMechanism.Organization.ToString() == governanceMechanism)
+            {
+                var result = await _DAOProvider.GetMemberListAsync(new GetMemberListInput
+                {
+                    ChainId = chainId, DAOId = daoId, SkipCount = 0, MaxResultCount = 1
+                });
+                count = (int)result.TotalCount;
+                    
                 sw.Stop();
-                _logger.LogInformation("ProposalListDuration: GetBPA {0}", sw.ElapsedMilliseconds);
+                Log.Information("ProposalListDuration: GetMemberList {0}", sw.ElapsedMilliseconds);
             }
             else
             {
-                if (GovernanceMechanism.Organization.ToString() == governanceMechanism)
-                {
-                    var result = await _DAOProvider.GetMemberListAsync(new GetMemberListInput
-                    {
-                        ChainId = chainId, DAOId = daoId, SkipCount = 0, MaxResultCount = 1
-                    });
-                    count = (int)result.TotalCount;
+                var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
+                count = hcList.IsNullOrEmpty() ? 0 : hcList.Count;
                     
-                    sw.Stop();
-                    _logger.LogInformation("ProposalListDuration: GetMemberList {0}", sw.ElapsedMilliseconds);
-                }
-                else
-                {
-                    var hcList = await _electionProvider.GetHighCouncilMembersAsync(chainId, daoId);
-                    count = hcList.IsNullOrEmpty() ? 0 : hcList.Count;
-                    
-                    sw.Stop();
-                    _logger.LogInformation("ProposalListDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
-                }
+                sw.Stop();
+                Log.Information("ProposalListDuration: GetHighCouncilMembers {0}", sw.ElapsedMilliseconds);
             }
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "get High Council member count error, daoId={0}", daoId);
         }
 
         return count;
@@ -255,20 +254,15 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             Convert.ToInt64(Math.Round(proposal.MinimalVoteThreshold / pow, MidpointRounding.AwayFromZero));
     }
 
-    private async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGetProposalListAsync), Message = "GetProposalListAsync error",
+        LogTargets = new []{"daoId"}, ReturnDefault = default)]
+    public virtual async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
     {
-        try
-        {
-            var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
-            var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input, excludeIds);
-            var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
-            return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetProposalListAsync error, input={daoId}", JsonConvert.SerializeObject(input));
-            return new Tuple<long, List<ProposalDto>>(0, new List<ProposalDto>());
-        }
+        var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
+        var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input, excludeIds);
+        var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
+        return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
     }
 
     public async Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input)
@@ -279,7 +273,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return new ProposalDetailDto();
         }
 
-        _logger.LogInformation(
+        Log.Information(
             "ProposalService QueryProposalDetailAsync proposalId:{ProposalId} proposalIndex {proposalIndex}:",
             input.ProposalId, JsonConvert.SerializeObject(proposalIndex));
         var proposalDetailDto = _objectMapper.Map<ProposalIndex, ProposalDetailDto>(proposalIndex);
@@ -520,7 +514,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
     public async Task<ProposalPagedResultDto<ProposalBasicDto>> QueryExecutableProposalsAsync(
         QueryExecutableProposalsInput input)
     {
-        _logger.LogInformation("query executable proposals,  daoId={0}, proposer={1}", input.DaoId, input.Proposer);
+        Log.Information("query executable proposals,  daoId={0}, proposer={1}", input.DaoId, input.Proposer);
         var proposalIndex =
             await _proposalProvider.QueryProposalsByProposerAsync(new QueryProposalByProposerRequest
             {
@@ -537,7 +531,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return new ProposalPagedResultDto<ProposalBasicDto>();
         }
 
-        _logger.LogInformation("query executable proposals result:{0}", JsonConvert.SerializeObject(proposalIndex));
+        Log.Information("query executable proposals result:{0}", JsonConvert.SerializeObject(proposalIndex));
 
         var proposalDtoList = _objectMapper.Map<List<ProposalIndex>, List<ProposalBasicDto>>(proposalIndex.Item2);
 
@@ -603,7 +597,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             return userAddress;
         }
 
-        _logger.LogError("query user address fail, userId={0}, chainId={1}", userId, chainId);
+        Log.Error("query user address fail, userId={0}, chainId={1}", userId, chainId);
         throw new UserFriendlyException("No user address found");
     }
 }
