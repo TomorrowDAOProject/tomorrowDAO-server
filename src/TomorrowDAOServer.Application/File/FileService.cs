@@ -71,14 +71,14 @@ public class FileService : TomorrowDAOServerAppService, IFileService
         _logger.LogInformation("UploadFrontEndAsyncBegin url {0} fileName {1}", url, fileName);
         var (baseUrl, extension) = ParseUrl(url);
         await using var stream = await DownloadImageAsync(baseUrl);
-        _logger.LogInformation("UploadFrontEndAsyncDownloadEnd url {0} fileName {1} fail {2}", url, fileName, stream == null);
         if (stream == null)
         {
+            _logger.LogInformation("UploadFrontEndAsyncDownloadFail url {0} fileName {1}", url, fileName);
             return string.Empty;
         }
 
         await using var memoryStream = await ConvertToWebp(extension, stream);
-        _logger.LogInformation("UploadFrontEndAsyncConvertEnd url {0} fileName {1} fail {2}", url, fileName, memoryStream == null);
+        _logger.LogInformation("UploadFrontEndAsyncConvertFail url {0} fileName {1}", url, fileName);
         if (memoryStream == null)
         {
             return string.Empty;
