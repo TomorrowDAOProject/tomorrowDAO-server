@@ -56,12 +56,10 @@ public class AppUrlUploadService : ScheduleSyncDataService
                     var backScreenshots = index.BackScreenshots ?? new List<string>();
                     if (NeedUpload(icon, index.BackIcon))
                     {
-                        _logger.LogInformation("AppUrlUpload1");
                         icon = GetUrl(icon);
                         var backIcon = await _fileService.UploadFrontEndAsync(icon, id);
                         if (!string.IsNullOrEmpty(backIcon))
                         {
-                            _logger.LogInformation("AppUrlUpload2");
                             needUpdate = true;
                             index.BackIcon = backIcon;
                         }
@@ -69,22 +67,18 @@ public class AppUrlUploadService : ScheduleSyncDataService
 
                     if (NeedUpload(screenshots, backScreenshots))
                     {
-                        _logger.LogInformation("AppUrlUpload3");
                         var newBackScreenshots = new List<string>();
                         for (var i = 0; i < screenshots.Count; i++)
                         {
-                            _logger.LogInformation("AppUrlUpload4 i {0}", i);
                             var screenshot = GetUrl(screenshots[i]);
                             var backScreenshot = await _fileService.UploadFrontEndAsync(screenshot, id + "_" + i);
                             if (!string.IsNullOrEmpty(backScreenshot))
                             {
-                                _logger.LogInformation("AppUrlUpload5 i {0}", i);
                                 newBackScreenshots.Add(backScreenshot);
                             }
                         }
                         if (newBackScreenshots.Any())
                         {
-                            _logger.LogInformation("AppUrlUpload6");
                             needUpdate = true;
                             index.BackScreenshots = newBackScreenshots;
                         }
@@ -92,7 +86,6 @@ public class AppUrlUploadService : ScheduleSyncDataService
 
                     if (needUpdate)
                     {
-                        _logger.LogInformation("AppUrlUpload7");
                         toUpdate.Add(index);
                     }
                 }
