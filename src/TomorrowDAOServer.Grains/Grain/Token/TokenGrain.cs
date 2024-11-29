@@ -12,13 +12,18 @@ public interface ITokenGrain : IGrainWithStringKey
 
 public class TokenGrain : Grain<ExplorerTokenState>, ITokenGrain
 {
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
     
-
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await WriteStateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
+    }
+    
     public Task<TokenInfoDto> GetTokenInfoAsync()
     {
         return Task.FromResult(new TokenInfoDto

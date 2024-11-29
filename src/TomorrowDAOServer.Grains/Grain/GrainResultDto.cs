@@ -1,12 +1,9 @@
 namespace TomorrowDAOServer.Grains.Grain;
 
-public class GrainResultDto<T> : GrainResultDto
+[GenerateSerializer]
+public class GrainResultDto<T>
 {
-    public T Data { get; set; }
-}
-
-public class GrainResultDto
-{
-    public bool Success { get; set; } = true;
-    public string Message { get; set; } = string.Empty;
+    [Id(0)] public bool Success { get; set; } = true;
+    [Id(1)] public string Message { get; set; } = string.Empty;
+    [Id(2)] public T Data { get; set; }
 }

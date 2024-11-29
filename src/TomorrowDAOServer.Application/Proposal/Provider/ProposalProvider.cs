@@ -7,6 +7,7 @@ using GraphQL;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Nest;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.Entities;
@@ -333,16 +334,16 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         {
             var daoId = bucket.Key;
             var count = bucket.ValueCount("proposal_count").Value;
-            try  
+            if (count.HasValue && (count.Value >= long.MinValue && count.Value <= long.MaxValue))  
             {  
-                var safeLong = checked((long)count);
-                result.Add(daoId, safeLong);
+                var safeLong = (long)count.Value;  
+                result.Add(daoId, safeLong);  
             }  
-            catch (OverflowException e)  
+            else  
             {  
-                _logger.LogError(e, "The number is too large or too small for a long.");  
-                result.Add(daoId, 0);
-            } 
+                Log.Error("The number is too large or too small for a long.");  
+                result.Add(daoId, 0);  
+            }
         }
 
         return result;

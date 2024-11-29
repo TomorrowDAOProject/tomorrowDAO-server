@@ -10,7 +10,7 @@ public static class ExceptionHelper
         throw new UserFriendlyException("Invalid input.");
     }
 
-    public static void ThrowSystemException(string message, Exception innerException = null)
+    public static void ThrowSystemException(string message, System.Exception innerException = null)
     {
         if (innerException != null)
         {

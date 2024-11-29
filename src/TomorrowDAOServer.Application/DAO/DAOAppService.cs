@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Election.Dto;
@@ -20,6 +22,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Common.AElfSdk;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Governance.Provider;
 using TomorrowDAOServer.Options;
@@ -107,7 +110,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
             await Task.WhenAll(getTreasuryAddressTask, getGovernanceSchemeTask, getBpWithRoundTask);
             var bpInfo = getBpWithRoundTask.Result;
             daoInfo.HighCouncilTermNumber = bpInfo.Round;
-            daoInfo.HighCouncilMemberCount = bpInfo.AddressList.Count;
+            daoInfo.HighCouncilMemberCount = bpInfo.AddressList?.Count ?? 0;
         }
         else
         {
@@ -122,56 +125,53 @@ public class DAOAppService : ApplicationService, IDAOAppService
         daoInfo.OfGovernanceSchemeThreshold(governanceSchemeDto.Data?.FirstOrDefault());
 
         sw.Stop();
-        _logger.LogInformation("GetDAOByIdDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
+        Log.Information("GetDAOByIdDuration: Parallel exec {0}", sw.ElapsedMilliseconds);
 
         return daoInfo;
     }
 
-    public async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, ReturnDefault = ReturnDefault.Default,
+        Message = "System exception occurred during querying member list",
+        LogTargets = new []{"input"})]
+    public virtual async Task<PageResultDto<MemberDto>> GetMemberListAsync(GetMemberListInput input)
     {
         if (input == null || (input.DAOId.IsNullOrWhiteSpace() && input.Alias.IsNullOrWhiteSpace()))
         {
             ExceptionHelper.ThrowArgumentException();
         }
 
-        try
+        if (input.DAOId.IsNullOrWhiteSpace())
         {
-            if (input.DAOId.IsNullOrWhiteSpace())
+            var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
             {
-                var daoIndex = await _daoProvider.GetAsync(new GetDAOInfoInput
-                {
-                    ChainId = input.ChainId,
-                    DAOId = input.DAOId,
-                    Alias = input.Alias
-                });
-                if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
-                {
-                    throw new UserFriendlyException("No DAO information found.");
-                }
-
-                input.DAOId = daoIndex.Id;
+                ChainId = input.ChainId,
+                DAOId = input.DAOId,
+                Alias = input.Alias
+            });
+            if (daoIndex == null || daoIndex.Id.IsNullOrWhiteSpace())
+            {
+                throw new UserFriendlyException("No DAO information found.");
             }
 
-            return await _daoProvider.GetMemberListAsync(input);
+            input.DAOId = daoIndex.Id;
         }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetMemberListAsync error, {0}", JsonConvert.SerializeObject(input));
-            throw new UserFriendlyException($"System exception occurred during querying member list. {e.Message}");
-        }
+
+        return await _daoProvider.GetMemberListAsync(input);
     }
 
     public async Task<PagedResultDto<DAOListDto>> GetDAOListAsync(QueryDAOListInput input)
     {
         var daoOption = _daoOptions.CurrentValue;
-        var topDaoNames = daoOption.GetTopDaoNames();  
+        var topDaoNames = daoOption.GetTopDaoNames();
         var excludeNames = new HashSet<string>(daoOption.FilteredDaoNames.Union(topDaoNames));
 
         Tuple<long, List<DAOListDto>> result;
         long totalCount;
         if (DAOType.Verified == input.DaoType)
         {
-            result = await GetNameSearchList(input, topDaoNames.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
+            result = await GetNameSearchList(input,
+                topDaoNames.Skip(input.SkipCount).Take(input.MaxResultCount).ToList());
             totalCount = topDaoNames.Count;
             var verifiedTypeDic = daoOption.GetVerifiedTypeDic();
             foreach (var dao in result.Item2)
@@ -189,6 +189,7 @@ public class DAOAppService : ApplicationService, IDAOAppService
         {
             dao.DaoType = input.DaoType.ToString();
         }
+
         return new PagedResultDto<DAOListDto>
         {
             TotalCount = totalCount,
@@ -294,23 +295,19 @@ public class DAOAppService : ApplicationService, IDAOAppService
         return result;
     }
 
-    public async Task<bool> IsDaoMemberAsync(IsDaoMemberInput input)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, 
+        Message = "Exception in checking if user is a DAO member",
+        LogTargets = new []{"input"})]
+    public virtual async Task<bool> IsDaoMemberAsync(IsDaoMemberInput input)
     {
-        try
+        var memberDto = await _daoProvider.GetMemberAsync(new GetMemberInput
         {
-            var memberDto = await _daoProvider.GetMemberAsync(new GetMemberInput
-            {
-                ChainId = input.ChainId,
-                DAOId = input.DAOId,
-                Address = input.MemberAddress
-            });
-            return memberDto != null && !memberDto.Address.IsNullOrWhiteSpace();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "IsDaoMemberAsync error. input={0}", JsonConvert.SerializeObject(input));
-            throw new UserFriendlyException($"Exception in checking if user is a DAO member, {e.Message}");
-        }
+            ChainId = input.ChainId,
+            DAOId = input.DAOId,
+            Address = input.MemberAddress
+        });
+        return memberDto != null && !memberDto.Address.IsNullOrWhiteSpace();
     }
 
     private async Task<MyDAOListDto> GetMyManagedDaoListDto(QueryMyDAOListInput input, string address)
