@@ -19,7 +19,7 @@ public class OpenController
         _openService = openService;
     }
 
-    [HttpGet("dao-info")]
+    [HttpGet("task-status")]
     public async Task<TaskStatusResponse> GetTaskStatusAsync(string address, string proposalId)
     {
         return await _openService.GetTaskStatusAsync(address, proposalId);
