@@ -40,12 +40,12 @@ public class AppUrlUploadService : ScheduleSyncDataService
             do
             {
                 queryList = await _telegramAppsProvider.GetNeedUploadAsync(skipCount);
+                _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {1}", queryList?.Count, skipCount);
                 if (queryList == null || queryList.IsNullOrEmpty())
                 {
                     break;
                 }
                 
-                _logger.LogInformation("AppUrlUploadNeedUpdateBefore allCount {0} skipCount {1}", queryList.Count, skipCount);
                 var toUpdate = new List<TelegramAppIndex>();
                 foreach (var index in queryList)
                 {
