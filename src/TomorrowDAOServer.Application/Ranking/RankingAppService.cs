@@ -270,7 +270,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task<RankingVoteResponse> VoteAsync(RankingVoteInput input)
     {
-        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.RawTransaction.IsNullOrWhiteSpace())
+        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.RawTransaction.IsNullOrWhiteSpace() || input.TransactionId.IsNullOrEmpty())
         {
             ExceptionHelper.ThrowArgumentException();
         }
@@ -320,29 +320,28 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, votingItemId);
                 if (votingRecord != null)
                 {
-                    Log.Information("Ranking vote, vote exist. {0}", address);
+                    _logger.LogInformation("Ranking vote, vote exist. {0}", address);
                     return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId);
                 }
 
-                Log.Information("Ranking vote, send transaction. {0}", address);
-                _logger.LogInformation("Ranking vote, _contractProvider={0}", _contractProvider == null);
-                var sendTransactionOutput = await _contractProvider.SendTransactionAsync(input.ChainId, transaction);
-                if (sendTransactionOutput.TransactionId.IsNullOrWhiteSpace())
-                {
-                    Log.Error("Ranking vote, send transaction error, {0}",
-                        JsonConvert.SerializeObject(sendTransactionOutput));
-                    return BuildRankingVoteResponse(RankingVoteStatusEnum.Failed);
-                }
+                _logger.LogInformation("Ranking vote, send transaction. {0}", address);
+                // var sendTransactionOutput = await _contractProvider.SendTransactionAsync(input.ChainId, transaction);
+                // if (sendTransactionOutput.TransactionId.IsNullOrWhiteSpace())
+                // {
+                //     _logger.LogError("Ranking vote, send transaction error, {0}",
+                //         JsonConvert.SerializeObject(sendTransactionOutput));
+                //     return BuildRankingVoteResponse(RankingVoteStatusEnum.Failed);
+                // }
 
                 Log.Information("Ranking vote, send transaction success. {0}", address);
                 await SaveVotingRecordAsync(input.ChainId, address, votingItemId, RankingVoteStatusEnum.Voting,
-                    sendTransactionOutput.TransactionId, _rankingOptions.CurrentValue.GetVoteTimoutTimeSpan());
+                    input.TransactionId, _rankingOptions.CurrentValue.GetVoteTimoutTimeSpan());
 
                 var _ = UpdateVotingStatusAsync(input.ChainId, address, votingItemId,
-                    sendTransactionOutput.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash,
+                    input.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash,
                     proposalIndex, input.TrackId);
 
-                return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, sendTransactionOutput.TransactionId);
+                return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, input.TransactionId);
             }
         }
         catch (Exception e)
