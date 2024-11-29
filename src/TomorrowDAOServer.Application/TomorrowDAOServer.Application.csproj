@@ -14,14 +14,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
-    <PackageReference Include="StackExchange.Redis" Version="2.2.4" />
     <PackageReference Include="AElf.ExceptionHandler.ABP" Version="8.2.8" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
     <PackageReference Include="GraphQL" Version="7.4.1" />
     <PackageReference Include="GraphQL.Client.Abstractions" Version="6.0.0" />
+    <PackageReference Include="GraphQL.SystemTextJson" Version="7.4.1" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+    <PackageReference Include="PuppeteerSharp" Version="18.0.5" />
+    <PackageReference Include="Selenium.WebDriver" Version="4.20.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.2.4" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.0-preview1" />
     <PackageReference Include="Volo.Abp.Account.Application" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.BlobStoring" Version="8.2.0" />
@@ -32,14 +33,6 @@
     <PackageReference Include="Volo.Abp.FeatureManagement.Application" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.SettingManagement.Application" Version="8.2.0" />
     <PackageReference Include="Volo.Abp.MultiTenancy" Version="8.2.0" />
-    <PackageReference Include="Volo.Abp.Core" Version="8.2.0" />
-    <PackageReference Include="Volo.Abp.Identity.Application" Version="8.2.0" />
-    <PackageReference Include="Volo.Abp.PermissionManagement.Application" Version="8.2.0" />
-    <PackageReference Include="Volo.Abp.TenantManagement.Application" Version="8.2.0" />
-    <PackageReference Include="Volo.Abp.FeatureManagement.Application" Version="8.2.0" />
-    <PackageReference Include="Volo.Abp.SettingManagement.Application" Version="8.2.0" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.4" />
-    <PackageReference Include="Volo.Abp.MultiTenancy" Version="8.2.0" />
     <PackageReference Include="AElf.Contracts.Election" Version="1.6.0" />
     <PackageReference Include="AElf.Contracts.Treasury" Version="1.6.0" />
     <PackageReference Include="AElf.Contracts.Consensus.AEDPoS" Version="1.6.0" />
@@ -47,5 +40,7 @@
     <PackageReference Include="AElf.Contracts.Association" Version="1.6.0" />
     <PackageReference Include="AElf.Contracts.Referendum" Version="1.6.0" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.4" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
   </ItemGroup>
 </Project>
