@@ -15,13 +15,11 @@ public class OpenService : ApplicationService, IOpenService
 
     public async Task<TaskStatusResponse> GetTaskStatusAsync(string address, string proposalId)
     {
-        var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(address, proposalId);
-        return new TaskStatusResponse
+        if (string.IsNullOrEmpty(address) || string.IsNullOrEmpty(proposalId))
         {
-            Data = new Data
-            {
-                Result = count > 0
-            }
-        };
+            return new TaskStatusResponse { Data = new Data { Result = false } }; 
+        }
+        var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(address, proposalId);
+        return new TaskStatusResponse { Data = new Data { Result = count > 0 } };
     }
 }
