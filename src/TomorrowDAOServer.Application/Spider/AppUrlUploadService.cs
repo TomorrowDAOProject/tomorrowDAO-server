@@ -111,7 +111,7 @@ public class AppUrlUploadService : ScheduleSyncDataService
 
     public override WorkerBusinessType GetBusinessType()
     {
-        return WorkerBusinessType.AppUrlUpload;
+        return WorkerBusinessType.AppUrlUploadTask;
     }
 
     public string GetUrl(string url)
