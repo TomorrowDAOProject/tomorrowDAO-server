@@ -4,6 +4,7 @@ using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.Election;
 using TomorrowDAOServer.Grains;
+using TomorrowDAOServer.Luckybox;
 using TomorrowDAOServer.Monitor;
 using TomorrowDAOServer.Monitor.Http;
 using TomorrowDAOServer.Monitor.Logging;
@@ -53,6 +54,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
+        context.Services.AddTransient<IScheduleSyncDataService, LuckyboxTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskGenerateService>();
         context.Services.AddTransient<IScheduleSyncDataService, FindminiAppsSyncDataService>();

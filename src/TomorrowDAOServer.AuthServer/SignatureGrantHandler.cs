@@ -131,7 +131,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     _chainOptions.CurrentValue);
                 if (!managerCheck.HasValue || !managerCheck.Value)
                 {
-                    Log.Error("Manager validation failed. caHash:{0}, address:{2}, chainId:{3}",
+                    _logger.LogError("Manager validation failed. caHash:{0}, address:{1}, chainId:{2}",
                         caHash, address, chainId);
                     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Manager validation failed.");
                 }

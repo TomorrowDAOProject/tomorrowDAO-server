@@ -23,5 +23,6 @@ public enum WorkerBusinessType
     TelegramAppsSync,
     FindminiAppsSync,
     TonGiftTaskGenerate,
-    TonGiftTaskComplete
+    TonGiftTaskComplete,
+    LuckyboxTaskComplete,
 }

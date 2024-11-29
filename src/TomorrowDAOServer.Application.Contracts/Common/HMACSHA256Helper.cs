@@ -43,7 +43,7 @@ public class HMACSHA256Helper
         return selfHash;
     }
 
-    private static string HMAC_SHA256(string data, string key)
+    public static string HMAC_SHA256(string data, string key)
     {
         using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key)))
         {
