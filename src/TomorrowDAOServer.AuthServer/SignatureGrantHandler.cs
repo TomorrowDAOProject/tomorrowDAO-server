@@ -491,5 +491,4 @@ public class SignatureGrantHandler : ITokenExtensionGrant
     }
 
     public string Name { get; } = "signature";
-    
 }
