@@ -6,6 +6,7 @@ using AElf.ExceptionHandler;
 using AElf;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Handler;

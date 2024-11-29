@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AElf;
 using AElf.Client.Dto;
 using AElf.ExceptionHandler;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -320,7 +321,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, votingItemId);
                 if (votingRecord != null)
                 {
-                    _logger.LogInformation("Ranking vote, vote exist. {0}", address);
+                    Log.Information("Ranking vote, vote exist. {0}", address);
                     return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId);
                 }
 
