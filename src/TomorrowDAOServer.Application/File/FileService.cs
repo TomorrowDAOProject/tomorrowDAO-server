@@ -117,14 +117,13 @@ public class FileService : TomorrowDAOServerAppService, IFileService
             if (extension == ".webp")
             {
                 await stream.CopyToAsync(memoryStream);
-                memoryStream.Seek(0, SeekOrigin.Begin);
             }
             else
             {
                 using var image = await Image.LoadAsync(stream);
                 await image.SaveAsWebpAsync(memoryStream);
-                memoryStream.Seek(0, SeekOrigin.Begin);
             }
+            memoryStream.Seek(0, SeekOrigin.Begin);
             return memoryStream;
         }
         catch (Exception)
