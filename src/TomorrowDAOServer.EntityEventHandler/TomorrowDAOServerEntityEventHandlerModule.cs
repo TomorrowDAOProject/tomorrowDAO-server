@@ -54,8 +54,8 @@ namespace TomorrowDAOServer.EntityEventHandler;
     //typeof(AbpEventBusRabbitMqModule),
     typeof(AbpEventBusKafkaModule),
     typeof(TomorrowDAOServerWorkerModule),
-    typeof(AbpBackgroundJobsHangfireModule),
-    typeof(AOPExceptionModule)
+    typeof(AbpBackgroundJobsHangfireModule)
+    //typeof(AOPExceptionModule)
     // typeof(AbpBackgroundJobsRabbitMqModule)
 )]
 public class TomorrowDAOServerEntityEventHandlerModule : AbpModule

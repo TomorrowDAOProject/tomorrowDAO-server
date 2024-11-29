@@ -50,7 +50,7 @@ namespace TomorrowDAOServer.EntityEventHandler
                 .UseApollo()
                 .UseOrleansClient()
                 .UseAutofac()
-                .UseAElfExceptionHandler()
+                //.UseAElfExceptionHandler()
                 .UseSerilog();
     }
 }
