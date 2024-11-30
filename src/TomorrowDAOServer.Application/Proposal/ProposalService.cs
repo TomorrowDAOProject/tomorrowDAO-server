@@ -254,15 +254,24 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
             Convert.ToInt64(Math.Round(proposal.MinimalVoteThreshold / pow, MidpointRounding.AwayFromZero));
     }
 
+    //ExceptionHandler does not support unit testing, Impact unit test coverage
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
         MethodName = nameof(TmrwDaoExceptionHandler.HandleGetProposalListAsync), Message = "GetProposalListAsync error",
         LogTargets = new []{"daoId"}, ReturnDefault = default)]
     public virtual async Task<Tuple<long, List<ProposalDto>>> GetProposalListAsync(QueryProposalListInput input)
     {
-        var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
-        var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input, excludeIds);
-        var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
-        return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
+        try
+        {
+            var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
+            var (total, proposalIndexList) = await _proposalProvider.GetProposalListAsync(input, excludeIds);
+            var proposalDtos = _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(proposalIndexList);
+            return new Tuple<long, List<ProposalDto>>(total, proposalDtos);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetProposalListAsync error, input={daoId}", JsonConvert.SerializeObject(input));
+            return new Tuple<long, List<ProposalDto>>(0, new List<ProposalDto>());
+        }
     }
 
     public async Task<ProposalDetailDto> QueryProposalDetailAsync(QueryProposalDetailInput input)
