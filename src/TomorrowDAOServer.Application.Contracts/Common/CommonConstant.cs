@@ -33,7 +33,8 @@ public static class CommonConstant
     public const string GovernanceContractAddress = "GovernanceContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
     public const string ProxyAccountContractAddressName = "AElf.Contracts.ProxyAccountContract";
-        
+
+    public const string CaMethodGetHolderInfo = "GetHolderInfo";
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
@@ -43,6 +44,9 @@ public static class CommonConstant
     public const string TokenMethodIssue = "Issue";
     public const string GovernanceMethodCreateProposal = "CreateProposal";
     public const string ProxyAccountMethodGetProxyAccountByAddress = "GetProxyAccountByProxyAccountAddress";
+    public const string Acs3MethodGetProposal = "GetProposal";
+    public const string OrganizationMethodGetOrganization = "GetOrganization";
+    public const string OrganizationMethodGetProposerWhiteList = "GetProposerWhiteList";
     
     public const string TransactionStateMined = "MINED";
     public const string TransactionStatePending = "PENDING";

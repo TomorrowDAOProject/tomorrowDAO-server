@@ -166,14 +166,14 @@ public class ClusterFixture : IDisposable, ISingletonDependency
     public class ContractProviderMock : IContractProvider
     {
         public async Task<(Hash transactionId, Transaction transaction)> CreateCallTransactionAsync(string chainId,
-            string contractName, string methodName, IMessage param)
+            string contractName, string methodName, IMessage param, string contradeAddress = null)
         {
             return new (TransactionHash, new Transaction());
         }
 
         public async Task<(Hash transactionId, Transaction transaction)> CreateTransactionAsync(string chainId,
             string senderPublicKey, string contractName, string methodName,
-            IMessage param)
+            IMessage param, string contradeAddress = null)
         {
             return new (TransactionHash, new Transaction());;
         }
@@ -189,6 +189,11 @@ public class ClusterFixture : IDisposable, ISingletonDependency
             return instance;
         }
 
+        public Task<T> CallTransactionWithMessageAsync<T>(string chainId, Transaction transaction) where T : class, IMessage<T>, new()
+        {
+            return default;
+        }
+
         public Task<TransactionResultDto> QueryTransactionResultAsync(string transactionId, string chainId)
         {
             throw new NotImplementedException();
@@ -200,6 +205,16 @@ public class ClusterFixture : IDisposable, ISingletonDependency
         }
 
         public Task<SendTransactionOutput> SendTransactionAsync(string chainId, Transaction transaction)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string MainChainId()
+        {
+            throw new NotImplementedException();
+        }
+
+        public string SideChainId()
         {
             throw new NotImplementedException();
         }

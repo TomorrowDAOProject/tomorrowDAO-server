@@ -11,6 +11,7 @@ using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.DAO.Indexer;
+using TomorrowDAOServer.Dtos.AelfScan;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Grains.Grain;
 using TomorrowDAOServer.Grains.Grain.Token;
@@ -72,9 +73,9 @@ public class TokenServiceTest
         result.ShouldNotBeNull();
         result.Symbol.ShouldBe("ELF");
         
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>())
-            .Returns(new ExplorerTokenInfoResponse { Symbol = "ELF", Decimals = "8" });
-        _objectMapper.Map<ExplorerTokenInfoResponse, TokenInfoDto>(Arg.Any<ExplorerTokenInfoResponse>())
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<GetTokenInfoFromAelfScanRequest>())
+            .Returns(new GetTokenInfoFromAelfScanResponse { Symbol = "ELF", Decimals = "8" });
+        _objectMapper.Map<GetTokenInfoFromAelfScanResponse, TokenInfoDto>(Arg.Any<GetTokenInfoFromAelfScanResponse>())
             .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8" });
         result = await _service.GetTokenInfoAsync("chainId", "ELF");
         result.ShouldNotBeNull();
@@ -88,7 +89,7 @@ public class TokenServiceTest
         {
             new() { Amount = 100000000, GovernanceToken = "ELF" }
         });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<GetTokenInfoFromAelfScanRequest>()).Returns(new GetTokenInfoFromAelfScanResponse
         {
             Symbol = "ELF", Decimals = "8"
         });
