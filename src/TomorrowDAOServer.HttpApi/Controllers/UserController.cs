@@ -49,4 +49,18 @@ public class UserController
     {
         return await _userService.GetTaskListAsync(chainId);
     }
+    
+    [HttpPost("view-ad")]
+    [Authorize]
+    public async Task<long> ViewAdAsync(ViewAdInput input)
+    {
+        return await _userService.ViewAdAsync(input);
+    }
+    
+    [HttpPost("save-tg-info")]
+    [Authorize]
+    public async Task<bool> SaveTgInfoAsync(SaveTgInfoInput input)
+    {
+        return await _userService.SaveTgInfoAsync(input);
+    }
 }

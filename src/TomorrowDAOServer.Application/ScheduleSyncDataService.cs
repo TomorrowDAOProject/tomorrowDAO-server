@@ -36,8 +36,7 @@ public abstract class ScheduleSyncDataService : IScheduleSyncDataService
         }
     }
 
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
         Message = "DealDataAsync error", LogTargets = new []{"chainId", "businessType"})]
     public virtual async Task DealDataAsync(string chainId, WorkerBusinessType businessType)
     {

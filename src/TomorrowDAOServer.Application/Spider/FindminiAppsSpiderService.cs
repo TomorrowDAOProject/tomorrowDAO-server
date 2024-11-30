@@ -66,7 +66,7 @@ public class FindminiAppsSpiderService : TomorrowDAOServerAppService, IFindminiA
                 var descDoc = descWeb.Load(detailUrl);
                 var screenImgNodes = descDoc.DocumentNode.SelectNodes("//div[contains(@class, 'flex') and contains(@class, 'snap-x') and contains(@class, 'overflow-x-auto')]//img");
                 var spanNode = descDoc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Description')]/following-sibling::span");
-                var buttonNode = descDoc.DocumentNode.SelectSingleNode("//button[contains(@onclick, 'window.open') and contains(@class, 'bg-telegram')]");
+                var buttonNode = descDoc.DocumentNode.SelectSingleNode("//button[contains(@onclick, 'window.open') and contains(@class, 'bg-telegram') and span[text()='Open in Telegram']]");
                 var onClickAttribute = buttonNode?.GetAttributeValue("onclick", string.Empty) ?? string.Empty;
                 var startIndex = onClickAttribute.IndexOf("window.open('", StringComparison.Ordinal) + "window.open('".Length;
                 var endIndex = onClickAttribute.IndexOf("'", startIndex, StringComparison.Ordinal);

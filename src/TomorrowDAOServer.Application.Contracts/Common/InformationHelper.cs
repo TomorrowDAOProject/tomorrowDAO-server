@@ -1,10 +1,25 @@
 using System.Collections.Generic;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Proposal.Index;
 
 namespace TomorrowDAOServer.Common;
 
 public class InformationHelper
 {
+    public static Dictionary<string, string> GetDailyCreatePollInformation(IndexerProposal proposal)
+    {
+        if (proposal == null)
+        {
+            return new Dictionary<string, string>();
+        }
+        return new Dictionary<string, string>
+        {
+            { CommonConstant.ProposalDescription, proposal.ProposalDescription },
+            { CommonConstant.ProposalId, proposal.ProposalId },
+            { CommonConstant.ProposalTitle, proposal.ProposalTitle },
+        };
+    }
+
     public static Dictionary<string, string> GetTopInviterInformation(long startTime, long endTime, long rank, long inviteCount)
     {
         return new Dictionary<string, string>
@@ -44,6 +59,15 @@ public class InformationHelper
         return new Dictionary<string, string>
         {
             { CommonConstant.Invitee, invitee }
+        };
+    }
+    
+    public static Dictionary<string, string> GetViewAdInformation(string adPlatform, long timeStamp)
+    {
+        return new Dictionary<string, string>
+        {
+            { CommonConstant.AdPlatform, adPlatform },
+            { CommonConstant.AdTime, timeStamp.ToString() }
         };
     }
 }

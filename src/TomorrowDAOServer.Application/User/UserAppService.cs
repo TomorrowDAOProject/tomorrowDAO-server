@@ -101,4 +101,16 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _userIndexRepository.GetListAsync(Filter)).Item2;
     }
+
+    public async Task<List<UserIndex>> GetUserByAddressListAsync(List<string> addressList)
+    {
+        var searchResponse = await _userIndexRepository.SearchAsync(new SearchDescriptor<UserIndex>().Query(q => q
+            .Bool(b => b
+                .Must(m => m.Terms(t => t
+                        .Field("addressInfos.address").Terms(addressList))
+                )
+            )
+        ), 0 ,1);
+        return searchResponse.IsValid ? searchResponse.Documents.ToList() : new List<UserIndex>();
+    }
 }

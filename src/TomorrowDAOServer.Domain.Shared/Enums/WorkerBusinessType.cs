@@ -1,8 +1,11 @@
+using System;
+
 namespace TomorrowDAOServer.Enums;
 
 public enum WorkerBusinessType
 {
     ProposalSync,
+    [Obsolete]
     ProposalExpired,
     DAOSync,
     BPInfoUpdate,
@@ -19,6 +22,9 @@ public enum WorkerBusinessType
     TopProposalGenerate,
     TelegramAppsSync,
     FindminiAppsSync,
+    TonGiftTaskGenerate,
+    TonGiftTaskComplete,
+    LuckyboxTaskComplete,
     NetworkDaoMainChainSync,
     NetworkDaoSideChainSync,
     NetworkDaoMainChainOrgSync,

@@ -26,12 +26,15 @@ public interface IPortkeyProvider
     Task<List<ReferralCodeInfo>> GetReferralCodeCaHashAsync(List<string> referralCodes);
     Task<List<CaHolderTransactionDetail>> GetCaHolderTransactionAsync(string chainId, string caAddress);
     Task<HolderInfoIndexerDto> GetHolderInfosAsync(string caHash);
+    Task<HolderInfoIndexerDto> GetCaHolderInfoAsync(List<string> caAddresses, string caHash, int skipCount = 0, int maxResultCount = 10);
+    Task<GuardianIdentifierList> GetGuardianIdentifiersAsync(string chainId, string caHash);
 }
 
 public static class ReferralApi
 {
     public static readonly ApiInfo ShortLink = new(HttpMethod.Get, "/api/app/growth/shortLink");
     public static readonly ApiInfo ReferralCode = new(HttpMethod.Get, "/api/app/growth/growthInfos");
+    public static readonly ApiInfo GuardianIdentifiers = new(HttpMethod.Get, "/api/app/account/guardianIdentifiers");
 }
 
 public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
@@ -208,5 +211,50 @@ public class PortkeyProvider : IPortkeyProvider, ISingletonDependency
 
         var graphQlResponse = await graphQlClient.SendQueryAsync<HolderInfoIndexerDto>(request);
         return graphQlResponse.Data;
+    }
+    
+    public async Task<HolderInfoIndexerDto> GetCaHolderInfoAsync(List<string> caAddresses, string caHash, int skipCount = 0,
+        int maxResultCount = 10)
+    {
+        try
+        {
+            var url = _graphQlOptions.CurrentValue.PortkeyConfiguration;
+            using var graphQlClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+            var response = await graphQlClient.SendQueryAsync<HolderInfoIndexerDto>(new GraphQLRequest
+            {
+                Query = @"
+			    query($caAddresses:[String],$caHash:String,$skipCount:Int!,$maxResultCount:Int!) {
+                    caHolderInfo(dto: {caAddresses:$caAddresses,caHash:$caHash,skipCount:$skipCount,maxResultCount:$maxResultCount}){
+                            id,chainId,caHash,caAddress,originChainId,managerInfos{address,extraData}}
+                }",
+                Variables = new
+                {
+                    caAddresses, caHash, skipCount, maxResultCount
+                }
+            });
+            return response.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetCaHolderInfoAsyncException chainId {0}", caAddresses.Count);
+            return new HolderInfoIndexerDto();
+        }
+    }
+
+    public async Task<GuardianIdentifierList> GetGuardianIdentifiersAsync(string chainId, string caHash)
+    {
+        try
+        {
+            var domain = _rankingOptions.CurrentValue.ReferralDomain;
+            var url = domain + ReferralApi.GuardianIdentifiers.Path + "?chainId=" + chainId + "&caHash=" + caHash;
+            var resp = await _httpProvider.InvokeAsync<GuardianIdentifiersResponse>(ReferralApi.ReferralCode.Method, url);
+            return resp.GuardianList;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetGuardianIdentifiersAsyncException chainId {0} caHash {1}", chainId, caHash);
+        }
+
+        return new GuardianIdentifierList();
     }
 }

@@ -37,7 +37,7 @@ public class Program
                 .UseApollo()
                 .UseOrleansClient()
                 .UseAutofac()
-                //.UseAElfExceptionHandler()
+                .UseAElfExceptionHandler()
                 .UseSerilog();
             await builder.AddApplicationAsync<TomorrowDAOServerAuthServerModule>();
             var app = builder.Build();

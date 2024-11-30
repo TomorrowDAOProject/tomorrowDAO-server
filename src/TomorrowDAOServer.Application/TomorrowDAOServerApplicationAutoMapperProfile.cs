@@ -363,5 +363,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Screenshots, opt
                 => opt.MapFrom(source => MapScreenshots(SourceType.FindMini, source.Screenshots)))
             ;
+        CreateMap<TelegramUserInfoIndex, InviteLeaderBoardDto>();
     }
 }

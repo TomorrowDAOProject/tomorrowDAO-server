@@ -3,14 +3,16 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
-using TomorrowDAOServer.User.Dtos;
+using Serilog;
+using Volo.Abp.OpenIddict.ExtensionGrantTypes;
 
 namespace TomorrowDAOServer.Auth;
 
 public class SignatureGrantHandlerExceptionHandler
 {
-    public static async Task<FlowBehavior> HandleExceptionAsync(Exception e)
+    public static async Task<FlowBehavior> HandleExceptionAsync(Exception e, ExtensionGrantContext context)
     {
+        Log.Error(e, "An unexpected system exception encountered, generate token error.");
         return new FlowBehavior
         {
             ExceptionHandlingStrategy = ExceptionHandlingStrategy.Return,
@@ -20,6 +22,8 @@ public class SignatureGrantHandlerExceptionHandler
 
     public static async Task<FlowBehavior> HandleGetAddressInfoAsync(Exception e, string chainId, string caHash)
     {
+        Log.Error(e, "An unexpected system exception encountered, get holder from chain error. chainId={0},caHash={1}",
+            chainId, caHash);
         return new FlowBehavior
         {
             ExceptionHandlingStrategy = ExceptionHandlingStrategy.Return,

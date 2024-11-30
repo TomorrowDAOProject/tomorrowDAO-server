@@ -23,6 +23,7 @@ namespace TomorrowDAOServer.Ranking.Provider
         public long CalculatePointsFromExploreCumulateTenInvite();
         public long CalculatePointsFromExploreCumulateTwentyInvite();
         public long CalculatePointsFromPointsExploreForwardX();
+        public long CalculatePointsFromDailyViewAds();
     }
 
     public class RankingAppPointsCalcProvider : IRankingAppPointsCalcProvider, ISingletonDependency
@@ -82,6 +83,31 @@ namespace TomorrowDAOServer.Ranking.Provider
             return _rankingOptions.CurrentValue.PointsExploreForwardX;
         }
 
+        public long CalculatePointsFromDailyViewAds()
+        {
+            return _rankingOptions.CurrentValue.PointsViewAd;
+        }
+        
+        public long CalculatePointsFromDailyCreatePoll()
+        {
+            return _rankingOptions.CurrentValue.PointsDailyCreatePoll;
+        }
+        
+        public long CalculatePointsFromExploreJoinVotigram()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreJoinVotigram;
+        }
+        
+        public long CalculatePointsFromExploreFollowVotigramX()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreFollowVotigramX;
+        }
+        
+        public long CalculatePointsFromExploreForwardVotigramX()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreForwardVotigramX;
+        }
+
         public long CalculatePointsFromPointsType(PointsType? pointsType, long count = 0)
         {
             return pointsType switch
@@ -99,6 +125,11 @@ namespace TomorrowDAOServer.Ranking.Provider
                 PointsType.ExploreCumulateTenInvite => CalculatePointsFromExploreCumulateTenInvite(),
                 PointsType.ExploreCumulateTwentyInvite => CalculatePointsFromExploreCumulateTwentyInvite(),
                 PointsType.ExploreForwardX => CalculatePointsFromPointsExploreForwardX(),
+                PointsType.DailyViewAds => CalculatePointsFromDailyViewAds(),
+                PointsType.DailyCreatePoll => CalculatePointsFromDailyCreatePoll(),
+                PointsType.ExploreJoinVotigram => CalculatePointsFromExploreJoinVotigram(),
+                PointsType.ExploreFollowVotigramX => CalculatePointsFromExploreFollowVotigramX(),
+                PointsType.ExploreForwardVotigramX => CalculatePointsFromExploreForwardVotigramX(),
                 _ => 0
             };
         }

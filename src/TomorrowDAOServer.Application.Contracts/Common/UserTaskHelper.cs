@@ -10,11 +10,17 @@ public class TaskPointsHelper
     private static readonly Dictionary<UserTask, List<UserTaskDetail>> TaskDetailMapping = new()
     {
         { UserTask.None, new List<UserTaskDetail> { UserTaskDetail.None }},
-        { UserTask.Daily, new List<UserTaskDetail> { UserTaskDetail.DailyVote, UserTaskDetail.DailyFirstInvite, UserTaskDetail.DailyViewAsset } },
+        { UserTask.Daily, new List<UserTaskDetail>
+            {
+                UserTaskDetail.DailyVote, UserTaskDetail.DailyFirstInvite, UserTaskDetail.DailyViewAsset, UserTaskDetail.DailyViewAds, 
+                UserTaskDetail.DailyCreatePoll
+            } 
+        },
         { UserTask.Explore, new List<UserTaskDetail>
             {
                 UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX, UserTaskDetail.ExploreJoinDiscord, UserTaskDetail.ExploreForwardX,
-                UserTaskDetail.ExploreCumulateFiveInvite, UserTaskDetail.ExploreCumulateTenInvite, UserTaskDetail.ExploreCumulateTwentyInvite
+                UserTaskDetail.ExploreCumulateFiveInvite, UserTaskDetail.ExploreCumulateTenInvite, UserTaskDetail.ExploreCumulateTwentyInvite,
+                UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX
             } 
         }
     };
@@ -24,6 +30,7 @@ public class TaskPointsHelper
         UserTaskDetail.DailyViewAsset, 
         UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX,
         UserTaskDetail.ExploreForwardX, UserTaskDetail.ExploreJoinDiscord,
+        UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX
     };
 
     public static List<UserTaskDetail> GetUserTaskDetailFromUserTask(UserTask userTask)
@@ -47,6 +54,8 @@ public class TaskPointsHelper
             UserTaskDetail.DailyVote => PointsType.Vote,
             UserTaskDetail.DailyFirstInvite => PointsType.DailyFirstInvite,
             UserTaskDetail.DailyViewAsset => PointsType.DailyViewAsset,
+            UserTaskDetail.DailyViewAds => PointsType.DailyViewAds,
+            UserTaskDetail.DailyCreatePoll => PointsType.DailyCreatePoll,
             UserTaskDetail.ExploreJoinTgChannel => PointsType.ExploreJoinTgChannel,
             UserTaskDetail.ExploreFollowX => PointsType.ExploreFollowX,
             UserTaskDetail.ExploreJoinDiscord => PointsType.ExploreJoinDiscord,
@@ -54,6 +63,9 @@ public class TaskPointsHelper
             UserTaskDetail.ExploreCumulateFiveInvite => PointsType.ExploreCumulateFiveInvite,
             UserTaskDetail.ExploreCumulateTenInvite => PointsType.ExploreCumulateTenInvite,
             UserTaskDetail.ExploreCumulateTwentyInvite => PointsType.ExploreCumulateTwentyInvite,
+            UserTaskDetail.ExploreJoinVotigram => PointsType.ExploreJoinVotigram,
+            UserTaskDetail.ExploreFollowVotigramX => PointsType.ExploreFollowVotigramX,
+            UserTaskDetail.ExploreForwardVotigramX => PointsType.ExploreForwardVotigramX,
             _ => null
         };
     }

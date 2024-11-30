@@ -5,4 +5,5 @@ namespace TomorrowDAOServer.Options;
 public class UserOptions
 {
     public List<string> UserSourceList { get; set; }
+    public string CheckKey { get; set; }
 }

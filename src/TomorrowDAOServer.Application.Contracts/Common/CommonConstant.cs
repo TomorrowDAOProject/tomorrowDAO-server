@@ -5,6 +5,7 @@ namespace TomorrowDAOServer.Common;
 
 public static class CommonConstant
 {
+    public const int MaxResultCount = 500;
     public const string DateFormat = "yyyy-MM-dd HH:mm:ss";
     
     public const long LongError = -1;
@@ -119,6 +120,10 @@ public static class CommonConstant
     public const string Rank = "Rank";
     public const string Inviter = "Inviter";
     public const string Invitee = "Invitee";
+    public const string AdPlatform = "AdPlatform";
+    public const string AdTime = "AdTime";
+    public const string ProposalDescription = "ProposalDescription"; 
+    
     
     // Discover
     public const string Recommend = "Recommend";
