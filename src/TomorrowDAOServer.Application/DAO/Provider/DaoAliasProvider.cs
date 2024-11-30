@@ -36,10 +36,9 @@ public class DaoAliasProvider : IDaoAliasProvider, ISingletonDependency
         _daoAliasOptions = daoAliasOptions;
     }
 
-    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
-    //     MethodName = nameof(TmrwDaoExceptionHandler.HandleGenerateDaoAliasAsync), 
-    //     Message = "Generate dao alias error",
-    //     LogTargets = new []{"daoIndex"})]
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGenerateDaoAliasAsync), 
+        Message = "Generate dao alias error", LogTargets = new []{"daoIndex"})]
     public virtual async Task<string> GenerateDaoAliasAsync(DAOIndex daoIndex)
     {
         if (daoIndex == null)

@@ -29,7 +29,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.Default ,
         Message = "SendLikeMessageAsync error",
         LogTargets = new []{"chainId", "proposalId", "address", "likeList"})]
     public virtual async Task SendLikeMessageAsync(string chainId, string proposalId, string address,

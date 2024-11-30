@@ -24,8 +24,7 @@ namespace TomorrowDAOServer.Application.Contracts.Tests;
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
-    typeof(TomorrowDAOServerApplicationContractsModule),
-    typeof(AOPExceptionModule)
+    typeof(TomorrowDAOServerApplicationContractsModule)
 )]
 public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
 {
@@ -42,7 +41,7 @@ public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
         context.Services.AddSingleton<PerformanceMonitorMiddleware>();
         context.Services.AddSingleton<MethodCallFilter>();
         context.Services.AddSingleton<IMonitor, MonitorForLogging>();
-
+        
         context.Services.AddMemoryCache();
         
         base.ConfigureServices(context);
