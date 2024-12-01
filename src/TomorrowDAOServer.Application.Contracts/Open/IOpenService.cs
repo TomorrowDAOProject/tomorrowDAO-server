@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using TomorrowDAOServer.Open.Dto;
 
 namespace TomorrowDAOServer.Open;
 

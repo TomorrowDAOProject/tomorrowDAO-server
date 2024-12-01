@@ -1,11 +1,6 @@
-namespace TomorrowDAOServer.Open;
+namespace TomorrowDAOServer.Open.Dto;
 
 public class TaskStatusResponse
-{
-    public Data Data { get; set; }
-}
-
-public class Data
 {
     public bool Result { get; set; }
 }

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using TomorrowDAOServer.Open.Dto;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.Application.Services;
 
@@ -17,9 +18,9 @@ public class OpenService : ApplicationService, IOpenService
     {
         if (string.IsNullOrEmpty(address) || string.IsNullOrEmpty(proposalId))
         {
-            return new TaskStatusResponse { Data = new Data { Result = false } }; 
+            return new TaskStatusResponse { Result = false}; 
         }
         var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(address, proposalId);
-        return new TaskStatusResponse { Data = new Data { Result = count > 0 } };
+        return new TaskStatusResponse { Result = count > 0 };
     }
 }
