@@ -19,7 +19,6 @@ public class AppUrlUploadService : ScheduleSyncDataService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly ILogger<ScheduleSyncDataService> _logger;
     private readonly IFileService _fileService;
-    private int _isRunning = 0; 
     
     public AppUrlUploadService(ILogger<ScheduleSyncDataService> logger, IGraphQLProvider graphQlProvider, 
         IChainAppService chainAppService, ITelegramAppsProvider telegramAppsProvider, IFileService fileService) 
@@ -33,12 +32,6 @@ public class AppUrlUploadService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0)
-        {
-            _logger.LogWarning("AppUrlUploadIsRunning");
-            return 1L;
-        }
-        
         var skipCount = 0;
         List<TelegramAppIndex> queryList;
         do
@@ -99,7 +92,6 @@ public class AppUrlUploadService : ScheduleSyncDataService
             skipCount += queryList.Count;
         } while (!queryList.IsNullOrEmpty());
         
-        Interlocked.Exchange(ref _isRunning, 0);
         return 1L;
     }
 
