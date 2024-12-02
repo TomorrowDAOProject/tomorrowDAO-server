@@ -26,6 +26,10 @@ public class OpenService : ApplicationService, IOpenService
         }
 
         var proposalId = _micro3Options.CurrentValue.ProposalId;
+        if (string.IsNullOrEmpty(proposalId))
+        {
+            return new TaskStatusResponse { Result = false, Reason = "Task not start"}; 
+        }
         var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(address, proposalId);
         var result = count > 0;
         return new TaskStatusResponse { Result = result, Reason = !result ? "Not vote in specific poll" : "Completed vote"};
