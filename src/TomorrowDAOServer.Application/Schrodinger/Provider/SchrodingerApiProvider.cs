@@ -26,7 +26,7 @@ public class SchrodingerApiProvider : ISchrodingerApiProvider, ISingletonDepende
         _schrodingerOptions = schrodingerOptions;
     }
 
-    [ExceptionHandler(typeof(Exception), Message = "CheckAsyncError", 
+    [ExceptionHandler(typeof(Exception), Message = "SchrodingerApiProviderCheckAsyncError", 
         ReturnDefault = ReturnDefault.Default, LogTargets = new []{"id"})]
     public virtual async Task<bool> CheckAsync(string id)
     {
