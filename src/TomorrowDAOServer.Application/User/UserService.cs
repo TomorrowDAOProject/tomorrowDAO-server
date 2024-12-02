@@ -368,6 +368,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Task", "Follow Votigram on X");
             case PointsType.ExploreForwardVotigramX:
                 return new Tuple<string, string>("Task", "RT Votigram Post");
+            case PointsType.ExploreSchrodinger:
+                return new Tuple<string, string>("Task", "Join Schrodinger's cat");
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
