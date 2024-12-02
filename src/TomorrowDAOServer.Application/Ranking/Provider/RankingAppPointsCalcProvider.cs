@@ -107,6 +107,11 @@ namespace TomorrowDAOServer.Ranking.Provider
         {
             return _rankingOptions.CurrentValue.PointsExploreForwardVotigramX;
         }
+        
+        public long CalculatePointsFromExploreSchrodinger()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreSchrodinger;
+        }
 
         public long CalculatePointsFromPointsType(PointsType? pointsType, long count = 0)
         {
@@ -130,6 +135,7 @@ namespace TomorrowDAOServer.Ranking.Provider
                 PointsType.ExploreJoinVotigram => CalculatePointsFromExploreJoinVotigram(),
                 PointsType.ExploreFollowVotigramX => CalculatePointsFromExploreFollowVotigramX(),
                 PointsType.ExploreForwardVotigramX => CalculatePointsFromExploreForwardVotigramX(),
+                PointsType.ExploreSchrodinger => CalculatePointsFromExploreSchrodinger(),
                 _ => 0
             };
         }
