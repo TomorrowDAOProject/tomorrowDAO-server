@@ -18,7 +18,7 @@ public class OpenService : ApplicationService, IOpenService
         _micro3Options = micro3Options;
     }
 
-    public async Task<TaskStatusResponse> GetTaskStatusAsync(string address)
+    public async Task<TaskStatusResponse> GetMicro3TaskStatusAsync(string address)
     {
         if (string.IsNullOrEmpty(address))
         {
