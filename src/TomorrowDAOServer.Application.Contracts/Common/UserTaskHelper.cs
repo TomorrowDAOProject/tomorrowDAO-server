@@ -19,7 +19,8 @@ public class TaskPointsHelper
             {
                 UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX, UserTaskDetail.ExploreJoinDiscord, UserTaskDetail.ExploreForwardX,
                 UserTaskDetail.ExploreCumulateFiveInvite, UserTaskDetail.ExploreCumulateTenInvite, UserTaskDetail.ExploreCumulateTwentyInvite,
-                UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX
+                UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX,
+                UserTaskDetail.ExploreSchrodinger
             } 
         }
     };
@@ -29,7 +30,8 @@ public class TaskPointsHelper
         UserTaskDetail.DailyViewAsset, 
         UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX,
         UserTaskDetail.ExploreForwardX, UserTaskDetail.ExploreJoinDiscord,
-        UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX
+        UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX,
+        UserTaskDetail.ExploreSchrodinger
     };
 
     public static List<UserTaskDetail> GetUserTaskDetailFromUserTask(UserTask userTask)
@@ -65,6 +67,7 @@ public class TaskPointsHelper
             UserTaskDetail.ExploreJoinVotigram => PointsType.ExploreJoinVotigram,
             UserTaskDetail.ExploreFollowVotigramX => PointsType.ExploreFollowVotigramX,
             UserTaskDetail.ExploreForwardVotigramX => PointsType.ExploreForwardVotigramX,
+            UserTaskDetail.ExploreSchrodinger => PointsType.ExploreSchrodinger,
             _ => null
         };
     }

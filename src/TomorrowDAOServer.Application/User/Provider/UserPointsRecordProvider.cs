@@ -29,6 +29,7 @@ public interface IUserPointsRecordProvider
     Task<bool> UpdateUserViewAdTimeStampAsync(string chainId, string address, long timeStamp);
     Task<long> GetDailyViewAdCountAsync(string chainId, string address);
     Task ClearDailyViewAdCountAsync(string chainId, string address);
+    Task<bool> GetUserTaskCompleteAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail);
 }
 
 public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDependency
@@ -220,5 +221,12 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
         {
             _logger.LogError(e, "ClearDailyViewAdCountAsyncException id {id}", id);
         }
+    }
+
+    public async Task<bool> GetUserTaskCompleteAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail)
+    {
+        var id = GuidHelper.GenerateGrainId(chainId, userTask, userTaskDetail, address);
+        var grain = _clusterClient.GetGrain<IUserTaskGrain>(id);
+        return await grain.GetUserTaskCompleteAsync(userTask);
     }
 }
