@@ -4,10 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
-using AElf.ExceptionHandler;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
@@ -15,6 +13,7 @@ using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
+using TomorrowDAOServer.Schrodinger.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.User.Dtos;
@@ -37,13 +36,16 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly ITelegramUserInfoProvider _telegramUserInfoProvider;
     private readonly ILogger<UserService> _logger;
+    private readonly ISchrodingerApiProvider _schrodingerApiProvider;
+    private readonly IOptionsMonitor<SchrodingerOptions> _schrodingerOptions;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
         IUserPointsRecordProvider userPointsRecordProvider,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider,
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger, 
-        ITelegramUserInfoProvider telegramUserInfoProvider)
+        ITelegramUserInfoProvider telegramUserInfoProvider, ISchrodingerApiProvider schrodingerApiProvider, 
+        IOptionsMonitor<SchrodingerOptions> schrodingerOptions)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -56,6 +58,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _telegramAppsProvider = telegramAppsProvider;
         _logger = logger;
         _telegramUserInfoProvider = telegramUserInfoProvider;
+        _schrodingerApiProvider = schrodingerApiProvider;
+        _schrodingerOptions = schrodingerOptions;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -118,6 +122,14 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         var (userTask, userTaskDetail) = CheckUserTask(input);
         var completeTime = DateTime.UtcNow;
+        if (userTaskDetail == UserTaskDetail.ExploreSchrodinger)
+        {
+            if (!await CheckSchrodinger(input.ChainId, address))
+            {
+                return false;
+            }
+        }
+        
         var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(input.ChainId, address, userTask,
             userTaskDetail, completeTime);
         if (!success)
@@ -199,6 +211,11 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, address, UserTask.Explore);
         var dailyTaskInfoList = await GenerateTaskInfoDetails(chainId, address, dailyTaskList, UserTask.Daily);
         var exploreTaskInfoList = await GenerateTaskInfoDetails(chainId, address, exploreTaskList, UserTask.Explore);
+        var schrodingerValid = _schrodingerOptions.CurrentValue.Valid;
+        if (!schrodingerValid)
+        {
+            exploreTaskInfoList.RemoveAll(task => task.UserTaskDetail == UserTaskDetail.ExploreSchrodinger.ToString());
+        }
         return new TaskListDto
         {
             TaskList = new List<TaskInfo>
@@ -251,7 +268,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             Id = GuidHelper.GenerateGrainId(chainId, address), ChainId = chainId, Address = address, 
             Icon = input.Icon, FirstName = input.FirstName, LastName = input.LastName, UserName = input.UserName,
-            UpdateTime = DateTime.UtcNow
+            TelegramId = input.TelegramId, UpdateTime = DateTime.UtcNow
         });
         return true;
     }
@@ -351,6 +368,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 return new Tuple<string, string>("Task", "Follow Votigram on X");
             case PointsType.ExploreForwardVotigramX:
                 return new Tuple<string, string>("Task", "RT Votigram Post");
+            case PointsType.ExploreSchrodinger:
+                return new Tuple<string, string>("Task", "Join Schrodinger's cat");
             default:
                 return new Tuple<string, string>(pointsType.ToString(), string.Empty);
         }
@@ -422,6 +441,11 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             new()
             {
+                UserTaskDetail = UserTaskDetail.ExploreSchrodinger.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreSchrodinger)
+            },
+            new()
+            {
                 UserTaskDetail = UserTaskDetail.ExploreJoinVotigram.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinVotigram)
             },
@@ -477,5 +501,20 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 CompleteCount = completeCount, TaskCount = 20
             }
         };
+    }
+
+    private async Task<bool> CheckSchrodinger(string chainId, string address)
+    {
+        var completed = await _userPointsRecordProvider.GetUserTaskCompleteAsync(chainId, address, UserTask.Explore,
+            UserTaskDetail.ExploreSchrodinger);
+        if (completed)
+        {
+            return true;
+        }
+        var userInfo = await _telegramUserInfoProvider.GetByAddressAsync(address);
+        var id = userInfo?.TelegramId ?? string.Empty;
+        var complete = await _schrodingerApiProvider.CheckAsync(id);
+        _logger.LogInformation("CheckSchrodinger id {} address {} complete {}", id, address, complete);
+        return complete;
     }
 }
