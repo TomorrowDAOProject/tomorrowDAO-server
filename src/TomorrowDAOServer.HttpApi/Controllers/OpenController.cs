@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using TomorrowDAOServer.Open;
+using TomorrowDAOServer.Open.Dto;
 using Volo.Abp;
 
 namespace TomorrowDAOServer.Controllers;
@@ -20,8 +21,8 @@ public class OpenController
     }
 
     [HttpGet("task-status")]
-    public async Task<TaskStatusResponse> GetTaskStatusAsync(string address, string proposalId)
+    public async Task<TaskStatusResponse> GetTaskStatusAsync(string address)
     {
-        return await _openService.GetTaskStatusAsync(address, proposalId);
+        return await _openService.GetTaskStatusAsync(address);
     }
 }
