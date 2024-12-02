@@ -86,6 +86,7 @@ namespace TomorrowDAOServer
             Configure<LuckyboxOptions>(configuration.GetSection("LuckyboxOptions"));
             Configure<DiscoverOptions>(configuration.GetSection("DiscoverOptions"));
             Configure<Micro3Options>(configuration.GetSection("Micro3Options"));
+            Configure<SchrodingerOptions>(configuration.GetSection("SchrodingerOptions"));
             
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

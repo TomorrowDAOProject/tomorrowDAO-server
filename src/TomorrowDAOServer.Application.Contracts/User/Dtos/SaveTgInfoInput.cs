@@ -9,4 +9,5 @@ public class SaveTgInfoInput
     public string LastName { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
+    public string TelegramId { get; set; } = string.Empty;
 }

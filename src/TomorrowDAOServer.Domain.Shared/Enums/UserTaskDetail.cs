@@ -23,4 +23,5 @@ public enum UserTaskDetail
     ExploreJoinVotigram = 13,
     ExploreFollowVotigramX = 14,
     ExploreForwardVotigramX = 15,
+    ExploreSchrodinger = 16
 }
