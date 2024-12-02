@@ -43,6 +43,10 @@ public class OpenService : ApplicationService, IOpenService
 
     public async Task<bool> GetFoxCoinTaskStatusAsync(string id)
     {
+        if (string.IsNullOrEmpty(id))
+        {
+            return false;
+        }
         var userInfo = await _telegramUserInfoProvider.GetByTelegramIdAsync(id);
         var address = userInfo?.Address ?? string.Empty;
         var startTime = _foxCoinOptions.CurrentValue.StartTime;
