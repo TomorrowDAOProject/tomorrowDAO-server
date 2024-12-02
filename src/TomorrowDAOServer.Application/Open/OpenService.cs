@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Open.Dto;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.Application.Services;
 
@@ -11,11 +12,16 @@ public class OpenService : ApplicationService, IOpenService
 {
     private readonly IVoteProvider _voteProvider;
     private readonly IOptionsMonitor<Micro3Options> _micro3Options;
+    private readonly ITelegramUserInfoProvider _telegramUserInfoProvider;
+    private readonly IOptionsMonitor<FoxCoinOptions> _foxCoinOptions;
 
-    public OpenService(IVoteProvider voteProvider, IOptionsMonitor<Micro3Options> micro3Options)
+    public OpenService(IVoteProvider voteProvider, IOptionsMonitor<Micro3Options> micro3Options, 
+        ITelegramUserInfoProvider telegramUserInfoProvider, IOptionsMonitor<FoxCoinOptions> foxCoinOptions)
     {
         _voteProvider = voteProvider;
         _micro3Options = micro3Options;
+        _telegramUserInfoProvider = telegramUserInfoProvider;
+        _foxCoinOptions = foxCoinOptions;
     }
 
     public async Task<TaskStatusResponse> GetMicro3TaskStatusAsync(string address)
@@ -33,5 +39,14 @@ public class OpenService : ApplicationService, IOpenService
         var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(address, proposalId);
         var result = count > 0;
         return new TaskStatusResponse { Result = result, Reason = !result ? "Not vote in specific poll" : "Completed vote"};
+    }
+
+    public async Task<bool> GetFoxCoinTaskStatusAsync(string id)
+    {
+        var userInfo = await _telegramUserInfoProvider.GetByTelegramIdAsync(id);
+        var address = userInfo?.Address ?? string.Empty;
+        var startTime = _foxCoinOptions.CurrentValue.StartTime;
+        var count = await _voteProvider.CountByVoterAndTimeAsync(address, startTime);
+        return count > 0;
     }
 }

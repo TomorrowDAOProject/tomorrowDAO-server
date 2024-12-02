@@ -49,6 +49,7 @@ public interface IVoteProvider
     Task<List<string>> GetDistinctVotersAsync(string proposalId);
     Task<List<VoteRecordIndex>> GetByProposalIdAndHeightAsync(string proposalId, long blockHeight, int skipCount, int maxResultCount);
     Task<long> CountByVoterAndVotingItemIdAsync(string voter, string votingItemId);
+    Task<long> CountByVoterAndTimeAsync(string voter, long time);
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -451,6 +452,22 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         {
             q => q.Term(i => i.Field(f => f.Voter).Value(voter)),
             q => q.Term(i => i.Field(f => f.VotingItemId).Value(votingItemId))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return (await _voteRecordIndexRepository.CountAsync(Filter)).Count;
+    }
+
+    public async Task<long> CountByVoterAndTimeAsync(string voter, long time)
+    {
+        if (string.IsNullOrEmpty(voter))
+        {
+            return 0;
+        }
+        var starTimeDate = DateTimeOffset.FromUnixTimeMilliseconds(time).DateTime;
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.Voter).Value(voter)),
+            q => q.DateRange(r => r.Field(f => f.VoteTime).GreaterThanOrEquals(starTimeDate))
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.CountAsync(Filter)).Count;

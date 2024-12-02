@@ -10,6 +10,7 @@ namespace TomorrowDAOServer.Telegram.Provider;
 
 public interface ITelegramUserInfoProvider
 {
+    Task<TelegramUserInfoIndex> GetByTelegramIdAsync(string telegramId);
     Task AddOrUpdateAsync(TelegramUserInfoIndex index);
     Task<List<TelegramUserInfoIndex>> GetByAddressListAsync(List<string> addressList);
     Task<TelegramUserInfoIndex> GetByAddressAsync(string address);
@@ -22,6 +23,11 @@ public class TelegramUserInfoProvider : ITelegramUserInfoProvider, ISingletonDep
     public TelegramUserInfoProvider(INESTRepository<TelegramUserInfoIndex, string> telegramUserInfoRepository)
     {
         _telegramUserInfoRepository = telegramUserInfoRepository;
+    }
+
+    public Task<TelegramUserInfoIndex> GetByTelegramIdAsync(string telegramId)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task AddOrUpdateAsync(TelegramUserInfoIndex index)

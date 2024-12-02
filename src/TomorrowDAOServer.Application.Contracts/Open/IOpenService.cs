@@ -6,4 +6,5 @@ namespace TomorrowDAOServer.Open;
 public interface IOpenService
 {
     Task<TaskStatusResponse> GetMicro3TaskStatusAsync(string address);
+    Task<bool> GetFoxCoinTaskStatusAsync(string id);
 }
