@@ -25,9 +25,14 @@ public class TelegramUserInfoProvider : ITelegramUserInfoProvider, ISingletonDep
         _telegramUserInfoRepository = telegramUserInfoRepository;
     }
 
-    public Task<TelegramUserInfoIndex> GetByTelegramIdAsync(string telegramId)
+    public async Task<TelegramUserInfoIndex> GetByTelegramIdAsync(string telegramId)
     {
-        throw new NotImplementedException();
+        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramUserInfoIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.TelegramId).Value(telegramId)) 
+        };
+        QueryContainer Filter(QueryContainerDescriptor<TelegramUserInfoIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _telegramUserInfoRepository.GetAsync(Filter);
     }
 
     public async Task AddOrUpdateAsync(TelegramUserInfoIndex index)
