@@ -21,8 +21,8 @@ public class OpenController
     }
 
     [HttpGet("task-status")]
-    public async Task<TaskStatusResponse> GetTaskStatusAsync(string address, string proposalId)
+    public async Task<TaskStatusResponse> GetTaskStatusAsync(string address)
     {
-        return await _openService.GetTaskStatusAsync(address, proposalId);
+        return await _openService.GetTaskStatusAsync(address);
     }
 }
