@@ -5,5 +5,5 @@ namespace TomorrowDAOServer.Open;
 
 public interface IOpenService
 {
-    Task<TaskStatusResponse> GetTaskStatusAsync(string address);
+    Task<TaskStatusResponse> GetMicro3TaskStatusAsync(string address);
 }

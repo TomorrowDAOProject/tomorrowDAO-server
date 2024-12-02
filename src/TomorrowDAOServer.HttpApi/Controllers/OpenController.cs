@@ -20,9 +20,9 @@ public class OpenController
         _openService = openService;
     }
 
-    [HttpGet("task-status")]
-    public async Task<TaskStatusResponse> GetTaskStatusAsync(string address)
+    [HttpGet("micro3-task-status")]
+    public async Task<TaskStatusResponse> GetMicro3TaskStatusAsync(string address)
     {
-        return await _openService.GetTaskStatusAsync(address);
+        return await _openService.GetMicro3TaskStatusAsync(address);
     }
 }
