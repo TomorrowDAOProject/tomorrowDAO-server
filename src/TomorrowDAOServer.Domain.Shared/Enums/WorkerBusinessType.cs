@@ -25,4 +25,5 @@ public enum WorkerBusinessType
     TonGiftTaskGenerate,
     TonGiftTaskComplete,
     LuckyboxTaskComplete,
+    DigiTaskComplete,
 }
