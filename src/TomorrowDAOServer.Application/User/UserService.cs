@@ -514,7 +514,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var userInfo = await _telegramUserInfoProvider.GetByAddressAsync(address);
         var id = userInfo?.TelegramId ?? string.Empty;
         var complete = await _schrodingerApiProvider.CheckAsync(id);
-        _logger.LogInformation("CheckSchrodinger id {} address {} complete {}", id, address, complete);
+        _logger.LogInformation($"CheckSchrodinger id {id} address {address} complete {complete}");
         return complete;
     }
 }
