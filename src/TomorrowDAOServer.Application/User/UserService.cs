@@ -133,16 +133,17 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             }
         }
         
-        var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(input.ChainId, address, userTask,
-            userTaskDetail, completeTime);
-        if (!success)
-        {
-            throw new UserFriendlyException("Task already completed.");
-        }
-
-        await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, userTaskDetail);
-        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(input.ChainId, address, userTaskDetail,
-            completeTime);
+        // todo test
+        // var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(input.ChainId, address, userTask,
+        //     userTaskDetail, completeTime);
+        // if (!success)
+        // {
+        //     throw new UserFriendlyException("Task already completed.");
+        // }
+        //
+        // await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, userTaskDetail);
+        // await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(input.ChainId, address, userTaskDetail,
+        //     completeTime);
         return true;
     }
 
