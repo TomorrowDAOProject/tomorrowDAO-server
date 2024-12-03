@@ -534,12 +534,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
     private async Task<bool> CheckSchrodinger(string chainId, string address)
     {
-        var completed = await _userPointsRecordProvider.GetUserTaskCompleteAsync(chainId, address, UserTask.Explore,
-            UserTaskDetail.ExploreSchrodinger);
-        if (completed)
-        {
-            return true;
-        }
+        // todo test
+        // var completed = await _userPointsRecordProvider.GetUserTaskCompleteAsync(chainId, address, UserTask.Explore,
+        //     UserTaskDetail.ExploreSchrodinger);
+        // if (completed)
+        // {
+        //     return true;
+        // }
         var userInfo = await _telegramUserInfoProvider.GetByAddressAsync(address);
         var id = userInfo?.TelegramId ?? string.Empty;
         var complete = await _schrodingerApiProvider.CheckAsync(id);
