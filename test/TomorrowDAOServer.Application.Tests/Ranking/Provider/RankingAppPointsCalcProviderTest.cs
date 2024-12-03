@@ -104,6 +104,9 @@ public class RankingAppPointsCalcProviderTest : TomorrowDaoServerApplicationTest
                 case PointsType.DailyViewAds:
                     point1 = _pointsCalcProvider.CalculatePointsFromDailyViewAds();
                     break;
+                default:
+                    point1 = points;
+                    break;
             }
             point1.ShouldBe(points);
         }

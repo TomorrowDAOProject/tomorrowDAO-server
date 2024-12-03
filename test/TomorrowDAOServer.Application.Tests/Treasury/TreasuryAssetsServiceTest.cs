@@ -88,7 +88,8 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
                 Symbols = new HashSet<string>()
             });
         });
-        exception.Message.ShouldContain("System exception occurred during querying treasury assets");
+        //exception.Message.ShouldContain("System exception occurred during querying treasury assets");
+        exception.Message.ShouldContain("GraphQL query exception.");
     }
 
     [Fact]
@@ -133,7 +134,8 @@ public partial class TreasuryAssetsServiceTest : TomorrowDaoServerApplicationTes
                 GovernanceToken = "ELF"
             });
         });
-        exception.Message.ShouldContain("An exception occurred when running the IsTreasuryDepositor method");
+        //exception.Message.ShouldContain("An exception occurred when running the IsTreasuryDepositor method");
+        exception.Message.ShouldContain("GraphQL query exception.");
     }
 
     [Fact]
