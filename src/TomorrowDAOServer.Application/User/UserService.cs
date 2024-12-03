@@ -492,11 +492,11 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 UserTaskDetail = UserTaskDetail.ExploreFollowX.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreFollowX)
             },
-            new()
-            {
-                UserTaskDetail = UserTaskDetail.ExploreJoinDiscord.ToString(),
-                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinDiscord)
-            },
+            // new()
+            // {
+            //     UserTaskDetail = UserTaskDetail.ExploreJoinDiscord.ToString(),
+            //     Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinDiscord)
+            // },
             new()
             {
                 UserTaskDetail = UserTaskDetail.ExploreForwardX.ToString(),
