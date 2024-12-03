@@ -417,6 +417,11 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 taskDetail.Complete = taskDetail.CompleteCount >= taskDetail.TaskCount;
             }
+            // todo test
+            if (UserTaskDetail.ExploreSchrodinger.ToString() == taskDetail.UserTaskDetail)
+            {
+                taskDetail.Complete = false;
+            }
             else
             {
                 taskDetail.Complete = true;
