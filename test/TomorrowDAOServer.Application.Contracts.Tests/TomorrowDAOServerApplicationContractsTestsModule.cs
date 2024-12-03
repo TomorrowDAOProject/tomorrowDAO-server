@@ -24,8 +24,7 @@ namespace TomorrowDAOServer.Application.Contracts.Tests;
     typeof(AbpObjectMappingModule),
     typeof(TomorrowDAOServerDomainModule),
     typeof(TomorrowDAOServerDomainTestModule),
-    typeof(TomorrowDAOServerApplicationContractsModule),
-    typeof(AOPExceptionModule)
+    typeof(TomorrowDAOServerApplicationContractsModule)
 )]
 public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
 {
