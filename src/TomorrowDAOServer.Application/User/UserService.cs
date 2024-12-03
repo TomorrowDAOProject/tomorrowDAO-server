@@ -133,17 +133,16 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             }
         }
         
-        // todo test
-        // var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(input.ChainId, address, userTask,
-        //     userTaskDetail, completeTime);
-        // if (!success)
-        // {
-        //     throw new UserFriendlyException("Task already completed.");
-        // }
-        //
-        // await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, userTaskDetail);
-        // await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(input.ChainId, address, userTaskDetail,
-        //     completeTime);
+        var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(input.ChainId, address, userTask,
+            userTaskDetail, completeTime);
+        if (!success)
+        {
+            throw new UserFriendlyException("Task already completed.");
+        }
+        
+        await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, userTaskDetail);
+        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(input.ChainId, address, userTaskDetail,
+            completeTime);
         return true;
     }
 
@@ -417,11 +416,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 taskDetail.Complete = taskDetail.CompleteCount >= taskDetail.TaskCount;
             }
-            // todo test
-            if (UserTaskDetail.ExploreSchrodinger.ToString() == taskDetail.UserTaskDetail)
-            {
-                taskDetail.Complete = false;
-            }
             else
             {
                 taskDetail.Complete = true;
@@ -534,13 +528,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
     private async Task<bool> CheckSchrodinger(string chainId, string address)
     {
-        // todo test
-        // var completed = await _userPointsRecordProvider.GetUserTaskCompleteAsync(chainId, address, UserTask.Explore,
-        //     UserTaskDetail.ExploreSchrodinger);
-        // if (completed)
-        // {
-        //     return true;
-        // }
+        var completed = await _userPointsRecordProvider.GetUserTaskCompleteAsync(chainId, address, UserTask.Explore,
+            UserTaskDetail.ExploreSchrodinger);
+        if (completed)
+        {
+            return true;
+        }
         var userInfo = await _telegramUserInfoProvider.GetByAddressAsync(address);
         var id = userInfo?.TelegramId ?? string.Empty;
         var complete = await _schrodingerApiProvider.CheckAsync(id);
