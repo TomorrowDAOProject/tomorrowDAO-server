@@ -6,6 +6,7 @@ using GraphQL;
 using GraphQL.Client.Abstractions;
 using Moq;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Common.GraphQL;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Election.Dto;
 using TomorrowDAOServer.Enums;
@@ -33,6 +34,8 @@ public class GraphQLClientMock
         MockGetMember(mock);
         MockGetElectionCandidateElected(mock);
         MockGetElectionHighCouncilConfig(mock);
+        MockTokenInfo(mock);
+        MockGetDAOAmountRecord(mock);
         
 
         return mock.Object;
@@ -487,6 +490,56 @@ public class GraphQLClientMock
                             IsDeleted = false
                         }
                     },
+                }
+            };
+        });
+    }
+    
+    private static void MockTokenInfo(Mock<IGraphQLClient> mock)
+    {
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerTokenInfosDto
+            {
+                TokenInfo = new IndexerTokenInfoListDto
+                {
+                    TotalCount = 1,
+                    Items = new List<IndexerTokenInfoDto>()
+                    {
+                        new IndexerTokenInfoDto
+                        {
+                            Symbol = ELF,
+                            HolderCount = 100
+                        }
+                    }
+                }
+            };
+        });
+    }
+    
+    private static void MockGetDAOAmountRecord(Mock<IGraphQLClient> mock)
+    {
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerCommonResult<List<DAOAmount>>
+            {
+                Data = new List<DAOAmount>()
+                {
+                    new DAOAmount
+                    {
+                        GovernanceToken = ELF,
+                        Amount = 1000
+                    }
                 }
             };
         });

@@ -24,7 +24,8 @@ public partial class RankingAppServiceTest
         await _rankingAppService.VoteAsync(new RankingVoteInput
         {
             ChainId = ChainIdAELF,
-            RawTransaction = transaction.ToByteArray().ToHex()
+            RawTransaction = transaction.ToByteArray().ToHex(),
+            TransactionId = ProposalId1
         });
     }
     
@@ -37,7 +38,8 @@ public partial class RankingAppServiceTest
         var voteResponse = await _rankingAppService.VoteAsync(new RankingVoteInput
         {
             ChainId = ChainIdAELF,
-            RawTransaction = transaction.ToByteArray().ToHex()
+            RawTransaction = transaction.ToByteArray().ToHex(),
+            TransactionId = ProposalId1
         });
         voteResponse.ShouldNotBeNull();
         voteResponse.Status.ShouldBe(RankingVoteStatusEnum.Voted);
