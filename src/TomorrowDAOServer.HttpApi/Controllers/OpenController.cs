@@ -26,9 +26,9 @@ public class OpenController
         return await _openService.GetMicro3TaskStatusAsync(address);
     }
     
-    [HttpGet("foxcoin-task-status")]
-    public async Task<bool> GetFoxCoinTaskStatusAsync(string id)
+    [HttpGet("task-status")]
+    public async Task<bool> GetFoxCoinTaskStatusAsync(string id, string type)
     {
-        return await _openService.GetFoxCoinTaskStatusAsync(id);
+        return await _openService.GetFoxCoinTaskStatusAsync(id, type);
     }
 }

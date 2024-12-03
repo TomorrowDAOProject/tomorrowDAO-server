@@ -41,9 +41,9 @@ public class OpenService : ApplicationService, IOpenService
         return new TaskStatusResponse { Result = result, Reason = !result ? "Not vote in specific poll" : "Completed vote"};
     }
 
-    public async Task<bool> GetFoxCoinTaskStatusAsync(string id)
+    public async Task<bool> GetFoxCoinTaskStatusAsync(string id, string type)
     {
-        if (string.IsNullOrEmpty(id))
+        if (string.IsNullOrEmpty(id) || type != "foxcoin")
         {
             return false;
         }
