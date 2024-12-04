@@ -41,7 +41,6 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
         Message = "CheckAsyncError", LogTargets = new []{"uid"})]
     public async Task<bool> CheckAsync(string uid)
     {
-        var startTime = _digiOptions.CurrentValue.StartTime;
         var domain = _digiOptions.CurrentValue.Domain;
         var authorization = _digiOptions.CurrentValue.Authorization;
         var response = await _httpProvider.InvokeAsync<DigiResponse>(domain, DigiApi.Check,
