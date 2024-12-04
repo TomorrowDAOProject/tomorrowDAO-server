@@ -22,4 +22,6 @@ public class UserPointsIndex : AbstractEntity<string>, IIndexBuild
     public PointsType PointsType { get; set; }
     public long Points { get; set; }
     public DateTime PointsTime { get; set; }
+    [Keyword]
+    public string UserId { get; set; }
 }

@@ -30,4 +30,6 @@ public enum PointsType
     ExploreJoinVotigram = 17,
     ExploreFollowVotigramX = 18,
     ExploreForwardVotigramX = 19,
+    
+    DailyLogin = 20
 }

@@ -103,6 +103,7 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
 
         context.Services.Configure<GraphQlOption>(configuration.GetSection("GraphQL"));
         context.Services.Configure<ChainOptions>(configuration.GetSection("Chains"));
+        context.Services.Configure<TelegramAuthOptions>(configuration.GetSection("TelegramAuth"));
         Configure<ContractOptions>(configuration.GetSection("Contract"));
         context.Services.Configure<TimeRangeOption>(option =>
         {

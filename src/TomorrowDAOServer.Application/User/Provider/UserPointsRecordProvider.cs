@@ -21,8 +21,8 @@ namespace TomorrowDAOServer.User.Provider;
 public interface IUserPointsRecordProvider
 {
     Task BulkAddOrUpdateAsync(List<UserPointsIndex> list);
-    Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, DateTime completeTime, Dictionary<string, string> information = null);
-    Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, PointsType pointsType, DateTime completeTime, Dictionary<string, string> information = null);
+    Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, DateTime completeTime, Dictionary<string, string> information = null, string userId = "");
+    Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, PointsType pointsType, DateTime completeTime, Dictionary<string, string> information = null, string userId = "");
     Task<Tuple<long, List<UserPointsIndex>>> GetPointsListAsync(GetMyPointsInput input, string address);
     Task<bool> UpdateUserTaskCompleteTimeAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail, DateTime completeTime);
     Task<List<UserPointsIndex>> GetByAddressAndUserTaskAsync(string chainId, string address, UserTask userTask);
@@ -56,7 +56,8 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
         await _userPointsRecordRepository.BulkAddOrUpdateAsync(list);
     }
 
-    public async Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, DateTime completeTime, Dictionary<string, string> information)
+    public async Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail,
+        DateTime completeTime, Dictionary<string, string> information, string userId = "")
     {
         var pointsType = TaskPointsHelper.GetPointsTypeFromUserTaskDetail(userTaskDetail);
         if (pointsType == null)
@@ -64,11 +65,12 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             return;
         }
 
-        await GenerateTaskPointsRecordAsync(chainId, address, userTaskDetail, pointsType.Value, completeTime, information);
+        await GenerateTaskPointsRecordAsync(chainId, address, userTaskDetail, pointsType.Value,
+            completeTime, information, userId);
     }
 
     public async Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, PointsType pointsType,
-        DateTime completeTime, Dictionary<string, string> information = null)
+        DateTime completeTime, Dictionary<string, string> information = null, string userId = "")
     {
         var userTask = TaskPointsHelper.GetUserTaskFromUserTaskDetail(userTaskDetail);
         if (userTask == null)
@@ -84,7 +86,8 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             PointsType = pointsType, PointsTime = completeTime,
             Points = pointsType is PointsType.Vote or PointsType.BeInviteVote or PointsType.InviteVote 
                 ? _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType, 1)
-                : _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType)
+                : _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(pointsType),
+            UserId = userId
         };
         await _userPointsRecordRepository.AddOrUpdateAsync(pointsRecordIndex);
     }

@@ -15,4 +15,7 @@ public interface IUserService
     Task<long> ViewAdAsync(ViewAdInput input);
     Task<bool> SaveTgInfoAsync(SaveTgInfoInput input);
     Task GenerateDailyCreatePollPointsAsync(string chainId, List<IndexerProposal> proposalList);
+    Task<LoginPointsStatusDto> GetLoginPointsStatusAsync(GetLoginPointsStatusInput input);
+    Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input);
+    Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input);
 }

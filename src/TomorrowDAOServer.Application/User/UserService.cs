@@ -10,9 +10,12 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
@@ -37,13 +40,18 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly ITelegramAppsProvider _telegramAppsProvider;
     private readonly ITelegramUserInfoProvider _telegramUserInfoProvider;
     private readonly ILogger<UserService> _logger;
+    private readonly IProposalProvider _proposalProvider;
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private readonly IRankingAppProvider _rankingAppProvider;
+
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
         IUserPointsRecordProvider userPointsRecordProvider,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider,
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger, 
-        ITelegramUserInfoProvider telegramUserInfoProvider)
+        ITelegramUserInfoProvider telegramUserInfoProvider, IProposalProvider proposalProvider, IOptionsMonitor<RankingOptions> rankingOptions,
+        IRankingAppProvider rankingAppProvider)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -56,6 +64,9 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _telegramAppsProvider = telegramAppsProvider;
         _logger = logger;
         _telegramUserInfoProvider = telegramUserInfoProvider;
+        _proposalProvider = proposalProvider;
+        _rankingOptions = rankingOptions;
+        _rankingAppProvider = rankingAppProvider;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -273,6 +284,187 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyCreatePoll, completeTime, information);
         }
     }
+    
+    [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,Message = "Get login point status fail.", LogTargets = new []{"input"})]
+    public virtual async Task<LoginPointsStatusDto> GetLoginPointsStatusAsync(GetLoginPointsStatusInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var userExtraDto = userGrainDto.GetUserExtraDto();
+        userExtraDto ??= new UserExtraDto();
+
+        if (TimeHelper.IsYesterday(userExtraDto.LastModifiedTime))
+        {
+            userExtraDto.ConsecutiveLoginDays += 1;
+            userExtraDto.DailyLoginPointsStatus = false;
+            userExtraDto.LastModifiedTime = DateTime.UtcNow;
+        }
+        else if (!TimeHelper.IsToday(userExtraDto.LastModifiedTime))
+        {
+            userExtraDto.ConsecutiveLoginDays = 1;
+            userExtraDto.DailyLoginPointsStatus = false;
+            userExtraDto.LastModifiedTime = DateTime.UtcNow;
+        }
+        
+        userGrainDto.SetUserExtraDto(userExtraDto);
+        await _userProvider.UpdateUserAsync(userGrainDto);
+
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var totalPoints = await GetTotalPoints(address, userGrainDto.UserId.ToString());
+        
+        return new LoginPointsStatusDto
+        {
+            ConsecutiveLoginDays = userExtraDto.ConsecutiveLoginDays,
+            DailyLoginPointsStatus = userExtraDto.DailyLoginPointsStatus,
+            UserTotalPoints = totalPoints
+        };
+    }
+
+    [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,Message = "Collect login point fail.", LogTargets = new []{"input"})]
+    public virtual async Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var userExtraDto = userGrainDto.GetUserExtraDto();
+        if (userExtraDto == null)
+        {
+            throw new UserFriendlyException("Extra info is invalid");
+        }
+
+        if (userExtraDto.DailyLoginPointsStatus)
+        {
+            throw new UserFriendlyException("Already claimed the rewards points.");
+        }
+
+        var viewAd = false;
+        if (!input.Signature.IsNullOrWhiteSpace() && !input.TimeStamp.IsNullOrWhiteSpace())
+        {
+            var checkKey = _userOptions.CurrentValue.CheckKey;
+            var timeStamp = input.TimeStamp;
+            var signature = input.Signature;
+            var hashString = Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp));
+            if (hashString == signature)
+            {
+                viewAd = true;
+            }
+        }
+
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        if (!address.IsNullOrWhiteSpace())
+        {
+            await _rankingAppPointsRedisProvider.IncrementLoginPointsAsync(address, viewAd,
+                userExtraDto.ConsecutiveLoginDays);
+        }
+        else
+        {
+            await _rankingAppPointsRedisProvider.IncrementLoginPointsByUserIdAsync(userGrainDto.UserId.ToString(),
+                viewAd, userExtraDto.ConsecutiveLoginDays);
+        }
+        
+        var lastModifiedTime = DateTime.UtcNow;
+        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(input.ChainId, address ?? string.Empty,
+            UserTaskDetail.DailyLogin, PointsType.DailyLogin, lastModifiedTime,
+            new Dictionary<string, string>()
+            {
+                { "consecutiveLoginDays", userExtraDto.ConsecutiveLoginDays.ToString() },
+                { "viewAd", viewAd.ToString() }
+            }, userGrainDto.UserId.ToString());
+
+        userExtraDto.DailyLoginPointsStatus = true;
+        userExtraDto.LastModifiedTime = lastModifiedTime;
+        await _userProvider.UpdateUserAsync(userGrainDto);
+        
+        var totalPoints = await GetTotalPoints(address, userGrainDto.UserId.ToString());
+
+        return new LoginPointsStatusDto
+        {
+            ConsecutiveLoginDays = userExtraDto.ConsecutiveLoginDays,
+            DailyLoginPointsStatus = userExtraDto.DailyLoginPointsStatus,
+            UserTotalPoints = totalPoints
+        };
+    }
+
+    [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,Message = "Get home page fail.", LogTargets = new []{"input"})]
+    public async Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        var totalPoints = await GetTotalPoints(address, userId);
+        
+        //Weekly Top Voted Apps
+        var weeklyTopVotedApps = await GetWeeklyTopVotedApps(input);
+        
+        //Discover Hidden Game
+        RankingAppDetailDto discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
+
+        return new HomePageResultDto
+        {
+            UserTotalPoints = totalPoints,
+            WeeklyTopVotedApps = weeklyTopVotedApps,
+            DiscoverHiddenGems = discoverHiddenGame
+        };
+    }
+
+    private async Task<List<RankingAppDetailDto>> GetWeeklyTopVotedApps(GetHomePageInput input)
+    {
+        var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
+        var proposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress, true);
+        if (proposal == null)
+        {
+            return new List<RankingAppDetailDto>();
+        }
+
+        var proposalId = proposal.ProposalId;
+        var rankingAppList =
+            await _rankingAppProvider.GetByProposalIdAsync(input.ChainId, proposalId);
+        if (rankingAppList.IsNullOrEmpty())
+        {
+            return new List<RankingAppDetailDto>();
+        }
+        
+        var rankingList = ObjectMapper.Map<List<RankingAppIndex>, List<RankingAppDetailDto>>(rankingAppList);
+
+        var aliasList = rankingList.Select(t => t.Alias).Distinct().ToList();
+        var appPointsList = await _rankingAppPointsRedisProvider.GetAllAppPointsAsync(input.ChainId, proposalId, aliasList);
+        var appVoteAmountDic = appPointsList
+            .Where(x => x.PointsType == PointsType.Vote)
+            .ToDictionary(x => x.Alias, x => _rankingAppPointsCalcProvider.CalculateVotesFromPoints(x.Points));
+        var appPointsDic = RankingAppPointsDto.ConvertToBaseList(appPointsList)
+            .ToDictionary(x => x.Alias, x => x.Points);
+        var totalVoteAmount = appVoteAmountDic.Values.Sum();
+        var totalPoints = appPointsList.Sum(x => x.Points);
+        var votePercentFactor = DoubleHelper.GetFactor(totalVoteAmount);
+        var pointsPercentFactor = DoubleHelper.GetFactor(totalPoints);
+        foreach (var rankingAppDetailDto in rankingList)
+        {
+            var icon = rankingAppDetailDto.Icon;
+            var needPrefix = !string.IsNullOrEmpty(icon) && icon.StartsWith("/");
+            if (needPrefix)
+            {
+                rankingAppDetailDto.Icon = CommonConstant.FindminiUrlPrefix + icon;
+            }
+
+            var alias = rankingAppDetailDto.Alias;
+            rankingAppDetailDto.PointsAmount = appPointsDic.GetValueOrDefault(alias, 0);
+            rankingAppDetailDto.VoteAmount = appVoteAmountDic.GetValueOrDefault(alias, 0);
+            rankingAppDetailDto.VotePercent = appVoteAmountDic.GetValueOrDefault(alias, 0) * votePercentFactor;
+            rankingAppDetailDto.PointsPercent = rankingAppDetailDto.PointsAmount * pointsPercentFactor;
+        }
+        return rankingList
+            .Where(r => r.PointsAmount > 0) 
+            .OrderByDescending(r => r.PointsAmount) 
+            .ThenBy(r => aliasList.IndexOf(r.Alias))
+            .Take(6)
+            .ToList();
+    }
+    
+    private async Task<RankingAppDetailDto> GetDiscoverHiddenGame(string inputChainId, string address, string userId)
+    {
+        //TODO GetDiscoverHiddenGame
+        return new RankingAppDetailDto();
+    }
 
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
     {
@@ -477,5 +669,21 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 CompleteCount = completeCount, TaskCount = 20
             }
         };
+    }
+    
+    private async Task<long> GetTotalPoints(string address, string userId)
+    {
+        var totalPoints = 0L;
+        if (!address.IsNullOrWhiteSpace())
+        {
+            totalPoints += await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+        }
+
+        if (!userId.IsNullOrWhiteSpace())
+        {
+            totalPoints += await _rankingAppPointsRedisProvider.GetUserAllPointsByIdAsync(userId);
+        }
+        
+        return totalPoints;
     }
 }

@@ -13,7 +13,7 @@ public class TaskPointsHelper
         { UserTask.Daily, new List<UserTaskDetail>
             {
                 UserTaskDetail.DailyVote, UserTaskDetail.DailyFirstInvite, UserTaskDetail.DailyViewAsset, UserTaskDetail.DailyViewAds, 
-                UserTaskDetail.DailyCreatePoll
+                UserTaskDetail.DailyCreatePoll, UserTaskDetail.DailyLogin
             } 
         },
         { UserTask.Explore, new List<UserTaskDetail>

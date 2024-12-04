@@ -63,4 +63,26 @@ public class UserController
     {
         return await _userService.SaveTgInfoAsync(input);
     }
+
+    [HttpGet("login-points/status")]
+    [Authorize]
+    public async Task<LoginPointsStatusDto> GetLoginPointsStatusAsync(GetLoginPointsStatusInput input)
+    {
+        return await _userService.GetLoginPointsStatusAsync(input);
+    }
+
+    [HttpPost("login-points/collect")]
+    [Authorize]
+    public async Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input)
+    {
+        return await _userService.CollectLoginPointsAsync(input);
+    }
+
+    [HttpGet("homepage")]
+    [Authorize]
+    public async Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input)
+    {
+        return await _userService.GetHomePageAsync(input);
+    }
+    
 }
