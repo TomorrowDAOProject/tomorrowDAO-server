@@ -2,6 +2,7 @@ using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.DAO;
+using TomorrowDAOServer.Digi;
 using TomorrowDAOServer.Election;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.Luckybox;
@@ -54,6 +55,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
+        context.Services.AddTransient<IScheduleSyncDataService, DigiTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, LuckyboxTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskGenerateService>();

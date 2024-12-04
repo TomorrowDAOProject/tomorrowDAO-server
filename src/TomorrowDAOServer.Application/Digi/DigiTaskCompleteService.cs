@@ -8,7 +8,6 @@ using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Digi.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
-using TomorrowDAOServer.LuckyBox.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Telegram.Provider;
 
