@@ -74,9 +74,8 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             var addressInfos = verifierResultDto.AddressInfos;
 
             caHash = string.IsNullOrWhiteSpace(caHash) ? string.Empty : caHash;
-            var userName = GetUserName(caHash, address, guardianIdentifier);
             var userManager = context.HttpContext.RequestServices.GetRequiredService<IdentityUserManager>();
-            var user = await userManager.FindByNameAsync(userName);
+            var user = await FindUserAsync(caHash, address, guardianIdentifier, userManager);
 
             var isNewUser = false;
             if (user == null)
@@ -101,7 +100,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     UserId = user.Id,
                     UserName = user.UserName,
                     CaHash = caHash,
-                    AppId = string.IsNullOrEmpty(caHash) ? AuthConstant.NightElfAppId : AuthConstant.PortKeyAppId,
+                    AppId = GetAppId(loginType, caHash),
                     AddressInfos = addressInfos,
                     GuardianIdentifier = guardianIdentifier,
                     Address = address,
@@ -131,6 +130,47 @@ public class SignatureGrantHandler : ITokenExtensionGrant
             _logger.LogError(e, "generate token error");
             return ForbidResultHelper.GetForbidResult(OpenIddictConstants.Errors.ServerError, "Internal error.");
         }
+    }
+
+    private static string GetAppId(string loginType, string caHash)
+    {
+        if (loginType == LoginType.LoginType_Telegram)
+        {
+            return AuthConstant.TelegramAppId;
+        }
+        else
+        {
+            return string.IsNullOrEmpty(caHash) ? AuthConstant.NightElfAppId : AuthConstant.PortKeyAppId;
+        }
+    }
+
+    private async Task<IdentityUser> FindUserAsync(string caHash, string address, string guardianIdentifier,
+        IdentityUserManager userManager)
+    {
+        IdentityUser user = null;
+        if (!caHash.IsNullOrWhiteSpace())
+        {
+            user = await userManager.FindByNameAsync(caHash);
+        }
+
+        if (user != null)
+        {
+            return user;
+        }
+        if (!address.IsNullOrWhiteSpace())
+        {
+            user = await userManager.FindByNameAsync(address);
+        }
+        if (user != null)
+        {
+            return user;
+        }
+
+        if (!guardianIdentifier.IsNullOrWhiteSpace())
+        {
+            user = await userManager.FindByNameAsync(guardianIdentifier);
+        }
+        return user;
     }
 
     private string GetUserName(string caHash, string address, string guardianIdentifier)

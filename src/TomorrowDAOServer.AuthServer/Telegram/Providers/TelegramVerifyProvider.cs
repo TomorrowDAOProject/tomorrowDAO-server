@@ -12,19 +12,26 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
 {
     private ILogger<TelegramVerifyProvider> _logger;
     private readonly IOptionsMonitor<TelegramAuthOptions> _telegramAuthOptions;
-    
-    public TelegramVerifyProvider(ILogger<TelegramVerifyProvider> logger, IOptionsMonitor<TelegramAuthOptions> telegramAuthOptions)
+
+    private static readonly ISet<string> FilterKeyNames = new HashSet<string>()
+    {
+        "address", "chain_id", "client_id", "grant_type", "publickey", "scope", "source", "timestamp", "login_type",
+        "hash", "bot_id"
+    };
+
+    public TelegramVerifyProvider(ILogger<TelegramVerifyProvider> logger,
+        IOptionsMonitor<TelegramAuthOptions> telegramAuthOptions)
     {
         _logger = logger;
         _telegramAuthOptions = telegramAuthOptions;
     }
-    
+
     public async Task<string> GenerateHashAsync(TelegramAuthDataDto telegramAuthDataDto)
     {
         var dataCheckString = GetDataCheckString(telegramAuthDataDto);
         return GenerateTelegramDataHash.AuthDataHash(_telegramAuthOptions.CurrentValue.BotToken, dataCheckString);
     }
-    
+
     public async Task<bool> ValidateTelegramDataAsync(IDictionary<string, string> data,
         Func<string, string, string> generateTelegramHash)
     {
@@ -36,7 +43,6 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
         }
 
         var dataCheckString = GetDataCheckString(data);
-        var botIdFromData = data.TryGetValue(CommonConstants.RequestParameterRobotId, out var value) ? value : string.Empty;
         var botToken = _telegramAuthOptions.CurrentValue.BotToken;
         var localHash = generateTelegramHash(botToken, dataCheckString);
         if (!localHash.Equals(data[CommonConstants.RequestParameterNameHash]))
@@ -62,14 +68,14 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
 
         return true;
     }
-    
+
     private static string GetDataCheckString(IDictionary<string, string> data)
     {
         var sortedByKey = data.Keys.OrderBy(k => k);
         var sb = new StringBuilder();
         foreach (var key in sortedByKey)
         {
-            if (key == CommonConstants.RequestParameterNameHash || CommonConstants.RequestParameterRobotId.Equals(key))
+            if (FilterKeyNames.Contains(key))
             {
                 continue;
             }
@@ -80,7 +86,7 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
         sb.Length -= 1;
         return sb.ToString();
     }
-    
+
     private static string GetDataCheckString(TelegramAuthDataDto telegramAuthDataDto)
     {
         var keyValuePairs = new Dictionary<string, string>();
@@ -116,5 +122,4 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
 
         return GetDataCheckString(keyValuePairs);
     }
-
 }

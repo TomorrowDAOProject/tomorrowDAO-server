@@ -12,7 +12,6 @@ using TomorrowDAOServer.Auth.Dtos;
 using TomorrowDAOServer.Auth.Options;
 using TomorrowDAOServer.Auth.Verifier.Constants;
 using TomorrowDAOServer.User.Dtos;
-using Volo.Abp.DependencyInjection;
 using Volo.Abp.OpenIddict.ExtensionGrantTypes;
 using AElf.Client;
 using AElf.Client.Dto;
@@ -22,11 +21,12 @@ using GraphQL.Client.Serializer.Newtonsoft;
 using Google.Protobuf;
 using Portkey.Contracts.CA;
 using TomorrowDAOServer.Auth.Common;
+using TomorrowDAOServer.Auth.Portkey.Providers;
 using TomorrowDAOServer.Common;
 
 namespace TomorrowDAOServer.Auth.Verifier.Providers;
 
-public class WalletUserVerifierProvider : IVerifierProvider, ISingletonDependency
+public class WalletUserVerifierProvider : IVerifierProvider
 {
     private ILogger<WalletUserVerifierProvider> _logger;
     //private IAbpDistributedLock _distributedLock;
@@ -34,15 +34,17 @@ public class WalletUserVerifierProvider : IVerifierProvider, ISingletonDependenc
     //private IClusterClient _clusterClient;
     private IOptionsMonitor<GraphQlOption> _graphQlOptions;
     private IOptionsMonitor<ChainOptions> _chainOptions;
+    private IPortkeyProvider _portkeyProvider;
 
     public WalletUserVerifierProvider(ILogger<WalletUserVerifierProvider> logger,
         IOptionsMonitor<GraphQlOption> graphQlOptions, IOptionsMonitor<ChainOptions> chainOptions,
-        IOptionsMonitor<ContractOptions> contractOptions)
+        IOptionsMonitor<ContractOptions> contractOptions, IPortkeyProvider portkeyProvider)
     {
         _logger = logger;
         _graphQlOptions = graphQlOptions;
         _chainOptions = chainOptions;
         _contractOptions = contractOptions;
+        _portkeyProvider = portkeyProvider;
     }
 
     public string GetLoginType()
@@ -143,6 +145,7 @@ public class WalletUserVerifierProvider : IVerifierProvider, ISingletonDependenc
             "publicKeyVal:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
             publicKeyVal, signatureVal, address, caHash, chainId, timestamp);
 
+        var guardianIdentifier = string.Empty;
         List<AddressInfo> addressInfos;
         if (!string.IsNullOrWhiteSpace(caHash))
         {
@@ -158,8 +161,14 @@ public class WalletUserVerifierProvider : IVerifierProvider, ISingletonDependenc
                     ForbidResult = ForbidResultHelper.GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Manager validation failed.")
                 };
             }
-
             addressInfos = await GetAddressInfosAsync(caHash);
+
+            var guardianResultDto = await _portkeyProvider.GetGuardianIdentifierAsync(caHash, string.Empty);
+            var guardianDto = await _portkeyProvider.GetLoginGuardianAsync(guardianResultDto);
+            if (guardianDto != null)
+            {
+                guardianIdentifier = guardianDto.GuardianIdentifier;
+            }
         }
         else
         {
@@ -187,7 +196,7 @@ public class WalletUserVerifierProvider : IVerifierProvider, ISingletonDependenc
             IsVerified = true,
             CaHash = caHash,
             Address = address,
-            GuardianIdentifier = null,
+            GuardianIdentifier = guardianIdentifier,
             CreateChainId = chainId,
             AddressInfos = addressInfos,
             ForbidResult = null

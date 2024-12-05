@@ -84,5 +84,4 @@ public class UserController
     {
         return await _userService.GetHomePageAsync(input);
     }
-    
 }

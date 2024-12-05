@@ -10,6 +10,7 @@ using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
 using StackExchange.Redis;
 using TomorrowDAOServer.Auth.Options;
+using TomorrowDAOServer.Auth.Verifier.Providers;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.Localization;
 using TomorrowDAOServer.MongoDB;
@@ -104,6 +105,10 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
         context.Services.Configure<GraphQlOption>(configuration.GetSection("GraphQL"));
         context.Services.Configure<ChainOptions>(configuration.GetSection("Chains"));
         context.Services.Configure<TelegramAuthOptions>(configuration.GetSection("TelegramAuth"));
+
+        context.Services.AddTransient<IVerifierProvider, WalletUserVerifierProvider>();
+        context.Services.AddTransient<IVerifierProvider, TelegramUserVeriferProvider>();
+        
         Configure<ContractOptions>(configuration.GetSection("Contract"));
         context.Services.Configure<TimeRangeOption>(option =>
         {

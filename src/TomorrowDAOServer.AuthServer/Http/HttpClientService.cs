@@ -9,10 +9,11 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Volo.Abp;
+using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Auth.Http;
 
-public class HttpClientService : IHttpClientService
+public class HttpClientService : IHttpClientService, ISingletonDependency
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<HttpClientService> _logger;
@@ -22,9 +23,10 @@ public class HttpClientService : IHttpClientService
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
-    
-    
-    public async Task<T> GetAsync<T>(string url, Dictionary<string, string> param, int timeout = 10, IContractResolver resolver = null)
+
+
+    public async Task<T> GetAsync<T>(string url, Dictionary<string, string> param, int timeout = 10,
+        IContractResolver resolver = null)
     {
         var client = _httpClientFactory.CreateClient();
         if (timeout > 0)
@@ -33,7 +35,7 @@ public class HttpClientService : IHttpClientService
         }
 
         var fullUrl = PathParamUrl(url, param);
-        
+
         var response = await client.GetStringAsync(fullUrl);
         return JsonConvert.DeserializeObject<T>(response);
     }
@@ -90,11 +92,17 @@ public class HttpClientService : IHttpClientService
 
     private bool ResponseSuccess(HttpStatusCode statusCode) =>
         statusCode is HttpStatusCode.OK or HttpStatusCode.NoContent;
-    
+
     private static string PathParamUrl(string url, Dictionary<string, string> pathParams)
     {
-        return pathParams.IsNullOrEmpty()
-            ? url
-            : pathParams.Aggregate(url, (current, param) => current.Replace($"{{{param.Key}}}", param.Value));
+        if (pathParams == null || pathParams.Count == 0)
+        {
+            return url;
+        }
+
+        var separator = url.Contains("?") ? "&" : "?";
+        var queryParams = string.Join("&",
+            pathParams.Select(param => $"{Uri.EscapeDataString(param.Key)}={Uri.EscapeDataString(param.Value)}"));
+        return $"{url}{separator}{queryParams}";
     }
 }
