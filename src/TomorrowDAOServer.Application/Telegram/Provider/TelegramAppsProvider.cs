@@ -91,7 +91,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         {
             mustQuery.Add(q => !q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)));
         }
-        
+
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _telegramAppIndexRepository.GetListAsync(Filter);

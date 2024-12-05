@@ -23,6 +23,9 @@ public interface IRankingAppPointsProvider
     Task<RankingAppPointsIndex> GetRankingAppPointsIndexByAliasAsync(string chainId, string proposalId,
         string alias = null, PointsType type = PointsType.All);
 
+    Task<List<RankingAppPointsIndex>> GetRankingAppPointsIndexByAliasAsync(string chainId, string proposalId,
+        List<string> aliases = null, PointsType type = PointsType.All);
+
     Task<RankingAppUserPointsIndex> GetRankingUserPointsIndexByAliasAsync(string chainId, string proposalId,
         string address, string alias = null, PointsType type = PointsType.All);
 
@@ -169,6 +172,29 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         QueryContainer Filter(QueryContainerDescriptor<RankingAppPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _appPointsIndexRepository.GetAsync(Filter);
+    }
+    
+    public async Task<List<RankingAppPointsIndex>> GetRankingAppPointsIndexByAliasAsync(string chainId, string proposalId,
+        List<string> aliases = null, PointsType type = PointsType.All)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppPointsIndex>, QueryContainer>>();
+
+        mustQuery.Add(q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)));
+        mustQuery.Add(q => q.Term(i => i.Field(f => f.ProposalId).Value(proposalId)));
+
+        if (!aliases.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => q.Terms(i => i.Field(f => f.Alias).Terms(aliases)));
+        }
+
+        if (type != PointsType.All)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(f => f.PointsType).Value(type)));
+        }
+
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return (await _appPointsIndexRepository.GetListAsync(Filter))?.Item2 ?? new List<RankingAppPointsIndex>();
     }
 
     public async Task<RankingAppUserPointsIndex> GetRankingUserPointsIndexByAliasAsync(string chainId,

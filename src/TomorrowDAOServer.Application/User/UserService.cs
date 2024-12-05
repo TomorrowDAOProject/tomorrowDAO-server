@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,6 +27,7 @@ using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.User.Dtos;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
+using Volo.Abp.ObjectMapping;
 using Volo.Abp.Users;
 
 namespace TomorrowDAOServer.User;
@@ -49,6 +51,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private readonly IRankingAppProvider _rankingAppProvider;
     private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
+    private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
+    private readonly IObjectMapper _objectMapper;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
@@ -57,7 +61,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger, 
         ITelegramUserInfoProvider telegramUserInfoProvider, ISchrodingerApiProvider schrodingerApiProvider, 
         IOptionsMonitor<SchrodingerOptions> schrodingerOptions, IProposalProvider proposalProvider, IOptionsMonitor<RankingOptions> rankingOptions,
-        IRankingAppProvider rankingAppProvider, IDiscoverChoiceProvider discoverChoiceProvider)
+        IRankingAppProvider rankingAppProvider, IDiscoverChoiceProvider discoverChoiceProvider, IRankingAppPointsProvider rankingAppPointsProvider,
+        IObjectMapper objectMapper)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -74,6 +79,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _rankingOptions = rankingOptions;
         _rankingAppProvider = rankingAppProvider;
         _discoverChoiceProvider = discoverChoiceProvider;
+        _rankingAppPointsProvider = rankingAppPointsProvider;
+        _objectMapper = objectMapper;
         _schrodingerApiProvider = schrodingerApiProvider;
         _schrodingerOptions = schrodingerOptions;
     }
@@ -343,7 +350,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     }
 
     [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,Message = "Collect login point fail.", LogTargets = new []{"input"})]
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, Message = "Collect login point fail.", LogTargets = new []{"input"})]
     public virtual async Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input)
     {
         var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
@@ -394,6 +401,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         userExtraDto.DailyLoginPointsStatus = true;
         userExtraDto.LastModifiedTime = lastModifiedTime;
+        userGrainDto.SetUserExtraDto(userExtraDto);
         await _userProvider.UpdateUserAsync(userGrainDto);
         
         var totalPoints = await GetTotalPoints(address, userGrainDto.UserId.ToString());
@@ -408,7 +416,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
     [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,Message = "Get home page fail.", LogTargets = new []{"input"})]
-    public async Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input)
+    public virtual async Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input)
     {
         var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
@@ -419,7 +427,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var weeklyTopVotedApps = await GetWeeklyTopVotedApps(input);
         
         //Discover Hidden Game
-        RankingAppDetailDto discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
+        var discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
 
         return new HomePageResultDto
         {
@@ -436,7 +444,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var userId = userGrainDto.UserId.ToString();
         var choiceList = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(input.ChainId, address, userId);
         var interestedTypes = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
-        var userInterestedAppList = await _telegramAppsProvider.GetAllDisplayAsync([], 4, interestedTypes);
+        var userInterestedAppList = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 4, interestedTypes);
         var madeForYouApps = ObjectMapper.Map<List<TelegramAppIndex>, List<AppDetailDto>>(userInterestedAppList);
         return new AppPageResultDto<AppDetailDto>(4, madeForYouApps.ToList());
     }
@@ -494,10 +502,35 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             .ToList();
     }
     
-    private async Task<RankingAppDetailDto> GetDiscoverHiddenGame(string inputChainId, string address, string userId)
+    [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,Message = "Get discover hidden gams fail.",
+        LogTargets = new []{"chainId", "address", "userId"})]
+    public virtual async Task<RankingAppDetailDto> GetDiscoverHiddenGame(string chainId, string address, string userId)
     {
-        //TODO GetDiscoverHiddenGame
-        return new RankingAppDetailDto();
+        var choiceIndices = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(chainId, address, userId);
+        var categories = choiceIndices.Select(x => x.TelegramAppCategory).Distinct().ToList();
+        if (categories.IsNullOrEmpty())
+        {
+            return null;
+        }
+        var telegramAppIndices = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 1000, categories);
+        if (telegramAppIndices.IsNullOrEmpty())
+        {
+            return null;
+        }
+
+        var aliases = telegramAppIndices.Select(t => t.Alias).ToList();
+        var rankingAppPointsIndices = await _rankingAppPointsProvider
+            .GetRankingAppPointsIndexByAliasAsync(chainId, string.Empty, aliases, PointsType.Open);
+
+        var telegramAppIndex = telegramAppIndices
+            .GroupJoin(rankingAppPointsIndices,
+                ta => ta.Alias,
+                rap => rap.Alias,
+                (ta, rapGroup) => new { TelegramApp = ta, Amount = rapGroup.FirstOrDefault()?.Amount ?? 0 })
+            .OrderBy(x => x.Amount)
+            .Select(x => x.TelegramApp).FirstOrDefault();
+        return telegramAppIndex == null ? new RankingAppDetailDto() : _objectMapper.Map<TelegramAppIndex, RankingAppDetailDto>(telegramAppIndex);
     }
 
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
