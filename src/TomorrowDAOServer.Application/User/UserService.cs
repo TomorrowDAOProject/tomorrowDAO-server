@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using AElf.ExceptionHandler;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -405,6 +406,11 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             WeeklyTopVotedApps = weeklyTopVotedApps,
             DiscoverHiddenGems = discoverHiddenGame
         };
+    }
+
+    public Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input)
+    {
+        throw new NotImplementedException();
     }
 
     private async Task<List<RankingAppDetailDto>> GetWeeklyTopVotedApps(GetHomePageInput input)
