@@ -2,6 +2,7 @@ using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.DAO;
+using TomorrowDAOServer.Digi;
 using TomorrowDAOServer.Election;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.Luckybox;
@@ -58,6 +59,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenParseService>();
         context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenSyncDataService>();
+        context.Services.AddTransient<IScheduleSyncDataService, DigiTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, LuckyboxTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, AppUrlUploadService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();

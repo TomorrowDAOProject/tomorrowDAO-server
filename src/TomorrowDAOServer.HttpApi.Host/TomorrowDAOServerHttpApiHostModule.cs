@@ -89,6 +89,7 @@ namespace TomorrowDAOServer
             Configure<Micro3Options>(configuration.GetSection("Micro3Options"));
             Configure<SchrodingerOptions>(configuration.GetSection("SchrodingerOptions"));
             Configure<FoxCoinOptions>(configuration.GetSection("FoxCoinOptions"));
+            Configure<DigiOptions>(configuration.GetSection("DigiOptions"));
             
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

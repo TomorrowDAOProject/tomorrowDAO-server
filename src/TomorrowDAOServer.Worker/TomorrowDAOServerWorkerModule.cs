@@ -41,6 +41,7 @@ namespace TomorrowDAOServer.Worker
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<NetworkDaoMainChainOrgDataSyncWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<NetworkDaoSideChainOrgDataSyncWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<AppUrlUploadWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<DigiTaskCompleteWorker>());
         }
     }
 }
