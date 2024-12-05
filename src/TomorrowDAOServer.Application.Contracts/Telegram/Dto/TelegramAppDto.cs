@@ -25,6 +25,8 @@ public class TelegramAppDto
     [JsonConverter(typeof(StringEnumConverter))]
     public SourceType SourceType { get; set; }
     public string Creator { get; set; }
+    public string BackIcon { get; set; }
+    public List<string> BackScreenshots { get; set; }
 }
 
 public class BatchSaveAppsInput

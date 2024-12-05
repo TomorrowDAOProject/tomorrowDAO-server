@@ -20,6 +20,7 @@ using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Digi.Provider;
 using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -79,6 +80,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     private readonly IUserViewAppProvider _userViewAppProvider;
     private readonly IOptionsMonitor<LuckyboxOptions> _luckyboxOptions;
     private readonly ILuckboxTaskProvider _luckboxTaskProvider;
+    private readonly IOptionsMonitor<DigiOptions> _digiOptions;
+    private readonly IDigiTaskProvider _digiTaskProvider;
 
     public RankingAppService(IRankingAppProvider rankingAppProvider, ITelegramAppsProvider telegramAppsProvider,
         IObjectMapper objectMapper, IProposalProvider proposalProvider, IUserProvider userProvider,
@@ -93,7 +96,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         IUserAppService userAppService, IPortkeyProvider portkeyProvider, IUserBalanceProvider userBalanceProvider,
         IUserPointsRecordProvider userPointsRecordProvider, IDiscoverChoiceProvider discoverChoiceProvider, 
         IRankingAppPointsProvider rankingAppPointsProvider, IUserViewAppProvider userViewAppProvider, 
-        IOptionsMonitor<LuckyboxOptions> luckyboxOptions, ILuckboxTaskProvider luckboxTaskProvider)
+        IOptionsMonitor<LuckyboxOptions> luckyboxOptions, ILuckboxTaskProvider luckboxTaskProvider,
+        IOptionsMonitor<DigiOptions> digiOptions, IDigiTaskProvider digiTaskProvider)
     {
         _rankingAppProvider = rankingAppProvider;
         _telegramAppsProvider = telegramAppsProvider;
@@ -120,6 +124,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         _userViewAppProvider = userViewAppProvider;
         _luckyboxOptions = luckyboxOptions;
         _luckboxTaskProvider = luckboxTaskProvider;
+        _digiOptions = digiOptions;
+        _digiTaskProvider = digiTaskProvider;
         _voteProvider = voteProvider;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
     }
@@ -1046,10 +1052,17 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     private async Task ProcessCallBack(string address, string proposalId, string trackId, DateTime voteTime)
     {
-        var callBackProposalId = _luckyboxOptions.CurrentValue.ProposalId;
-        if (callBackProposalId == proposalId && !string.IsNullOrEmpty(trackId))
+        var luckyboxProposalId = _luckyboxOptions.CurrentValue.ProposalId;
+        if (luckyboxProposalId == proposalId && !string.IsNullOrEmpty(trackId))
         { 
             await _luckboxTaskProvider.GenerateTaskAsync(address, proposalId, trackId, voteTime);
+        }
+
+        var digiStart = _digiOptions.CurrentValue.Start;
+        var digiStartTime = _digiOptions.CurrentValue.StartTime;
+        if (digiStart)
+        {
+            await _digiTaskProvider.GenerateTaskAsync(address, digiStartTime, voteTime);
         }
     }
 }

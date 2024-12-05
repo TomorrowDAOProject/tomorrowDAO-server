@@ -18,6 +18,7 @@ public enum PointsType
     DailyFirstInvite = 7,
     DailyViewAds = 15,
     DailyCreatePoll = 16,
+    DailyLogin = 21,
     
     // explore task
     ExploreJoinTgChannel = 8,
@@ -30,6 +31,5 @@ public enum PointsType
     ExploreJoinVotigram = 17,
     ExploreFollowVotigramX = 18,
     ExploreForwardVotigramX = 19,
-    
-    DailyLogin = 20
+    ExploreSchrodinger = 20
 }

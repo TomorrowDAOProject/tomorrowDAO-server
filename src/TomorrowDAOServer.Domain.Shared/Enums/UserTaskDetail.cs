@@ -11,6 +11,7 @@ public enum UserTaskDetail
     DailyViewAsset = 3,
     DailyViewAds = 11,
     DailyCreatePoll = 12,
+    DailyLogin = 17,
     
     // Explore
     ExploreJoinTgChannel = 4,
@@ -23,6 +24,5 @@ public enum UserTaskDetail
     ExploreJoinVotigram = 13,
     ExploreFollowVotigramX = 14,
     ExploreForwardVotigramX = 15,
-    
-    DailyLogin = 16
+    ExploreSchrodinger = 16
 }

@@ -1,3 +1,4 @@
+using CodingSeb.ExpressionEvaluator;
 using Shouldly;
 using TomorrowDAOServer.Common;
 using Xunit;
@@ -28,8 +29,11 @@ public class ExpressionHelperTest : TomorrowDaoServerApplicationContractsTestsBa
         var b = ExpressionHelper.Evaluate("InList(item, list)", _dictionary);
         b.ShouldBeTrue();
 
-        b = ExpressionHelper.Evaluate("InList(item, list)", null);
-        b.ShouldBeFalse();
+        Assert.Throws<ExpressionEvaluatorSyntaxErrorException>(() =>
+        {
+            b = ExpressionHelper.Evaluate("InList(item, list)", null);
+            b.ShouldBeFalse();
+        });
 
         b = ExpressionHelper.Evaluate("VersionInRange(version, from, to)", _dictionary);
         b.ShouldBeTrue();

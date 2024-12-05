@@ -38,6 +38,8 @@ public class RankingOptions
     public long PointsExploreFollowVotigramX { get; set; } = 1_0000;
     public long PointsExploreForwardVotigramX { get; set; } = 1_0000;
     public List<long> PointsLogin { get; set; } = new();
+    public long PointsExploreSchrodinger { get; set; } = 10_0000;
+    
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
     public List<string> ReferralPointsAddressList { get; set; } = new();

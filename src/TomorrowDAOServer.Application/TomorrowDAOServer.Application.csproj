@@ -40,5 +40,7 @@
     <PackageReference Include="AElf.Contracts.Association" Version="1.6.0" />
     <PackageReference Include="AElf.Contracts.Referendum" Version="1.6.0" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.4" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
   </ItemGroup>
 </Project>
