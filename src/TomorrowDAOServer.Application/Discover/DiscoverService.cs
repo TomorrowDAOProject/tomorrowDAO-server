@@ -44,16 +44,20 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     public async Task<bool> DiscoverViewedAsync(string chainId)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
-        return await _discoverChoiceProvider.DiscoverViewedAsync(chainId, address);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(chainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        return await _discoverChoiceProvider.DiscoverViewedAsync(chainId, address, userId);
     }
 
     public async Task<bool> DiscoverChooseAsync(string chainId, List<string> choices)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(chainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        
         var choiceEnums = CheckCategories(choices);
-        var exists = await _discoverChoiceProvider.GetExistByAddressAndDiscoverTypeAsync(chainId, address, DiscoverChoiceType.Choice);
+        var exists = await _discoverChoiceProvider.GetExistByAddressAndUserIdAndDiscoverTypeAsync(chainId, userId, address, DiscoverChoiceType.Choice);
         if (exists)
         {
             throw new UserFriendlyException("Already chose the discover type.");
@@ -63,7 +67,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
             {
                 Id = GuidHelper.GenerateGrainId(chainId, address, category.ToString(), DiscoverChoiceType.Choice.ToString()),
                 ChainId = chainId,
-                Address = address,
+                Address = address ?? string.Empty,
+                UserId = userId,
                 TelegramAppCategory = category,
                 DiscoverChoiceType = DiscoverChoiceType.Choice,
                 UpdateTime = DateTime.UtcNow
@@ -76,12 +81,13 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     public async Task<AppPageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
         var res =  input.Category switch
         {
-            CommonConstant.Recommend => await GetRecommendAppListAsync(input, address),
-            CommonConstant.New => await GetNewAppListAsync(input, address),
+            CommonConstant.Recommend => await GetRecommendAppListAsync(input, address, userId),
+            CommonConstant.New => await GetNewAppListAsync(input, address, userId),
             _ => await GetCategoryAppListAsync(input)
         };
         await FillTotalPoints(input.ChainId, res.Data);
@@ -90,12 +96,13 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     public async Task<bool> ViewAppAsync(ViewAppInput input)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
         if (input.Aliases.IsNullOrEmpty())
         {
             return true;
         }
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
         var (_, apps) = await _telegramAppsProvider
             .GetTelegramAppsAsync(new QueryTelegramAppsInput { Aliases = input.Aliases }, true);
         apps = apps.Where(x => x.SourceType != SourceType.TomorrowDao).ToList();
@@ -107,14 +114,14 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var aliases = apps.Select(x => x.Alias).Distinct().ToList();
         var toAdd = aliases.Select(alias => new UserViewedAppIndex
         {
-            Id = GuidHelper.GenerateGrainId(address, alias), Alias = alias, Address = address
+            Id = GuidHelper.GenerateGrainId(address, alias), Alias = alias, Address = address ?? string.Empty, UserId = userId
         }).ToList();
 
         await _userViewAppProvider.BulkAddOrUpdateAsync(toAdd);
         return true;
     }
     
-    private async Task<AppPageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input, string address)
+    private async Task<AppPageResultDto<DiscoverAppDto>> GetNewAppListAsync(GetDiscoverAppListInput input, string address, string userId)
     {
         var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
         if (latest == null)
@@ -127,7 +134,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime))
             .OrderByDescending(x => x.CreateTime).Take(100).ToList();
         var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
-        var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
+        var viewedApps = await _userViewAppProvider.GetByAliasList(userId, address, aliases);
         var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
         var notViewedNewAppCount = input.SkipCount == 0 ? aliases.Except(viewedAliases).Count() : 0;
         var newApps = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(newAppList);
@@ -141,10 +148,10 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return new AppPageResultDto<DiscoverAppDto>(newAppList.Count, sortedNewApps, notViewedNewAppCount);
     }
 
-    private async Task<AppPageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input, string address)
+    private async Task<AppPageResultDto<DiscoverAppDto>> GetRecommendAppListAsync(GetDiscoverAppListInput input, string address, string userId)
     {
         var excludeAliases = input.Aliases ?? new List<string>();
-        var choiceList = await _discoverChoiceProvider.GetByAddressAsync(input.ChainId, address);
+        var choiceList = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(input.ChainId, address, userId);
         var allCategories = Enum.GetValues(typeof(TelegramAppCategory)).Cast<TelegramAppCategory>().ToList();
         var interestedTypes = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
         var notInterestedTypes = allCategories.Where(category => !interestedTypes.Contains(category)).ToList();
@@ -194,18 +201,6 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return new AppPageResultDto<DiscoverAppDto>(count, ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(availableTopApps));
     }
     
-    private void AddRandomApps(IReadOnlyCollection<TelegramAppIndex> appList, int count, List<DiscoverAppDto> targetList)
-    {
-        if (appList.Count > 0)
-        {
-            targetList.AddRange(appList
-                .OrderBy(_ => Guid.NewGuid()).Take(count)
-                .Select(app => ObjectMapper.Map<TelegramAppIndex, DiscoverAppDto>(app))  
-            );
-        }
-    }
-
-
     private async Task FillTotalPoints(string chainId, List<DiscoverAppDto> list)
     {
         var aliases = list.Select(x => x.Alias).ToList();

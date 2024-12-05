@@ -8,6 +8,7 @@ public class RedisHelper
     private const string DistributedCachePointsVotePrefix = "Points:Vote";
     private const string DistributedCachePointsLikePrefix = "Points:Like";
     private const string DistributedCachePointsAllPrefix = "Points:All";
+    private const string DistributedCachePointsLoginPrefix = "Points:Login";
     
     
     public static string GenerateDistributeCacheKey(string chainId, string address, string proposalId)
@@ -34,9 +35,23 @@ public class RedisHelper
     {
         return $"{DistributedCachePointsAllPrefix}:{address}";
     }
+
+    public static string GenerateUserAllPointsByIdCacheKey(string userId)
+    {
+        return $"{DistributedCachePointsAllPrefix}:{userId}";
+    }
     
     public static string GenerateDefaultProposalCacheKey(string chainId)
     {
         return $"{DistributedCacheDefaultProposalPrefix}:{chainId}";
+    }
+
+    public static string GenerateUserLoginPointsCacheKey(string address)
+    {
+        return $"{DistributedCachePointsLoginPrefix}:{address}";
+    }
+    public static string GenerateUserLoginPointsByIdCacheKey(string userId)
+    {
+        return $"{DistributedCachePointsLoginPrefix}:{userId}";
     }
 }

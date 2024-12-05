@@ -2,7 +2,9 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Proposal.Dto;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
@@ -63,4 +65,33 @@ public class UserController
     {
         return await _userService.SaveTgInfoAsync(input);
     }
+
+    [HttpGet("login-points/status")]
+    [Authorize]
+    public async Task<LoginPointsStatusDto> GetLoginPointsStatusAsync(GetLoginPointsStatusInput input)
+    {
+        return await _userService.GetLoginPointsStatusAsync(input);
+    }
+
+    [HttpPost("login-points/collect")]
+    [Authorize]
+    public async Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input)
+    {
+        return await _userService.CollectLoginPointsAsync(input);
+    }
+
+    [HttpGet("homepage")]
+    [Authorize]
+    public async Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input)
+    {
+        return await _userService.GetHomePageAsync(input);
+    }
+    
+    [HttpGet("homepage/made-for-you")]
+    [Authorize]
+    public async Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input)
+    {
+        return await _userService.GetMadeForYouAsync(input);
+    }
+    
 }

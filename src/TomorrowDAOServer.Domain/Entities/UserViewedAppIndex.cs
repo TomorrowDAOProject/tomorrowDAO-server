@@ -7,5 +7,6 @@ public class UserViewedAppIndex : AbstractEntity<string>, IIndexBuild
 {
     [Keyword] public override string Id { get; set; }
     [Keyword] public string Address { get; set; }
+    [Keyword] public string UserId { get; set; }
     [Keyword] public string Alias { get; set; }
 }

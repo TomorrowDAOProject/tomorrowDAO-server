@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User.Dtos;
 
 namespace TomorrowDAOServer.User;
@@ -17,4 +19,8 @@ public interface IUserService
     Task<string> GetAdHashAsync(long timeStamp);
     Task<long> ClearAdCountAsync(string chainId, string address);
     Task GenerateDailyCreatePollPointsAsync(string chainId, List<IndexerProposal> proposalList);
+    Task<LoginPointsStatusDto> GetLoginPointsStatusAsync(GetLoginPointsStatusInput input);
+    Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input);
+    Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input);
+    Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input);
 }

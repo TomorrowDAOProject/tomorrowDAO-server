@@ -24,6 +24,7 @@ public interface IRankingAppPointsRedisProvider
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
+    Task<long> GetUserAllPointsByIdAsync(string userId);
     Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
     Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
     Task IncrementReferralVotePointsAsync(string inviter, string invitee, long voteCount);
@@ -33,6 +34,9 @@ public interface IRankingAppPointsRedisProvider
     Task<Tuple<string, List<string>>> GetDefaultRankingProposalInfoAsync(string chainId);
     Task<string> GetDefaultRankingProposalIdAsync(string chainId);
     Task GenerateRedisDefaultProposal(string proposalId, string proposalDesc, string chainId);
+    //Login points
+    Task IncrementLoginPointsAsync(string address, bool viewAd, int consecutiveLoginDays);
+    Task IncrementLoginPointsByUserIdAsync(string userId, bool viewAd, int consecutiveLoginDays);
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -138,6 +142,13 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         return long.TryParse(cache, out var points) ? points : 0;
     }
 
+    public async Task<long> GetUserAllPointsByIdAsync(string userId)
+    {
+        var cacheKey = RedisHelper.GenerateUserAllPointsByIdCacheKey(userId);
+        var cache = await GetAsync(cacheKey);
+        return long.TryParse(cache, out var points) ? points : 0;
+    }
+
     public async Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address)
     {
         var likeList = likeInput.LikeList;
@@ -229,5 +240,33 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(87600),
         });
+    }
+
+    public async Task IncrementLoginPointsAsync(string address, bool viewAd, int consecutiveLoginDays)
+    {
+        var key = RedisHelper.GenerateUserLoginPointsCacheKey(address);
+        var loginPoints = _rankingAppPointsCalcProvider.CalculatePointsFromLogin(consecutiveLoginDays);
+        if (viewAd)
+        {
+            loginPoints *= 2;
+        }
+        await IncrementAsync(key, loginPoints);
+        
+        var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
+        await IncrementAsync(userKey, loginPoints);
+    }
+
+    public async Task IncrementLoginPointsByUserIdAsync(string userId, bool viewAd, int consecutiveLoginDays)
+    {
+        var key = RedisHelper.GenerateUserLoginPointsByIdCacheKey(userId);
+        var loginPoints = _rankingAppPointsCalcProvider.CalculatePointsFromLogin(consecutiveLoginDays);
+        if (viewAd)
+        {
+            loginPoints *= 2;
+        }
+        await IncrementAsync(key, loginPoints);
+        
+        var userKey = RedisHelper.GenerateUserAllPointsByIdCacheKey(userId);
+        await IncrementAsync(userKey, loginPoints);
     }
 }
