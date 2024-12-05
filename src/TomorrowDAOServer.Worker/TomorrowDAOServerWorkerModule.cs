@@ -35,6 +35,7 @@ namespace TomorrowDAOServer.Worker
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<TonGiftTaskCompleteWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<LuckyboxTaskCompleteWorker>());
             backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<DigiTaskCompleteWorker>());
+            backgroundWorkerManger.AddAsync(context.ServiceProvider.GetService<AppUrlUploadWorker>());
         }
     }
 }

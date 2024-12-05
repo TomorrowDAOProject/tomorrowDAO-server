@@ -57,6 +57,7 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
         context.Services.AddTransient<IScheduleSyncDataService, DigiTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, LuckyboxTaskCompleteService>();
+        context.Services.AddTransient<IScheduleSyncDataService, AppUrlUploadService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskGenerateService>();
         context.Services.AddTransient<IScheduleSyncDataService, FindminiAppsSyncDataService>();

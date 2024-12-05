@@ -26,4 +26,5 @@ public enum WorkerBusinessType
     TonGiftTaskComplete,
     LuckyboxTaskComplete,
     DigiTaskComplete,
+    AppUrlUploadTask,
 }
