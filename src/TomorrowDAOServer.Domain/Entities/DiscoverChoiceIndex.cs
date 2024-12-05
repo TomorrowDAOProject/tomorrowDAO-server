@@ -12,6 +12,7 @@ public class DiscoverChoiceIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public override string Id { get; set; }
     [Keyword] public string ChainId { get; set; }
     [Keyword] public string Address { get; set; }
+    [Keyword] public string UserId { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]
     public TelegramAppCategory TelegramAppCategory { get; set; }
     [JsonConverter(typeof(StringEnumConverter))]

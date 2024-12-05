@@ -9,6 +9,8 @@ using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Handler;
+using TomorrowDAOServer.Discover.Dto;
+using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.Users;
@@ -44,7 +46,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IProposalProvider _proposalProvider;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private readonly IRankingAppProvider _rankingAppProvider;
-
+    private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
@@ -52,7 +54,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IReferralInviteProvider referralInviteProvider,
         IRankingAppPointsCalcProvider rankingAppPointsCalcProvider, ITelegramAppsProvider telegramAppsProvider, ILogger<UserService> logger, 
         ITelegramUserInfoProvider telegramUserInfoProvider, IProposalProvider proposalProvider, IOptionsMonitor<RankingOptions> rankingOptions,
-        IRankingAppProvider rankingAppProvider)
+        IRankingAppProvider rankingAppProvider, IDiscoverChoiceProvider discoverChoiceProvider)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -68,6 +70,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _proposalProvider = proposalProvider;
         _rankingOptions = rankingOptions;
         _rankingAppProvider = rankingAppProvider;
+        _discoverChoiceProvider = discoverChoiceProvider;
     }
 
     public async Task<UserSourceReportResultDto> UserSourceReportAsync(string chainId, string source)
@@ -408,9 +411,16 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         };
     }
 
-    public Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input)
+    public async Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input)
     {
-        throw new NotImplementedException();
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        var choiceList = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(input.ChainId, address, userId);
+        var interestedTypes = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
+        var userInterestedAppList = await _telegramAppsProvider.GetAllDisplayAsync([], 4, interestedTypes);
+        var madeForYouApps = ObjectMapper.Map<List<TelegramAppIndex>, List<AppDetailDto>>(userInterestedAppList);
+        return new AppPageResultDto<AppDetailDto>(4, madeForYouApps.ToList());
     }
 
     private async Task<List<RankingAppDetailDto>> GetWeeklyTopVotedApps(GetHomePageInput input)

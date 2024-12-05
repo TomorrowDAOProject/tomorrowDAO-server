@@ -628,7 +628,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task<RankingBannerInfo> GetBannerInfoAsync(string chainId)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(chainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
         var hasFire = _rankingOptions.CurrentValue.TopRankingIds.Count > 0;
         var notViewedNewAppCount = 0;
         var latest = await _telegramAppsProvider.GetLatestCreatedAsync();
@@ -639,7 +641,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             var newAppList = (await _telegramAppsProvider.GetAllByTimePeriodAsync(start, createTime))
                 .OrderByDescending(x => x.CreateTime).Take(100).ToList();
             var aliases = newAppList.Select(x => x.Alias).Distinct().ToList();
-            var viewedApps = await _userViewAppProvider.GetByAliasList(address, aliases);
+            var viewedApps = await _userViewAppProvider.GetByAliasList(userId, address, aliases);
             var viewedAliases = viewedApps.Select(x => x.Alias).ToList();
             notViewedNewAppCount = aliases.Except(viewedAliases).Count();
         }
