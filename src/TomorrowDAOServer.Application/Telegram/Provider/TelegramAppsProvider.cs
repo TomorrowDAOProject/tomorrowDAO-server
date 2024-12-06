@@ -26,7 +26,6 @@ public interface ITelegramAppsProvider
     Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount, List<string> aliases);
     Task<List<TelegramAppIndex>> SearchAppAsync(string title);
     Task<TelegramAppIndex> GetLatestCreatedAsync();
-    Task<Tuple<long, List<TelegramAppIndex>>> GetByTimePeriodAsync(DateTime start, DateTime end, int skipCount, int maxResultCount);
     Task<List<TelegramAppIndex>> GetAllByTimePeriodAsync(DateTime start, DateTime end);
     Task<long> CountByCategoryAsync(TelegramAppCategory category);
     Task<List<TelegramAppIndex>> GetNeedUploadAsync(int skipCount);
@@ -154,14 +153,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
     public async Task<long> CountAllDisplayAsync()
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
-        {
-            q => q.Exists(i => i.Field(f => f.Url)),
-            q => q.Exists(i => i.Field(f => f.LongDescription)),
-            q => q.Exists(i => i.Field(f => f.Screenshots)),
-            q => q.Exists(i => i.Field(f => f.Categories)),
-            q => !q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)) 
-        };
+        var mustQuery = DisplayQuery();
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _telegramAppIndexRepository.CountAsync(Filter)).Count;
     }
@@ -174,14 +166,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
             mustNotQuery.Add(q => q.Terms(t => t.Field(f => f.Alias).Terms(excludeAliases)));
         }
 
-        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
-        {
-            q => q.Exists(i => i.Field(f => f.Url)),
-            q => q.Exists(i => i.Field(f => f.LongDescription)),
-            q => q.Exists(i => i.Field(f => f.Screenshots)),
-            q => q.Exists(i => i.Field(f => f.Categories)),
-            q => !q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)) 
-        };
+        var mustQuery = DisplayQuery();
         if (categories != null && !categories.IsNullOrEmpty())
         {
             mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(categories)));
@@ -198,13 +183,8 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
     public async Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory category, int skipCount, int maxResultCount, List<string> aliases)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
-        {
-            q => q.Terms(t => t.Field(f => f.Categories).Terms(category)),
-            q => q.Exists(i => i.Field(f => f.Url)),
-            q => q.Exists(i => i.Field(f => f.LongDescription)),
-            q => q.Exists(i => i.Field(f => f.Screenshots))
-        };
+        var mustQuery = DisplayQuery();
+        mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(category)));
         if (!aliases.IsNullOrEmpty())
         {
             mustQuery.Add(q => !q.Terms(t => t.Field(f => f.Alias).Terms(aliases)));
@@ -230,23 +210,9 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
     public async Task<TelegramAppIndex> GetLatestCreatedAsync()
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
-        {
-            q => q.Exists(i => i.Field(f => f.Url)),
-            q => q.Exists(i => i.Field(f => f.LongDescription)),
-            q => q.Exists(i => i.Field(f => f.Screenshots)),
-            q => !q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)) 
-        };
+        var mustQuery = DisplayQuery();
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _telegramAppIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending, sortExp: o => o.CreateTime);
-    }
-
-    public async Task<Tuple<long, List<TelegramAppIndex>>> GetByTimePeriodAsync(DateTime start, DateTime end, int skipCount, int maxResultCount)
-    {
-        QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(TimePeriodQuery(start, end)));
-        var (count, list) = await _telegramAppIndexRepository.GetListAsync(Filter, sortType: SortOrder.Descending, 
-            sortExp: o => o.CreateTime, skip: skipCount, limit: maxResultCount);
-        return new Tuple<long, List<TelegramAppIndex>>(count, list);
     }
 
     public async Task<List<TelegramAppIndex>> GetAllByTimePeriodAsync(DateTime start, DateTime end)
@@ -257,13 +223,8 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
     public async Task<long> CountByCategoryAsync(TelegramAppCategory category)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
-        {
-            q => q.Terms(t => t.Field(f => f.Categories).Terms(category)),
-            q => q.Exists(i => i.Field(f => f.Url)),
-            q => q.Exists(i => i.Field(f => f.LongDescription)),
-            q => q.Exists(i => i.Field(f => f.Screenshots))
-        };
+        var mustQuery = DisplayQuery();
+        mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(category)));
         QueryContainer Filter(QueryContainerDescriptor<TelegramAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _telegramAppIndexRepository.CountAsync(Filter)).Count;
     }
@@ -297,14 +258,22 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
     private List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>> TimePeriodQuery(DateTime start, DateTime end)
     {
+        var query = DisplayQuery();
+        query.Add(q => q.DateRange(r => r.Field(f => f.CreateTime).GreaterThan(start)));
+        query.Add(q => q.DateRange(r => r.Field(f => f.CreateTime).LessThanOrEquals(end)));
+        return query;
+    }
+
+    private List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>> DisplayQuery()
+    {
         return new List<Func<QueryContainerDescriptor<TelegramAppIndex>, QueryContainer>>
         {
             q => q.Exists(i => i.Field(f => f.Url)),
             q => q.Exists(i => i.Field(f => f.LongDescription)),
-            q => q.Exists(i => i.Field(f => f.Screenshots)),
+            q => q.Exists(i => i.Field(f => f.BackScreenshots)),
+            q => q.Exists(i => i.Field(f => f.BackIcon)),
+            q => q.Exists(i => i.Field(f => f.Categories)),
             q => !q.Term(i => i.Field(f => f.SourceType).Value(SourceType.TomorrowDao)),
-            q => q.DateRange(r => r.Field(f => f.CreateTime).GreaterThan(start)),
-            q => q.DateRange(r => r.Field(f => f.CreateTime).LessThanOrEquals(end))
         };
     }
 }
