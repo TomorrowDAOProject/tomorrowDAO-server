@@ -17,8 +17,8 @@ using Volo.Abp.DependencyInjection;
 namespace TomorrowDAOServer.TonGift.Provider;
 
 /**
- * https://tongifts.notion.site/TonGIfts-API-5b10982488de4662a31500e8815a7b4e
- * https://tongifts.notion.site/TonGifts-API-Doc-55a6a8aa9ddc47f2b35150e0951561c9
+ * https://tongifts.notion.site/TonGIfts-API-**
+ * https://tongifts.notion.site/TonGifts-API-Doc-**
  */
 public interface ITonGiftApiProvider
 {
