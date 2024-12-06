@@ -49,6 +49,8 @@ public class SignatureGrantHandler : ITokenExtensionGrant
         {
             var loginType = context.Request.GetParameter("login_type")?.ToString();
             loginType ??= LoginType.LoginType_Portkey;
+            
+            _logger.LogInformation("login_type={0}", loginType);
 
             var verifierResultDto = await _verifierService.VerifyUserInfoAsync(loginType, context);
             if (!verifierResultDto.IsVerified)

@@ -38,6 +38,8 @@ public class VerifierService : IVerifierService, ISingletonDependency
                     "login_type cannot be null.")
             };
         }
+        
+        _logger.LogInformation("verifierProvider type={0}", verifierProvider.GetType().ToString());
 
         return await verifierProvider.VerifyUserInfoAsync(context);
     }
