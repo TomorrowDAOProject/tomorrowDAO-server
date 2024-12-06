@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -16,7 +17,7 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
     private static readonly ISet<string> FilterKeyNames = new HashSet<string>()
     {
         "address", "chain_id", "client_id", "grant_type", "publickey", "scope", "source", "timestamp", "login_type",
-        "hash", "bot_id"
+        "hash", "bot_id", "init_data"
     };
 
     public TelegramVerifyProvider(ILogger<TelegramVerifyProvider> logger,
@@ -35,14 +36,15 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
     public async Task<bool> ValidateTelegramDataAsync(IDictionary<string, string> data,
         Func<string, string, string> generateTelegramHash)
     {
+        var dataCheckString = GetDataCheckString(data);
+        
         if (data.IsNullOrEmpty() || !data.ContainsKey(CommonConstants.RequestParameterNameHash) ||
             data[CommonConstants.RequestParameterNameHash].IsNullOrWhiteSpace())
         {
             _logger.LogError("telegramData or telegramData[hash] is empty");
             return false;
         }
-
-        var dataCheckString = GetDataCheckString(data);
+        
         var botToken = _telegramAuthOptions.CurrentValue.BotToken;
         var localHash = generateTelegramHash(botToken, dataCheckString);
         if (!localHash.Equals(data[CommonConstants.RequestParameterNameHash]))
@@ -69,8 +71,27 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
         return true;
     }
 
-    private static string GetDataCheckString(IDictionary<string, string> data)
+    private string GetDataCheckString(IDictionary<string, string> data)
     {
+        if (data.ContainsKey("init_data"))
+        {
+            var decodedUrl = WebUtility.UrlDecode(data["init_data"]);
+            var parameters = decodedUrl.Split('&');
+            foreach (var parameter in parameters)
+            {
+                var parts = parameter.Split('=');
+                if (parts.Length == 2)
+                {
+                    var key = parts[0];
+                    var value = parts[1];
+                    data[key]= value;
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid parameter, {0}", parameter);
+                }
+            }
+        }
         var sortedByKey = data.Keys.OrderBy(k => k);
         var sb = new StringBuilder();
         foreach (var key in sortedByKey)
@@ -87,7 +108,7 @@ public class TelegramVerifyProvider : ISingletonDependency, ITelegramVerifyProvi
         return sb.ToString();
     }
 
-    private static string GetDataCheckString(TelegramAuthDataDto telegramAuthDataDto)
+    private string GetDataCheckString(TelegramAuthDataDto telegramAuthDataDto)
     {
         var keyValuePairs = new Dictionary<string, string>();
         if (!telegramAuthDataDto.Id.IsNullOrWhiteSpace())

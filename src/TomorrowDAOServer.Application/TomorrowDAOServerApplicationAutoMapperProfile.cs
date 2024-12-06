@@ -73,7 +73,12 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.Categories, opt
                 => opt.MapFrom(source => MapCategories(source.Categories)))
             .ForMember(des => des.AppType, opt
-                => opt.MapFrom(source => source.SourceType.ToString()));
+                => opt.MapFrom(source => source.SourceType.ToString()))
+            .ForMember(des => des.Icon, opt 
+                => opt.MapFrom(source => source.BackIcon))
+            .ForMember(des => des.Screenshots, opt 
+                => opt.MapFrom(source => source.BackScreenshots))
+            ;
         CreateMap<IndexerUserToken, UserTokenDto>();
         CreateMap<IndexerProposal, ProposalIndex>();
         CreateMap<ExecuteTransactionDto, ExecuteTransaction>()
@@ -313,6 +318,10 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.Id))
             .ForMember(des => des.VoteAmount, opt
                 => opt.MapFrom(source => 0))
+            .ForMember(des => des.Icon, opt
+                => opt.MapFrom(source => source.BackIcon))
+            .ForMember(des => des.Screenshots, opt
+                => opt.MapFrom(source => source.BackScreenshots))
             ;
         CreateMap<IndexerProposal, RankingAppIndex>();
         CreateMap<RankingAppIndex, RankingAppDetailDto>()
@@ -361,9 +370,9 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.AppType, opt
                 => opt.MapFrom(source => source.SourceType.ToString()))
             .ForMember(des => des.Icon, opt
-                => opt.MapFrom(source => MapIcon(SourceType.FindMini, source.Icon)))
+                => opt.MapFrom(source => source.BackIcon))
             .ForMember(des => des.Screenshots, opt
-                => opt.MapFrom(source => MapScreenshots(SourceType.FindMini, source.Screenshots)))
+                => opt.MapFrom(source => source.BackScreenshots))
             ;
         CreateMap<TelegramUserInfoIndex, InviteLeaderBoardDto>();
         CreateMap<IndexerResourceTokenDto, ResourceTokenIndex>()
