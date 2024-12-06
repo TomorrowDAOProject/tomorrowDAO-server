@@ -12,4 +12,5 @@ public static class CommonConstants
     public const string RequestParameterPhotoUrl = "photo_url";
     public const string RequestParameterRobotId = "bot_id";
     public const string Hmacsha256Key = "WebAppData";
+    public const string RequestParameterNameInitData = "init_data";
 }
