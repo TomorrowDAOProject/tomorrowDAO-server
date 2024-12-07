@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User.Dtos;
 
 namespace TomorrowDAOServer.Grains.Grain.Users;
@@ -16,17 +17,11 @@ public class UserGrainDto
     [Id(7)] public string GuardianIdentifier { get; set; }
     [Id(8)] public string Address { get; set; }  //CAAddress or EOA
     [Id(9)] public string Extra { get; set; }
+    [Id(10)] public string UserInfo { get; set; }
 
     public UserExtraDto GetUserExtraDto()
     {
-        if (Extra.IsNullOrWhiteSpace())
-        {
-            return null;
-        }
-        else
-        {
-            return JsonConvert.DeserializeObject<UserExtraDto>(Extra);
-        }
+        return Extra.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<UserExtraDto>(Extra);
     }
 
     public void SetUserExtraDto(UserExtraDto userExtraDto)
@@ -36,6 +31,20 @@ public class UserGrainDto
             return;
         }
         Extra = JsonConvert.SerializeObject(userExtraDto);
+    }
+
+    public TelegramAuthDataDto GetUserInfo()
+    {
+        return UserInfo.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<TelegramAuthDataDto>(UserInfo);
+    }
+
+    public void SetUserInfo(TelegramAuthDataDto telegramAuthDataDto)
+    {
+        if (telegramAuthDataDto == null)
+        {
+            return;
+        }
+        UserInfo = JsonConvert.SerializeObject(telegramAuthDataDto);
     }
 }
 

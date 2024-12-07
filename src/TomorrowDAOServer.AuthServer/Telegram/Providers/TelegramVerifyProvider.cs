@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using TomorrowDAOServer.Auth.Constants;
 using TomorrowDAOServer.Auth.Dtos;
 using TomorrowDAOServer.Auth.Options;
+using TomorrowDAOServer.Telegram.Dto;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Auth.Telegram.Providers;

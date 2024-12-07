@@ -93,5 +93,11 @@ public class UserController
     {
         return await _userService.GetMadeForYouAsync(input);
     }
-    
+
+    [HttpPost("open-app")]
+    [Authorize]
+    public async Task<bool> OpenAppAsync(OpenAppInput input)
+    {
+        return await _userService.OpenAppAsync(input);
+    }
 }

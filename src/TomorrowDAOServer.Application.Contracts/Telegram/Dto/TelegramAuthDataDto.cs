@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace TomorrowDAOServer.Auth.Dtos;
+namespace TomorrowDAOServer.Telegram.Dto;
 
 public class TelegramAuthDataDto
 {

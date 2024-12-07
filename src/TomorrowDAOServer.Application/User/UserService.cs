@@ -14,6 +14,7 @@ using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.Users;
+using TomorrowDAOServer.MQ;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
@@ -53,6 +54,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
     private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
     private readonly IObjectMapper _objectMapper;
+    private readonly IMessagePublisherService _messagePublisherService;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
@@ -62,7 +64,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         ITelegramUserInfoProvider telegramUserInfoProvider, ISchrodingerApiProvider schrodingerApiProvider, 
         IOptionsMonitor<SchrodingerOptions> schrodingerOptions, IProposalProvider proposalProvider, IOptionsMonitor<RankingOptions> rankingOptions,
         IRankingAppProvider rankingAppProvider, IDiscoverChoiceProvider discoverChoiceProvider, IRankingAppPointsProvider rankingAppPointsProvider,
-        IObjectMapper objectMapper)
+        IObjectMapper objectMapper, IMessagePublisherService messagePublisherService)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -81,6 +83,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _discoverChoiceProvider = discoverChoiceProvider;
         _rankingAppPointsProvider = rankingAppPointsProvider;
         _objectMapper = objectMapper;
+        _messagePublisherService = messagePublisherService;
         _schrodingerApiProvider = schrodingerApiProvider;
         _schrodingerOptions = schrodingerOptions;
     }
@@ -339,7 +342,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         await _userProvider.UpdateUserAsync(userGrainDto);
 
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
-        var totalPoints = await GetTotalPoints(address, userGrainDto.UserId.ToString());
+        var totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userGrainDto.UserId.ToString(), address);
         
         return new LoginPointsStatusDto
         {
@@ -404,7 +407,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         userGrainDto.SetUserExtraDto(userExtraDto);
         await _userProvider.UpdateUserAsync(userGrainDto);
         
-        var totalPoints = await GetTotalPoints(address, userGrainDto.UserId.ToString());
+        var totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userGrainDto.UserId.ToString(), address);
 
         return new LoginPointsStatusDto
         {
@@ -421,7 +424,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
         var userId = userGrainDto.UserId.ToString();
-        var totalPoints = await GetTotalPoints(address, userId);
+        var totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
         
         //Weekly Top Voted Apps
         var weeklyTopVotedApps = await GetWeeklyTopVotedApps(input);
@@ -447,6 +450,35 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var userInterestedAppList = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 4, interestedTypes);
         var madeForYouApps = ObjectMapper.Map<List<TelegramAppIndex>, List<AppDetailDto>>(userInterestedAppList);
         return new AppPageResultDto<AppDetailDto>(4, madeForYouApps.ToList());
+    }
+
+    [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName,Message = "Report Open App fail.", LogTargets = new []{"input"})]
+    public virtual async Task<bool> OpenAppAsync(OpenAppInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+
+        if (input.Alias.IsNullOrWhiteSpace())
+        {
+            _logger.LogWarning("Invalid Alias.");
+            return false;
+        }
+
+        var telegramAppIndices = await _telegramAppsProvider.GetAllTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = new List<string>() { input.Alias }
+        });
+        if (telegramAppIndices.IsNullOrEmpty())
+        {
+            _logger.LogError("Telegram App does not found");
+        }
+
+        var openedCount = await _rankingAppPointsRedisProvider.IncrementOpenedAppCountAsync(input.Alias, 1);
+        await _messagePublisherService.SendOpenMessageAsync(input.ChainId, address, userId, input.Alias, 1);
+
+        return true;
     }
 
     private async Task<List<RankingAppDetailDto>> GetWeeklyTopVotedApps(GetHomePageInput input)
@@ -743,22 +775,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 CompleteCount = completeCount, TaskCount = 20
             }
         };
-    }
-    
-    private async Task<long> GetTotalPoints(string address, string userId)
-    {
-        var totalPoints = 0L;
-        if (!address.IsNullOrWhiteSpace())
-        {
-            totalPoints += await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
-        }
-
-        if (!userId.IsNullOrWhiteSpace())
-        {
-            totalPoints += await _rankingAppPointsRedisProvider.GetUserAllPointsByIdAsync(userId);
-        }
-        
-        return totalPoints;
     }
 
     private async Task<bool> CheckSchrodinger(string chainId, string address)

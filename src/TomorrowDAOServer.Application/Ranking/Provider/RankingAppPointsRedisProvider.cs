@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using Nest;
 using StackExchange.Redis;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Security;
@@ -20,12 +21,13 @@ public interface IRankingAppPointsRedisProvider
     public Task SetAsync(string key, string value, TimeSpan? expire = null);
     Task<Dictionary<string, string>> MultiGetAsync(List<string> keys);
     Task<string> GetAsync(string key);
-    Task IncrementAsync(string key, long amount);
+    Task<long> IncrementAsync(string key, long amount);
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
     Task<long> GetUserAllPointsAsync(string address);
     Task<long> GetUserAllPointsByIdAsync(string userId);
-    Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
+    Task<long> GetUserAllPointsAsync(string userId, string address);
+    Task<Dictionary<string, long>> IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
     Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount);
     Task IncrementReferralVotePointsAsync(string inviter, string invitee, long voteCount);
     Task IncrementReferralTopInviterPointsAsync(string address);
@@ -37,6 +39,8 @@ public interface IRankingAppPointsRedisProvider
     //Login points
     Task IncrementLoginPointsAsync(string address, bool viewAd, int consecutiveLoginDays);
     Task IncrementLoginPointsByUserIdAsync(string userId, bool viewAd, int consecutiveLoginDays);
+    Task<long> IncrementOpenedAppCountAsync(string alias, int count);
+    Task<Dictionary<string, long>> GetOpenedAppCountAsync(List<string> alias);
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -47,6 +51,8 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
     private readonly IDatabase _database;
     private readonly IRankingAppPointsCalcProvider _rankingAppPointsCalcProvider;
     private readonly IDistributedCache<string> _distributedCache;
+
+    public static readonly string UserPointsKey = "_TotalUserPoints";
 
     public RankingAppPointsRedisProvider(ILogger<RankingAppPointsRedisProvider> logger, 
         IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider,
@@ -94,9 +100,9 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         return await _database.StringGetAsync(key);
     }
 
-    public async Task IncrementAsync(string key, long amount)
+    public async Task<long> IncrementAsync(string key, long amount)
     {
-        await _database.StringIncrementAsync(key, amount);
+        return await _database.StringIncrementAsync(key, amount);
     }
 
     public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList)
@@ -148,22 +154,50 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var cache = await GetAsync(cacheKey);
         return long.TryParse(cache, out var points) ? points : 0;
     }
+    
+    public async Task<long> GetUserAllPointsAsync(string userId, string address)
+    {
+        var totalPoints = 0L;
+        if (!address.IsNullOrWhiteSpace())
+        {
+            totalPoints += await GetUserAllPointsAsync(address);
+        }
 
-    public async Task IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address)
+        if (!userId.IsNullOrWhiteSpace())
+        {
+            totalPoints += await GetUserAllPointsByIdAsync(userId);
+        }
+        
+        return totalPoints;
+    }
+
+    public async Task<Dictionary<string, long>> IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address)
     {
         var likeList = likeInput.LikeList;
-        var proposalId = likeInput.ProposalId;
-        var incrementTasks = (from like in likeList let 
-            appLikeKey = RedisHelper.GenerateAppPointsLikeCacheKey(proposalId, like.Alias) 
-            let appLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(like.LikeAmount) 
-            select IncrementAsync(appLikeKey, appLikePoints))
-            .ToList();
+        var proposalId = likeInput.ProposalId ?? string.Empty;
+        
+        var aliasIncrementMap = new List<Task<(string Alias, long Points)>>();
+        foreach (var like in likeList)
+        {
+            var appLikeKey = RedisHelper.GenerateAppPointsLikeCacheKey(proposalId, like.Alias);
+            var appLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(like.LikeAmount);
+            aliasIncrementMap.Add(
+                IncrementAsync(appLikeKey, appLikePoints).ContinueWith(t => (like.Alias, t.Result))
+            );
+        }
 
         var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var userLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(likeList.Sum(x => x.LikeAmount));
-        incrementTasks.Add(IncrementAsync(userKey, userLikePoints));
+        aliasIncrementMap.Add(IncrementAsync(userKey, userLikePoints).ContinueWith(t => (UserPointsKey, t.Result)));
+        
+        var aliasResults = await Task.WhenAll(aliasIncrementMap);
+        var aliasLikeCountDic = new Dictionary<string, long>();
+        foreach (var (alias, points) in aliasResults)
+        {
+            aliasLikeCountDic[alias] = points;
+        }
 
-        await Task.WhenAll(incrementTasks);
+        return aliasLikeCountDic;
     }
 
     public async Task IncrementVotePointsAsync(string chainId, string proposalId, string address, string alias, long voteAmount)
@@ -268,5 +302,38 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         
         var userKey = RedisHelper.GenerateUserAllPointsByIdCacheKey(userId);
         await IncrementAsync(userKey, loginPoints);
+    }
+
+    public async Task<long> IncrementOpenedAppCountAsync(string alias, int count)
+    {
+        var key = RedisHelper.GenerateOpenedAppCountCacheKey(alias);
+        var increment = await IncrementAsync(key, count);
+        return increment;
+    }
+
+    public async Task<Dictionary<string, long>> GetOpenedAppCountAsync(List<string> aliases)
+    {
+        if (aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, long>();
+        }
+
+        var keyAliasMap = aliases.ToDictionary(
+            alias => RedisHelper.GenerateOpenedAppCountCacheKey(alias), 
+            alias => alias
+        );
+
+        var batch = _database.CreateBatch();
+        var tasks = new Dictionary<string, Task<RedisValue>>();
+        foreach (var key in keyAliasMap.Keys)
+        {
+            tasks[key] = batch.StringGetAsync(key);
+        }
+        batch.Execute();
+        await Task.WhenAll(tasks.Values);
+        return tasks.ToDictionary(
+            kvp => keyAliasMap[kvp.Key],
+            kvp => (long)(kvp.Value.Result.HasValue ? (long)kvp.Value.Result : 0)
+        );
     }
 }
