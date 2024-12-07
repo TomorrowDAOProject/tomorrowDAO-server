@@ -293,6 +293,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.InviteeCaHash, opt
                 => opt.MapFrom(source => source.CaHash))
             ;
+        CreateMap<TelegramAppIndex, RankingAppDetailDto>();
 
         CreateMap<ReferralCodeInfo, ReferralLinkCodeIndex>()
             .ForMember(des => des.InviterCaHash, opt
