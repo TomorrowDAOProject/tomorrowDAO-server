@@ -557,39 +557,38 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, ReturnDefault = default)]
-    public virtual async Task<long> LikeAsync(RankingAppLikeInput input)
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName)]
+    public virtual async Task<RankingAppLikeResultDto> LikeAsync(RankingAppLikeInput input)
     {
-        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.ProposalId.IsNullOrWhiteSpace() ||
-            input.LikeList.IsNullOrEmpty())
+        if (input == null || input.ChainId.IsNullOrWhiteSpace() || input.LikeList.IsNullOrEmpty())
         {
             ExceptionHelper.ThrowArgumentException();
         }
 
-        var address =
-            await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        if (address.IsNullOrWhiteSpace())
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+
+        if (!input.ProposalId.IsNullOrWhiteSpace())
         {
-            throw new UserFriendlyException("User Address Not Found.");
+            var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
+            if (proposalIndex == null)
+            {
+                throw new UserFriendlyException($"Cannot be liked.{input.ProposalId}");
+            }
         }
 
-        var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
-        if (proposalIndex == null)
-        {
-            throw new UserFriendlyException($"Cannot be liked.{input.ProposalId}");
-        }
-        // var defaultProposalId = await _rankingAppPointsRedisProvider.GetDefaultRankingProposalIdAsync(input.ChainId);
-        // if (input.ProposalId != defaultProposalId)
-        // {
-        //     throw new UserFriendlyException($"Cannot be liked.{defaultProposalId}");
-        // }
-            
-        await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address);
-            
-        var _ = _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList);
+        var likePointsDic = await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(input, address.IsNullOrWhiteSpace() ? userId : address);
+        likePointsDic?.Remove(RankingAppPointsRedisProvider.UserPointsKey);
 
-        return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+        var _ = _messagePublisherService.SendLikeMessageAsync(input.ChainId, input.ProposalId, address, input.LikeList, userId);
+
+        var userTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
+        return new RankingAppLikeResultDto
+        {
+            UserTotalPoints = userTotalPoints,
+            AppLikeCount = likePointsDic
+        };
     }
 
     public async Task<RankingActivityResultDto> GetRankingActivityResultAsync(string chainId, string proposalId, int count)

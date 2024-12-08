@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User.Dtos;
 
 namespace TomorrowDAOServer.Auth.Dtos;
@@ -12,4 +13,5 @@ public class VerifierResultDto
     public string CreateChainId { get; set; }
     public List<AddressInfo> AddressInfos { get; set; }
     public IActionResult ForbidResult { get; set; }
+    public TelegramAuthDataDto UserInfo { get; set; }
 }

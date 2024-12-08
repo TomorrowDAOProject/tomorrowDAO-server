@@ -9,10 +9,12 @@ using TomorrowDAOServer.User.Dtos;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 using Portkey.Contracts.CA;
+using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Auth.Common;
 using TomorrowDAOServer.Auth.Verifier;
 using TomorrowDAOServer.Auth.Verifier.Constants;
+using TomorrowDAOServer.Telegram.Dto;
 using Volo.Abp.DistributedLocking;
 using Volo.Abp.Identity;
 using Volo.Abp.OpenIddict;
@@ -73,7 +75,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                 isNewUser = true;
                 var userId = Guid.NewGuid();
                 var createUserResult = await CreateUserAsync(userManager, userId, caHash, address, guardianIdentifier,
-                    addressInfos);
+                    addressInfos, verifierResultDto.UserInfo);
                 if (!createUserResult)
                 {
                     return ForbidResultHelper.GetForbidResult(OpenIddictConstants.Errors.ServerError,
@@ -94,6 +96,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     AddressInfos = addressInfos,
                     GuardianIdentifier = guardianIdentifier,
                     Address = address,
+                    UserInfo = verifierResultDto.UserInfo == null ? null : JsonConvert.SerializeObject(verifierResultDto.UserInfo)
                 });
             }
 
@@ -172,7 +175,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
 
     private async Task<bool> CreateUserAsync(IdentityUserManager userManager, Guid userId, string caHash,
-        string address, string guardianIdentifier, List<AddressInfo> addressInfos)
+        string address, string guardianIdentifier, List<AddressInfo> addressInfos, TelegramAuthDataDto userInfo = null)
     {
         var result = false;
         await using var handle = await _distributedLock.TryAcquireAsync(name: LockKeyPrefix + caHash);
@@ -199,6 +202,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                     AddressInfos = addressInfos,
                     GuardianIdentifier = guardianIdentifier,
                     Address = address,
+                    UserInfo = userInfo == null ? null : JsonConvert.SerializeObject(userInfo)
                 });
                 Log.Information("create user success, userId:{userId}", userId.ToString());
             }

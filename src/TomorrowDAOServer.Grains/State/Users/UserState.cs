@@ -16,4 +16,5 @@ public class UserState
     [Id(8)] public string GuardianIdentifier { get; set; }
     [Id(9)] public string Address { get; set; }  //CAAddress or EOA
     [Id(10)] public string Extra { get; set; }
+    [Id(11)] public string UserInfo { get; set; }
 }

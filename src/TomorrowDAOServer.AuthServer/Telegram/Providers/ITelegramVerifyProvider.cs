@@ -1,4 +1,5 @@
 using TomorrowDAOServer.Auth.Dtos;
+using TomorrowDAOServer.Telegram.Dto;
 
 namespace TomorrowDAOServer.Auth.Telegram.Providers;
 

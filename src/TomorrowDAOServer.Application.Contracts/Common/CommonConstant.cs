@@ -111,6 +111,7 @@ public static class CommonConstant
     // Discover
     public const string Recommend = "Recommend";
     public const string New = "New";
+    public const string ForYou = "ForYou";
     public const double InterestedPercent = 0.75;
     
     // App

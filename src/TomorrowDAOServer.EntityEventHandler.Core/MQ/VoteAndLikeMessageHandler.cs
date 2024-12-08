@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -7,6 +9,8 @@ using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Eto;
 using TomorrowDAOServer.Ranking.Provider;
+using TomorrowDAOServer.Telegram.Dto;
+using TomorrowDAOServer.Telegram.Provider;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus.Distributed;
 
@@ -18,14 +22,17 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
     private readonly IProposalProvider _proposalProvider;
     private readonly IRankingAppProvider _rankingAppProvider;
     private readonly IRankingAppPointsProvider _appPointsProvider;
+    private readonly ITelegramAppsProvider _telegramAppsProvider;
 
     public VoteAndLikeMessageHandler(ILogger<VoteAndLikeMessageHandler> logger, IProposalProvider proposalProvider,
-        IRankingAppProvider rankingAppProvider, IRankingAppPointsProvider appPointsProvider)
+        IRankingAppProvider rankingAppProvider, IRankingAppPointsProvider appPointsProvider,
+        ITelegramAppsProvider telegramAppsProvider)
     {
         _logger = logger;
         _proposalProvider = proposalProvider;
         _rankingAppProvider = rankingAppProvider;
         _appPointsProvider = appPointsProvider;
+        _telegramAppsProvider = telegramAppsProvider;
     }
 
     public async Task HandleEventAsync(VoteAndLikeMessageEto eventData)
@@ -45,6 +52,7 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
                 break;
             case PointsType.Like:
             case PointsType.Vote:
+            case PointsType.Open:
                 await HandleDefaultAsync(eventData);
                 break;
         }
@@ -52,26 +60,46 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
 
     private async Task HandleDefaultAsync(VoteAndLikeMessageEto eventData)
     {
-        if (eventData.ProposalId.IsNullOrWhiteSpace() || eventData.Alias.IsNullOrWhiteSpace())
+        if (eventData.ProposalId.IsNullOrWhiteSpace() && eventData.Alias.IsNullOrWhiteSpace())
         {
             return;
         }
 
         try
         {
-            var rankingAppIndex =
-                await _rankingAppProvider.GetByProposalIdAndAliasAsync(eventData.ChainId, eventData.ProposalId,
-                    eventData.Alias);
-            if (rankingAppIndex == null || rankingAppIndex.Id.IsNullOrWhiteSpace())
+            if (!eventData.ProposalId.IsNullOrWhiteSpace())
             {
-                Log.Error("[RankingAppPoints] app not found. proposalId={0},alias={1}", eventData.ProposalId,
-                    eventData.Alias);
-                return;
+                var rankingAppIndex =
+                    await _rankingAppProvider.GetByProposalIdAndAliasAsync(eventData.ChainId, eventData.ProposalId,
+                        eventData.Alias);
+                if (rankingAppIndex == null || rankingAppIndex.Id.IsNullOrWhiteSpace())
+                {
+                    Log.Error("[RankingAppPoints] ranking not found. proposalId={0},alias={1}", eventData.ProposalId,
+                        eventData.Alias);
+                    return;
+                }
+                
+                eventData.DaoId = rankingAppIndex.DAOId;
+                eventData.AppId = rankingAppIndex.AppId;
+                eventData.Title = rankingAppIndex.Title;
+            } else if (!eventData.Alias.IsNullOrWhiteSpace() && eventData.Title.IsNullOrWhiteSpace())
+            {
+                var telegramAppIndices = await _telegramAppsProvider.GetAllTelegramAppsAsync(new QueryTelegramAppsInput
+                {
+                    Aliases = new List<string>() {eventData.Alias},
+                });
+                if (telegramAppIndices.IsNullOrEmpty())
+                {
+                    Log.Error("[RankingAppPoints] app not found. proposalId={0},alias={1}", eventData.ProposalId,
+                        eventData.Alias);
+                    return;
+                }
+
+                var telegramAppIndex = telegramAppIndices.First();
+                eventData.AppId = telegramAppIndex.Id;
+                eventData.Title = telegramAppIndex.Title;
             }
 
-            eventData.DaoId = rankingAppIndex.DAOId;
-            eventData.AppId = rankingAppIndex.AppId;
-            eventData.Title = rankingAppIndex.Title;
             Log.Information("[RankingAppPoints] update app points. proposalId={0},alias={1}",
                 eventData.ProposalId, eventData.Alias);
             await _appPointsProvider.AddOrUpdateAppPointsIndexAsync(eventData);

@@ -9,6 +9,7 @@ public class RedisHelper
     private const string DistributedCachePointsLikePrefix = "Points:Like";
     private const string DistributedCachePointsAllPrefix = "Points:All";
     private const string DistributedCachePointsLoginPrefix = "Points:Login";
+    private const string DistributedCacheOpenedAppCountPrefix = "Count:OpenedApp";
     
     
     public static string GenerateDistributeCacheKey(string chainId, string address, string proposalId)
@@ -53,5 +54,10 @@ public class RedisHelper
     public static string GenerateUserLoginPointsByIdCacheKey(string userId)
     {
         return $"{DistributedCachePointsLoginPrefix}:{userId}";
+    }
+
+    public static string GenerateOpenedAppCountCacheKey(string alias)
+    {
+        return $"{DistributedCacheOpenedAppCountPrefix}:{alias}";
     }
 }

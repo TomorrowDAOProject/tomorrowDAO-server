@@ -9,6 +9,7 @@ using TomorrowDAOServer.Auth.Options;
 using TomorrowDAOServer.Auth.Portkey.Providers;
 using TomorrowDAOServer.Auth.Telegram.Providers;
 using TomorrowDAOServer.Auth.Verifier.Constants;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp.OpenIddict.ExtensionGrantTypes;
 
@@ -91,7 +92,8 @@ public class TelegramUserVeriferProvider : IVerifierProvider
             GuardianIdentifier = telegramAuthDataDto.Id,
             CreateChainId = chainId,
             AddressInfos = addressInfos,
-            ForbidResult = null
+            ForbidResult = null,
+            UserInfo = telegramAuthDataDto
         };
     }
 

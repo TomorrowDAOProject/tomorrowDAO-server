@@ -23,4 +23,5 @@ public interface IUserService
     Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input);
     Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input);
     Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input);
+    Task<bool> OpenAppAsync(OpenAppInput input);
 }
