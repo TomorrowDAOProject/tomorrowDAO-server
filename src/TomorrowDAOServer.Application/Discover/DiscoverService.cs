@@ -84,7 +84,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
         var userId = userGrainDto.UserId.ToString();
-        var res =  input.Category switch
+        var res = input.Category switch
         {
             CommonConstant.New => await GetNewAppListAsync(input, address, userId),
             _ => await GetCategoryAppListAsync(input)
@@ -98,7 +98,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
         var userId = userGrainDto.UserId.ToString();
-        var res =  input.Category switch
+        var res = input.Category switch
         {
             CommonConstant.Recommend => await GetRecommendAppListAsync(input, address, userId),
             CommonConstant.ForYou => await GetForYouAppListAsync(input, address, userId),
@@ -178,6 +178,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
     private async Task<RandomAppListDto> GetForYouAppListAsync(GetRandomAppListInputAsync input, string address, string userId)
     {
+        input.MaxResultCount = 16;
         var choiceList = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(input.ChainId, address, userId);
         var adUrlList = _discoverOptions.CurrentValue.AdUrls;
         var allCategories = Enum.GetValues(typeof(TelegramAppCategory)).Cast<TelegramAppCategory>().ToList();
