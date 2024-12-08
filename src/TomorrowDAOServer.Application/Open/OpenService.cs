@@ -53,4 +53,20 @@ public class OpenService : ApplicationService, IOpenService
         var count = await _voteProvider.CountByVoterAndTimeAsync(address, startTime);
         return count > 0;
     }
+
+    public async Task<int> GetGalxeTaskStatusAsync(string address)
+    {
+        if (string.IsNullOrEmpty(address))
+        {
+            return 0;
+        }
+
+        var proposalId = _micro3Options.CurrentValue.GalxeProposalId;
+        if (string.IsNullOrEmpty(proposalId))
+        {
+            return 0;
+        }
+        var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(address, proposalId);
+        return count > 0 ? 1 : 0;
+    }
 }

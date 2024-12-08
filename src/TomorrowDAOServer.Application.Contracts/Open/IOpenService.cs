@@ -7,4 +7,5 @@ public interface IOpenService
 {
     Task<TaskStatusResponse> GetMicro3TaskStatusAsync(string address);
     Task<bool> GetFoxCoinTaskStatusAsync(string id, string type);
+    Task<int> GetGalxeTaskStatusAsync(string address);
 }
