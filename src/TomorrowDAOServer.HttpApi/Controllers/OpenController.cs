@@ -31,4 +31,10 @@ public class OpenController
     {
         return await _openService.GetFoxCoinTaskStatusAsync(id, type);
     }
+    
+    [HttpGet("galxe-task-status")]
+    public async Task<int> GetGalxeTaskStatusAsync(string address)
+    {
+        return await _openService.GetGalxeTaskStatusAsync(address);
+    }
 }
