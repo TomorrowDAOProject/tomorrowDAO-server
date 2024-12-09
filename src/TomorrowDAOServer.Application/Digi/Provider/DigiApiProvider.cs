@@ -55,7 +55,6 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
         var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, MediaTypeNames.Application.Json);
         var response = await _httpClient.PostAsync(domain + DigiApi.Check.Path, requestContent);
         var responseContent = await response.Content.ReadAsStringAsync();
-        _logger.LogInformation("ReportAsyncResponseOrigin {0}", responseContent);
         var digiResponse = JsonConvert.DeserializeObject<DigiResponse>(responseContent) ?? new DigiResponse();
         _logger.LogInformation("ReportAsyncResponse uid {0}, code {1}", uid, digiResponse.Code);
         return digiResponse.Success;
