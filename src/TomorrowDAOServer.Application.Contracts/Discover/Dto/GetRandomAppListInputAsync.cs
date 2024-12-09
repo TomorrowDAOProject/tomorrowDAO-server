@@ -1,12 +1,12 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace TomorrowDAOServer.Discover.Dto;
 
-public class GetDiscoverAppListInput
+public class GetRandomAppListInputAsync
 {
     [Required] public string ChainId { get; set; }
     public string Category { get; set; } = string.Empty;
-    public int SkipCount { get; set; } = 0;
     public int MaxResultCount { get; set; } = 8;
-    public string Search { get; set; } = string.Empty;
+    public List<string> Aliases { get; set; } = new();
 }

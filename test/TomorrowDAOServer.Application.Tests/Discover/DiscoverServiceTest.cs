@@ -110,7 +110,6 @@ public partial class DiscoverServiceTest : TomorrowDaoServerApplicationTestBase
             Category = CommonConstant.Recommend,
             SkipCount = 0,
             MaxResultCount = 10,
-            Aliases = null
         });
         discoverAppList.ShouldNotBeNull();
         discoverAppList.TotalCount.ShouldBe(0);
@@ -121,7 +120,6 @@ public partial class DiscoverServiceTest : TomorrowDaoServerApplicationTestBase
             Category = TelegramAppCategory.Game.ToString(),
             SkipCount = 0,
             MaxResultCount = 10,
-            Aliases = null
         });
         discoverAppList.ShouldNotBeNull();
         discoverAppList.TotalCount.ShouldBe(0);

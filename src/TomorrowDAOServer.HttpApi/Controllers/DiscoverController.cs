@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -42,6 +41,13 @@ public class DiscoverController
     public async Task<AppPageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
         return await _discoverService.GetDiscoverAppListAsync(input);
+    }
+    
+    [HttpPost("random-app-list")]
+    [Authorize]
+    public async Task<RandomAppListDto> GetRandomAppListAsync(GetRandomAppListInputAsync input)
+    {
+        return await _discoverService.GetRandomAppListAsync(input);
     }
     
     [HttpPost("view-app")]
