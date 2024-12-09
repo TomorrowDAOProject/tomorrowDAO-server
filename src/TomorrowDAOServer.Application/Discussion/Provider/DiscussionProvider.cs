@@ -119,7 +119,10 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
 
     public async Task<Dictionary<string, long>> GetAppCommentCountAsync(List<string> aliases)
     {
-        //
+        if (aliases == null || aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, long>();
+        }
         var query = new SearchDescriptor<CommentIndex>().Size(0)
             .Query(q => q.Terms(t => t.Field(f => f.ProposalId).Terms(aliases)))
             .Aggregations(a => a.Terms("by_alias", ta => ta.Field(f => f.ProposalId).Size(aliases.Count)));
