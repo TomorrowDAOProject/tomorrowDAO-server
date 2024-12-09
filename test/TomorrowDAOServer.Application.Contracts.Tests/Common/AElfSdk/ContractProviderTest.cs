@@ -46,7 +46,7 @@ public partial class ContractProviderTest : TomorrowDaoServerApplicationContract
     [Fact]
     public async Task ContractAddressTest_AddressNotFound()
     {
-        _testOutputHelper.WriteLine("**PrivateKey={0}", PrivateKey1);
+        _testOutputHelper.WriteLine("**PrivateKey11={0}", PrivateKey1);
         var exception = Assert.Throws<UserFriendlyException>(() =>
         {
             _contractProvider.ContractAddress(ChainIdAELF, "TreasuryContractAddress");
