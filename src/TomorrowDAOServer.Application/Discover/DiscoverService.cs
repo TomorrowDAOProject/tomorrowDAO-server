@@ -280,7 +280,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
     
     private async Task FillData(string chainId, List<DiscoverAppDto> list)
     {
-        var aliases = list.Where(x => !string.IsNullOrEmpty(x.Alias)).Select(x => x.Alias).ToList();
+        var aliases = list.Where(x => !string.IsNullOrEmpty(x.Alias)).Select(x => x.Alias).Distinct().ToList();
         var pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
         var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(string.Empty, aliases);
