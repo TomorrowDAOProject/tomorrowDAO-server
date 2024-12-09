@@ -56,4 +56,5 @@ public class DiscoverController
     {
         return await _discoverService.ViewAppAsync(input);
     }
+    
 }
