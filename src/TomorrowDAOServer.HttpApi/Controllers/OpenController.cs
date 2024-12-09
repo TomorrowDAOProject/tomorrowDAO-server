@@ -37,4 +37,5 @@ public class OpenController
     {
         return await _openService.GetGalxeTaskStatusAsync(address);
     }
+    
 }
