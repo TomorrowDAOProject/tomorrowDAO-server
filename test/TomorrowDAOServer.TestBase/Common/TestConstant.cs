@@ -1,4 +1,5 @@
 
+using System;
 using AElf.Types;
 
 namespace TomorrowDAOServer.Common;
@@ -11,13 +12,13 @@ public static class TestConstant
     
     public const string DaoId = "bfbd1a01fd5a931d2fef9ed77146d47b1ba18498cdd300ad6530cd832583152a";
     
-    public const string PrivateKey1 = "**";
+    public static readonly string PrivateKey1 = Environment.GetEnvironmentVariable("UNITTEST_KEY_01");
     public const string PublicKey1 =
         "04f5db833e5377cab193e3fc663209ac3293ef67736021ee9cebfd1b95a058a5bb400aaeb02ed15dc93177c9bcf38057c4b8069f46601a2180e892a555345c89cf";
     public const string Address1 = "2Md6Vo6SWrJPRJKjGeiJtrJFVkbc5EARXHGcxJoeD75pMSfdN2";
-    public const string PrivateKey2 = "**";
+    public static readonly string PrivateKey2 = Environment.GetEnvironmentVariable("UNITTEST_KEY_02");
     public const string PublicKey2 =
-        "**";
+        "04de4367b534d76e8586ac191e611c4ac05064b8bc585449aee19a8818e226ad29c24559216fd33c28abe7acaa8471d2b521152e8b40290dfc420d6eb89f70861a";
     public const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
 
     public const long LongestChainHeight = 1000;
