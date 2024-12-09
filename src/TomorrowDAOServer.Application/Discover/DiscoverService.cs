@@ -285,7 +285,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
         var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(string.Empty, aliases);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
-        foreach (var app in list)
+        foreach (var app in list.Where(x => !string.IsNullOrEmpty(x.Alias)))
         {
             app.TotalPoints = pointsDic.GetValueOrDefault(app.Alias, 0);
             app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
