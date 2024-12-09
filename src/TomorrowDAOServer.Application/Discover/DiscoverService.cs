@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Discover.Dto;
 using TomorrowDAOServer.Discover.Provider;
+using TomorrowDAOServer.Discussion.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
@@ -17,7 +17,6 @@ using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
-using Volo.Abp.Users;
 
 namespace TomorrowDAOServer.Discover;
 
@@ -29,10 +28,13 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
     private readonly IUserViewAppProvider _userViewAppProvider;
     private readonly IOptionsMonitor<DiscoverOptions> _discoverOptions;
+    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
+    private readonly IDiscussionProvider _discussionProvider;
 
     public DiscoverService(IDiscoverChoiceProvider discoverChoiceProvider, IUserProvider userProvider,
         ITelegramAppsProvider telegramAppsProvider, IRankingAppPointsProvider rankingAppPointsProvider, 
-        IUserViewAppProvider userViewAppProvider, IOptionsMonitor<DiscoverOptions> discoverOptions)
+        IUserViewAppProvider userViewAppProvider, IOptionsMonitor<DiscoverOptions> discoverOptions, 
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IDiscussionProvider discussionProvider)
     {
         _discoverChoiceProvider = discoverChoiceProvider;
         _userProvider = userProvider;
@@ -40,6 +42,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
         _rankingAppPointsProvider = rankingAppPointsProvider;
         _userViewAppProvider = userViewAppProvider;
         _discoverOptions = discoverOptions;
+        _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
+        _discussionProvider = discussionProvider;
     }
 
     public async Task<bool> DiscoverViewedAsync(string chainId)
@@ -89,7 +93,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             CommonConstant.New => await GetNewAppListAsync(input, address, userId),
             _ => await GetCategoryAppListAsync(input)
         };
-        await FillTotalPoints(input.ChainId, res.Data);
+        await FillData(input.ChainId, res.Data);
         return res;
     }
 
@@ -104,7 +108,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             CommonConstant.ForYou => await GetForYouAppListAsync(input, address, userId),
             _ => new RandomAppListDto()
         };
-        await FillTotalPoints(input.ChainId, res.AppList);
+        await FillData(input.ChainId, res.AppList);
         return res;
     }
 
@@ -274,13 +278,19 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return new AppPageResultDto<DiscoverAppDto>(count, ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(availableTopApps));
     }
     
-    private async Task FillTotalPoints(string chainId, List<DiscoverAppDto> list)
+    private async Task FillData(string chainId, List<DiscoverAppDto> list)
     {
         var aliases = list.Select(x => x.Alias).ToList();
         var pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
+        var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
+        var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(string.Empty, aliases);
+        var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
         foreach (var app in list)
         {
             app.TotalPoints = pointsDic.GetValueOrDefault(app.Alias, 0);
+            app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
+            app.TotalLikes = likesDic.GetValueOrDefault(app.Alias, 0);
+            app.TotalComments = commentsDic.GetValueOrDefault(app.Alias, 0);
         }
     }
 

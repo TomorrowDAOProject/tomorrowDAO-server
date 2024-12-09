@@ -41,6 +41,7 @@ public interface IRankingAppPointsRedisProvider
     Task IncrementLoginPointsByUserIdAsync(string userId, bool viewAd, int consecutiveLoginDays);
     Task<long> IncrementOpenedAppCountAsync(string alias, int count);
     Task<Dictionary<string, long>> GetOpenedAppCountAsync(List<string> alias);
+    Task<Dictionary<string, long>> GetAppLikeCountAsync(string proposalId, List<string> aliases);
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -320,6 +321,32 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
 
         var keyAliasMap = aliases.ToDictionary(
             alias => RedisHelper.GenerateOpenedAppCountCacheKey(alias), 
+            alias => alias
+        );
+
+        var batch = _database.CreateBatch();
+        var tasks = new Dictionary<string, Task<RedisValue>>();
+        foreach (var key in keyAliasMap.Keys)
+        {
+            tasks[key] = batch.StringGetAsync(key);
+        }
+        batch.Execute();
+        await Task.WhenAll(tasks.Values);
+        return tasks.ToDictionary(
+            kvp => keyAliasMap[kvp.Key],
+            kvp => (long)(kvp.Value.Result.HasValue ? (long)kvp.Value.Result : 0)
+        );
+    }
+    
+    public async Task<Dictionary<string, long>> GetAppLikeCountAsync(string proposalId, List<string> aliases)
+    {
+        if (aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, long>();
+        }
+
+        var keyAliasMap = aliases.ToDictionary(
+            alias => RedisHelper.GenerateAppPointsLikeCacheKey(proposalId, alias), 
             alias => alias
         );
 
