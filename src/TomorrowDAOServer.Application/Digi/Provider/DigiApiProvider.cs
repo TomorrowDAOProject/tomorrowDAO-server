@@ -44,22 +44,30 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
         _httpClient = _httpClientFactory.CreateClient();
     }
 
-    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default, MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
-        TargetType = typeof(TmrwDaoExceptionHandler), Message = "DigiCheckAsyncError", LogTargets = new []{"uid"})]
+    // [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default, MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
+    //     TargetType = typeof(TmrwDaoExceptionHandler), Message = "DigiCheckAsyncError", LogTargets = new []{"uid"})]
     public virtual async Task<bool> CheckAsync(long uid)
     {
-        var domain = _digiOptions.CurrentValue.Domain;
-        var authorizationToken = _digiOptions.CurrentValue.Authorization;
-        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationToken);
-        var requestBody = new { Uid = uid };
-        var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, MediaTypeNames.Application.Json);
-        _logger.LogInformation("ReportAsyncStart uid {0}, authorizationToken {1} requestContent {2}", uid, authorizationToken, requestContent);
-        var response = await _httpClient.PostAsync(domain + DigiApi.Check.Path, requestContent);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        _logger.LogInformation("ReportAsyncEnd uid {0}, authorizationToken {1} requestContent {2} responseContent {3}", uid, authorizationToken, requestContent, responseContent);
-        var digiResponse = JsonConvert.DeserializeObject<DigiResponse>(responseContent) ?? new DigiResponse();
-        _logger.LogInformation("ReportAsyncResponse uid {0}, code {1}", uid, digiResponse.Code);
-        return digiResponse.Success;
+        try
+        {
+            var domain = _digiOptions.CurrentValue.Domain;
+            var authorizationToken = _digiOptions.CurrentValue.Authorization;
+            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationToken);
+            var requestBody = new { Uid = uid };
+            var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, MediaTypeNames.Application.Json);
+            _logger.LogInformation("ReportAsyncStart uid {0}, authorizationToken {1} requestContent {2}", uid, authorizationToken, requestContent);
+            var response = await _httpClient.PostAsync(domain + DigiApi.Check.Path, requestContent);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("ReportAsyncEnd uid {0}, authorizationToken {1} requestContent {2} responseContent {3}", uid, authorizationToken, requestContent, responseContent);
+            var digiResponse = JsonConvert.DeserializeObject<DigiResponse>(responseContent) ?? new DigiResponse();
+            _logger.LogInformation("ReportAsyncResponse uid {0}, code {1}", uid, digiResponse.Code);
+            return digiResponse.Success;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "ReportAsyncError");
+            return false;
+        }
     }
 }
 
