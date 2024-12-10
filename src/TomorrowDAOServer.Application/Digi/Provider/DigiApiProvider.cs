@@ -53,6 +53,7 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
         _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationToken);
         var requestBody = new { Uid = uid };
         var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, MediaTypeNames.Application.Json);
+        _logger.LogInformation("ReportAsyncResponseStart uid {0}, body {1}", uid, JsonConvert.SerializeObject(requestBody));
         var response = await _httpClient.PostAsync(domain + DigiApi.Check.Path, requestContent);
         var responseContent = await response.Content.ReadAsStringAsync();
         var digiResponse = JsonConvert.DeserializeObject<DigiResponse>(responseContent) ?? new DigiResponse();
