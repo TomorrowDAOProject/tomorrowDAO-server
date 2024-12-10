@@ -53,13 +53,16 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
         {
             var domain = _digiOptions.CurrentValue.Domain;
             var authorizationToken = _digiOptions.CurrentValue.Authorization;
-            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationToken);
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationToken);
+            httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/json");
             var requestBody = new { Uid = uid };
             var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, MediaTypeNames.Application.Json);
-            _logger.LogInformation("ReportAsyncStart uid {0}, authorizationToken {1} requestContent {2}", uid, authorizationToken, requestContent);
+            _logger.LogInformation("ReportAsyncStart uid {0}, authorizationToken {1}", uid, authorizationToken);
             var response = await _httpClient.PostAsync(domain + DigiApi.Check.Path, requestContent);
+            _logger.LogInformation("ReportAsyncEnd uid {0}, authorizationToken {1}, code {2}", uid, authorizationToken, response.StatusCode);
             var responseContent = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("ReportAsyncEnd uid {0}, authorizationToken {1} requestContent {2} responseContent {3}", uid, authorizationToken, requestContent, responseContent);
+            _logger.LogInformation("ReportAsyncEnd uid {0}, authorizationToken {1} responseContent {2}, code {3}", uid, authorizationToken, responseContent, response.StatusCode);
             var digiResponse = JsonConvert.DeserializeObject<DigiResponse>(responseContent) ?? new DigiResponse();
             _logger.LogInformation("ReportAsyncResponse uid {0}, code {1}", uid, digiResponse.Code);
             return digiResponse.Success;
