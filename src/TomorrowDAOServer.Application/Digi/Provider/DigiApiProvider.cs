@@ -44,9 +44,9 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
         _httpClient = _httpClientFactory.CreateClient();
     }
 
-    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default, 
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default, MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
         TargetType = typeof(TmrwDaoExceptionHandler), Message = "DigiCheckAsyncError", LogTargets = new []{"uid"})]
-    public async Task<bool> CheckAsync(long uid)
+    public virtual async Task<bool> CheckAsync(long uid)
     {
         var domain = _digiOptions.CurrentValue.Domain;
         var authorizationToken = _digiOptions.CurrentValue.Authorization;
