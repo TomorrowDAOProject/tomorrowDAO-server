@@ -50,6 +50,13 @@ public class DiscoverController
         return await _discoverService.GetRandomAppListAsync(input);
     }
     
+    [HttpPost("vote-app-list")]
+    [Authorize]
+    public async Task<PageResultDto<DiscoverAppDto>> GetVoteAppListAsync(GetDiscoverAppListInput input)
+    {
+        return await _discoverService.GetVoteAppListAsync(input);
+    }
+    
     [HttpPost("view-app")]
     [Authorize]
     public async Task<bool> ViewAppAsync(ViewAppInput input)

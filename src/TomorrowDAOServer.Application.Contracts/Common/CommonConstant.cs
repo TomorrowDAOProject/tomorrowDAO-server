@@ -108,6 +108,8 @@ public static class CommonConstant
     public const string Recommend = "Recommend";
     public const string New = "New";
     public const string ForYou = "ForYou";
+    public const string Accumulative = "Accumulative";
+    public const string Current = "Current";
     public const double InterestedPercent = 0.75;
     
     // App

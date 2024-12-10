@@ -112,6 +112,15 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return res;
     }
 
+    public async Task<PageResultDto<DiscoverAppDto>> GetVoteAppListAsync(GetDiscoverAppListInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        // todo
+        return new PageResultDto<DiscoverAppDto>();
+    }
+
     public async Task<bool> ViewAppAsync(ViewAppInput input)
     {
         if (input.Aliases.IsNullOrEmpty())
@@ -251,7 +260,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var search = input.Search;
         var aliases = _discoverOptions.CurrentValue.TopApps;
         var topApps = new List<TelegramAppIndex>();
-        if (string.IsNullOrEmpty(search))
+        if (!string.IsNullOrEmpty(search))
         {
             return await GetSearchAppListAsync(input);
         }
