@@ -44,8 +44,9 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
         _httpClient = _httpClientFactory.CreateClient();
     }
 
-    // [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default, MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,
-    //     TargetType = typeof(TmrwDaoExceptionHandler), Message = "DigiCheckAsyncError", LogTargets = new []{"uid"})]
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler), 
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.Default, 
+        Message = "DigiCheckAsyncError", LogTargets = new []{"uid"})]
     public virtual async Task<bool> CheckAsync(long uid)
     {
         try
