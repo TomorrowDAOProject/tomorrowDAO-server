@@ -58,7 +58,6 @@ public class UserGrain : Grain<UserState>, IUserGrain
         State.ModificationTime = now;
         State.GuardianIdentifier = input.GuardianIdentifier;
         State.Address = input.Address;
-        State.Extra = input.Extra;
         State.UserInfo = input.UserInfo;
 
         await WriteStateAsync();
