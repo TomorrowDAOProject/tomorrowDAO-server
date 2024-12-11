@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
 using Nest;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Entities;
 
@@ -31,4 +32,5 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public long TotalPoints { get; set; }
     public long TotalVotes { get; set; }
     public long TotalLikes { get; set; }
+    public List<TelegramAppCategory> Categories { get; set; }
 }
