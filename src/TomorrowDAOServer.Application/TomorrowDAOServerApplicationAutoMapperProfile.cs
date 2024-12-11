@@ -313,5 +313,10 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => source.BackScreenshots))
             ;
         CreateMap<TelegramUserInfoIndex, InviteLeaderBoardDto>();
+        CreateMap<GetVoteAppListInput, GetDiscoverAppListInput>();
+        CreateMap<RankingAppIndex, DiscoverAppDto>()
+            .ForMember(des => des.Categories, opt
+                => opt.MapFrom(source => MapCategories(source.Categories)))
+            ;
     }
 }

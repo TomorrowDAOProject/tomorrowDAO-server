@@ -50,11 +50,18 @@ public class DiscoverController
         return await _discoverService.GetRandomAppListAsync(input);
     }
     
-    [HttpPost("vote-app-list")]
+    [HttpPost("accumulative-app-list")]
     [Authorize]
-    public async Task<PageResultDto<DiscoverAppDto>> GetVoteAppListAsync(GetDiscoverAppListInput input)
+    public async Task<AccumulativeAppPageResultDto<DiscoverAppDto>> GetAccumulativeAppListAsync(GetDiscoverAppListInput input)
     {
-        return await _discoverService.GetVoteAppListAsync(input);
+        return await _discoverService.GetAccumulativeAppListAsync(input);
+    }
+    
+    [HttpPost("current-app-list")]
+    [Authorize]
+    public async Task<CurrentAppPageResultDto<DiscoverAppDto>> GetCurrentAppListAsync(GetDiscoverAppListInput input)
+    {
+        return await _discoverService.GetCurrentAppListAsync(input);
     }
     
     [HttpPost("view-app")]

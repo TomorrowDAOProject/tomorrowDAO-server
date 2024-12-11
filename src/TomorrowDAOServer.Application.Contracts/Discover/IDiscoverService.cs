@@ -11,6 +11,7 @@ public interface IDiscoverService
     Task<bool> DiscoverChooseAsync(string chainId, List<string> choices);
     Task<AppPageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input);
     Task<RandomAppListDto> GetRandomAppListAsync(GetRandomAppListInputAsync input);
-    Task<PageResultDto<DiscoverAppDto>> GetVoteAppListAsync(GetDiscoverAppListInput input);
+    Task<AccumulativeAppPageResultDto<DiscoverAppDto>> GetAccumulativeAppListAsync(GetDiscoverAppListInput input);
+    Task<CurrentAppPageResultDto<DiscoverAppDto>> GetCurrentAppListAsync(GetDiscoverAppListInput input);
     Task<bool> ViewAppAsync(ViewAppInput input);
 }

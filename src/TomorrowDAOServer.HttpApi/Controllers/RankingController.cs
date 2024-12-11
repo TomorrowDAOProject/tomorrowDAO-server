@@ -85,4 +85,11 @@ public class RankingController : AbpController
     {
         return await _rankingAppService.GetBannerInfoAsync(chainId);
     }
+    
+    [HttpGet("poll-list")]
+    [Authorize]
+    public async Task<RankingListPageResultDto<RankingListDto>> GetPollListAsync(GetPollListInput input)
+    {
+        return await _rankingAppService.GetPollListAsync(input);
+    }
 }
