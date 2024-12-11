@@ -28,4 +28,7 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
+    public long TotalPoints { get; set; }
+    public long TotalVotes { get; set; }
+    public long TotalLikes { get; set; }
 }
