@@ -1,3 +1,5 @@
+using System;
+
 namespace TomorrowDAOServer.Common.Security;
 
 public class RedisHelper
@@ -10,11 +12,19 @@ public class RedisHelper
     private const string DistributedCachePointsAllPrefix = "Points:All";
     private const string DistributedCachePointsLoginPrefix = "Points:Login";
     private const string DistributedCacheOpenedAppCountPrefix = "Count:OpenedApp";
-    
-    
-    public static string GenerateDistributeCacheKey(string chainId, string address, string proposalId)
+    private const string DistributedCacheLikedAppCountPrefix = "Count:LikedApp";
+    private const string DistributedCacheProposalVotePointsPrefix = "Proposal:VotePoints";
+    private const string DistributedCacheProposalLikePointsPrefix = "Proposal:LikePoints";
+    private const string DistributedCacheTotalPointsPrefix = "AllApps:Points";
+    private const string DistributedCacheTotalVotesPrefix = "AllApps:Vote";
+    private const string DistributedCacheTotalLikesPrefix = "AllApps:Like";
+
+
+    public static string GenerateDistributeCacheKey(string chainId, string address, string proposalId, string category)
     {
-        return $"{DistributedCachePrefix}:{chainId}:{address}:{proposalId}";
+        return category.IsNullOrWhiteSpace()
+            ? $"{DistributedCachePrefix}:{chainId}:{address}:{proposalId}"
+            : $"{DistributedCachePrefix}:{chainId}:{address}:{proposalId}:{category}";
     }
 
     public static string GenerateDistributedLockKey(string chainId, string address, string proposalId)
@@ -26,12 +36,12 @@ public class RedisHelper
     {
         return $"{DistributedCachePointsVotePrefix}:{proposalId}:{alias}";
     }
-    
-    public static string GenerateAppPointsLikeCacheKey(string proposalId, string alias)
+
+    public static string GenerateRankingAppPointsLikeCacheKey(string proposalId, string alias)
     {
         return $"{DistributedCachePointsLikePrefix}:{proposalId}:{alias}";
     }
-    
+
     public static string GenerateUserPointsAllCacheKey(string address)
     {
         return $"{DistributedCachePointsAllPrefix}:{address}";
@@ -41,7 +51,17 @@ public class RedisHelper
     {
         return $"{DistributedCachePointsAllPrefix}:{userId}";
     }
+
+    public static string GenerateProposalVotePointsCacheKey(string proposalId)
+    {
+        return $"{DistributedCacheProposalVotePointsPrefix}:{proposalId}";
+    }
     
+    public static string GenerateProposalLikePointsCacheKey(string proposalId)
+    {
+        return $"{DistributedCacheProposalLikePointsPrefix}:{proposalId}";
+    }
+
     public static string GenerateDefaultProposalCacheKey(string chainId)
     {
         return $"{DistributedCacheDefaultProposalPrefix}:{chainId}";
@@ -51,6 +71,7 @@ public class RedisHelper
     {
         return $"{DistributedCachePointsLoginPrefix}:{address}";
     }
+
     public static string GenerateUserLoginPointsByIdCacheKey(string userId)
     {
         return $"{DistributedCachePointsLoginPrefix}:{userId}";
@@ -59,5 +80,25 @@ public class RedisHelper
     public static string GenerateOpenedAppCountCacheKey(string alias)
     {
         return $"{DistributedCacheOpenedAppCountPrefix}:{alias}";
+    }
+    
+    public static string GenerateLikedAppCountCacheKey(string alias)
+    {
+        return $"{DistributedCacheLikedAppCountPrefix}:{alias}";
+    }
+    
+    public static string GenerateTotalPointsCacheKey()
+    {
+        return $"{DistributedCacheTotalPointsPrefix}";
+    }
+    
+    public static string GenerateTotalVotesCacheKey()
+    {
+        return $"{DistributedCacheTotalVotesPrefix}";
+    }
+    
+    public static string GenerateTotalLikesCacheKey()
+    {
+        return $"{DistributedCacheTotalLikesPrefix}";
     }
 }

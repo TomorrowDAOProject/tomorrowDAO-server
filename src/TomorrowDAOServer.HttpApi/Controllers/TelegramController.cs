@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Asp.Versioning;
@@ -92,6 +93,7 @@ public class TelegramController : AbpController
         return await _telegramService.SearchAppAsync(title);
     }
     
+    [Obsolete("Running this method will overwrite the historical stats")]
     [HttpPost("add-app")]
     [Authorize]
     public async Task<bool> AddAppAsync(AddAppInput input)

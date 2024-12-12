@@ -17,10 +17,12 @@ namespace TomorrowDAOServer.Controllers;
 public class RankingController : AbpController
 {
     private readonly IRankingAppService _rankingAppService;
+    private readonly IVotigramRevampDataMigrator _votigramRevampDataMigrator;
 
-    public RankingController(IRankingAppService rankingAppService)
+    public RankingController(IRankingAppService rankingAppService, IVotigramRevampDataMigrator votigramRevampDataMigrator)
     {
         _rankingAppService = rankingAppService;
+        _votigramRevampDataMigrator = votigramRevampDataMigrator;
     }
     
     [HttpGet("default-proposal")]
@@ -84,5 +86,12 @@ public class RankingController : AbpController
     public async Task<RankingBannerInfo> GetBannerInfoAsync(string chainId)
     {
         return await _rankingAppService.GetBannerInfoAsync(chainId);
+    }
+
+    [HttpGet("votigram-revamp-data-migrator")]
+    [Authorize]
+    public async Task VotigramRevampDataMigratorAsync(string chainId, bool dealDuplicateApp, bool dealRankingApp, bool dealTelegramApp)
+    {
+        await _votigramRevampDataMigrator.MigrateHistoricalDataAsync(chainId, dealDuplicateApp, dealRankingApp, dealTelegramApp);
     }
 }

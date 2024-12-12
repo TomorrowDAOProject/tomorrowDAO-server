@@ -16,7 +16,6 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string ProposalTitle { get; set; }
     [Keyword] public string ProposalDescription { get; set; }
     public DateTime ActiveStartTime { get; set; }
-   
     public DateTime ActiveEndTime { get; set; }
     [Keyword] public string AppId { get; set; }
     [Keyword] public string Alias { get; set; }
@@ -33,4 +32,5 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public long TotalVotes { get; set; }
     public long TotalLikes { get; set; }
     public List<TelegramAppCategory> Categories { get; set; }
+    public int AppIndex { get; set; } = 0;
 }

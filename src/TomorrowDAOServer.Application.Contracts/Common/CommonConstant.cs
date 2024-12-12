@@ -53,10 +53,12 @@ public static class CommonConstant
     public const string VoteEventVoted = "Voted";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
+    public const string DescriptionTMARankingBegin = "##GameRanking:TMARanking";
     public const string DescriptionIconBegin = "#B:";
 
     public const string OldDescriptionPattern = @"^##GameRanking\s*:\s*([a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)\s*$";
     public const string NewDescriptionPattern = @"^##GameRanking[\s]*:[\s]*((?:\{[^{}]+\}[,]?)+)(?:#B[\s]*:[\s]*(?:\{([^{}]*)?\})?)?$";
+    public const string TMADescriptionPattern = @"^##GameRanking:TMARanking(?:#B[\s]*:[\s]*(?:\{([^{}]*)?\})?)?$";
     public const string NewDescriptionAliasPattern =  @"\{([^{}]+)\}";
     public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;

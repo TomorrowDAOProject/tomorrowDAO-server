@@ -27,6 +27,9 @@ public class TelegramAppDto
     public string Creator { get; set; }
     public string BackIcon { get; set; }
     public List<string> BackScreenshots { get; set; }
+    public long TotalPoints { get; set; }
+    public long TotalVotes { get; set; }
+    public long TotalLikes { get; set; }
 }
 
 public class BatchSaveAppsInput
@@ -72,6 +75,7 @@ public class QueryTelegramAppsInput
     public List<string> Ids { get; set; }
 
     public SourceType? SourceType { get; set; } = null;
+    public List<SourceType> SourceTypes { get; set; } = new List<SourceType>();
 }
 
 public enum ContentType
