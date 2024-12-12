@@ -282,6 +282,37 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         };
     }
 
+    public async Task<RankingListPageResultDto<RankingListDto>> GetPollListAsync(GetPollListInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        var active = input.Type == CommonConstant.Current;
+        var excludeIds = new List<string>(_rankingOptions.CurrentValue.RankingExcludeIds);
+        var result = await _proposalProvider.GetPollListAsync(input.ChainId, input.SkipCount, input.MaxResultCount, active, excludeIds);
+        var list = ObjectMapper.Map<List<ProposalIndex>, List<RankingListDto>>(result.Item2);
+        var descList = list.Where(x => !string.IsNullOrEmpty(x.ProposalDescription)).Select(x => x.ProposalDescription).ToList();
+        var proposalIds = list.Select(x => x.ProposalId).ToList();
+        var bannerDic = await GetBannerUrlsAsync(descList);
+        var pointsList = await _rankingAppPointsProvider.GetByProposalIdsAndPointsType(proposalIds, PointsType.Vote);
+        var pointsDic = pointsList.GroupBy(p => p.ProposalId).ToDictionary(t => t.Key, t => t.ToList());
+        var utcNow = DateTime.UtcNow;
+        foreach (var detail in list)
+        {
+            var pointsIndex = pointsDic.GetValueOrDefault(detail.ProposalId, []);
+            detail.TotalVoteAmount = pointsIndex.Sum(t => t.Amount);
+            detail.Tag = detail.RankingType == RankingType.Verified ? CommonConstant.Trending : string.Empty;
+            detail.Active = utcNow >= detail.ActiveStartTime && utcNow <= detail.ActiveEndTime;
+            detail.BannerUrl = string.IsNullOrEmpty(detail.ProposalDescription) ? string.Empty : bannerDic.GetValueOrDefault(detail.ProposalDescription, string.Empty);
+        }
+        var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
+        return new RankingListPageResultDto<RankingListDto>
+        {
+            Data = list, TotalCount = result.Item1,
+            UserTotalPoints = userAllPoints,
+        };
+    }
+
     private async Task<Tuple<string, string, List<string>>> GetTopRankingIdsAsync()
     {
         var topRankingIds = new List<string>(_rankingOptions.CurrentValue.TopRankingIds);
