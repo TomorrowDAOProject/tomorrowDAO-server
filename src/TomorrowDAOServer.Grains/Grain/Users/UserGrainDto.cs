@@ -52,6 +52,6 @@ public class UserExtraDto
 {
     public int ConsecutiveLoginDays { get; set; } = 0;
     public DateTime LastModifiedTime { get; set; }
-    public bool DailyLoginPointsStatus { get; set; } = false;
+    public bool[] DailyPointsClaimedStatus { get; set; } = new bool[7];
     public bool HasVisitedVotePage { get; set; } = false;
 }

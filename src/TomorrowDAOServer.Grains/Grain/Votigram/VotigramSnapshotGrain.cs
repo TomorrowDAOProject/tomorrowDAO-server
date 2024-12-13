@@ -43,6 +43,24 @@ public class VotigramSnapshotGrain : Grain<PointsSnapshotState>, IVotigramSnapsh
             State.RedisDataMigrationCompleted = input.RedisDataMigrationCompleted;
             State.RedisPointSnapshot = input.RedisPointSnapshot;
         }
+
+        if (!State.RankingAppPointsIndexCompleted)
+        {
+            State.RankingAppPointsIndexCompleted = input.RankingAppPointsIndexCompleted;
+            State.RankingAppPointsIndex = input.RankingAppPointsIndex;
+        }
+
+        if (!State.RankingAppUserPointsIndexCompleted)
+        {
+            State.RankingAppUserPointsIndexCompleted = input.RankingAppUserPointsIndexCompleted;
+            State.RankingAppUserPointsIndex = input.RankingAppUserPointsIndex;
+        }
+
+        if (!State.UserPointsIndexCompleted)
+        {
+            State.UserPointsIndexCompleted = input.UserPointsIndexCompleted;
+            State.UserPointsIndex = input.UserPointsIndex;
+        }
         
         await WriteStateAsync();
         return new GrainResultDto<bool>

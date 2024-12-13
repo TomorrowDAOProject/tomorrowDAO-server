@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Eto;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
@@ -29,8 +30,11 @@ public interface IRankingAppPointsProvider
     Task<RankingAppUserPointsIndex> GetRankingUserPointsIndexByAliasAsync(string chainId, string proposalId,
         string address, string alias = null, PointsType type = PointsType.All, string userId = null);
 
-    Task<Dictionary<string, long>>  GetTotalPointsByAliasAsync(string chainId, List<string> aliases);
+    Task<Dictionary<string, long>> GetTotalPointsByAliasAsync(string chainId, List<string> aliases);
     Task<List<RankingAppPointsIndex>> GetByProposalIdsAndPointsType(List<string> proposalIds, PointsType pointsType);
+
+    Task<Tuple<long, List<RankingAppPointsIndex>>> GetRankingAppPointsAsync(GetRankingAppPointsInput input);
+    Task<Tuple<long, List<RankingAppUserPointsIndex>>> GetRankingAppUserPointsAsync(GetRankingAppUserPointsInput input);
 }
 
 public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDependency
@@ -88,7 +92,7 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
             {
                 points = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(message.Amount);
             }
-            
+
             appPointsIndex.Points += points;
             appPointsIndex.UpdateTime = DateTime.Now;
 
@@ -124,7 +128,7 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
             }
 
             long deltaPoints = 0;
-            
+
             switch (pointsType)
             {
                 case PointsType.Vote:
@@ -138,7 +142,7 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
                     deltaPoints = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(message.Amount);
                     break;
             }
-            
+
             userPointsIndex.Points += deltaPoints;
             userPointsIndex.UpdateTime = DateTime.Now;
 
@@ -174,7 +178,7 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         {
             mustQuery.Add(q => !q.Exists(i => i.Field(f => f.ProposalId)));
         }
-        
+
 
         if (!alias.IsNullOrWhiteSpace())
         {
@@ -190,8 +194,9 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
 
         return await _appPointsIndexRepository.GetAsync(Filter);
     }
-    
-    public async Task<List<RankingAppPointsIndex>> GetRankingAppPointsIndexByAliasAsync(string chainId, string proposalId,
+
+    public async Task<List<RankingAppPointsIndex>> GetRankingAppPointsIndexByAliasAsync(string chainId,
+        string proposalId,
         List<string> aliases = null, PointsType type = PointsType.All)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppPointsIndex>, QueryContainer>>();
@@ -226,10 +231,12 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
             {
                 shouldQuery.Add(q => q.Term(i => i.Field(f => f.Address).Value(address)));
             }
+
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 shouldQuery.Add(q => q.Term(i => i.Field(f => f.UserId).Value(userId)));
             }
+
             if (shouldQuery.Count > 0)
             {
                 mustQuery.Add(q => q.Bool(b => b.Should(shouldQuery)));
@@ -265,8 +272,8 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
 
         var query = new QueryContainerDescriptor<RankingAppUserPointsIndex>();
         var mustQuery = query.Bool(b => b.Must(
-                m => m.Term(t => t.Field(f => f.ChainId).Value(chainId)) 
-                     && m.Terms(t => t.Field(f => f.Alias).Terms(aliases))    
+                m => m.Term(t => t.Field(f => f.ChainId).Value(chainId))
+                     && m.Terms(t => t.Field(f => f.Alias).Terms(aliases))
             )
         );
 
@@ -274,10 +281,10 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
             .Query(_ => mustQuery)
             .Aggregations(a => a
                 .Terms("alias_agg", t => t
-                    .Field(f => f.Alias)  
-                    .Size(aliases.Count)  
+                    .Field(f => f.Alias)
+                    .Size(aliases.Count)
                     .Aggregations(aa => aa
-                        .Sum("points_sum", sum => sum 
+                        .Sum("points_sum", sum => sum
                             .Field(f => f.Points)
                         )
                     )
@@ -299,7 +306,8 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         return aliasTotalPoints;
     }
 
-    public async Task<List<RankingAppPointsIndex>> GetByProposalIdsAndPointsType(List<string> proposalIds, PointsType pointsType)
+    public async Task<List<RankingAppPointsIndex>> GetByProposalIdsAndPointsType(List<string> proposalIds,
+        PointsType pointsType)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppPointsIndex>, QueryContainer>>
         {
@@ -310,9 +318,45 @@ public class RankingAppPointsProvider : IRankingAppPointsProvider, ISingletonDep
         {
             mustQuery.Add(q => q.Term(i => i.Field(f => f.PointsType).Value(pointsType)));
         }
-        
+
         QueryContainer Filter(QueryContainerDescriptor<RankingAppPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
-        
+
         return (await _appPointsIndexRepository.GetListAsync(Filter)).Item2;
+    }
+
+    public async Task<Tuple<long, List<RankingAppPointsIndex>>> GetRankingAppPointsAsync(GetRankingAppPointsInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppPointsIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.ChainId).Value(input.ChainId))
+        };
+
+        if (!input.ExcludePointsTypes.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.PointsType).Terms(input.ExcludePointsTypes)));
+        }
+
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _appPointsIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount,
+            limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<RankingAppPointsIndex>().Descending(index => index.UpdateTime));
+    }
+    
+    public async Task<Tuple<long, List<RankingAppUserPointsIndex>>> GetRankingAppUserPointsAsync(GetRankingAppUserPointsInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppUserPointsIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.ChainId).Value(input.ChainId))
+        };
+
+        if (!input.ExcludePointsTypes.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.PointsType).Terms(input.ExcludePointsTypes)));
+        }
+
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppUserPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _userPointsIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount,
+            limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<RankingAppUserPointsIndex>().Descending(index => index.UpdateTime));
     }
 }

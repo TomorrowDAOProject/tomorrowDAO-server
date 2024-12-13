@@ -327,14 +327,22 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         if (TimeHelper.IsYesterday(userExtraDto.LastModifiedTime))
         {
-            userExtraDto.ConsecutiveLoginDays += 1;
-            userExtraDto.DailyLoginPointsStatus = false;
-            userExtraDto.LastModifiedTime = DateTime.UtcNow;
+            if (userExtraDto.ConsecutiveLoginDays == 7)
+            {
+                userExtraDto.ConsecutiveLoginDays = 1;
+                userExtraDto.DailyPointsClaimedStatus = new bool[7];
+                userExtraDto.LastModifiedTime = DateTime.UtcNow;
+            }
+            else
+            {
+                userExtraDto.ConsecutiveLoginDays += 1;
+                userExtraDto.LastModifiedTime = DateTime.UtcNow;
+            }
         }
         else if (!TimeHelper.IsToday(userExtraDto.LastModifiedTime))
         {
             userExtraDto.ConsecutiveLoginDays = 1;
-            userExtraDto.DailyLoginPointsStatus = false;
+            userExtraDto.DailyPointsClaimedStatus = new bool[7];
             userExtraDto.LastModifiedTime = DateTime.UtcNow;
         }
         
@@ -347,7 +355,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         return new LoginPointsStatusDto
         {
             ConsecutiveLoginDays = userExtraDto.ConsecutiveLoginDays,
-            DailyLoginPointsStatus = userExtraDto.DailyLoginPointsStatus,
+            DailyLoginPointsStatus = userExtraDto.DailyPointsClaimedStatus[userExtraDto.ConsecutiveLoginDays - 1],
+            DailyPointsClaimedStatus = userExtraDto.DailyPointsClaimedStatus,
             UserTotalPoints = totalPoints
         };
     }
@@ -362,8 +371,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             throw new UserFriendlyException("Extra info is invalid");
         }
-
-        if (userExtraDto.DailyLoginPointsStatus)
+        
+        if (userExtraDto.DailyPointsClaimedStatus[userExtraDto.ConsecutiveLoginDays - 1])
         {
             throw new UserFriendlyException("Already claimed the rewards points.");
         }
@@ -402,7 +411,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 { "viewAd", viewAd.ToString() }
             }, userGrainDto.UserId.ToString());
 
-        userExtraDto.DailyLoginPointsStatus = true;
+        userExtraDto.DailyPointsClaimedStatus[userExtraDto.ConsecutiveLoginDays - 1] = true;
         userExtraDto.LastModifiedTime = lastModifiedTime;
         userGrainDto.SetUserExtraDto(userExtraDto);
         await _userProvider.UpdateUserAsync(userGrainDto);
@@ -412,7 +421,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         return new LoginPointsStatusDto
         {
             ConsecutiveLoginDays = userExtraDto.ConsecutiveLoginDays,
-            DailyLoginPointsStatus = userExtraDto.DailyLoginPointsStatus,
+            DailyLoginPointsStatus = userExtraDto.DailyPointsClaimedStatus[userExtraDto.ConsecutiveLoginDays - 1],
+            DailyPointsClaimedStatus = userExtraDto.DailyPointsClaimedStatus,
             UserTotalPoints = totalPoints
         };
     }

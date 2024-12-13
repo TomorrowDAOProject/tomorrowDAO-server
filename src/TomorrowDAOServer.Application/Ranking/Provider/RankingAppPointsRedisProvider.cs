@@ -197,8 +197,12 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         }
 
         var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
+        var totalLikesKey = RedisHelper.GenerateTotalLikesCacheKey();
+        var totalPointsKey = RedisHelper.GenerateTotalPointsCacheKey();
         var userLikePoints = _rankingAppPointsCalcProvider.CalculatePointsFromLikes(likeList.Sum(x => x.LikeAmount));
         taskList.Add(IncrementAsync(userKey, userLikePoints));
+        taskList.Add(IncrementAsync(totalLikesKey, userLikePoints));
+        taskList.Add(IncrementAsync(totalPointsKey, userLikePoints));
 
         await Task.WhenAll(taskList);
         var aliasResults = await Task.WhenAll(aliasIncrementMap);
@@ -224,11 +228,14 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var appVoteKey = RedisHelper.GenerateAppPointsVoteCacheKey(proposalId, alias);
         var userKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var proposalKey = RedisHelper.GenerateProposalVotePointsCacheKey(proposalId);
+        var totalVotesKey = RedisHelper.GenerateTotalVotesCacheKey();
+        var totalPointsKey = RedisHelper.GenerateTotalPointsCacheKey();
         var votePoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
         await Task.WhenAll(IncrementAsync(appVoteKey, votePoints), 
-            IncrementAsync(userKey, votePoints), IncrementAsync(proposalKey, votePoints));
+            IncrementAsync(userKey, votePoints), IncrementAsync(proposalKey, votePoints),
+            IncrementAsync(totalVotesKey, votePoints), IncrementAsync(totalPointsKey, votePoints));
     }
-
+    
     public async Task<Tuple<string, long>> GetRankingVotePointsAsync(string proposalId, string alias)
     {
         var appVoteKey = RedisHelper.GenerateAppPointsVoteCacheKey(proposalId, alias);

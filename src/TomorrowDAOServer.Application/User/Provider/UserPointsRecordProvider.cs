@@ -24,6 +24,7 @@ public interface IUserPointsRecordProvider
     Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, DateTime completeTime, Dictionary<string, string> information = null, string userId = "");
     Task GenerateTaskPointsRecordAsync(string chainId, string address, UserTaskDetail userTaskDetail, PointsType pointsType, DateTime completeTime, Dictionary<string, string> information = null, string userId = "");
     Task<Tuple<long, List<UserPointsIndex>>> GetPointsListAsync(GetMyPointsInput input, string address);
+    Task<Tuple<long, List<UserPointsIndex>>> GetPointsListAsync(GetMyPointsInput input);
     Task<bool> UpdateUserTaskCompleteTimeAsync(string chainId, string address, UserTask userTask, UserTaskDetail userTaskDetail, DateTime completeTime);
     Task<List<UserPointsIndex>> GetByAddressAndUserTaskAsync(string chainId, string address, UserTask userTask);
     Task<bool> UpdateUserViewAdTimeStampAsync(string chainId, string address, long timeStamp);
@@ -141,6 +142,20 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
                 q.Term(i => i.Field(t => t.ChainId).Value(chainId)),
             q =>
                 q.Term(i => i.Field(t => t.Address).Value(address))
+        };
+
+        QueryContainer Filter(QueryContainerDescriptor<UserPointsIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _userPointsRecordRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<UserPointsIndex>().Descending(index => index.PointsTime));
+    }
+
+    public async Task<Tuple<long, List<UserPointsIndex>>> GetPointsListAsync(GetMyPointsInput input)
+    {
+        var chainId = input.ChainId;
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserPointsIndex>, QueryContainer>>
+        {
+            q =>
+                q.Term(i => i.Field(t => t.ChainId).Value(chainId))
         };
 
         QueryContainer Filter(QueryContainerDescriptor<UserPointsIndex> f) => f.Bool(b => b.Must(mustQuery));

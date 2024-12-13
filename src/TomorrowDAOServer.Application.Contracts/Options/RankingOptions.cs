@@ -18,9 +18,9 @@ public class RankingOptions
     public long VoteTimeout { get; set; } = 60000;
     public int RetryTimes { get; set; } = 30;
     public int RetryDelay { get; set; } = 2000;
-    public long PointsPerVote { get; set; } = 1000;
+    public long PointsPerVote { get; set; } = 200; //done
     public long PointsPerLike { get; set; } = 1;
-    public long PointsFirstReferralVote { get; set; } = 5_0000;
+    public long PointsFirstReferralVote { get; set; } = 1000; //done
     public long PointsReferralTopInviter { get; set; } = 10_0000;
     public long PointsDailyViewAsset { get; set; } = 1_0000;
     public long PointsDailyFirstInvite { get; set; } = 2_0000;
