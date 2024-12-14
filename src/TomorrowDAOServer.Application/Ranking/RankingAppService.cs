@@ -998,8 +998,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     var inviter = await GetAddressFromCaHash(chainId, referral.InviterCaHash);
                     if (IsValidReferral(referral))
                     {
-                        var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Daily,
-                            UserTaskDetail.DailyFirstInvite, voteTime);
+                        var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, string.Empty,
+                            inviter, UserTask.Daily, UserTaskDetail.DailyFirstInvite, voteTime);
                         var inviteCount = await _referralInviteProvider.IncrementInviteCountAsync(chainId, inviter, 1);
                         Log.Information("RankingVoteInviteCount inviter {inviter} invitee {invitee} inviteCount {inviteCount} success {success}", 
                             inviter, address, inviteCount, success);
@@ -1020,8 +1020,8 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                             };
                             await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(inviter, userTaskDetail);
                             await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, userTaskDetail, voteTime);
-                            await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, inviter, UserTask.Explore,
-                                userTaskDetail, voteTime);
+                            await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, string.Empty, inviter,
+                                UserTask.Explore, userTaskDetail, voteTime);
                         }
                     }
                     if (IsValidReferralActivity(referral))

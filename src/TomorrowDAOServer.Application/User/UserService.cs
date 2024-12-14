@@ -157,7 +157,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             }
         }
         
-        var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(input.ChainId, address, userTask,
+        var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(input.ChainId, userId, address, userTask,
             userTaskDetail, completeTime);
         if (!success)
         {
@@ -235,9 +235,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var userId = userGrainDto.UserId.ToString();
         
         var dailyTaskList =
-            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, UserTask.Daily);
+            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, new List<UserTask>{UserTask.Daily});
         var exploreTaskList =
-            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, UserTask.Explore);
+            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, new List<UserTask>
+                {
+                    UserTask.Explore, UserTask.ExploreVotigram, UserTask.ExploreApps, UserTask.Referrals
+                });
         var dailyTaskInfoList = await GenerateTaskInfoDetails(chainId, userId, address, dailyTaskList, UserTask.Daily);
         var exploreVotigramTaskInfoList = await GenerateTaskInfoDetails(chainId, userId, address, exploreTaskList, UserTask.ExploreVotigram);
         var exploreAppTaskInfoList = await GenerateTaskInfoDetails(chainId, userId, address, exploreTaskList, UserTask.ExploreApps);
@@ -323,8 +326,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             var completeTime = proposal.DeployTime;
             var address = proposal.Proposer;
-            var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, address, UserTask.Daily,
-                UserTaskDetail.DailyCreatePoll, completeTime);
+            var success = await _userPointsRecordProvider.UpdateUserTaskCompleteTimeAsync(chainId, string.Empty,
+                address, UserTask.Daily, UserTaskDetail.DailyCreatePoll, completeTime);
             if (!success)
             {
                 continue;

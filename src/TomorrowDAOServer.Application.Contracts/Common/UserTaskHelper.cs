@@ -12,17 +12,26 @@ public class TaskPointsHelper
         { UserTask.None, new List<UserTaskDetail> { UserTaskDetail.None }},
         { UserTask.Daily, new List<UserTaskDetail>
             {
-                UserTaskDetail.DailyVote, UserTaskDetail.DailyFirstInvite, UserTaskDetail.DailyViewAsset, UserTaskDetail.DailyViewAds, 
-                UserTaskDetail.DailyCreatePoll, UserTaskDetail.DailyLogin
+                UserTaskDetail.DailyViewAds, UserTaskDetail.DailyVote, UserTaskDetail.DailyFirstInvite
             } 
         },
-        { UserTask.Explore, new List<UserTaskDetail>
+        {
+            UserTask.ExploreVotigram, new List<UserTaskDetail>
             {
-                UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX, UserTaskDetail.ExploreJoinDiscord, UserTaskDetail.ExploreForwardX,
-                UserTaskDetail.ExploreCumulateFiveInvite, UserTaskDetail.ExploreCumulateTenInvite, UserTaskDetail.ExploreCumulateTwentyInvite,
-                UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX,
-                UserTaskDetail.ExploreSchrodinger
-            } 
+                UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX
+            }
+        },
+        {
+            UserTask.ExploreApps, new List<UserTaskDetail>()
+            {
+                UserTaskDetail.ExploreSchrodinger, UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX, UserTaskDetail.ExploreForwardX
+            }
+        },
+        {
+            UserTask.Referrals, new List<UserTaskDetail>()
+            {
+                UserTaskDetail.ExploreCumulateFiveInvite, UserTaskDetail.ExploreCumulateTenInvite, UserTaskDetail.ExploreCumulateTwentyInvite
+            }
         }
     };
 
