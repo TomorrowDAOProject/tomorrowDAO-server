@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TomorrowDAOServer.Entities;
@@ -14,4 +15,6 @@ public interface IUserAppService
     Task<string> GetUserAddressByCaHashAsync(string chainId, string caHash);
     Task<List<UserIndex>> GetUser();
     Task<List<UserIndex>> GetUserByAddressListAsync(List<string> addressList);
+    Task<Tuple<long, List<UserIndex>>> GetUserAsync(GetUserInput input);
+
 }

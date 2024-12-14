@@ -50,7 +50,7 @@ public class DigiApiProvider : IDigiApiProvider, ISingletonDependency
     {
         var domain = _digiOptions.CurrentValue.Domain;
         var authorizationToken = _digiOptions.CurrentValue.Authorization;
-        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorizationToken);
+        _httpClient.DefaultRequestHeaders.Add("Authorization", "JtzHWj39RMS1s3I7XWVj3BTS/vPpaL380esM1n/cEyQ=");
         var requestBody = new { Uid = uid };
         var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, MediaTypeNames.Application.Json);
         _logger.LogInformation("ReportAsyncResponseStart uid {0}, body {1}", uid, JsonConvert.SerializeObject(requestBody));

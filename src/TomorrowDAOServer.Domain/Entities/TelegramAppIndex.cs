@@ -29,4 +29,7 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public DateTime LoadTime { get; set; }
     [Keyword] public string BackIcon { get; set; }
     public List<string> BackScreenshots { get; set; }
+    public long TotalPoints { get; set; }
+    public long TotalVotes { get; set; }
+    public long TotalLikes { get; set; }
 }

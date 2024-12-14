@@ -47,6 +47,11 @@ public class RankHelper
 
         if (!isMatch)
         {
+            isMatch = Regex.IsMatch(description, CommonConstant.TMADescriptionPattern);
+        }
+
+        if (!isMatch)
+        {
             isMatch = Regex.IsMatch(description, CommonConstant.NewDescriptionPattern);
             if (!isMatch)
             {
@@ -55,6 +60,11 @@ public class RankHelper
         }
         
         return isMatch;
+    }
+
+    public static bool IsTMARanking(string description)
+    {
+        return Regex.IsMatch(description, CommonConstant.TMADescriptionPattern);
     }
 
     public static List<string> GetAliases(string description)
@@ -126,6 +136,17 @@ public class RankHelper
         builder.Length = builder.Length - 1;
         builder.Append(CommonConstant.DescriptionIconBegin).Append(CommonConstant.LeftParenthesis).Append(banner)
             .Append(CommonConstant.RightParenthesis);
+        return builder.ToString();
+    }
+
+    public static string BuilderTMAProposalDescription(string banner)
+    {
+        var builder = new StringBuilder(CommonConstant.DescriptionTMARankingBegin);
+        if (!banner.IsNullOrWhiteSpace())
+        {
+            builder.Append(CommonConstant.DescriptionIconBegin).Append(CommonConstant.LeftParenthesis).Append(banner)
+                .Append(CommonConstant.RightParenthesis);
+        }
         return builder.ToString();
     }
 

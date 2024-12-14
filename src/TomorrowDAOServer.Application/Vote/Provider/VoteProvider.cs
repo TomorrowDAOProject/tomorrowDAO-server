@@ -50,6 +50,7 @@ public interface IVoteProvider
     Task<List<VoteRecordIndex>> GetByProposalIdAndHeightAsync(string proposalId, long blockHeight, int skipCount, int maxResultCount);
     Task<long> CountByVoterAndVotingItemIdAsync(string voter, string votingItemId);
     Task<long> CountByVoterAndTimeAsync(string voter, long time);
+    Task<VoteRecordIndex> GetLatestByVoterAndVotingItemIdAsync(string voter, string votingItemId);
 }
 
 public class VoteProvider : IVoteProvider, ISingletonDependency
@@ -471,6 +472,18 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
         };
         QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _voteRecordIndexRepository.CountAsync(Filter)).Count;
+    }
+
+    public async Task<VoteRecordIndex> GetLatestByVoterAndVotingItemIdAsync(string voter, string votingItemId)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<VoteRecordIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.Voter).Value(voter)),
+            q => q.Term(i => i.Field(f => f.VotingItemId).Value(votingItemId))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<VoteRecordIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _voteRecordIndexRepository.GetAsync(Filter, sortType: SortOrder.Descending,
+            sortExp: o => o.VoteTime);
     }
 
     public async Task<List<VoteRecordIndex>> GetByVoterAndVotingItemIdsAsync(string chainId, string voter, List<string> votingItemIds)

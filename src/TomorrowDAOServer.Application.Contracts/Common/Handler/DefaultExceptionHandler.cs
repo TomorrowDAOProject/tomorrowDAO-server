@@ -14,7 +14,7 @@ public partial class TmrwDaoExceptionHandler
         
     public static async Task<FlowBehavior> HandleExceptionAndReThrow(Exception ex)
     {
-        //Log.Error(ex, "An unexpected system exception encountered.");
+        Log.Error(ex, "An unexpected system exception encountered.");
         return new FlowBehavior
         {
             ExceptionHandlingStrategy = ExceptionHandlingStrategy.Rethrow
@@ -22,7 +22,7 @@ public partial class TmrwDaoExceptionHandler
     }
     public static async Task<FlowBehavior> HandleExceptionAndThrow(Exception ex)
     {
-        //Log.Error(ex, "An unexpected system exception encountered.");
+        Log.Error(ex, "An unexpected system exception encountered.");
         return new FlowBehavior
         {
             ExceptionHandlingStrategy = ExceptionHandlingStrategy.Throw,
@@ -32,7 +32,7 @@ public partial class TmrwDaoExceptionHandler
     
     public static async Task<FlowBehavior> HandleExceptionAndReturn(Exception ex)
     {
-        //Log.Error(ex, "An unexpected system exception encountered1.");
+        Log.Error(ex, "An unexpected system exception encountered1.");
         return new FlowBehavior
         {
             ExceptionHandlingStrategy = ExceptionHandlingStrategy.Return

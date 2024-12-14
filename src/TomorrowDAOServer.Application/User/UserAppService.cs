@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-// using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
@@ -113,5 +112,14 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
             )
         ), 0 ,1);
         return searchResponse.IsValid ? searchResponse.Documents.ToList() : new List<UserIndex>();
+    }
+
+    public async Task<Tuple<long, List<UserIndex>>> GetUserAsync(GetUserInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>();
+
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _userIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<UserIndex>().Descending(index => index.CreateTime));
     }
 }

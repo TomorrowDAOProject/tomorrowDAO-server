@@ -9,4 +9,6 @@ public enum TelegramAppCategory
     Utility = 4, 
     Information = 5, 
     Ecommerce = 6,
+    
+    All = 9
 }

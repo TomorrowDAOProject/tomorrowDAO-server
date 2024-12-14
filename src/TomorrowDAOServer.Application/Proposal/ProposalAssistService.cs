@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -15,6 +14,8 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.User;
+using TomorrowDAOServer.User.Dtos;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
 
@@ -38,13 +39,14 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IProposalProvider _proposalProvider;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IScriptService _scriptService;
+    private readonly IUserAppService _userAppService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private string TempPattern { get; set; }
 
     public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
         IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService, 
-        IOptionsMonitor<RankingOptions> rankingOptions)
+        IOptionsMonitor<RankingOptions> rankingOptions, IUserAppService userAppService)
     {
         _logger = logger;
         _objectMapper = objectMapper;
@@ -53,6 +55,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
         _rankingOptions = rankingOptions;
+        _userAppService = userAppService;
     }
 
     public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
@@ -95,7 +98,35 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         }
 
         var proposalList = _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+        
+        //fill in Telegram user info
+        await FillTelegramUserInfoAsync(proposalList);
+
         return new Tuple<List<ProposalIndex>, List<IndexerProposal>>(proposalList, rankingProposalList);
+    }
+
+    private async Task FillTelegramUserInfoAsync(List<ProposalIndex> proposalList)
+    {
+        var addressList = proposalList.Select(t => t.Proposer).Distinct().ToList();
+        var userList = await _userAppService.GetUserByAddressListAsync(addressList);
+        var addressToUser = new Dictionary<string, UserDto>();
+        if (!userList.IsNullOrEmpty())
+        {
+            var userDtos = ObjectMapper.Map<List<UserIndex>, List<UserDto>>(userList);
+            addressToUser = userDtos.GroupBy(t => t.Address).ToDictionary(g => g.Key, g => g.FirstOrDefault());
+        }
+
+        foreach (var proposalIndex in proposalList)
+        {
+            var userDto = addressToUser.GetValueOrDefault(proposalIndex.Proposer, null);
+            if (userDto == null)
+            {
+                continue;
+            }
+
+            proposalIndex.ProposerId = userDto.UserId.ToString();
+            proposalIndex.ProposerFirstName = userDto.GetUserInfo()?.FirstName ?? string.Empty;
+        }
     }
 
     public async Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list)

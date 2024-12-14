@@ -11,10 +11,12 @@ using TomorrowDAOServer.Discussion.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.User.Provider;
+using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 
@@ -30,11 +32,17 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private readonly IOptionsMonitor<DiscoverOptions> _discoverOptions;
     private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
     private readonly IDiscussionProvider _discussionProvider;
+    private readonly IRankingAppProvider _rankingAppProvider;
+    private readonly IProposalProvider _proposalProvider;
+    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
+    private readonly IVoteProvider _voteProvider;
 
     public DiscoverService(IDiscoverChoiceProvider discoverChoiceProvider, IUserProvider userProvider,
         ITelegramAppsProvider telegramAppsProvider, IRankingAppPointsProvider rankingAppPointsProvider, 
         IUserViewAppProvider userViewAppProvider, IOptionsMonitor<DiscoverOptions> discoverOptions, 
-        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IDiscussionProvider discussionProvider)
+        IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IDiscussionProvider discussionProvider, 
+        IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider,
+        IOptionsMonitor<RankingOptions> rankingOptions, IVoteProvider voteProvider)
     {
         _discoverChoiceProvider = discoverChoiceProvider;
         _userProvider = userProvider;
@@ -44,6 +52,10 @@ public class DiscoverService : ApplicationService, IDiscoverService
         _discoverOptions = discoverOptions;
         _rankingAppPointsRedisProvider = rankingAppPointsRedisProvider;
         _discussionProvider = discussionProvider;
+        _rankingAppProvider = rankingAppProvider;
+        _proposalProvider = proposalProvider;
+        _rankingOptions = rankingOptions;
+        _voteProvider = voteProvider;
     }
 
     public async Task<bool> DiscoverViewedAsync(string chainId)
@@ -91,7 +103,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var res = input.Category switch
         {
             CommonConstant.New => await GetNewAppListAsync(input, address, userId),
-            _ => await GetCategoryAppListAsync(input)
+            _ => await GetCategoryAppListAsync(input, _discoverOptions.CurrentValue.TopApps, string.Empty)
         };
         await FillData(input.ChainId, res.Data);
         return res;
@@ -106,10 +118,63 @@ public class DiscoverService : ApplicationService, IDiscoverService
         {
             CommonConstant.Recommend => await GetRecommendAppListAsync(input, address, userId),
             CommonConstant.ForYou => await GetForYouAppListAsync(input, address, userId),
-            _ => new RandomAppListDto()
+            _ =>  throw new UserFriendlyException($"Invalid category {input.Category}.")
         };
         await FillData(input.ChainId, res.AppList);
         return res;
+    }
+
+    public async Task<AccumulativeAppPageResultDto<DiscoverAppDto>> GetAccumulativeAppListAsync(GetDiscoverAppListInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        var res = await GetCategoryAppListAsync(input, [], "TotalPoints");
+        var allPoints = await _telegramAppsProvider.GetTotalPointsAsync();
+        await PointsPercent(allPoints, res.Data);
+        await FillData(input.ChainId, res.Data);
+        return new AccumulativeAppPageResultDto<DiscoverAppDto>
+        {
+            Data = res.Data, TotalCount = res.TotalCount, 
+            UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address)
+        };
+    }
+
+    public async Task<CurrentAppPageResultDto<DiscoverAppDto>> GetCurrentAppListAsync(GetDiscoverAppListInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
+        var proposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress, true);
+        if (proposal == null)
+        {
+            return new CurrentAppPageResultDto<DiscoverAppDto>();
+        }
+        var proposalId = proposal.ProposalId;
+        var search = input.Search;
+        var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(input.ChainId, proposalId);
+        var list = ObjectMapper.Map<List<RankingAppIndex>, List<DiscoverAppDto>>(rankingAppList);
+        if (!string.IsNullOrEmpty(input.Category))
+        {
+            var category = CheckCategory(input.Category);
+            list = list.Where(x => x.Categories.Contains(category.ToString())).ToList();
+        }
+        var allPoints = list.Sum(x => x.TotalPoints);
+        if (!string.IsNullOrEmpty(search))
+        {
+            list = list.Where(x => x.Title != null && x.Title.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        await FillData(input.ChainId, list);
+        await PointsPercent(allPoints, list);
+        list = list.OrderByDescending(x => x.TotalPoints).ToList();
+        var voteIndex = await _voteProvider.GetLatestByVoterAndVotingItemIdAsync(address, proposalId);
+        return new CurrentAppPageResultDto<DiscoverAppDto>
+        {
+            TotalCount = list.Count, Data = list, ActiveEndEpochTime = rankingAppList[0].ActiveEndTime.ToUtcMilliSeconds(),
+            UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address),
+            CanVote = voteIndex == null || voteIndex.VoteTime != DateTime.UtcNow.Date
+        };
     }
 
     public async Task<bool> ViewAppAsync(ViewAppInput input)
@@ -245,13 +310,12 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return new RandomAppListDto { AppList = recommendApps }; 
     }
     
-    private async Task<AppPageResultDto<DiscoverAppDto>> GetCategoryAppListAsync(GetDiscoverAppListInput input)
+    private async Task<AppPageResultDto<DiscoverAppDto>> GetCategoryAppListAsync(GetDiscoverAppListInput input, List<string> aliases, string sort)
     {
-        var category = CheckCategory(input.Category);
+        TelegramAppCategory? category = string.IsNullOrEmpty(input.Category) ? null : CheckCategory(input.Category);
         var search = input.Search;
-        var aliases = _discoverOptions.CurrentValue.TopApps;
         var topApps = new List<TelegramAppIndex>();
-        if (string.IsNullOrEmpty(search))
+        if (!string.IsNullOrEmpty(search))
         {
             return await GetSearchAppListAsync(input);
         }
@@ -259,8 +323,15 @@ public class DiscoverService : ApplicationService, IDiscoverService
         if (!aliases.IsNullOrEmpty())
         {
             var (_, list) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput { Aliases = aliases });
-            topApps = list.Where(x => x.Categories.Contains(category))
-                .OrderBy(app => aliases.IndexOf(app.Alias)).ToList();
+            if (category == null)
+            {
+                topApps = list;
+            }
+            else
+            {
+                topApps = list.Where(x => x.Categories.Contains(category.Value))
+                    .OrderBy(app => aliases.IndexOf(app.Alias)).ToList();
+            }
         }
         var availableTopApps = topApps.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
         var availableTopAppCount = availableTopApps.Count;
@@ -268,7 +339,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         {
             var remainingCount = input.MaxResultCount - availableTopAppCount;
             var (totalCount, additionalApps) = await _telegramAppsProvider.GetByCategoryAsync(
-                category, Math.Max(0, input.SkipCount - topApps.Count), remainingCount, aliases);
+                category, Math.Max(0, input.SkipCount - topApps.Count), remainingCount, aliases, sort);
             availableTopApps.AddRange(additionalApps);
             return new AppPageResultDto<DiscoverAppDto>(totalCount + topApps.Count,
                 ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(availableTopApps));
@@ -277,13 +348,30 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var count = await _telegramAppsProvider.CountByCategoryAsync(category);
         return new AppPageResultDto<DiscoverAppDto>(count, ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(availableTopApps));
     }
-    
+
+    private async Task<PageResultDto<DiscoverAppDto>> GetCurrentAppListAsync(GetVoteAppListInput input)
+    {
+        var topRankingAddress = _rankingOptions.CurrentValue.TopRankingAddress;
+        var proposal = await _proposalProvider.GetTopProposalAsync(topRankingAddress, true);
+        if (proposal == null)
+        {
+            return new PageResultDto<DiscoverAppDto>();
+        }
+
+        var proposalId = proposal.ProposalId;
+        var list = await _rankingAppProvider.GetByProposalIdAsync(input.ChainId, proposalId);
+        return new PageResultDto<DiscoverAppDto>
+        {
+            TotalCount = list.Count, Data = ObjectMapper.Map<List<RankingAppIndex>, List<DiscoverAppDto>>(list)
+        };
+    }
+
     private async Task FillData(string chainId, List<DiscoverAppDto> list)
     {
         var aliases = list.Where(x => !string.IsNullOrEmpty(x.Alias)).Select(x => x.Alias).Distinct().ToList();
         var pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
-        var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(string.Empty, aliases);
+        var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(aliases);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
         foreach (var app in list.Where(x => !string.IsNullOrEmpty(x.Alias)))
         {
@@ -291,6 +379,15 @@ public class DiscoverService : ApplicationService, IDiscoverService
             app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
             app.TotalLikes = likesDic.GetValueOrDefault(app.Alias, 0);
             app.TotalComments = commentsDic.GetValueOrDefault(app.Alias, 0);
+        }
+    }
+
+    private async Task PointsPercent(long sum, List<DiscoverAppDto> list)
+    {
+        var factor = DoubleHelper.GetFactor(sum);
+        foreach (var app in list)
+        {
+            app.PointsPercent = app.TotalPoints * factor;
         }
     }
 
