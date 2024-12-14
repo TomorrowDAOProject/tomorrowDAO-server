@@ -28,11 +28,8 @@ public class TaskPointsHelper
 
     public static readonly List<UserTaskDetail> FrontEndTaskDetails = new()
     {
-        UserTaskDetail.DailyViewAsset, 
-        UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX,
-        UserTaskDetail.ExploreForwardX, UserTaskDetail.ExploreJoinDiscord,
         UserTaskDetail.ExploreJoinVotigram, UserTaskDetail.ExploreFollowVotigramX, UserTaskDetail.ExploreForwardVotigramX,
-        UserTaskDetail.ExploreSchrodinger
+        UserTaskDetail.ExploreSchrodinger,UserTaskDetail.ExploreJoinTgChannel, UserTaskDetail.ExploreFollowX, UserTaskDetail.ExploreForwardX,
     };
 
     public static List<UserTaskDetail> GetUserTaskDetailFromUserTask(UserTask userTask)

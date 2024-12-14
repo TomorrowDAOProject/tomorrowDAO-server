@@ -24,7 +24,7 @@ public interface IRankingAppPointsRedisProvider
     Task<long> IncrementAsync(string key, long amount);
     Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList);
     Task<List<RankingAppPointsDto>> GetDefaultAllAppPointsAsync(string chainId);
-    Task<long> GetUserAllPointsAsync(string address);
+    Task<long> GetUserAllPointsByAddressAsync(string address);
     Task<long> GetUserAllPointsByIdAsync(string userId);
     Task<long> GetUserAllPointsAsync(string userId, string address);
     Task<Dictionary<string, long>> IncrementLikePointsAsync(RankingAppLikeInput likeInput, string address);
@@ -141,8 +141,8 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
 
         return await GetAllAppPointsAsync(chainId, proposalId, aliasList);
     }
-
-    public async Task<long> GetUserAllPointsAsync(string address)
+    
+    public async Task<long> GetUserAllPointsByAddressAsync(string address)
     {
         var cacheKey = RedisHelper.GenerateUserPointsAllCacheKey(address);
         var cache = await GetAsync(cacheKey);
@@ -161,7 +161,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var totalPoints = 0L;
         if (!address.IsNullOrWhiteSpace())
         {
-            totalPoints += await GetUserAllPointsAsync(address);
+            totalPoints += await GetUserAllPointsByAddressAsync(address);
         }
 
         if (!userId.IsNullOrWhiteSpace())

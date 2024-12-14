@@ -93,6 +93,13 @@ public class ReferralService : ApplicationService, IReferralService
         var votigramVoteAll = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(0, 0, chainId, addressCaHash, true);
         var votigramActivityVoteAll = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(0, 0, chainId, addressCaHash, true, true);
         var estimatedRewardAll = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramActivityVoteAll);
+
+        int totalInvitesNeeded = 20;
+        while (votigramVoteAll >= totalInvitesNeeded)
+        {
+            totalInvitesNeeded *= 2;
+        }
+        
         return new InviteDetailDto
         {
             EstimatedReward = estimatedReward,
@@ -107,7 +114,9 @@ public class ReferralService : ApplicationService, IReferralService
             EndTime = endTime,
             DuringCycle = true,
             Address = address,
-            CaHash = addressCaHash
+            CaHash = addressCaHash,
+            TotalInvitesNeeded = totalInvitesNeeded,
+            PointsFirstReferralVote = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(1)
         };
     }
 

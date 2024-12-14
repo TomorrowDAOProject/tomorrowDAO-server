@@ -21,19 +21,19 @@ public class RankingOptions
     public long PointsPerVote { get; set; } = 200; //done
     public long PointsPerLike { get; set; } = 1;
     public long PointsFirstReferralVote { get; set; } = 1000; //done
-    public long PointsReferralTopInviter { get; set; } = 10_0000;
-    public long PointsDailyViewAsset { get; set; } = 1_0000;
+    public long PointsReferralTopInviter { get; set; } = 1000;
+    public long PointsDailyViewAsset { get; set; } = 100; //done
     public long PointsDailyFirstInvite { get; set; } = 1000; //done
     public long PointsExploreJoinTgChannel { get; set; } = 100; //done
     public long PointsExploreFollowX { get; set; } = 100; //done
-    public long PointsExploreJoinDiscord { get; set; } = 1_0000;
+    public long PointsExploreJoinDiscord { get; set; } = 100; //done
     public long PointsExploreCumulateFiveInvite { get; set; } = 2000; //done
     public long PointsExploreCumulateTenInvite { get; set; } = 4000; //done
     public long PointsExploreCumulateTwentyInvite { get; set; } = 1_0000; //done
     
     public long PointsExploreForwardX { get; set; } = 100; //done
     public long PointsViewAd { get; set; } = 100; //done
-    public long PointsDailyCreatePoll { get; set; } = 10_0000;
+    public long PointsDailyCreatePoll { get; set; } = 1000; //done
     public long PointsExploreJoinVotigram{ get; set; } = 100; //done
     public long PointsExploreFollowVotigramX { get; set; } = 100; //done
     public long PointsExploreForwardVotigramX { get; set; } = 100; //done

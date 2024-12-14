@@ -173,7 +173,7 @@ public class VotigramRevampDataMigrator : TomorrowDAOServerAppService, IVotigram
 
                         total++;
 
-                        var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+                        var points = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(address);
 
                         var snapshotDto = new VotigramPointsSnapshotDto
                         {

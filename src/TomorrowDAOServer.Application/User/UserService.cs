@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Handler;
-using TomorrowDAOServer.Discover.Dto;
 using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
@@ -144,8 +143,10 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
     public async Task<bool> CompleteTaskAsync(CompleteTaskInput input)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        
         var (userTask, userTaskDetail) = CheckUserTask(input);
         var completeTime = DateTime.UtcNow;
         if (userTaskDetail == UserTaskDetail.ExploreSchrodinger)
@@ -162,10 +163,10 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         {
             throw new UserFriendlyException("Task already completed.");
         }
-
-        await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address, userTaskDetail);
+        
+        await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(address.IsNullOrWhiteSpace() ? userId : address, userTaskDetail);
         await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(input.ChainId, address, userTaskDetail,
-            completeTime);
+            completeTime, null, userId);
         return true;
     }
 
@@ -173,7 +174,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     {
         var address = await _userProvider.GetAndValidateUserAddressAsync(
             CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
-        var totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+        var totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(address);
         var (count, list) = await _userPointsRecordProvider.GetPointsListAsync(input, address);
         var appNames = await GetAppNameAsync(list);
         var data = new List<MyPointsDto>();
@@ -229,18 +230,22 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
     public async Task<TaskListDto> GetTaskListAsync(string chainId)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(chainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        
         var dailyTaskList =
-            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, address, UserTask.Daily);
+            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, UserTask.Daily);
         var exploreTaskList =
-            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, address, UserTask.Explore);
-        var dailyTaskInfoList = await GenerateTaskInfoDetails(chainId, address, dailyTaskList, UserTask.Daily);
-        var exploreTaskInfoList = await GenerateTaskInfoDetails(chainId, address, exploreTaskList, UserTask.Explore);
+            await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, UserTask.Explore);
+        var dailyTaskInfoList = await GenerateTaskInfoDetails(chainId, userId, address, dailyTaskList, UserTask.Daily);
+        var exploreVotigramTaskInfoList = await GenerateTaskInfoDetails(chainId, userId, address, exploreTaskList, UserTask.ExploreVotigram);
+        var exploreAppTaskInfoList = await GenerateTaskInfoDetails(chainId, userId, address, exploreTaskList, UserTask.ExploreApps);
+        var referralsTaskInfoList = await GenerateTaskInfoDetails(chainId, userId, address, exploreTaskList, UserTask.Referrals);
         var schrodingerValid = _schrodingerOptions.CurrentValue.Valid;
         if (!schrodingerValid)
         {
-            exploreTaskInfoList.RemoveAll(task => task.UserTaskDetail == UserTaskDetail.ExploreSchrodinger.ToString());
+            exploreAppTaskInfoList.RemoveAll(task => task.UserTaskDetail == UserTaskDetail.ExploreSchrodinger.ToString());
         }
         return new TaskListDto
         {
@@ -253,8 +258,17 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 },
                 new()
                 {
-                    TotalCount = exploreTaskInfoList.Count, Data = exploreTaskInfoList,
-                    UserTask = UserTask.Explore.ToString()
+                    TotalCount = exploreVotigramTaskInfoList.Count, Data = exploreVotigramTaskInfoList,
+                    UserTask = UserTask.ExploreVotigram.ToString()
+                },
+                new() {
+                    TotalCount = exploreAppTaskInfoList.Count, Data = exploreAppTaskInfoList,
+                    UserTask = UserTask.ExploreApps.ToString()
+                },
+                new()
+                {
+                    TotalCount = referralsTaskInfoList.Count, Data = referralsTaskInfoList,
+                    UserTask = UserTask.Referrals.ToString()
                 }
             }
         };
@@ -266,24 +280,28 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var timeStamp = input.TimeStamp;
         var signature = input.Signature;
         var chainId = input.ChainId;
-        var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        //var address = await _userProvider.GetAndValidateUserAddressAsync(CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, chainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(chainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        
         var hashString = Sha256HashHelper.ComputeSha256Hash(IdGeneratorHelper.GenerateId(checkKey, timeStamp));
         if (hashString != signature)
         {
             throw new UserFriendlyException("Invalid signature.");
         }
 
-        var timeCheck = await _userPointsRecordProvider.UpdateUserViewAdTimeStampAsync(chainId, address, timeStamp);
+        var timeCheck = await _userPointsRecordProvider.UpdateUserViewAdTimeStampAsync(chainId, userId, timeStamp);
         if (!timeCheck)
         {
             throw new UserFriendlyException("Invalid timeStamp.");
         }
 
         var information = InformationHelper.GetViewAdInformation(AdPlatform.Adsgram.ToString(), timeStamp);
-        await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync(address);
+        await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync(address.IsNullOrWhiteSpace() ? userId : address);
         var adTime = DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).UtcDateTime;
-        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyViewAds, adTime, information);
-        return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(address);
+        await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, address, UserTaskDetail.DailyViewAds, adTime, information, userId);
+        return await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
     }
 
     public async Task<bool> SaveTgInfoAsync(SaveTgInfoInput input)
@@ -659,16 +677,29 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         }
     }
 
-    private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string address,
+    private async Task<List<TaskInfoDetail>> GenerateTaskInfoDetails(string chainId, string userId, string address,
         List<UserPointsIndex> taskList, UserTask userTask)
     {
         var taskDictionary = taskList
             .GroupBy(task => task.UserTaskDetail.ToString())
             .Select(g => g.OrderByDescending(task => task.PointsTime).First())
             .ToDictionary(task => task.UserTaskDetail.ToString(), task => task);
-        var taskDetails = userTask == UserTask.Daily
-            ? InitDailyTaskDetailList(await _userPointsRecordProvider.GetDailyViewAdCountAsync(chainId, address))
-            : InitExploreTaskDetailList(await _referralInviteProvider.GetInviteCountAsync(chainId, address));
+        var taskDetails = new List<TaskInfoDetail>();
+        switch (userTask)
+        {
+            case UserTask.Daily:
+                taskDetails = InitDailyTaskDetailList(await _userPointsRecordProvider.GetDailyViewAdCountAsync(chainId, userId));
+                break;
+            case UserTask.ExploreVotigram:
+                taskDetails = InitExploreVotigramTaskDetailList();
+                break;
+            case UserTask.ExploreApps:
+                taskDetails = InitExploreAppTaskDetailList();
+                break;
+            case UserTask.Referrals:
+                taskDetails = InitReferralsTaskDetailList(await _referralInviteProvider.GetInviteCountAsync(chainId, address));
+                break;
+        }
 
         foreach (var taskDetail in taskDetails.Where(taskDetail =>
                      taskDictionary.TryGetValue(taskDetail.UserTaskDetail, out _)))
@@ -705,29 +736,14 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 UserTaskDetail = UserTaskDetail.DailyFirstInvite.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyFirstInvite)
-            },
-            new()
-            {
-                UserTaskDetail = UserTaskDetail.DailyViewAsset.ToString(),
-                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyViewAsset)
-            },
-            new()
-            {
-                UserTaskDetail = UserTaskDetail.DailyCreatePoll.ToString(),
-                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.DailyCreatePoll),
-            },
+            }
         };
     }
 
-    private List<TaskInfoDetail> InitExploreTaskDetailList(long completeCount)
+    private List<TaskInfoDetail> InitExploreVotigramTaskDetailList()
     {
         return new List<TaskInfoDetail>
         {
-            new()
-            {
-                UserTaskDetail = UserTaskDetail.ExploreSchrodinger.ToString(),
-                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreSchrodinger)
-            },
             new()
             {
                 UserTaskDetail = UserTaskDetail.ExploreJoinVotigram.ToString(),
@@ -742,6 +758,18 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 UserTaskDetail = UserTaskDetail.ExploreForwardVotigramX.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreForwardVotigramX)
+            }
+        };
+    }
+    
+    private List<TaskInfoDetail> InitExploreAppTaskDetailList()
+    {
+        return new List<TaskInfoDetail>
+        {
+            new()
+            {
+                UserTaskDetail = UserTaskDetail.ExploreSchrodinger.ToString(),
+                Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreSchrodinger)
             },
             new()
             {
@@ -753,16 +781,18 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 UserTaskDetail = UserTaskDetail.ExploreFollowX.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreFollowX)
             },
-            // new()
-            // {
-            //     UserTaskDetail = UserTaskDetail.ExploreJoinDiscord.ToString(),
-            //     Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreJoinDiscord)
-            // },
             new()
             {
                 UserTaskDetail = UserTaskDetail.ExploreForwardX.ToString(),
                 Points = _rankingAppPointsCalcProvider.CalculatePointsFromPointsType(PointsType.ExploreForwardX)
-            },
+            }
+        };
+    }
+    
+    private List<TaskInfoDetail> InitReferralsTaskDetailList(long completeCount)
+    {
+        return new List<TaskInfoDetail>
+        {
             new()
             {
                 UserTaskDetail = UserTaskDetail.ExploreCumulateFiveInvite.ToString(),

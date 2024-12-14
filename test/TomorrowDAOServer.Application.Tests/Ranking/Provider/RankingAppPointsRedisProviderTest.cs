@@ -53,7 +53,7 @@ public partial class RankingAppPointsRedisProviderTest : TomorrowDaoServerApplic
     [Fact]
     public async Task GetUserAllPointsAsyncTest()
     {
-        var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(Address1);
+        var points = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(Address1);
         points.ShouldBe(2);
     }
 }

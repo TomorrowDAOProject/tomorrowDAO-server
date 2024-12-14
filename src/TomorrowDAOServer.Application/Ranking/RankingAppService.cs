@@ -275,7 +275,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             list.Where(x => string.IsNullOrEmpty(x.BannerUrl) && x.Proposer == topRankingAddress)
                 .ToList().ForEach(item => item.BannerUrl = _rankingOptions.CurrentValue.TopRankingBanner);
         }
-        var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
+        var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(userAddress);
         return new RankingListPageResultDto<RankingListDto>
         {
             TotalCount = result.Item1, Data = list, UserTotalPoints = userAllPoints
@@ -336,9 +336,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         }
 
         Log.Information("Ranking vote, start...");
-        var (address, addressCaHash) =
-            await _userProvider.GetAndValidateUserAddressAndCaHashAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input!.ChainId);
+        // var (address, addressCaHash) =
+        //     await _userProvider.GetAndValidateUserAddressAndCaHashAsync(
+        //         CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input!.ChainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var addressCaHash = userGrainDto.CaHash;
+        var userId = userGrainDto.UserId.ToString();
+
         if (address.IsNullOrWhiteSpace())
         {
             throw new UserFriendlyException("User Address Not Found.");
@@ -399,7 +404,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 await SaveVotingRecordAsync(input.ChainId, address, votingItemId, RankingVoteStatusEnum.Voting,
                     input.TransactionId, category, _rankingOptions.CurrentValue.GetVoteTimoutTimeSpan());
 
-                var _ = UpdateVotingStatusAsync(input.ChainId, address, votingItemId,
+                var _ = UpdateVotingStatusAsync(input.ChainId, userId,address, votingItemId,
                     input.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash,
                     proposalIndex, input.TrackId, category);
 
@@ -443,7 +448,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
         if (voteRecord.Status == RankingVoteStatusEnum.Voted)
         {
-            var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(input.Address);
+            var points = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(input.Address);
             voteRecord.TotalPoints = points;
         }
 
@@ -731,7 +736,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
     public async Task<RankingDetailDto> GetRankingProposalDetailAsync(string userAddress, string chainId, string proposalId)
     {
-        var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userAddress);
+        var userAllPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(userAddress);
         if (proposalId.IsNullOrEmpty())
         {
             return new RankingDetailDto { UserTotalPoints = userAllPoints };
@@ -957,7 +962,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
         MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
         Message = "Ranking vote, update transaction status error", LogTargets = new []{"transactionId"})]
-    private async Task UpdateVotingStatusAsync(string chainId, string address, string votingItemId,
+    private async Task UpdateVotingStatusAsync(string chainId, string userId, string address, string votingItemId,
         string transactionId, string memo, long amount, string addressCaHash, ProposalIndex proposalIndex,
         string trackId, string category)
     {
