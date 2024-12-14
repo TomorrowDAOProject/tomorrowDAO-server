@@ -53,22 +53,28 @@ public class TaskPointsHelper
     {
         return userTaskDetail switch
         {
+            //Daily Tasks
+            UserTaskDetail.DailyViewAds => PointsType.DailyViewAds,
             UserTaskDetail.DailyVote => PointsType.Vote,
             UserTaskDetail.DailyFirstInvite => PointsType.DailyFirstInvite,
-            UserTaskDetail.DailyViewAsset => PointsType.DailyViewAsset,
-            UserTaskDetail.DailyViewAds => PointsType.DailyViewAds,
-            UserTaskDetail.DailyCreatePoll => PointsType.DailyCreatePoll,
-            UserTaskDetail.ExploreJoinTgChannel => PointsType.ExploreJoinTgChannel,
-            UserTaskDetail.ExploreFollowX => PointsType.ExploreFollowX,
-            UserTaskDetail.ExploreJoinDiscord => PointsType.ExploreJoinDiscord,
-            UserTaskDetail.ExploreForwardX => PointsType.ExploreForwardX,
-            UserTaskDetail.ExploreCumulateFiveInvite => PointsType.ExploreCumulateFiveInvite,
-            UserTaskDetail.ExploreCumulateTenInvite => PointsType.ExploreCumulateTenInvite,
-            UserTaskDetail.ExploreCumulateTwentyInvite => PointsType.ExploreCumulateTwentyInvite,
+            //Explore Votigram
             UserTaskDetail.ExploreJoinVotigram => PointsType.ExploreJoinVotigram,
             UserTaskDetail.ExploreFollowVotigramX => PointsType.ExploreFollowVotigramX,
             UserTaskDetail.ExploreForwardVotigramX => PointsType.ExploreForwardVotigramX,
+            //Explore Apps
             UserTaskDetail.ExploreSchrodinger => PointsType.ExploreSchrodinger,
+            UserTaskDetail.ExploreJoinTgChannel => PointsType.ExploreJoinTgChannel,
+            UserTaskDetail.ExploreFollowX => PointsType.ExploreFollowX,
+            UserTaskDetail.ExploreForwardX => PointsType.ExploreForwardX,
+            //Referrals
+            UserTaskDetail.ExploreCumulateFiveInvite => PointsType.ExploreCumulateFiveInvite,
+            UserTaskDetail.ExploreCumulateTenInvite => PointsType.ExploreCumulateTenInvite,
+            UserTaskDetail.ExploreCumulateTwentyInvite => PointsType.ExploreCumulateTwentyInvite,
+            
+            //Terminated
+            UserTaskDetail.DailyViewAsset => PointsType.DailyViewAsset,
+            UserTaskDetail.DailyCreatePoll => PointsType.DailyCreatePoll,
+            UserTaskDetail.ExploreJoinDiscord => PointsType.ExploreJoinDiscord,
             _ => null
         };
     }

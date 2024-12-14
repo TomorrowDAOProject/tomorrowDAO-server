@@ -23,22 +23,22 @@ public class RankingOptions
     public long PointsFirstReferralVote { get; set; } = 1000; //done
     public long PointsReferralTopInviter { get; set; } = 10_0000;
     public long PointsDailyViewAsset { get; set; } = 1_0000;
-    public long PointsDailyFirstInvite { get; set; } = 2_0000;
-    public long PointsExploreJoinTgChannel { get; set; } = 1_0000;
-    public long PointsExploreFollowX { get; set; } = 1_0000;
+    public long PointsDailyFirstInvite { get; set; } = 1000; //done
+    public long PointsExploreJoinTgChannel { get; set; } = 100; //done
+    public long PointsExploreFollowX { get; set; } = 100; //done
     public long PointsExploreJoinDiscord { get; set; } = 1_0000;
-    public long PointsExploreCumulateFiveInvite { get; set; } = 10_0000;
-    public long PointsExploreCumulateTenInvite { get; set; } = 30_0000;
-    public long PointsExploreCumulateTwentyInvite { get; set; } = 50_0000;
+    public long PointsExploreCumulateFiveInvite { get; set; } = 2000; //done
+    public long PointsExploreCumulateTenInvite { get; set; } = 4000; //done
+    public long PointsExploreCumulateTwentyInvite { get; set; } = 1_0000; //done
     
-    public long PointsExploreForwardX { get; set; } = 1_0000;
-    public long PointsViewAd { get; set; } = 5000;
+    public long PointsExploreForwardX { get; set; } = 100; //done
+    public long PointsViewAd { get; set; } = 100; //done
     public long PointsDailyCreatePoll { get; set; } = 10_0000;
-    public long PointsExploreJoinVotigram{ get; set; } = 1_0000;
-    public long PointsExploreFollowVotigramX { get; set; } = 1_0000;
-    public long PointsExploreForwardVotigramX { get; set; } = 1_0000;
+    public long PointsExploreJoinVotigram{ get; set; } = 100; //done
+    public long PointsExploreFollowVotigramX { get; set; } = 100; //done
+    public long PointsExploreForwardVotigramX { get; set; } = 100; //done
     public List<long> PointsLogin { get; set; } = new();
-    public long PointsExploreSchrodinger { get; set; } = 10_0000;
+    public long PointsExploreSchrodinger { get; set; } = 200; //done
     
     public List<string> AllReferralActiveTime { get; set; } = new();
     public string ReferralDomain { get; set; }
