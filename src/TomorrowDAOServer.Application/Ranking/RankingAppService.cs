@@ -301,7 +301,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var utcNow = DateTime.UtcNow;
         foreach (var detail in list)
         {
-            var pointsIndex = pointsDic.GetValueOrDefault(detail.ProposalId, []);
+            var pointsIndex = pointsDic.GetValueOrDefault(detail.ProposalId, new List<RankingAppPointsIndex>());
             detail.TotalVoteAmount = pointsIndex.Sum(t => t.Amount);
             detail.Tag = detail.RankingType == RankingType.Verified ? CommonConstant.Trending : string.Empty;
             detail.Active = utcNow >= detail.ActiveStartTime && utcNow <= detail.ActiveEndTime;

@@ -61,6 +61,12 @@ public class VotigramSnapshotGrain : Grain<PointsSnapshotState>, IVotigramSnapsh
             State.UserPointsIndexCompleted = input.UserPointsIndexCompleted;
             State.UserPointsIndex = input.UserPointsIndex;
         }
+
+        if (!State.UserTotalPointsCompleted)
+        {
+            State.UserTotalPointsCompleted = input.UserTotalPointsCompleted;
+            State.UserTotalPoints = input.UserTotalPoints;
+        }
         
         await WriteStateAsync();
         return new GrainResultDto<bool>

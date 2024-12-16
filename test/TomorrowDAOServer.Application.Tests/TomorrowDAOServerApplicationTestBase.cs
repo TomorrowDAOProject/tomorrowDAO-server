@@ -306,5 +306,6 @@ public abstract class
                     UserInfo = null
                 };
             });
+        UserProviderMock.Setup(o => o.GetUserAddressAsync(It.IsAny<string>(), It.IsAny<UserGrainDto>())).ReturnsAsync(address);
     }
 }

@@ -55,7 +55,7 @@ public partial class DiscussionServiceTest : TomorrowDaoServerApplicationTestBas
             Comment = Address1
         });
         newCommentResult.ShouldNotBeNull();
-        newCommentResult.Reason.ShouldBe("Invalid proposalId: not existed.");
+        newCommentResult.Reason.ShouldBe("Invalid parentId: can not comment self.");
     }
 
     [Fact]

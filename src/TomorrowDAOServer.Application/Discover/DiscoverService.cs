@@ -129,7 +129,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
         var userId = userGrainDto.UserId.ToString();
-        var res = await GetCategoryAppListAsync(input, [], "TotalPoints");
+        var res = await GetCategoryAppListAsync(input, new List<string>(), "TotalPoints");
         var allPoints = await _telegramAppsProvider.GetTotalPointsAsync();
         await PointsPercent(allPoints, res.Data);
         await FillData(input.ChainId, res.Data);
