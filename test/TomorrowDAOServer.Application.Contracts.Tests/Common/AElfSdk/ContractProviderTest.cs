@@ -18,6 +18,8 @@ public partial class ContractProviderTest : TomorrowDaoServerApplicationContract
     public ContractProviderTest(ITestOutputHelper output, ITestOutputHelper testOutputHelper) : base(output)
     {
         _testOutputHelper = testOutputHelper;
+        _testOutputHelper.WriteLine("private key is {0}", PrivateKey1);
+        _testOutputHelper.WriteLine("private key is env={0}", Environment.GetEnvironmentVariable("UNITTEST_KEY_01"));
         _contractProvider = ServiceProvider.GetRequiredService<IContractProvider>();
         
         var type = _contractProvider.GetType();

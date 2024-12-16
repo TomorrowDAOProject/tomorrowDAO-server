@@ -40,6 +40,9 @@ jobs:
         run: dotnet build --no-restore /clp:ErrorsOnly /p:GeneratePackageOnBuild=false --verbosity quiet
 
       - name: Test
+        env:
+          UNITTEST_KEY_01: ${{ secrets.UNITTEST_KEY_01 }},
+          UNITTEST_KEY_02: ${{ secrets.UNITTEST_KEY_02 }}
         run: |
           for name in `ls ./test/*.Tests/*.csproj | awk '{print $NF}'`;
           do
@@ -52,6 +55,4 @@ jobs:
           fail_ci_if_error: true
           files: coverage/*/coverage.cobertura.xml
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }},
-          UNITTEST_KEY_01: ${{ secrets.UNITTEST_KEY_01 }},
-          UNITTEST_KEY_02: ${{ secrets.UNITTEST_KEY_02 }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
