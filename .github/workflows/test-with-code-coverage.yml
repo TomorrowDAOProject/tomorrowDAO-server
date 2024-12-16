@@ -44,8 +44,6 @@ jobs:
           UNITTEST_KEY_01: ${{ secrets.UNITTEST_KEY_01 }}
           UNITTEST_KEY_02: ${{ secrets.UNITTEST_KEY_02 }}
         run: |
-          echo $UNITTEST_KEY_01
-          echo $UNITTEST_KEY_02
           for name in `ls ./test/*.Tests/*.csproj | awk '{print $NF}'`;
           do
               dotnet test ${name} --no-restore --no-build --logger trx --settings CodeCoverage.runsettings --results-directory coverage --collect:"XPlat Code Coverage" 
