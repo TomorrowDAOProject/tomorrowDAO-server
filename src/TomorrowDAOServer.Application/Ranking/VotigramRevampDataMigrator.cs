@@ -326,7 +326,7 @@ public class VotigramRevampDataMigrator : TomorrowDAOServerAppService, IVotigram
                             break;
                         default:
                             otherRecordCount++;
-                            _logger.LogError(
+                            _logger.LogWarning(
                                 "[VotigramDataMigrate] Deal ranking user point index. not supported. pointsType={0}",
                                 rankingAppUserPointsIndex.PointsType.ToString());
                             break;
@@ -410,7 +410,7 @@ public class VotigramRevampDataMigrator : TomorrowDAOServerAppService, IVotigram
                             break;
                         default:
                             otherRecordCount++;
-                            _logger.LogError(
+                            _logger.LogWarning(
                                 "[VotigramDataMigrate] Deal ranking point index. not supported. pointsType={0}",
                                 rankingAppPointsIndex.PointsType.ToString());
                             break;
@@ -484,7 +484,7 @@ public class VotigramRevampDataMigrator : TomorrowDAOServerAppService, IVotigram
 
                         totalPoint += rankingAppIndex.TotalPoints;
                         totalVote += rankingAppIndex.TotalVotes;
-                        totalLike += rankingAppIndex.TotalVotes;
+                        totalLike += rankingAppIndex.TotalLikes;
                     }
                 }
 
@@ -553,6 +553,7 @@ public class VotigramRevampDataMigrator : TomorrowDAOServerAppService, IVotigram
                         Key = rankingLikeKey,
                         Value = likePoints.ToString()
                     });
+                    snapshotDto.RedisDataMigrationCompleted = true;
 
                     var newVotePoints = votePoints / 50;
                     await _rankingAppPointsRedisProvider.SetAsync(redisKey, newVotePoints.ToString());
@@ -562,7 +563,7 @@ public class VotigramRevampDataMigrator : TomorrowDAOServerAppService, IVotigram
                     proposalVotePoints += newVotePoints;
                     proposalLikePoints += likePoints;
 
-                    rankingApp.TotalPoints = newVotePoints;
+                    rankingApp.TotalPoints = newVotePoints + likePoints;
                     rankingApp.TotalVotes = newVotePoints / _rankingOptions.CurrentValue.PointsPerVote;
                     rankingApp.TotalLikes = likePoints;
                     _logger.LogInformation("[VotigramDataMigrate] Deal ranking {0} app {1} points finished.",

@@ -13,4 +13,6 @@ public class PointsSnapshotState
     [Id(5)]public bool RankingAppUserPointsIndexCompleted { get; set; }
     [Id(6)] public string UserPointsIndex { get; set; }
     [Id(7)] public bool UserPointsIndexCompleted { get; set; }
+    [Id(8)] public string UserTotalPoints { get; set; }
+    [Id(9)] public bool UserTotalPointsCompleted { get; set; }
 }
