@@ -163,6 +163,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             
             var distinctTelegramApps = telegramApps.GroupBy(app => app.Alias)
                 .Select(group => group.First()).ToList();
+            var aliasToTelegramApp = distinctTelegramApps.ToDictionary(t => t.Alias);
             var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(distinctTelegramApps);
             foreach (var rankingApp in rankingApps)
             {
@@ -172,6 +173,19 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
 
                 var indexOf = aliases.IndexOf(rankingApp.Alias);
                 rankingApp.AppIndex = indexOf == -1 ? Int32.MaxValue : indexOf;
+
+                if (aliasToTelegramApp.ContainsKey(rankingApp.Alias))
+                {
+                    if (!aliasToTelegramApp[rankingApp.Alias].BackIcon.IsNullOrWhiteSpace())
+                    {
+                        rankingApp.Icon = aliasToTelegramApp[rankingApp.Alias].BackIcon;
+                    }
+
+                    if (!aliasToTelegramApp[rankingApp.Alias].Screenshots.IsNullOrEmpty())
+                    {
+                        rankingApp.Screenshots = aliasToTelegramApp[rankingApp.Alias].Screenshots;
+                    }
+                }
             }
 
             toUpdate.AddRange(rankingApps);
