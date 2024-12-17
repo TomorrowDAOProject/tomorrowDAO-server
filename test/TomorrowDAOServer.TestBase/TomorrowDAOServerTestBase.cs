@@ -20,9 +20,9 @@ public abstract class TomorrowDAOServerTestBase<TStartupModule> : AbpIntegratedT
     protected TomorrowDAOServerTestBase(ITestOutputHelper output)
     {
         _outputHelper = output;
-        Log.Logger = new LoggerConfiguration()
-            .WriteTo.Console()
-            .CreateLogger();
+        // Log.Logger = new LoggerConfiguration()
+        //     .WriteTo.Console()
+        //     .CreateLogger();
     }
 
     protected override void SetAbpApplicationCreationOptions(AbpApplicationCreationOptions options)
