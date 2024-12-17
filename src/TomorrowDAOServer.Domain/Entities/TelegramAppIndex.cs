@@ -32,4 +32,5 @@ public class TelegramAppIndex : AbstractEntity<string>, IIndexBuild
     public long TotalPoints { get; set; }
     public long TotalVotes { get; set; }
     public long TotalLikes { get; set; }
+    public long TotalOpenTimes { get; set; }
 }
