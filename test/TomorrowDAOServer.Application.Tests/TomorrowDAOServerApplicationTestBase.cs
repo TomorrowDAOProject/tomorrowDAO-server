@@ -5,10 +5,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using Newtonsoft.Json;
 using NSubstitute;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Mocks;
 using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User.Dtos;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
@@ -42,6 +45,8 @@ public abstract class
         "04de4367b534d76e8586ac191e611c4ac05064b8bc585449aee19a8818e226ad29c24559216fd33c28abe7acaa8471d2b521152e8b40290dfc420d6eb89f70861a";
     protected const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
 
+    protected const string Address3 = "2gehnpYhWTSsWLphakYLBU343LJ6c4BjxQf1yDDdjuhaC3G2x7";
+
     protected readonly Mock<IUserProvider> UserProviderMock = new();
     protected readonly IUserProvider UserProvider = new Mock<IUserProvider>().Object;
     protected readonly ICurrentUser CurrentUser = Substitute.For<ICurrentUser>();
@@ -61,11 +66,24 @@ public abstract class
         services.AddSingleton(MockChainOptions());
         services.AddSingleton(MockApiOption());
         services.AddSingleton(MockRankingOptions());
+        services.AddSingleton(MockUserOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
         services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
         services.AddSingleton(UserProviderMock.Object);
         services.AddSingleton(CurrentUser);
+    }
+
+    private IOptionsMonitor<UserOptions> MockUserOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<UserOptions>>();
+
+        mock.Setup(o => o.CurrentValue).Returns(new UserOptions
+        {
+            UserSourceList = new List<string>() {"UserSource1", "UserSource2"},
+            CheckKey = "CheckKey"
+        });
+        return mock.Object;
     }
 
     private IOptionsSnapshot<GraphQLOptions> MockGraphQlOptions()
@@ -237,7 +255,11 @@ public abstract class
     {
         var mock = new Mock<IOptionsMonitor<RankingOptions>>();
 
-        mock.Setup(m => m.CurrentValue).Returns(new RankingOptions());
+        mock.Setup(m => m.CurrentValue).Returns(new RankingOptions
+        {
+            TopRankingAddress = Address1,
+            PointsLogin = new List<long>() {100, 100, 250, 100, 100, 100, 250}
+        });
 
         return mock.Object;
     }
@@ -307,5 +329,50 @@ public abstract class
                 };
             });
         UserProviderMock.Setup(o => o.GetUserAddressAsync(It.IsAny<string>(), It.IsAny<UserGrainDto>())).ReturnsAsync(address);
+        if (userId != Guid.Empty)
+        {
+            UserProviderMock.Setup(o => o.GetAuthenticatedUserAsync(It.IsAny<ICurrentUser>())).ReturnsAsync(new UserGrainDto
+            {
+                AppId = "TG",
+                UserId = userId,
+                UserName = address,
+                CaHash = "CaHash",
+                AddressInfos = new List<AddressInfo>() {new AddressInfo
+                    {
+                        ChainId = ChainIdAELF,
+                        Address = address
+                    },
+                    new AddressInfo
+                    {
+                        ChainId = ChainIdtDVW,
+                        Address = address
+                    }
+                },
+                CreateTime = DateTime.UtcNow.Date.AddDays(-10).ToUtcMilliSeconds(),
+                ModificationTime = DateTime.UtcNow.ToUtcMilliSeconds(),
+                GuardianIdentifier = "GuardianIdentifier",
+                Address = address,
+                Extra = JsonConvert.SerializeObject(new UserExtraDto
+                {
+                    ConsecutiveLoginDays = 0,
+                    LastModifiedTime = default,
+                    DailyPointsClaimedStatus = new bool[]
+                    {
+                    },
+                    HasVisitedVotePage = false
+                }),
+                UserInfo = JsonConvert.SerializeObject(new TelegramAuthDataDto
+                {
+                    Id = "Id",
+                    UserName = "UserName",
+                    AuthDate = "AuthDate",
+                    FirstName = "FirstName",
+                    LastName = "LastName",
+                    Hash = "Hash",
+                    PhotoUrl = "PhotoUrl",
+                    BotId = "BotId"
+                })
+            });
+        }
     }
 }
