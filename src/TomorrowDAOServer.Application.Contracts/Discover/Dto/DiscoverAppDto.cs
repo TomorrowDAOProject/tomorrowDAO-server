@@ -9,5 +9,5 @@ public class DiscoverAppDto : AppDetailDto
     public long TotalLikes { get; set; }
     public long TotalComments { get; set; }
     public long TotalOpens { get; set; }
-    public double PointsPercent { get; set; }
+    public decimal PointsPercent { get; set; }
 }
