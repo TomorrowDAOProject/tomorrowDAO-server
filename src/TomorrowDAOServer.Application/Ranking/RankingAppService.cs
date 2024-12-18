@@ -171,7 +171,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             {
                 _objectMapper.Map(proposal, rankingApp);
                 rankingApp.Id =
-                    GuidHelper.GenerateGrainId(proposal.ChainId, proposal.DAOId, proposal.Id, rankingApp.AppId);
+                    GuidHelper.GenerateGrainId(proposal.ChainId, proposal.DAOId, proposal.Id, rankingApp.Alias);
 
                 var indexOf = aliases.IndexOf(rankingApp.Alias);
                 rankingApp.AppIndex = indexOf == -1 ? Int32.MaxValue : indexOf;
@@ -183,9 +183,9 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                         rankingApp.Icon = aliasToTelegramApp[rankingApp.Alias].BackIcon;
                     }
 
-                    if (!aliasToTelegramApp[rankingApp.Alias].Screenshots.IsNullOrEmpty())
+                    if (!aliasToTelegramApp[rankingApp.Alias].BackScreenshots.IsNullOrEmpty())
                     {
-                        rankingApp.Screenshots = aliasToTelegramApp[rankingApp.Alias].Screenshots;
+                        rankingApp.Screenshots = aliasToTelegramApp[rankingApp.Alias].BackScreenshots;
                     }
                 }
             }
