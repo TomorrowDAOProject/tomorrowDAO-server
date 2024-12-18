@@ -204,7 +204,7 @@ public class VoteProvider : IVoteProvider, ISingletonDependency
                 @"query($chainId:String){
             data:getVoteSchemes(input: {chainId:$chainId})
             {
-                id,chainId,voteSchemeId,voteMechanism,voteStrategy,withoutLockToken
+                id,chainId,voteSchemeId,voteMechanism,voteStrategy,withoutLockToken,voteCount
             }}",
             Variables = new
             {
