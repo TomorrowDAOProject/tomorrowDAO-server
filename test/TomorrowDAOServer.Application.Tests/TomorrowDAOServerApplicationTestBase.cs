@@ -42,6 +42,8 @@ public abstract class
         "04de4367b534d76e8586ac191e611c4ac05064b8bc585449aee19a8818e226ad29c24559216fd33c28abe7acaa8471d2b521152e8b40290dfc420d6eb89f70861a";
     protected const string Address2 = "2DA5orGjmRPJBCDiZQ76NSVrYm7Sn5hwgVui76kCJBMFJYxQFw";
 
+    protected const string Address3 = "2gehnpYhWTSsWLphakYLBU343LJ6c4BjxQf1yDDdjuhaC3G2x7";
+
     protected readonly Mock<IUserProvider> UserProviderMock = new();
     protected readonly IUserProvider UserProvider = new Mock<IUserProvider>().Object;
     protected readonly ICurrentUser CurrentUser = Substitute.For<ICurrentUser>();
@@ -237,7 +239,52 @@ public abstract class
     {
         var mock = new Mock<IOptionsMonitor<RankingOptions>>();
 
-        mock.Setup(m => m.CurrentValue).Returns(new RankingOptions());
+        mock.Setup(m => m.CurrentValue).Returns(new RankingOptions
+        {
+            DaoIds = null,
+            CustomDaoIds = null,
+            DescriptionPattern = null,
+            DescriptionBegin = null,
+            LockUserTimeout = 0,
+            VoteTimeout = 0,
+            RetryTimes = 0,
+            RetryDelay = 0,
+            PointsPerVote = 0,
+            PointsPerLike = 0,
+            PointsFirstReferralVote = 0,
+            PointsReferralTopInviter = 0,
+            PointsDailyViewAsset = 0,
+            PointsDailyFirstInvite = 0,
+            PointsExploreJoinTgChannel = 0,
+            PointsExploreFollowX = 0,
+            PointsExploreJoinDiscord = 0,
+            PointsExploreCumulateFiveInvite = 0,
+            PointsExploreCumulateTenInvite = 0,
+            PointsExploreCumulateTwentyInvite = 0,
+            PointsExploreForwardX = 0,
+            PointsViewAd = 0,
+            PointsDailyCreatePoll = 0,
+            PointsExploreJoinVotigram = 0,
+            PointsExploreFollowVotigramX = 0,
+            PointsExploreForwardVotigramX = 0,
+            PointsLogin = null,
+            PointsExploreSchrodinger = 0,
+            AllReferralActiveTime = null,
+            ReferralDomain = null,
+            ReferralPointsAddressList = null,
+            RecordDiscover = false,
+            ReferralActivityValid = false,
+            GroupCount = 0,
+            TopRankingIds = null,
+            TopRankingAddress = Address1,
+            TopRankingAccount = null,
+            TopRankingTitle = null,
+            TopRankingSchemeAddress = null,
+            TopRankingVoteSchemeId = null,
+            TopRankingBanner = null,
+            TopRankingGenerateTime = DayOfWeek.Sunday,
+            RankingExcludeIds = null
+        });
 
         return mock.Object;
     }
