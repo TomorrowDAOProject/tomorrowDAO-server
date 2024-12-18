@@ -210,7 +210,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     public async Task<Tuple<long, List<TelegramAppIndex>>> GetByCategoryAsync(TelegramAppCategory? category, int skipCount, int maxResultCount, List<string> aliases, string sort)
     {
         var mustQuery = DisplayQuery();
-        if (category != null)
+        if (category != null && category != TelegramAppCategory.All)
         {
             mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(category)));
         }

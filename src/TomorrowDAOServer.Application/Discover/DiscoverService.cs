@@ -131,7 +131,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var userId = userGrainDto.UserId.ToString();
         var res = await GetCategoryAppListAsync(input, new List<string>(), "TotalPoints");
         var allPoints = await _telegramAppsProvider.GetTotalPointsAsync();
-        await PointsPercent(allPoints, res.Data);
+        PointsPercent(allPoints, res.Data);
         await FillData(input.ChainId, res.Data);
         return new AccumulativeAppPageResultDto<DiscoverAppDto>
         {
@@ -166,7 +166,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             list = list.Where(x => x.Title != null && x.Title.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
         }
         await FillData(input.ChainId, list);
-        await PointsPercent(allPoints, list);
+        PointsPercent(allPoints, list);
         list = list.OrderByDescending(x => x.TotalPoints).ToList();
         var voteIndex = await _voteProvider.GetLatestByVoterAndVotingItemIdAsync(address, proposalId);
         return new CurrentAppPageResultDto<DiscoverAppDto>
@@ -341,8 +341,24 @@ public class DiscoverService : ApplicationService, IDiscoverService
             var (totalCount, additionalApps) = await _telegramAppsProvider.GetByCategoryAsync(
                 category, Math.Max(0, input.SkipCount - topApps.Count), remainingCount, aliases, sort);
             availableTopApps.AddRange(additionalApps);
-            return new AppPageResultDto<DiscoverAppDto>(totalCount + topApps.Count,
-                ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(availableTopApps));
+            var discoverAppDtos = new List<DiscoverAppDto>();
+            foreach (var telegramAppIndex in availableTopApps)
+            {
+                var discoverAppDto = ObjectMapper.Map<TelegramAppIndex, DiscoverAppDto>(telegramAppIndex);
+                if (!telegramAppIndex.BackIcon.IsNullOrWhiteSpace())
+                {
+                    discoverAppDto.Icon = telegramAppIndex.BackIcon;
+                }
+
+                if (!telegramAppIndex.BackScreenshots.IsNullOrEmpty())
+                {
+                    discoverAppDto.Screenshots = telegramAppIndex.BackScreenshots;
+                }
+                
+                discoverAppDtos.Add(discoverAppDto);
+            }
+            
+            return new AppPageResultDto<DiscoverAppDto>(totalCount + topApps.Count, discoverAppDtos);
         }
 
         var count = await _telegramAppsProvider.CountByCategoryAsync(category);
@@ -373,7 +389,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
         var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(aliases);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
-        foreach (var app in list.Where(x => !string.IsNullOrEmpty(x.Alias)))
+        foreach (var app in list.Where(x => !string.IsNullOrWhiteSpace(x.Alias)))
         {
             app.TotalPoints = pointsDic.GetValueOrDefault(app.Alias, 0);
             app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
@@ -382,9 +398,9 @@ public class DiscoverService : ApplicationService, IDiscoverService
         }
     }
 
-    private async Task PointsPercent(long sum, List<DiscoverAppDto> list)
+    private static void PointsPercent(long sum, List<DiscoverAppDto> list)
     {
-        var factor = DoubleHelper.GetFactor(sum);
+        var factor = DoubleHelper.GetFactor((decimal)sum);
         foreach (var app in list)
         {
             app.PointsPercent = app.TotalPoints * factor;
