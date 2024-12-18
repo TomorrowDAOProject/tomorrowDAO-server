@@ -43,7 +43,31 @@ public partial class RankingAppServiceTest
     {
         var mock = new Mock<ITelegramAppsProvider>();
         mock.Setup(o => o.GetTelegramAppsAsync(It.IsAny<QueryTelegramAppsInput>(), It.IsAny<bool>()))
-            .ReturnsAsync(new Tuple<long, List<TelegramAppIndex>>(1L, new List<TelegramAppIndex>{new() {Id = "id" }}));
+            .ReturnsAsync(new Tuple<long, List<TelegramAppIndex>>(1L, new List<TelegramAppIndex>{new()
+                {
+                    Id = "id",
+                    Alias = "crypto-bot",
+                    Title = "crypto-bot",
+                    Icon = "icon",
+                    Description = "description",
+                    EditorChoice = true,
+                    Url = "url",
+                    LongDescription = "longDescription",
+                    Screenshots = new List<string>(),
+                    Categories = null,
+                    CreateTime = default,
+                    UpdateTime = default,
+                    SourceType = SourceType.Telegram,
+                    Creator = null,
+                    LoadTime = default,
+                    BackIcon = null,
+                    BackScreenshots = null,
+                    TotalPoints = 0,
+                    TotalVotes = 0,
+                    TotalLikes = 0,
+                    TotalOpenTimes = 0
+                }
+            }));
         return mock.Object;
     }
     
