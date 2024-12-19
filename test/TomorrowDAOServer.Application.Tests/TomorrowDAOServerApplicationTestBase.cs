@@ -271,7 +271,8 @@ public abstract class
         mock.Setup(m => m.CurrentValue).Returns(new RankingOptions
         {
             TopRankingAddress = Address1,
-            PointsLogin = new List<long>() {100, 100, 250, 100, 100, 100, 250}
+            PointsLogin = new List<long>() {100, 100, 250, 100, 100, 100, 250},
+            CustomDaoIds = new List<string>() {CustomDaoId}
         });
 
         return mock.Object;
