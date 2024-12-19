@@ -67,11 +67,24 @@ public abstract class
         services.AddSingleton(MockApiOption());
         services.AddSingleton(MockRankingOptions());
         services.AddSingleton(MockUserOptions());
+        services.AddSingleton(MockTelegramOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
         services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
         services.AddSingleton(UserProviderMock.Object);
         services.AddSingleton(CurrentUser);
+    }
+
+    private IOptionsMonitor<TelegramOptions> MockTelegramOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<TelegramOptions>>();
+
+        mock.Setup(o => o.CurrentValue).Returns(new TelegramOptions
+        {
+            AllowedCrawlUsers = new HashSet<string>() { Address1 },
+        });
+
+        return mock.Object;
     }
 
     private IOptionsMonitor<UserOptions> MockUserOptions()

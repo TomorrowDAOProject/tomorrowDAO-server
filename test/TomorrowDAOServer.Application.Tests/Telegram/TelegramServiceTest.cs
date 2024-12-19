@@ -37,10 +37,10 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
             new TelegramAppDto
             {
                 Id = Guid.NewGuid().ToString(),
-                Alias = null,
-                Title = null,
-                Icon = null,
-                Description = null,
+                Alias = "Alias",
+                Title = "Title",
+                Icon = "Icon",
+                Description = "Description",
                 EditorChoice = false
             }
         });
