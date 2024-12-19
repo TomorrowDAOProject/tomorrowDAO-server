@@ -9,8 +9,11 @@ using Newtonsoft.Json;
 using NSubstitute;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Mocks;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Referral;
+using TomorrowDAOServer.Referral.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User.Dtos;
 using TomorrowDAOServer.User.Provider;
@@ -50,9 +53,12 @@ public abstract class
     protected readonly Mock<IUserProvider> UserProviderMock = new();
     protected readonly IUserProvider UserProvider = new Mock<IUserProvider>().Object;
     protected readonly ICurrentUser CurrentUser = Substitute.For<ICurrentUser>();
-
+    
+    private readonly IReferralCycleProvider _referralCycleProvider;
+    
     public TomorrowDaoServerApplicationTestBase(ITestOutputHelper output) : base(output)
     {
+        _referralCycleProvider = Application.ServiceProvider.GetRequiredService<IReferralCycleProvider>();
     }
 
     protected override void AfterAddApplication(IServiceCollection services)
@@ -388,5 +394,17 @@ public abstract class
                 })
             });
         }
+    }
+    
+    protected async Task GenerateReferralCycleAsync()
+    {
+        await _referralCycleProvider.AddOrUpdateAsync(new ReferralCycleIndex
+        {
+            Id = "Id",
+            ChainId = ChainIdAELF,
+            StartTime = DateTime.UtcNow.Date.AddDays(-5).ToUtcMilliSeconds(),
+            EndTime = DateTime.UtcNow.Date.AddDays(5).ToUtcMilliSeconds(),
+            PointsDistribute = false
+        });
     }
 }
