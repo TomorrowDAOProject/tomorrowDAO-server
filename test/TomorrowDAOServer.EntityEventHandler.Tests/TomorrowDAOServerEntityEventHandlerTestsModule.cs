@@ -1,24 +1,53 @@
-using System.Reflection;
-using AElf.Indexing.Elasticsearch;
 using AElf.Indexing.Elasticsearch.Options;
 using Elasticsearch.Net;
+using GraphQL.Client.Abstractions;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.Newtonsoft;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using TomorrowDAOServer.Common.GraphQL;
+using TomorrowDAOServer.EntityEventHandler.Core;
+using TomorrowDAOServer.EntityEventHandler.Core.MQ;
+using TomorrowDAOServer.Worker;
+using TomorrowDAOServer.Worker.Jobs;
 using Volo.Abp;
+using Volo.Abp.Auditing;
+using Volo.Abp.Authorization;
+using Volo.Abp.Autofac;
+using Volo.Abp.AutoMapper;
+using Volo.Abp.BackgroundWorkers;
+using Volo.Abp.Caching;
 using Volo.Abp.Modularity;
+using Volo.Abp.ObjectMapping;
 
 namespace TomorrowDAOServer.EntityEventHandler.Tests;
 
 [DependsOn(
-    typeof(TomorrowDAOServerEntityEventHandlerModule),
-    typeof(TomorrowDAOServerTestBaseModule)
+    typeof(AbpAutofacModule),
+    typeof(AbpTestBaseModule),
+    typeof(AbpAuthorizationModule),
+    typeof(AbpCachingModule),
+    typeof(AbpAutoMapperModule),
+    typeof(AbpObjectMappingModule),
+    typeof(TomorrowDAOServerDomainModule),
+    typeof(TomorrowDAOServerDomainSharedModule),
+    typeof(TomorrowDAOServerApplicationContractsModule),
+    typeof(TomorrowDAOServerApplicationModule)
+    // typeof(TomorrowDAOServerWorkerModule)
+    // typeof(TomorrowDAOServerEntityEventHandlerModule)
 )]
 public class TomorrowDAOServerEntityEventHandlerTestsModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        Configure<IndexCreateOption>(x => { x.AddModule(typeof(TomorrowDAOServerDomainModule)); });
+        Configure<AbpAuditingOptions>(options => { options.IsEnabled = false; });
 
+        // Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
+        // Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerEntityEventHandlerModule>(); });
+        // Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerEntityEventHandlerCoreModule>(); });
+        Configure<IndexCreateOption>(x => { x.AddModule(typeof(TomorrowDAOServerEntityEventHandlerTestsModule)); });
+
+        context.Services.AddSingleton<VoteAndLikeMessageHandler>();
+        context.Services.AddMemoryCache();
         // Do not modify this!!!
         context.Services.Configure<EsEndpointOption>(options =>
         {
@@ -32,30 +61,27 @@ public class TomorrowDAOServerEntityEventHandlerTestsModule : AbpModule
             options.Refresh = Refresh.True;
             options.IndexPrefix = "tomorrowdaoservertest";
         });
+        
+        ConfigureGraphQl(context);
+
+        base.ConfigureServices(context);
     }
-
-    public override void OnApplicationShutdown(ApplicationShutdownContext context)
+    
+    private void ConfigureGraphQl(ServiceConfigurationContext context)
     {
-        // var elasticIndexService = context.ServiceProvider.GetRequiredService<IElasticIndexService>();
-        var modules = context.ServiceProvider.GetRequiredService<IOptions<IndexCreateOption>>().Value.Modules;
-
-        modules.ForEach(m =>
+        context.Services.Configure<GraphQLOptions>(o =>
         {
-            var types = GetTypesAssignableFrom<IIndexBuild>(m.Assembly);
-            foreach (var t in types)
-            {
-                // AsyncHelper.RunSync(async () =>
-                //     await elasticIndexService.DeleteIndexAsync("tomorrowdaoservertest." + t.Name.ToLower()));
-            }
+            o.Configuration = "http://127.0.0.1:8083/AElfIndexer_DApp/PortKeyIndexerCASchema/graphql";
         });
+        
+        context.Services.AddSingleton(new GraphQLHttpClient(
+            "http://127.0.0.1:8083/AElfIndexer_DApp/PortKeyIndexerCASchema/graphql",
+            new NewtonsoftJsonSerializer()));
+        context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
     }
-
-    private List<Type> GetTypesAssignableFrom<T>(Assembly assembly)
+    
+    public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
-        var compareType = typeof(T);
-        return assembly.DefinedTypes
-            .Where(type => compareType.IsAssignableFrom(type) && !compareType.IsAssignableFrom(type.BaseType) &&
-                           !type.IsAbstract && type.IsClass && compareType != type)
-            .Cast<Type>().ToList();
+        var backgroundWorkerManger = context.ServiceProvider.GetRequiredService<IBackgroundWorkerManager>();
     }
 }

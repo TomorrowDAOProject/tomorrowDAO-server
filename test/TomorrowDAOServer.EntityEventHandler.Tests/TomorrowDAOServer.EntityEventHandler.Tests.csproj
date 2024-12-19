@@ -41,11 +41,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\TomorrowDAOServer.EntityEventHandler\TomorrowDAOServer.EntityEventHandler.csproj" />
         <ProjectReference Include="..\TomorrowDAOServer.Application.Tests\TomorrowDAOServer.Application.Tests.csproj" />
+        <ProjectReference Include="..\TomorrowDAOServer.Domain.Tests\TomorrowDAOServer.Domain.Tests.csproj" />
         <ProjectReference Include="..\TomorrowDAOServer.TestBase\TomorrowDAOServer.TestBase.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="MQ" />
     </ItemGroup>
 
 </Project>
