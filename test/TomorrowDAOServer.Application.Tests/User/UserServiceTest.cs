@@ -81,7 +81,8 @@ public partial class UserServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetMyPointsAsyncTest()
     {
-        Login(Guid.NewGuid(), Address1);
+       var address = Base58Encoder.GenerateRandomBase58String(50);
+        Login(Guid.NewGuid(), address);
         await CompleteTaskAsyncTest();
         var voteHistoryPagedResultDto = await _userService.GetMyPointsAsync(new GetMyPointsInput
         {
@@ -90,7 +91,7 @@ public partial class UserServiceTest : TomorrowDaoServerApplicationTestBase
             MaxResultCount = 10
         });
         voteHistoryPagedResultDto.ShouldNotBeNull();
-        voteHistoryPagedResultDto.Items.Count.ShouldBe(1);
+        voteHistoryPagedResultDto.Items.Count.ShouldBe(2);
     }
 
     [Fact]
