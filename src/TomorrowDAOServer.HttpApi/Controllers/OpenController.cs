@@ -33,8 +33,8 @@ public class OpenController
     }
     
     [HttpGet("galxe-task-status")]
-    public async Task<int> GetGalxeTaskStatusAsync(string address)
+    public async Task<GetGalxeTaskStatusDto> GetGalxeTaskStatusAsync(GetGalxeTaskStatusInput input)
     {
-        return await _openService.GetGalxeTaskStatusAsync(address);
+        return await _openService.GetGalxeTaskStatusAsync(input);
     }
 }
