@@ -74,11 +74,23 @@ public abstract class
         services.AddSingleton(MockRankingOptions());
         services.AddSingleton(MockUserOptions());
         services.AddSingleton(MockTelegramOptions());
+        services.AddSingleton(MockSchrodingerOptions());
         services.AddSingleton(HttpRequestMock.MockHttpFactory());
         services.AddSingleton(ContractProviderMock.MockContractProvider());
         services.AddSingleton(GraphQLClientMock.MockGraphQLClient());
         services.AddSingleton(UserProviderMock.Object);
         services.AddSingleton(CurrentUser);
+    }
+
+    private  IOptionsMonitor<SchrodingerOptions> MockSchrodingerOptions()
+    {
+        var mock = new Mock<IOptionsMonitor<SchrodingerOptions>>();
+        mock.Setup(o => o.CurrentValue).Returns(new SchrodingerOptions
+        {
+            Domain = "http://123.org",
+            Valid = false
+        });
+        return mock.Object;
     }
 
     private IOptionsMonitor<TelegramOptions> MockTelegramOptions()
@@ -278,7 +290,8 @@ public abstract class
         {
             TopRankingAddress = Address1,
             PointsLogin = new List<long>() {100, 100, 250, 100, 100, 100, 250},
-            CustomDaoIds = new List<string>() {CustomDaoId}
+            CustomDaoIds = new List<string>() {CustomDaoId},
+            DaoIds = new List<string>() {DaoId}
         });
 
         return mock.Object;

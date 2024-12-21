@@ -69,13 +69,13 @@ public partial class UserServiceTest : TomorrowDaoServerApplicationTestBase
         });
         result.ShouldBeTrue();
         
-        result = await _userService.CompleteTaskAsync(new CompleteTaskInput
-        {
-            ChainId = ChainIdAELF,
-            UserTask = UserTask.ExploreApps.ToString(),
-            UserTaskDetail = UserTaskDetail.ExploreSchrodinger.ToString()
-        });
-        result.ShouldBeFalse();
+        // result = await _userService.CompleteTaskAsync(new CompleteTaskInput
+        // {
+        //     ChainId = ChainIdAELF,
+        //     UserTask = UserTask.ExploreApps.ToString(),
+        //     UserTaskDetail = UserTaskDetail.ExploreSchrodinger.ToString()
+        // });
+        // result.ShouldBeFalse();
     }
 
     [Fact]

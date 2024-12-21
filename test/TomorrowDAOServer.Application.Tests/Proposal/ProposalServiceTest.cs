@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -25,6 +26,7 @@ public partial class ProposalServiceTest : TomorrowDaoServerApplicationTestBase
         services.AddSingleton(RankingAppPointsRedisProviderTest.MockDistributedCache());
         services.AddSingleton(MockDaoProvider());
         services.AddSingleton(MockProposalProvider());
+        services.AddSingleton(MockVoteRecordIndexRepository());
     }
 
     [Fact]
@@ -59,7 +61,7 @@ public partial class ProposalServiceTest : TomorrowDaoServerApplicationTestBase
         exception.ShouldNotBeNull();
         exception.Message.ShouldContain("No DAO information found");
         
-        await _proposalService.QueryProposalListAsync(new QueryProposalListInput
+        var pagedResultDto = await _proposalService.QueryProposalListAsync(new QueryProposalListInput
         {
             MaxResultCount = 10,
             SkipCount = 0,
@@ -72,6 +74,75 @@ public partial class ProposalServiceTest : TomorrowDaoServerApplicationTestBase
             Content = null,
             IsNetworkDao = false
         });
+        pagedResultDto.ShouldNotBeNull();
+        pagedResultDto.Items.ShouldNotBeEmpty();
     }
-    
+
+    [Fact]
+    public async Task QueryProposalDetailAsyncTest()
+    {
+        var proposalDetailDto = await _proposalService.QueryProposalDetailAsync(new QueryProposalDetailInput
+        {
+            ChainId = ChainIdAELF,
+            ProposalId = "notexist",
+            Address = Address1
+        });
+        proposalDetailDto.ShouldNotBeNull();
+        proposalDetailDto.Id.ShouldBeNull();
+        
+        proposalDetailDto = await _proposalService.QueryProposalDetailAsync(new QueryProposalDetailInput
+        {
+            ChainId = ChainIdAELF,
+            ProposalId = "ProposalId",
+            Address = Address1
+        });
+        proposalDetailDto.ShouldNotBeNull();
+        proposalDetailDto.Id.ShouldNotBeNull();
+        proposalDetailDto.Id.ShouldBe("Id");
+    }
+
+    [Fact]
+    public async Task QueryVoteHistoryAsyncTest()
+    {
+        var voteHistoryPagedResultDto  = await _proposalService.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        {
+            ChainId = ChainIdAELF,
+            ProposalId = "ProposalId",
+            SkipCount = 0,
+            MaxResultCount = 10
+        });
+        voteHistoryPagedResultDto.ShouldNotBeNull();
+        voteHistoryPagedResultDto.TotalCount.ShouldBe(1);
+        voteHistoryPagedResultDto.Items.ShouldNotBeEmpty();
+        voteHistoryPagedResultDto.Items.First().Alias.ShouldBe("Alias");
+    }
+
+    [Fact]
+    public async Task QueryExecutableProposalsAsyncTest()
+    {
+        var proposalPagedResultDto = await _proposalService.QueryExecutableProposalsAsync(new QueryExecutableProposalsInput
+        {
+            MaxResultCount = 10,
+            SkipCount = 0,
+            ChainId = ChainIdAELF,
+            DaoId = "notexist",
+            Proposer = Address1
+        });
+        proposalPagedResultDto.ShouldNotBeNull();
+        proposalPagedResultDto.TotalCount.ShouldBe(0);
+        
+        proposalPagedResultDto = await _proposalService.QueryExecutableProposalsAsync(new QueryExecutableProposalsInput
+        {
+            MaxResultCount = 10,
+            SkipCount = 0,
+            ChainId = ChainIdAELF,
+            DaoId = DAOId,
+            Proposer = Address1
+        });
+        proposalPagedResultDto.ShouldNotBeNull();
+        proposalPagedResultDto.TotalCount.ShouldBe(1);
+        proposalPagedResultDto.Items.ShouldNotBeEmpty();
+        proposalPagedResultDto.Items.First().Id.ShouldBe("Id");
+    }
+
 }
