@@ -69,20 +69,7 @@ public class TopProposalGenerateService : ScheduleSyncDataService
         _logger.LogInformation("[TopProposalGenerate] proposal:{0}", JsonConvert.SerializeObject(proposal));
         if (proposal == null || proposal.ActiveStartTime != nextWeekStartTime)
         {
-            var excludeAliasList = await GetExcludeAliasListAsync();
-            _logger.LogInformation("[TopProposalGenerate] excludeAliasList.count:{0}", excludeAliasList.Count);
-            var appList = await _telegramAppsProvider.GetAllDisplayAsync(excludeAliasList, 15);
-            if (appList.Count < 15)
-            {
-                appList = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 15);
-            }
-
-            _logger.LogInformation("[TopProposalGenerate] appList.count:{0}", appList.Count);
-            var random = new Random();
-            var randomList = appList.OrderBy(x => random.Next()).Take(15).ToList();
-            var aliasList = randomList.Select(x => x.Alias).ToList();
-            _logger.LogInformation("[TopProposalGenerate] aliasList:{0}", JsonConvert.SerializeObject(aliasList));
-            var proposalDescription = RankHelper.BuildProposalDescription(aliasList, banner);
+            var proposalDescription = RankHelper.BuilderTMAProposalDescription(banner);
             var (transactionId, transaction) = await _contractProvider.CreateTransactionAsync(chainId,
                 _senderAccount.PublicKey.ToHex(), CommonConstant.GovernanceContractAddress,
                 CommonConstant.GovernanceMethodCreateProposal, new CreateProposalInput
@@ -134,6 +121,7 @@ public class TopProposalGenerateService : ScheduleSyncDataService
         }
     }
 
+    //Query active RankingProposal alias
     private async Task<List<string>> GetExcludeAliasListAsync()
     {
         var rankingList =

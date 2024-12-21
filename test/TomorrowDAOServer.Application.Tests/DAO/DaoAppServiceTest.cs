@@ -73,6 +73,8 @@ public partial class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
     [Fact]
     public async Task GetMemberListAsyncTest()
     {
+        var environmentVariable = Environment.GetEnvironmentVariable("UNITTEST_KEY_01");
+        
         _daoProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>());
         var result = await _daoAppService.GetMemberListAsync(new GetMemberListInput
         {

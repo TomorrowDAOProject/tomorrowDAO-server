@@ -19,4 +19,5 @@ public class RankingAppUserPointsIndex : AbstractEntity<Guid>, IIndexBuild
     public long Points { get; set; }
     public PointsType PointsType { get; set; }
     public DateTime UpdateTime { get; set; }
+    [Keyword] public string UserId { get; set; }
 }

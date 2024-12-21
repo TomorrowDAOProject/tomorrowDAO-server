@@ -135,6 +135,7 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                         Id = GuidHelper.GenerateGrainId(chainId, address, category.ToString(), DiscoverChoiceType.Vote.ToString()),
                         ChainId = chainId,
                         Address = address,
+                        UserId = string.Empty,
                         TelegramAppCategory = category,
                         DiscoverChoiceType = DiscoverChoiceType.Vote,
                         UpdateTime = DateTime.UtcNow
@@ -142,7 +143,7 @@ public class VoteRecordSyncDataService : ScheduleSyncDataService
                 }
             }
 
-        await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
+            await _discoverChoiceProvider.BulkAddOrUpdateAsync(choices);
     }
 
     public override async Task<List<string>> GetChainIdsAsync()

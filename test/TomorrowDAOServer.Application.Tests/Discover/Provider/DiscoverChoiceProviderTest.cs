@@ -27,17 +27,17 @@ public partial class DiscoverChoiceProviderTest : TomorrowDaoServerApplicationTe
     {
         // var discoverViewedGrain = _clusterClient.GetGrain<IDiscoverViewedGrain>(GuidHelper.GenerateGrainId(ChainIdAELF, Address1));
         // discoverViewedGrain.AsReference<>()
-        var discoverViewed = await _discoverChoiceProvider.DiscoverViewedAsync(ChainIdAELF, Address1);
+        var discoverViewed = await _discoverChoiceProvider.DiscoverViewedAsync(ChainIdAELF, Address1, "");
         discoverViewed.ShouldBeFalse();
         
-        discoverViewed = await _discoverChoiceProvider.DiscoverViewedAsync(ChainIdAELF, Address1);
+        discoverViewed = await _discoverChoiceProvider.DiscoverViewedAsync(ChainIdAELF, Address1, "");
         discoverViewed.ShouldBeTrue();
     }
 
     [Fact]
     public async Task GetExistByAddressAndDiscoverTypeAsyncTest()
     {
-        var exist = await _discoverChoiceProvider.GetExistByAddressAndDiscoverTypeAsync(ChainIdAELF, Address1,
+        var exist = await _discoverChoiceProvider.GetExistByAddressAndUserIdAndDiscoverTypeAsync(ChainIdAELF, "", Address1,
             DiscoverChoiceType.Choice);
         if (!exist)
         {
@@ -55,7 +55,7 @@ public partial class DiscoverChoiceProviderTest : TomorrowDaoServerApplicationTe
             });
         }
         
-        exist = await _discoverChoiceProvider.GetExistByAddressAndDiscoverTypeAsync(ChainIdAELF, Address1,
+        exist = await _discoverChoiceProvider.GetExistByAddressAndUserIdAndDiscoverTypeAsync(ChainIdAELF, "", Address1,
             DiscoverChoiceType.Choice);
         exist.ShouldBeTrue();
     }
@@ -63,7 +63,7 @@ public partial class DiscoverChoiceProviderTest : TomorrowDaoServerApplicationTe
     [Fact]
     public async Task GetByAddressAsyncTest()
     {
-        var choiceIndices = await _discoverChoiceProvider.GetByAddressAsync(ChainIdAELF, Address1);
+        var choiceIndices = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(ChainIdAELF, Address1, "");
         if (choiceIndices.IsNullOrEmpty())
         {
             await _discoverChoiceProvider.BulkAddOrUpdateAsync(new List<DiscoverChoiceIndex>()
@@ -79,7 +79,7 @@ public partial class DiscoverChoiceProviderTest : TomorrowDaoServerApplicationTe
                 }
             });
         
-            choiceIndices = await _discoverChoiceProvider.GetByAddressAsync(ChainIdAELF, Address2);
+            choiceIndices = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(ChainIdAELF, Address2, "");
             choiceIndices.ShouldNotBeEmpty();
             choiceIndices[0].Address.ShouldBe(Address2);
         }

@@ -6,8 +6,10 @@ namespace TomorrowDAOServer.MQ;
 
 public interface IMessagePublisherService
 {
-    Task SendLikeMessageAsync(string chainId, string proposalId, string address, List<RankingAppLikeDetailDto> likeList);
+    Task SendLikeMessageAsync(string chainId, string proposalId, string address, List<RankingAppLikeDetailDto> likeList,
+        string userId = "");
 
     Task SendVoteMessageAsync(string chainId, string proposalId, string address, string appAlias, long amount);
     Task SendReferralFirstVoteMessageAsync(string chainId, string inviter, string invitee);
+    Task SendOpenMessageAsync(string chainId, string address, string userId, string appAlias, long count);
 }

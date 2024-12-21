@@ -1,157 +1,127 @@
-// using System.Collections.Generic;
-// using TomorrowDAOServer.Entities;
-// using TomorrowDAOServer.Enums;
-// using TomorrowDAOServer.Organization.Index;
-// using TomorrowDAOServer.Vote.Index;
-// using Xunit;
-// using Xunit.Abstractions;
-//
-// namespace TomorrowDAOServer.Proposal;
-//
-// public sealed class ProposalAssistServiceTest : TomorrowDAOServerApplicationTestBase
-// {
-//     private readonly IProposalAssistService _proposalAssistService;
-//
-//     public ProposalAssistServiceTest(ITestOutputHelper output) : base(output)
-//     {
-//         _proposalAssistService = GetRequiredService<ProposalAssistService>();
-//     }
-//
-//
-//     private static Dictionary<GovernanceMechanism, ProposalIndex> MockGovernanceProposal()
-//     {
-//         return new Dictionary<GovernanceMechanism, ProposalIndex>
-//         {
-//             [GovernanceMechanism.Parliament] = new()
-//             {
-//                 GovernanceMechanism = GovernanceMechanism.Parliament,
-//                 MinimalRequiredThreshold = 7500,
-//                 MinimalVoteThreshold = 0,
-//                 MinimalApproveThreshold = 6700,
-//                 MaximalRejectionThreshold = 2000,
-//                 MaximalAbstentionThreshold = 2000
-//             },
-//             [GovernanceMechanism.Association] = new()
-//             {
-//                 GovernanceMechanism = GovernanceMechanism.Association,
-//                 MinimalRequiredThreshold = 5000,
-//                 MinimalVoteThreshold = 0,
-//                 MinimalApproveThreshold = 6000,
-//                 MaximalRejectionThreshold = 4000,
-//                 MaximalAbstentionThreshold = 4000
-//             },
-//             [GovernanceMechanism.Customize] = new()
-//             {
-//                 GovernanceMechanism = GovernanceMechanism.Customize,
-//                 MinimalRequiredThreshold = 0,
-//                 MinimalVoteThreshold = 0,
-//                 MinimalApproveThreshold = 0,
-//                 MaximalRejectionThreshold = 0,
-//                 MaximalAbstentionThreshold = 0
-//             },
-//             [GovernanceMechanism.Referendum] = new()
-//             {
-//                 GovernanceMechanism = GovernanceMechanism.Referendum,
-//                 MinimalRequiredThreshold = 1,
-//                 MinimalVoteThreshold = 0,
-//                 MinimalApproveThreshold = 5000,
-//                 MaximalRejectionThreshold = 2000,
-//                 MaximalAbstentionThreshold = 2000
-//             }
-//         };
-//     }
-//
-//     [Theory]
-//     [InlineData(ProposalStatus.Expired, 100, 10, 60, 30, 20, 50)]
-//     [InlineData(ProposalStatus.Rejected, 100, 21, 20, 59, 25, 30)]
-//     [InlineData(ProposalStatus.Abstained, 100, 20, 21, 59, 19, 20)]
-//     [InlineData(ProposalStatus.Approved, 100, 20, 10, 70, 50, 60)]
-//     public void ToProposalResult_Parliament_Returns_Expected_Status(ProposalStatus expectedStatus, int totalVotes, int rejectionCount, int abstentionCount, int approvedCount, int voterCount, int organizationMemberCount)
-//     {
-//         // Arrange
-//         var proposalDict = MockGovernanceProposal();
-//         var proposal = proposalDict[GovernanceMechanism.Parliament];
-//         var voteInfo = new IndexerVote
-//         {
-//             VoterCount = voterCount,
-//             VotesAmount = totalVotes,
-//             RejectionCount = rejectionCount,
-//             AbstentionCount = abstentionCount,
-//             ApprovedCount = approvedCount
-//         };
-//
-//         var organizationInfo = new IndexerOrganizationInfo
-//         {
-//             OrganizationMemberCount = organizationMemberCount
-//         };
-//
-//         // Act
-//         var result = _proposalAssistService.ToProposalResult(proposal, voteInfo, organizationInfo);
-//
-//         // Assert
-//         Assert.Equal(expectedStatus, result);
-//     }
-//     
-//     [Theory]
-//     [InlineData(ProposalStatus.Expired, 100, 10, 60, 30, 20, 50)]
-//     [InlineData(ProposalStatus.Rejected, 100, 41, 20, 39, 25, 30)]
-//     [InlineData(ProposalStatus.Abstained, 100, 20, 41, 39, 19, 20)]
-//     [InlineData(ProposalStatus.Approved, 100, 40, 0, 60, 50, 60)]
-//     public void ToProposalResult_Association_Returns_Expected_Status(ProposalStatus expectedStatus, int totalVotes, int rejectionCount, int abstentionCount, int approvedCount, int voterCount, int organizationMemberCount)
-//     {
-//         // Arrange
-//         var proposalDict = MockGovernanceProposal();
-//         var proposal = proposalDict[GovernanceMechanism.Association];
-//         var voteInfo = new IndexerVote
-//         {
-//             VoterCount = voterCount,
-//             VotesAmount = totalVotes,
-//             RejectionCount = rejectionCount,
-//             AbstentionCount = abstentionCount,
-//             ApprovedCount = approvedCount
-//         };
-//
-//         var organizationInfo = new IndexerOrganizationInfo
-//         {
-//             OrganizationMemberCount = organizationMemberCount
-//         };
-//
-//         // Act
-//         var result = _proposalAssistService.ToProposalResult(proposal, voteInfo, organizationInfo);
-//
-//         // Assert
-//         Assert.Equal(expectedStatus, result);
-//     }
-//     
-//     [Theory]
-//     [InlineData(ProposalStatus.Expired, 100, 10, 60, 30, 0, 50)]
-//     [InlineData(ProposalStatus.Rejected, 100, 21, 20, 59, 25, 30)]
-//     [InlineData(ProposalStatus.Abstained, 100, 20, 21, 59, 19, 20)]
-//     [InlineData(ProposalStatus.Approved, 100, 20, 20, 60, 50, 60)]
-//     public void ToProposalResult_Referendum_Returns_Expected_Status(ProposalStatus expectedStatus, int totalVotes, int rejectionCount, int abstentionCount, int approvedCount, int voterCount, int organizationMemberCount)
-//     {
-//         // Arrange
-//         var proposalDict = MockGovernanceProposal();
-//         var proposal = proposalDict[GovernanceMechanism.Referendum];
-//         var voteInfo = new IndexerVote
-//         {
-//             VoterCount = voterCount,
-//             VotesAmount = totalVotes,
-//             RejectionCount = rejectionCount,
-//             AbstentionCount = abstentionCount,
-//             ApprovedCount = approvedCount
-//         };
-//
-//         var organizationInfo = new IndexerOrganizationInfo
-//         {
-//             OrganizationMemberCount = organizationMemberCount
-//         };
-//
-//         // Act
-//         var result = _proposalAssistService.ToProposalResult(proposal, voteInfo, organizationInfo);
-//
-//         // Assert
-//         Assert.Equal(expectedStatus, result);
-//     }
-//
-// }
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Shouldly;
+using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Vote.Index;
+using Volo.Abp.ObjectMapping;
+using Xunit;
+using Xunit.Abstractions;
+using static TomorrowDAOServer.Common.TestConstant;
+
+namespace TomorrowDAOServer.Proposal;
+
+public class ProposalAssistServiceTest : TomorrowDaoServerApplicationTestBase
+{
+    private readonly IProposalAssistService _proposalAssistService;
+    private readonly IObjectMapper _objectMapper;
+
+    public ProposalAssistServiceTest(ITestOutputHelper output) : base(output)
+    {
+        _proposalAssistService = Application.ServiceProvider.GetRequiredService<ProposalAssistService>();
+        _objectMapper = Application.ServiceProvider.GetRequiredService<IObjectMapper>();
+    }
+
+    [Fact]
+    public async Task ConvertProposalListTest()
+    {
+        var tuple = await _proposalAssistService.ConvertProposalList(ChainIdAELF, new List<IndexerProposal>()
+        {
+            GenerateProposal()
+        });
+        tuple.ShouldNotBeNull();
+        tuple.Item1.ShouldNotBeNull();
+        tuple.Item1.Count.ShouldBe(1);
+        tuple.Item2.ShouldNotBeNull();
+        tuple.Item2.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task ConvertProposalLifeListTest()
+    {
+        var proposalIndex = _objectMapper.Map<IndexerProposal, ProposalIndex>(GenerateProposal());
+        proposalIndex.ActiveStartTime = DateTime.UtcNow.AddDays(-1);
+        proposalIndex.DeployTime = DateTime.UtcNow.AddDays(-2);
+        var proposalLifeList = _proposalAssistService.ConvertProposalLifeList(proposalIndex);
+        proposalLifeList.ShouldNotBeNull();
+        proposalLifeList.Count.ShouldBeGreaterThan(1);
+
+        proposalIndex.ProposalStage = ProposalStage.Pending;
+        proposalLifeList = _proposalAssistService.ConvertProposalLifeList(proposalIndex);
+        proposalLifeList.ShouldNotBeNull();
+        
+        proposalIndex.ProposalStage = ProposalStage.Execute;
+        proposalLifeList = _proposalAssistService.ConvertProposalLifeList(proposalIndex);
+        proposalLifeList.ShouldNotBeNull();
+
+        proposalIndex.ProposalStage = ProposalStage.Finished;
+        proposalIndex.ProposalStatus = ProposalStatus.Vetoed;
+        proposalLifeList = _proposalAssistService.ConvertProposalLifeList(proposalIndex);
+        proposalLifeList.ShouldNotBeNull();
+        
+        proposalIndex.ProposalStage = ProposalStage.Finished;
+        proposalIndex.ProposalStatus = ProposalStatus.Rejected;
+        proposalLifeList = _proposalAssistService.ConvertProposalLifeList(proposalIndex);
+        proposalLifeList.ShouldNotBeNull();
+        
+        proposalIndex.ProposalStage = ProposalStage.Finished;
+        proposalIndex.ProposalStatus = ProposalStatus.Executed;
+        proposalLifeList = _proposalAssistService.ConvertProposalLifeList(proposalIndex);
+        proposalLifeList.ShouldNotBeNull();
+    }
+
+    private IndexerProposal GenerateProposal()
+    {
+        return new IndexerProposal
+        {
+            Id = "Id",
+            ChainId = ChainIdAELF,
+            BlockHeight = 100,
+            DAOId = CustomDaoId,
+            ProposalId = ProposalId1,
+            ProposalTitle = "ProposalTitle",
+            ProposalDescription = "##GameRanking:crypto-bot",
+            ForumUrl = string.Empty,
+            ProposalType = ProposalType.Advisory,
+            ActiveStartTime = DateTime.UtcNow.AddDays(-1),
+            ActiveEndTime = DateTime.UtcNow.AddDays(1),
+            ExecuteStartTime = DateTime.UtcNow.AddDays(2),
+            ExecuteEndTime = DateTime.UtcNow.AddDays(3),
+            ProposalStatus = ProposalStatus.PendingVote,
+            ProposalStage = ProposalStage.Active,
+            Proposer = Address1,
+            SchemeAddress = "SchemeAddress",
+            Transaction = new ExecuteTransactionDto
+            {
+                ToAddress = "ToAddress",
+                ContractMethodName = "ContractMethodName",
+                Params = string.Empty
+            },
+            VoteSchemeId = "VoteSchemeId",
+            VetoProposalId = null,
+            BeVetoProposalId = null,
+            DeployTime = DateTime.UtcNow.AddDays(-1),
+            ExecuteTime = null,
+            GovernanceMechanism = GovernanceMechanism.Organization,
+            MinimalRequiredThreshold = 10,
+            MinimalVoteThreshold = 10,
+            MinimalApproveThreshold = 10,
+            MaximalRejectionThreshold = 10,
+            MaximalAbstentionThreshold = 10,
+            ProposalThreshold = 10,
+            ActiveTimePeriod = 0,
+            VetoActiveTimePeriod = 0,
+            PendingTimePeriod = 0,
+            ExecuteTimePeriod = 0,
+            VetoExecuteTimePeriod = 0,
+            VoteFinished = false,
+            IsNetworkDAO = false,
+            ProposalCategory = ProposalCategory.Normal,
+            RankingType = RankingType.All
+        };
+    }
+}

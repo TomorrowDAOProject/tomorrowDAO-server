@@ -487,7 +487,7 @@ public class ProposalService : TomorrowDAOServerAppService, IProposalService
         }
         if (isRankingDao)
         {
-            totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(input.Address);
+            totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(input.Address);
         }
         else
         {

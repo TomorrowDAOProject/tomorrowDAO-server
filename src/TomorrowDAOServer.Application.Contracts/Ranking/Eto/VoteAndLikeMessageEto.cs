@@ -15,4 +15,5 @@ public class VoteAndLikeMessageEto
     public string Address { get; set; }
     public long Amount { get; set; }
     public PointsType PointsType { get; set; }
+    public string UserId { get; set; }
 }
