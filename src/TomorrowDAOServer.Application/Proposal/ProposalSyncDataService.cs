@@ -58,32 +58,40 @@ public class ProposalSyncDataService : ScheduleSyncDataService
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var skipCount = 0;
-        var blockHeight = -1L;
-        //lastEndHeight = 0;
-        List<IndexerProposal> queryList;
-        do
+        try
         {
-            queryList = await _proposalProvider.GetSyncProposalDataAsync(skipCount, chainId, lastEndHeight, 0,
-                MaxResultCount);
-            Log.Information(
-                "[ProposalSync] SyncProposalData queryList skipCount {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
-                skipCount, lastEndHeight, newIndexHeight, queryList?.Count);
-            if (queryList == null || queryList.IsNullOrEmpty())
+            var skipCount = 0;
+            var blockHeight = -1L;
+            //lastEndHeight = 0;
+            List<IndexerProposal> queryList;
+            do
             {
-                break;
-            }
+                queryList = await _proposalProvider.GetSyncProposalDataAsync(skipCount, chainId, lastEndHeight, 0,
+                    MaxResultCount);
+                Log.Information(
+                    "[ProposalSync] SyncProposalData queryList skipCount {skipCount} startBlockHeight: {lastEndHeight} endBlockHeight: {newIndexHeight} count: {count}",
+                    skipCount, lastEndHeight, newIndexHeight, queryList?.Count);
+                if (queryList == null || queryList.IsNullOrEmpty())
+                {
+                    break;
+                }
 
-            blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight).Max());
-            var (convertProposalList, rankingProposalList) = await _proposalAssistService.ConvertProposalList(chainId, queryList);
-            await _proposalProvider.BulkAddOrUpdateAsync(convertProposalList);
-            await _rankingAppService.GenerateRankingApp(chainId, rankingProposalList);
-            await _userService.GenerateDailyCreatePollPointsAsync(chainId, rankingProposalList);
-            skipCount += queryList.Count;
-        } while (!queryList.IsNullOrEmpty());
+                blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight).Max());
+                var (convertProposalList, rankingProposalList) = await _proposalAssistService.ConvertProposalList(chainId, queryList);
+                await _proposalProvider.BulkAddOrUpdateAsync(convertProposalList);
+                await _rankingAppService.GenerateRankingApp(chainId, rankingProposalList);
+                await _userService.GenerateDailyCreatePollPointsAsync(chainId, rankingProposalList);
+                skipCount += queryList.Count;
+            } while (!queryList.IsNullOrEmpty());
 
-        _logger.LogInformation("[ProposalSync] SyncProposalData finished. EndHeight={0}, newIndexHeight={1}", blockHeight, newIndexHeight);
-        return blockHeight;
+            _logger.LogInformation("[ProposalSync] SyncProposalData finished. EndHeight={0}, newIndexHeight={1}", blockHeight, newIndexHeight);
+            return blockHeight;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "[ProposalSync] SyncProposalData fail. {0}", e.Message);
+            throw;
+        }
     }
 
     public override async Task<List<string>> GetChainIdsAsync()
