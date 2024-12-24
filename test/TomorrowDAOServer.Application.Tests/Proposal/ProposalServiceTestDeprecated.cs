@@ -13,6 +13,7 @@ using TomorrowDAOServer.DAO;
 using TomorrowDAOServer.DAO.Dtos;
 using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.DAO.Provider;
+using TomorrowDAOServer.Dtos.AelfScan;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Entities;
@@ -100,7 +101,7 @@ public class ProposalServiceTestDeprecated
             .Returns(new Dictionary<string, IndexerVote>());
         _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
             .Returns(new DAOIndex { Id = "DaoId" });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        _explorerProvider.GetTokenInfoAsync(Arg.Any<GetTokenInfoFromAelfScanRequest>()).Returns(new GetTokenInfoFromAelfScanResponse
         {
             Symbol = "ELF", Decimals = "8"
         });
