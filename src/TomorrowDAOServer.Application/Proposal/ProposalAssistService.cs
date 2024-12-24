@@ -115,7 +115,10 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         if (!userList.IsNullOrEmpty())
         {
             var userDtos = ObjectMapper.Map<List<UserIndex>, List<UserDto>>(userList);
-            addressToUser = userDtos.GroupBy(t => t.Address).ToDictionary(g => g.Key, g => g.FirstOrDefault());
+            foreach (var userDto in userDtos.Where(userDto => !addressToUser.ContainsKey(userDto.Address)))
+            {
+                addressToUser[userDto.Address] = userDto;
+            }
         }
 
         foreach (var proposalIndex in proposalList)
