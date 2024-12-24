@@ -114,7 +114,7 @@ public class VotigramRevampDataMigrator : TomorrowDAOServerAppService, IVotigram
             await DealRankingAppUserPointsIndexAsync(chainId);
         }
 
-        //5、deal user task
+        //6、deal user task
         if (dealUserTaskIndex)
         {
             await DealUserPointsIndexAsync(chainId);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using AElf;
 using GraphQL;
 using GraphQL.Client.Abstractions;
@@ -11,6 +12,8 @@ using TomorrowDAOServer.DAO.Indexer;
 using TomorrowDAOServer.Election.Dto;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Treasury.Dto;
+using TomorrowDAOServer.Vote.Dto;
+using TomorrowDAOServer.Vote.Index;
 using Volo.Abp;
 using DateTime = System.DateTime;
 using static TomorrowDAOServer.Common.TestConstant;
@@ -36,6 +39,8 @@ public class GraphQLClientMock
         MockGetElectionHighCouncilConfig(mock);
         MockTokenInfo(mock);
         MockGetDAOAmountRecord(mock);
+        MockGetVoteScheme(mock);
+        MockGetVoteItems(mock);
         
 
         return mock.Object;
@@ -539,6 +544,63 @@ public class GraphQLClientMock
                     {
                         GovernanceToken = ELF,
                         Amount = 1000
+                    }
+                }
+            };
+        });
+    }
+    
+    private static void MockGetVoteScheme(Mock<IGraphQLClient> mock)
+    {
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerVoteSchemeResult
+            {
+                Data = new List<IndexerVoteSchemeInfo>() { new IndexerVoteSchemeInfo
+                    {
+                        Id = "Id",
+                        ChainId = ChainIdAELF,
+                        VoteSchemeId = "VoteSchemeId",
+                        VoteMechanism = VoteMechanism.TOKEN_BALLOT,
+                        WithoutLockToken = true,
+                        VoteStrategy = VoteStrategy.DAY_DISTINCT,
+                        VoteCount = 0
+                    }
+                }
+            };
+        });
+    }
+    
+    private static void MockGetVoteItems(Mock<IGraphQLClient> mock)
+    {
+        MockGraphQLClient(mock, (GraphQLRequest request) =>
+        {
+            if (request.Variables != null && request.Variables.ToString().IndexOf("ThrowException") != -1)
+            {
+                throw new UserFriendlyException("GraphQL query exception.");
+            }
+
+            return new IndexerVotes
+            {
+                Data = new List<IndexerVote>()
+                {
+                    new IndexerVote
+                    {
+                        VotingItemId = "ProposalId",
+                        Executer = Address1,
+                        VoteSchemeId = "VoteSchemeId",
+                        DAOId = DaoId,
+                        AcceptedCurrency = null,
+                        ApprovedCount = 1,
+                        RejectionCount = 0,
+                        AbstentionCount = 0,
+                        VotesAmount = 1,
+                        VoterCount = 1
                     }
                 }
             };

@@ -11,6 +11,7 @@ public static class TestConstant
     public const string ELF = "ELF";
     
     public const string DaoId = "bfbd1a01fd5a931d2fef9ed77146d47b1ba18498cdd300ad6530cd832583152a";
+    public const string CustomDaoId = "41e6b23e081bea37f6adf992f03fcf7c9f6f5ee0fafc11f6ea5211c7643ff74e";
     
     public static readonly string PrivateKey1 = Environment.GetEnvironmentVariable("UNITTEST_KEY_01");
     public const string PublicKey1 =
