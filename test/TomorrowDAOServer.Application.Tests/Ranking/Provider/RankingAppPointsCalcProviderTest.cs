@@ -23,31 +23,31 @@ public class RankingAppPointsCalcProviderTest : TomorrowDaoServerApplicationTest
     public async Task OptionsTest()
     {
         var option = _pointsCalcProvider.CalculatePointsFromDailyViewAsset();
-        option.ShouldBe(1_0000);
+        option.ShouldBe(100L);
 
         option = _pointsCalcProvider.CalculatePointsFromDailyFirstInvite();
-        option.ShouldBe(2_0000);
+        option.ShouldBe(1000L);
 
         option = _pointsCalcProvider.CalculatePointsFromExploreJoinTgChannel();
-        option.ShouldBe(1_0000);
+        option.ShouldBe(100L);
 
         option = _pointsCalcProvider.CalculatePointsFromExploreFollowX();
-        option.ShouldBe(1_0000);
+        option.ShouldBe(100L);
 
         option = _pointsCalcProvider.CalculatePointsFromExploreJoinDiscord();
-        option.ShouldBe(1_0000);
+        option.ShouldBe(100L);
 
         option = _pointsCalcProvider.CalculatePointsFromExploreCumulateFiveInvite();
-        option.ShouldBe(10_0000);
+        option.ShouldBe(2000L);
 
         option = _pointsCalcProvider.CalculatePointsFromExploreCumulateTenInvite();
-        option.ShouldBe(30_0000);
+        option.ShouldBe(4000L);
 
         option = _pointsCalcProvider.CalculatePointsFromExploreCumulateTwentyInvite();
-        option.ShouldBe(50_0000);
+        option.ShouldBe(10000L);
 
         option = _pointsCalcProvider.CalculatePointsFromPointsExploreForwardX();
-        option.ShouldBe(1_0000);
+        option.ShouldBe(100L);
     }
 
     [Fact]

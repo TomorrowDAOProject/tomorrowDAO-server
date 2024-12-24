@@ -7,6 +7,7 @@ public enum PointsType
     // normal
     Vote = 1, // both for normal and daily task
     Like = 2,
+    Open = 22,
     
     // referral activity
     InviteVote = 3, // inviter get points when invitee register and vote for first time during referral activity period
@@ -18,6 +19,7 @@ public enum PointsType
     DailyFirstInvite = 7,
     DailyViewAds = 15,
     DailyCreatePoll = 16,
+    DailyLogin = 21,
     
     // explore task
     ExploreJoinTgChannel = 8,

@@ -37,7 +37,7 @@ public partial class DiscussionServiceTest : TomorrowDaoServerApplicationTestBas
         var newCommentResult = await _discussionService.NewCommentAsync(new NewCommentInput
         {
             ChainId = ChainIdAELF,
-            ProposalId = ProposalId1,
+            ProposalId = ProposalId2,
             Alias = null,
             ParentId = "Id",
             Comment = Address1

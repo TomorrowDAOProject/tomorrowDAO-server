@@ -19,5 +19,6 @@ public class IndexerVoteSchemeInfo
     public VoteMechanism VoteMechanism { get; set; }
     public bool WithoutLockToken { get; set; }
     public VoteStrategy VoteStrategy { get; set; }
+    public int VoteCount { get; set; }
 }
 

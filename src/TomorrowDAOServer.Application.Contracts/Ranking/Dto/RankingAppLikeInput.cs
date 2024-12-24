@@ -14,3 +14,9 @@ public class RankingAppLikeDetailDto
     public string Alias { get; set; }
     public long LikeAmount { get; set; }
 }
+
+public class RankingAppLikeResultDto
+{
+    public long UserTotalPoints { get; set; }
+    public Dictionary<string, long> AppLikeCount { get; set; }
+}

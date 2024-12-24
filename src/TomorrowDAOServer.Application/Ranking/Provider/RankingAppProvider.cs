@@ -18,6 +18,9 @@ public interface IRankingAppProvider
     Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias);
     Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1);
     Task<List<RankingAppIndex>> GetNeedMoveRankingAppListAsync();
+    Task<List<RankingAppIndex>> GetByAliasAsync(string chainId, List<string> aliases);
+    [Obsolete("Only use it once during data migration.")]
+    Task<List<RankingAppIndex>> GetAllRankingAppAsync(string chainId);
 }
 
 public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
@@ -98,5 +101,32 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return (await _rankingAppIndexRepository.GetListAsync(Filter)).Item2;
+    }
+    
+    public async Task<List<RankingAppIndex>> GetByAliasAsync(string chainId, List<string> aliases)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppIndex>, QueryContainer>>
+        {
+            q => q.Term(i =>
+                i.Field(f => f.ChainId).Value(chainId)),
+            q => q.Terms(i =>
+                i.Field(f => f.Alias).Terms(aliases))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return await IndexHelper.GetAllIndex<RankingAppIndex>(Filter, _rankingAppIndexRepository);
+    }
+
+    [Obsolete("Only use it once during data migration.")]
+    public async Task<List<RankingAppIndex>> GetAllRankingAppAsync(string chainId)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppIndex>, QueryContainer>>
+        {
+            q => q.Term(i =>
+                i.Field(f => f.ChainId).Value(chainId)),
+        };
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return await IndexHelper.GetAllIndex<RankingAppIndex>(Filter, _rankingAppIndexRepository);
     }
 }

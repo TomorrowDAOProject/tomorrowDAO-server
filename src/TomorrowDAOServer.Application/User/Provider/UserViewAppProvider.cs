@@ -12,7 +12,7 @@ namespace TomorrowDAOServer.User.Provider;
 public interface IUserViewAppProvider
 {
     Task BulkAddOrUpdateAsync(List<UserViewedAppIndex> list);
-    Task<List<UserViewedAppIndex>> GetByAliasList(string address, List<string> aliases);
+    Task<List<UserViewedAppIndex>> GetByAliasList(string userId, string address, List<string> aliases);
 }
 
 public class UserViewAppProvider : IUserViewAppProvider, ISingletonDependency
@@ -33,14 +33,20 @@ public class UserViewAppProvider : IUserViewAppProvider, ISingletonDependency
         await _userViewAppRepository.BulkAddOrUpdateAsync(list);
     }
 
-    public async Task<List<UserViewedAppIndex>> GetByAliasList(string address, List<string> aliases)
+    public async Task<List<UserViewedAppIndex>> GetByAliasList(string userId, string address, List<string> aliases)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<UserViewedAppIndex>, QueryContainer>>
         {
             q => q.Terms(i => i.Field(f => f.Alias).Terms(aliases)),
             q => q.Term(i => i.Field(f => f.Address).Value(address))
         };
-        QueryContainer Filter(QueryContainerDescriptor<UserViewedAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+        var shouldQuery = new List<Func<QueryContainerDescriptor<UserViewedAppIndex>, QueryContainer>>();
+        if (!string.IsNullOrEmpty(address))
+        {
+            shouldQuery.Add(q => q.Term(i => i.Field(t => t.Address).Value(address)));
+        }
+        shouldQuery.Add(q => q.Term(i => i.Field(t => t.UserId).Value(userId)));
+        QueryContainer Filter(QueryContainerDescriptor<UserViewedAppIndex> f) => f.Bool(b => b .Must(mustQuery).Should(shouldQuery).MinimumShouldMatch(1));
         return await IndexHelper.GetAllIndex(Filter, _userViewAppRepository);
     }
 }

@@ -16,4 +16,7 @@ public class VoteSchemeInfoDto
     [JsonConverter(typeof(StringEnumConverter))]
     public VoteMechanism VoteMechanism { get; set; }
     public string VoteMechanismName { get; set; }
+    public bool WithoutLockToken { get; set; }
+    public VoteStrategy VoteStrategy { get; set; }
+    public int VoteCount { get; set; }
 }

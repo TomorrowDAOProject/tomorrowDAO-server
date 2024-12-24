@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
@@ -15,6 +15,8 @@ using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.User;
+using TomorrowDAOServer.User.Dtos;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp.ObjectMapping;
 
@@ -22,7 +24,9 @@ namespace TomorrowDAOServer.Proposal;
 
 public interface IProposalAssistService
 {
-    public Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list);
+    public Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId,
+        List<IndexerProposal> list);
+
     // public Task<List<ProposalIndex>> ConvertProposalList(string chainId, List<ProposalIndex> list);
     public Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list);
     public List<ProposalLifeDto> ConvertProposalLifeList(ProposalIndex proposalIndex);
@@ -38,13 +42,15 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private readonly IProposalProvider _proposalProvider;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IScriptService _scriptService;
+    private readonly IUserAppService _userAppService;
     private Dictionary<string, VoteMechanism> _voteMechanisms = new();
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private string TempPattern { get; set; }
 
-    public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper, IVoteProvider voteProvider,
-        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService, 
-        IOptionsMonitor<RankingOptions> rankingOptions)
+    public ProposalAssistService(ILogger<ProposalAssistService> logger, IObjectMapper objectMapper,
+        IVoteProvider voteProvider,
+        IProposalProvider proposalProvider, IGraphQLProvider graphQlProvider, IScriptService scriptService,
+        IOptionsMonitor<RankingOptions> rankingOptions, IUserAppService userAppService)
     {
         _logger = logger;
         _objectMapper = objectMapper;
@@ -53,9 +59,11 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         _graphQlProvider = graphQlProvider;
         _scriptService = scriptService;
         _rankingOptions = rankingOptions;
+        _userAppService = userAppService;
     }
 
-    public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId, List<IndexerProposal> list)
+    public async Task<Tuple<List<ProposalIndex>, List<IndexerProposal>>> ConvertProposalList(string chainId,
+        List<IndexerProposal> list)
     {
         var rankingDaoIds = _rankingOptions.CurrentValue.DaoIds;
         var customRankingDaoIds = _rankingOptions.CurrentValue.CustomDaoIds;
@@ -65,6 +73,8 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         var serverProposalDic = serverProposalList.ToDictionary(x => x.ProposalId, x => x);
         foreach (var proposal in list)
         {
+            _logger.LogInformation("[ProposalSync] convert Proposal. proposal={0}",
+                JsonConvert.SerializeObject(proposal));
             var daoId = proposal.DAOId;
             if (rankingDaoIds.Contains(daoId) || customRankingDaoIds.Contains(daoId))
             {
@@ -72,14 +82,14 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
                 proposal.RankingType = rankingDaoIds.Contains(daoId) ? RankingType.Verified : RankingType.Community;
                 proposal.ProposalCategory = proposalCategory;
             }
-            
+
             if (!serverProposalDic.TryGetValue(proposal.ProposalId, out var serverProposal))
             {
                 //need to generate a ranking list
                 if (proposal.ProposalCategory == ProposalCategory.Ranking)
                 {
                     rankingProposalList.Add(proposal);
-                    Log.Information("RankingProposalNeedToGenerate proposalId {proposalId} description {description}", 
+                    Log.Information("RankingProposalNeedToGenerate proposalId {proposalId} description {description}",
                         proposal.ProposalId, proposal.ProposalDescription);
                 }
             }
@@ -89,13 +99,46 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
                 {
                     continue;
                 }
+
                 proposal.ProposalStatus = serverProposal.ProposalStatus;
                 proposal.ProposalStage = serverProposal.ProposalStage;
             }
         }
 
         var proposalList = _objectMapper.Map<List<IndexerProposal>, List<ProposalIndex>>(list);
+
+        //fill in Telegram user info
+        await FillTelegramUserInfoAsync(proposalList);
+
         return new Tuple<List<ProposalIndex>, List<IndexerProposal>>(proposalList, rankingProposalList);
+    }
+
+    private async Task FillTelegramUserInfoAsync(List<ProposalIndex> proposalList)
+    {
+        var addressList = proposalList.Select(t => t.Proposer).Distinct().ToList();
+        var userList = await _userAppService.GetUserByAddressListAsync(addressList);
+        var addressToUser = new Dictionary<string, UserDto>();
+        if (!userList.IsNullOrEmpty())
+        {
+            var userDtos = ObjectMapper.Map<List<UserIndex>, List<UserDto>>(userList);
+            foreach (var userDto in userDtos.Where(userDto => !userDto.Address.IsNullOrWhiteSpace())
+                         .Where(userDto => !addressToUser.ContainsKey(userDto.Address)))
+            {
+                addressToUser[userDto.Address] = userDto;
+            }
+        }
+
+        foreach (var proposalIndex in proposalList)
+        {
+            var userDto = addressToUser.GetValueOrDefault(proposalIndex.Proposer, null);
+            if (userDto == null)
+            {
+                continue;
+            }
+
+            proposalIndex.ProposerId = userDto.UserId.ToString();
+            proposalIndex.ProposerFirstName = userDto.GetUserInfo()?.FirstName ?? string.Empty;
+        }
     }
 
     public async Task<List<ProposalIndex>> NewConvertProposalList(string chainId, List<ProposalIndex> list)
@@ -223,42 +266,46 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         var proposalStatus = proposalIndex.ProposalStatus;
         var isVetoed = proposalIndex.VetoProposalId.IsNullOrEmpty();
         switch (proposalIndex.ProposalStage)
-            {
-                case ProposalStage.Active:
-                    break;
-                case ProposalStage.Pending:
-                    AddProposalLife(ref result, ProposalStage.Pending, proposalStatus);
-                    break;
-                case ProposalStage.Execute:
-                    if (GovernanceMechanism.HighCouncil == proposalIndex.GovernanceMechanism)
-                    {
-                        AddProposalLife(ref result, ProposalStage.Pending, isVetoed ? ProposalStatus.Challenged : ProposalStatus.Approved);
-                    }
-                    AddProposalLife(ref result, ProposalStage.Execute, ProposalStatus.Approved);
-                    break;
-                case ProposalStage.Finished:
-                    switch (proposalStatus)
-                    {
-                        case ProposalStatus.Rejected:
-                        case ProposalStatus.Abstained:
-                        case ProposalStatus.BelowThreshold:    
-                            break;
-                        case ProposalStatus.Vetoed:
-                            AddProposalLife(ref result, ProposalStage.Pending, ProposalStatus.Challenged);
-                            break;
-                        case ProposalStatus.Executed:
-                        case ProposalStatus.Expired:
-                            if (GovernanceMechanism.HighCouncil == proposalIndex.GovernanceMechanism)
-                            {
-                                AddProposalLife(ref result, ProposalStage.Pending, isVetoed ? ProposalStatus.Challenged : ProposalStatus.Approved);
-                            }
-                            AddProposalLife(ref result, ProposalStage.Execute, ProposalStatus.Approved);
-                            break;
-                    }
-                    
-                    AddProposalLife(ref result, ProposalStage.Finished, proposalStatus);
-                    break;
-            }
+        {
+            case ProposalStage.Active:
+                break;
+            case ProposalStage.Pending:
+                AddProposalLife(ref result, ProposalStage.Pending, proposalStatus);
+                break;
+            case ProposalStage.Execute:
+                if (GovernanceMechanism.HighCouncil == proposalIndex.GovernanceMechanism)
+                {
+                    AddProposalLife(ref result, ProposalStage.Pending,
+                        isVetoed ? ProposalStatus.Challenged : ProposalStatus.Approved);
+                }
+
+                AddProposalLife(ref result, ProposalStage.Execute, ProposalStatus.Approved);
+                break;
+            case ProposalStage.Finished:
+                switch (proposalStatus)
+                {
+                    case ProposalStatus.Rejected:
+                    case ProposalStatus.Abstained:
+                    case ProposalStatus.BelowThreshold:
+                        break;
+                    case ProposalStatus.Vetoed:
+                        AddProposalLife(ref result, ProposalStage.Pending, ProposalStatus.Challenged);
+                        break;
+                    case ProposalStatus.Executed:
+                    case ProposalStatus.Expired:
+                        if (GovernanceMechanism.HighCouncil == proposalIndex.GovernanceMechanism)
+                        {
+                            AddProposalLife(ref result, ProposalStage.Pending,
+                                isVetoed ? ProposalStatus.Challenged : ProposalStatus.Approved);
+                        }
+
+                        AddProposalLife(ref result, ProposalStage.Execute, ProposalStatus.Approved);
+                        break;
+                }
+
+                AddProposalLife(ref result, ProposalStage.Finished, proposalStatus);
+                break;
+        }
 
         return result;
     }
@@ -279,7 +326,8 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
         return Task.CompletedTask;
     }
 
-    private static void AddProposalLife(ref List<ProposalLifeDto> result, ProposalStage proposalStage, ProposalStatus proposalStatus)
+    private static void AddProposalLife(ref List<ProposalLifeDto> result, ProposalStage proposalStage,
+        ProposalStatus proposalStatus)
     {
         result.AddLast(new ProposalLifeDto
         {
@@ -375,7 +423,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     // {
     //     return time == null || time.Value == DateTime.MinValue;
     // }
-    
+
     private static string Convert(string enumStr)
     {
         if (string.IsNullOrEmpty(enumStr))
@@ -394,6 +442,8 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
     private ProposalCategory ParseProposalDescription(string proposalDescription)
     {
         _logger.LogDebug("description:{0}", proposalDescription);
-        return RankHelper.IsRanking(proposalDescription, TempPattern) ? ProposalCategory.Ranking : ProposalCategory.Normal;
+        return RankHelper.IsRanking(proposalDescription, TempPattern)
+            ? ProposalCategory.Ranking
+            : ProposalCategory.Normal;
     }
 }

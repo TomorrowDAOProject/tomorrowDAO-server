@@ -12,10 +12,12 @@ namespace TomorrowDAOServer.Application.Contracts.Tests.Common.AElfSdk;
 
 public partial class ContractProviderTest : TomorrowDaoServerApplicationContractsTestsBase
 {
+    private readonly ITestOutputHelper _testOutputHelper;
     private readonly IContractProvider _contractProvider;
     
     public ContractProviderTest(ITestOutputHelper output) : base(output)
     {
+        _testOutputHelper = output;
         _contractProvider = ServiceProvider.GetRequiredService<IContractProvider>();
         
         var type = _contractProvider.GetType();
@@ -44,6 +46,7 @@ public partial class ContractProviderTest : TomorrowDaoServerApplicationContract
     [Fact]
     public async Task ContractAddressTest_AddressNotFound()
     {
+        _testOutputHelper.WriteLine("**PrivateKey={0}", PrivateKey1);
         var exception = Assert.Throws<UserFriendlyException>(() =>
         {
             _contractProvider.ContractAddress(ChainIdAELF, "TreasuryContractAddress");
