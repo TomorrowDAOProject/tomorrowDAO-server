@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common.Provider;
@@ -89,7 +90,7 @@ public class ProposalSyncDataService : ScheduleSyncDataService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "[ProposalSync] SyncProposalData fail. {0}", e.Message);
+            Log.Error(e, "[ProposalSync] SyncProposalData fail. {0}", JsonConvert.SerializeObject(e));
             throw;
         }
     }
