@@ -133,7 +133,6 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
     public async Task GenerateRankingApp(string chainId, List<IndexerProposal> proposalList)
     {
         _logger.LogInformation("[ProposalSync] Generate Ranking start... {0}", proposalList.IsNullOrEmpty() ? 0 : proposalList.Count);
-        var toUpdate = new List<RankingAppIndex>();
         foreach (var proposal in proposalList)
         {
             var telegramApps = new List<TelegramAppIndex>();
@@ -165,6 +164,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 .Select(group => group.First()).ToList();
             var aliasToTelegramApp = distinctTelegramApps.ToDictionary(t => t.Alias);
             var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(distinctTelegramApps);
+            _logger.LogInformation("[ProposalSync] Ranking {0} App Count={1}", proposal.ProposalId, rankingApps.Count);
             foreach (var rankingApp in rankingApps)
             {
                 _objectMapper.Map(proposal, rankingApp);
@@ -188,13 +188,20 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 }
             }
 
-            toUpdate.AddRange(rankingApps);
+            if (!rankingApps.IsNullOrEmpty())
+            {
+                await _rankingAppProvider.BulkAddOrUpdateAsync(rankingApps);
+            }
+            else
+            {
+                _logger.LogWarning("[ProposalSync] Ranking {0} App is empty.", proposal.ProposalId);
+            }
+            
+            _logger.LogInformation("[ProposalSync] Saved Ranking {0} App Count={1}", proposal.ProposalId, rankingApps.Count);
         }
 
-        if (!toUpdate.IsNullOrEmpty())
+        if (!proposalList.IsNullOrEmpty())
         {
-            await _rankingAppProvider.BulkAddOrUpdateAsync(toUpdate);
-            
             //TODO Useless code
             var defaultRankingProposal = proposalList
                 .Where(p => p.ActiveStartTime <= DateTime.UtcNow) 
