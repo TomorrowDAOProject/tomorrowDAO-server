@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
@@ -12,6 +13,7 @@ using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Provider;
+using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
@@ -24,6 +26,7 @@ namespace TomorrowDAOServer.Discover;
 
 public class DiscoverService : ApplicationService, IDiscoverService
 {
+    private readonly ILogger<DiscoverService> _logger;
     private readonly IDiscoverChoiceProvider _discoverChoiceProvider;
     private readonly IUserProvider _userProvider;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
@@ -42,7 +45,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         IUserViewAppProvider userViewAppProvider, IOptionsMonitor<DiscoverOptions> discoverOptions,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IDiscussionProvider discussionProvider,
         IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider,
-        IOptionsMonitor<RankingOptions> rankingOptions, IVoteProvider voteProvider)
+        IOptionsMonitor<RankingOptions> rankingOptions, IVoteProvider voteProvider, ILogger<DiscoverService> logger)
     {
         _discoverChoiceProvider = discoverChoiceProvider;
         _userProvider = userProvider;
@@ -56,6 +59,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         _proposalProvider = proposalProvider;
         _rankingOptions = rankingOptions;
         _voteProvider = voteProvider;
+        _logger = logger;
     }
 
     public async Task<bool> DiscoverViewedAsync(string chainId)
@@ -158,24 +162,30 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
         var proposalId = proposal.ProposalId;
         var search = input.Search;
-        var rankingAppList = await _rankingAppProvider.GetByProposalIdAsync(input.ChainId, proposalId);
+        var (total, rankingAppList) = await _rankingAppProvider.GetRankingAppListAsync(new GetRankingAppListInput
+        {
+            MaxResultCount = input.MaxResultCount,
+            SkipCount = input.SkipCount,
+            ChainId = input.ChainId,
+            Category = input.Category,
+            Search = input.Search
+        });
         var list = ObjectMapper.Map<List<RankingAppIndex>, List<DiscoverAppDto>>(rankingAppList);
-        if (!string.IsNullOrEmpty(input.Category))
-        {
-            var category = CheckCategory(input.Category);
-            list = list.Where(x => x.Categories.Contains(category.ToString())).ToList();
-        }
-
-        var allPoints = list.Sum(x => x.TotalPoints);
-        if (!string.IsNullOrEmpty(search))
-        {
-            list = list.Where(x => x.Title != null && x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
+        // if (!string.IsNullOrEmpty(input.Category))
+        // {
+        //     var category = CheckCategory(input.Category);
+        //     list = list.Where(x => x.Categories.Contains(category.ToString())).ToList();
+        // }
+        var allPoints = await _rankingAppPointsRedisProvider.GetProposalPointsAsync(proposalId);
+        // if (!string.IsNullOrEmpty(search))
+        // {
+        //     list = list.Where(x => x.Title != null && x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
+        //         .ToList();
+        // }
 
         await FillData(input.ChainId, list);
         PointsPercent(allPoints, list);
-        list = list.OrderByDescending(x => x.TotalPoints).ToList();
+        //list = list.OrderByDescending(x => x.TotalPoints).ToList();
         var voteIndex = await _voteProvider.GetLatestByVoterAndVotingItemIdAsync(address, proposalId);
         return new CurrentAppPageResultDto<DiscoverAppDto>
         {
