@@ -44,6 +44,7 @@ public interface IRankingAppPointsRedisProvider
     Task<long> IncrementOpenedAppCountAsync(string alias, int count);
     Task<Dictionary<string, long>> GetOpenedAppCountAsync(List<string> alias);
     Task<Dictionary<string, long>> GetAppLikeCountAsync(List<string> aliases);
+    Task<long> GetProposalPointsAsync(string proposalId);
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -397,5 +398,19 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
             kvp => keyAliasMap[kvp.Key],
             kvp => (long)(kvp.Value.Result.HasValue ? (long)kvp.Value.Result : 0)
         );
+    }
+
+    public async Task<long> GetProposalPointsAsync(string proposalId)
+    {
+        var totalPoints = 0L;
+        var proposalVoteKey = RedisHelper.GenerateProposalVotePointsCacheKey(proposalId);
+        var cache = await GetAsync(proposalVoteKey);
+        totalPoints += long.TryParse(cache, out var votePoints) ? votePoints : 0;
+        
+        var proposalLikeKey = RedisHelper.GenerateProposalLikePointsCacheKey(proposalId);
+        cache = await GetAsync(proposalLikeKey);
+        totalPoints += long.TryParse(cache, out var likePoints) ? likePoints : 0;
+
+        return totalPoints;
     }
 }

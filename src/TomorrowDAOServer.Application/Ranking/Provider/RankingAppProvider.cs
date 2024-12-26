@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Ranking.Dto;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.Ranking.Provider;
@@ -14,6 +15,7 @@ namespace TomorrowDAOServer.Ranking.Provider;
 public interface IRankingAppProvider
 {
     Task BulkAddOrUpdateAsync(List<RankingAppIndex> list);
+    Task<Tuple<long, List<RankingAppIndex>>> GetRankingAppListAsync(GetRankingAppListInput input);
     Task<List<RankingAppIndex>> GetByProposalIdAsync(string chainId, string proposalId);
     Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias);
     Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1);
@@ -40,6 +42,30 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
     public async Task BulkAddOrUpdateAsync(List<RankingAppIndex> list)
     {
         await _rankingAppIndexRepository.BulkAddOrUpdateAsync(list);
+    }
+
+    public async Task<Tuple<long, List<RankingAppIndex>>> GetRankingAppListAsync(GetRankingAppListInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppIndex>, QueryContainer>>
+        {
+            q => q.Term(i =>
+                i.Field(f => f.ChainId).Value(input.ChainId))
+        };
+        if (!input.Category.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Terms(i =>
+                i.Field(f => f.Categories).Terms(input.Category)));
+        }
+
+        if (!input.Search.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.Title).Value(input.Category)));
+        }
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+        
+        IPromise<IList<ISort>> SortDescriptor(SortDescriptor<RankingAppIndex> s) { return s.Descending(p => p.TotalPoints); }
+        return await _rankingAppIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount, sortFunc: SortDescriptor);
     }
 
     public async Task<List<RankingAppIndex>> GetByProposalIdAsync(string chainId, string proposalId)
