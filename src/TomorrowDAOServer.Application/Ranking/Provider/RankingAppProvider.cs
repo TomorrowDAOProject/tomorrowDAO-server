@@ -60,7 +60,7 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
         if (!input.Search.IsNullOrWhiteSpace())
         {
             mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.Title).Value(input.Category)));
+                i.Field(f => f.Title).Value(input.Search)));
         }
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         
