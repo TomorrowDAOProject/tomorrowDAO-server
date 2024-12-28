@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.Discover.Dto;
 using TomorrowDAOServer.Discover.Provider;
 using TomorrowDAOServer.Discussion.Provider;
@@ -21,6 +23,7 @@ using TomorrowDAOServer.User.Provider;
 using TomorrowDAOServer.Vote.Provider;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Caching;
 
 namespace TomorrowDAOServer.Discover;
 
@@ -39,13 +42,15 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private readonly IProposalProvider _proposalProvider;
     private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
     private readonly IVoteProvider _voteProvider;
+    private readonly IDistributedCache<string> _distributedCache;
 
     public DiscoverService(IDiscoverChoiceProvider discoverChoiceProvider, IUserProvider userProvider,
         ITelegramAppsProvider telegramAppsProvider, IRankingAppPointsProvider rankingAppPointsProvider,
         IUserViewAppProvider userViewAppProvider, IOptionsMonitor<DiscoverOptions> discoverOptions,
         IRankingAppPointsRedisProvider rankingAppPointsRedisProvider, IDiscussionProvider discussionProvider,
         IRankingAppProvider rankingAppProvider, IProposalProvider proposalProvider,
-        IOptionsMonitor<RankingOptions> rankingOptions, IVoteProvider voteProvider, ILogger<DiscoverService> logger)
+        IOptionsMonitor<RankingOptions> rankingOptions, IVoteProvider voteProvider, ILogger<DiscoverService> logger, 
+        IDistributedCache<string> distributedCache)
     {
         _discoverChoiceProvider = discoverChoiceProvider;
         _userProvider = userProvider;
@@ -60,6 +65,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         _rankingOptions = rankingOptions;
         _voteProvider = voteProvider;
         _logger = logger;
+        _distributedCache = distributedCache;
     }
 
     public async Task<bool> DiscoverViewedAsync(string chainId)
@@ -186,13 +192,14 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await FillData(input.ChainId, list);
         PointsPercent(allPoints, list);
         //list = list.OrderByDescending(x => x.TotalPoints).ToList();
-        var voteIndex = await _voteProvider.GetLatestByVoterAndVotingItemIdAsync(address, proposalId);
+        var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, proposalId, input.Category);
+
         return new CurrentAppPageResultDto<DiscoverAppDto>
         {
             TotalCount = list.Count, ProposalId = proposalId, Data = list,
             ActiveEndEpochTime = rankingAppList?.FirstOrDefault()?.ActiveEndTime.ToUtcMilliSeconds() ?? 0,
             UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address),
-            CanVote = voteIndex == null || voteIndex.VoteTime != DateTime.UtcNow.Date
+            CanVote = votingRecord == null
         };
     }
 
@@ -225,6 +232,12 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return true;
     }
 
+    public async Task<RankingVoteRecord> GetRankingVoteRecordAsync(string chainId, string address, string proposalId, string category)
+    {
+        var distributeCacheKey = RedisHelper.GenerateDistributeCacheKey(chainId, address, proposalId, category);
+        var cache = await _distributedCache.GetAsync(distributeCacheKey);
+        return cache.IsNullOrWhiteSpace() ? null : JsonConvert.DeserializeObject<RankingVoteRecord>(cache);
+    }
     private async Task<AppPageResultDto<DiscoverAppDto>> GetSearchAppListAsync(GetDiscoverAppListInput input)
     {
         TelegramAppCategory? category = Enum.TryParse(input.Category, true, out TelegramAppCategory categoryEnum)
