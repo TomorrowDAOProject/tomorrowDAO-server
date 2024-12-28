@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Nest;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Ranking.Dto;
 using Volo.Abp.DependencyInjection;
 
@@ -51,7 +52,10 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
             q => q.Term(i =>
                 i.Field(f => f.ChainId).Value(input.ChainId))
         };
-        if (!input.Category.IsNullOrWhiteSpace())
+
+        if (!input.Category.IsNullOrWhiteSpace() &&
+            Enum.TryParse<TelegramAppCategory>(input.Category, true, out var categoryEnum) &&
+            categoryEnum != TelegramAppCategory.All)
         {
             mustQuery.Add(q => q.Terms(i =>
                 i.Field(f => f.Categories).Terms(input.Category)));
