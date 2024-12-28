@@ -26,6 +26,7 @@ public class RankingVoteResponse
     public string TransactionId { get; set; }
     
     public string ProposalId { get; set; }
+    public long UserTotalPoints { get; set; }
 }
 
 public class RankingVoteRecord

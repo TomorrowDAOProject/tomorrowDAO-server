@@ -382,10 +382,12 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         Log.Information("Ranking vote, query voting record.{0}", address);
         var category = input.Category?.ToString() ?? string.Empty;
         var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, votingItemId, category);
+        var userTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
+
         if (votingRecord != null)
         {
             Log.Information("Ranking vote, vote exist. {0}", address);
-            return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId);
+            return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId, userTotalPoints);
         }
 
         IAbpDistributedLockHandle lockHandle = null;
@@ -400,7 +402,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 if (lockHandle == null)
                 {
                     Log.Information("Ranking vote, lock failed. {0}", address);
-                    return BuildRankingVoteResponse(RankingVoteStatusEnum.Failed);
+                    return BuildRankingVoteResponse(RankingVoteStatusEnum.Failed, userTotalPoints: userTotalPoints);
                 }
 
                 Log.Information("Ranking vote, query voting record again.{0}", address);
@@ -408,7 +410,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 if (votingRecord != null)
                 {
                     Log.Information("Ranking vote, vote exist. {0}", address);
-                    return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId);
+                    return BuildRankingVoteResponse(votingRecord.Status, votingRecord.TransactionId, userTotalPoints);
                 }
 
                 _logger.LogInformation("Ranking vote, send transaction. {0}", address);
@@ -429,7 +431,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                     input.TransactionId, voteInput.Memo, voteInput.VoteAmount, addressCaHash,
                     proposalIndex, input.TrackId, category);
 
-                return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, input.TransactionId);
+                return BuildRankingVoteResponse(RankingVoteStatusEnum.Voting, input.TransactionId, userTotalPoints);
             }
         }
         catch (Exception e)
@@ -945,12 +947,13 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         return new Tuple<VoteInput, Transaction>(voteInput, transaction);
     }
 
-    private RankingVoteResponse BuildRankingVoteResponse(RankingVoteStatusEnum status, string TranscationId = null)
+    private RankingVoteResponse BuildRankingVoteResponse(RankingVoteStatusEnum status, string TranscationId = null, long userTotalPoints = 0)
     {
         return new RankingVoteResponse
         {
             Status = status,
-            TransactionId = TranscationId
+            TransactionId = TranscationId,
+            UserTotalPoints = userTotalPoints
         };
     }
 
