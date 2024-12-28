@@ -190,7 +190,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         return new CurrentAppPageResultDto<DiscoverAppDto>
         {
             TotalCount = list.Count, ProposalId = proposalId, Data = list,
-            ActiveEndEpochTime = rankingAppList[0].ActiveEndTime.ToUtcMilliSeconds(),
+            ActiveEndEpochTime = rankingAppList?.FirstOrDefault()?.ActiveEndTime.ToUtcMilliSeconds() ?? 0,
             UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address),
             CanVote = voteIndex == null || voteIndex.VoteTime != DateTime.UtcNow.Date
         };
