@@ -58,7 +58,7 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
             categoryEnum != TelegramAppCategory.All)
         {
             mustQuery.Add(q => q.Terms(i =>
-                i.Field(f => f.Categories).Terms(input.Category)));
+                i.Field(f => f.Categories).Terms(categoryEnum)));
         }
 
         if (!input.Search.IsNullOrWhiteSpace())
