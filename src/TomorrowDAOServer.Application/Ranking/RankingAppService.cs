@@ -810,7 +810,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
         var totalVoteAmount = appVoteAmountDic.Values.Sum();
         var totalPoints = appPointsList.Sum(x => x.Points);
         var votePercentFactor = DoubleHelper.GetFactor(totalVoteAmount);
-        var pointsPercentFactor = DoubleHelper.GetFactor(totalPoints);
+        var pointsPercentFactor = DoubleHelper.GetFactor((decimal)totalPoints);
         var appPointsDic = RankingAppPointsDto
             .ConvertToBaseList(appPointsList)
             .ToDictionary(x => x.Alias, x => x.Points);

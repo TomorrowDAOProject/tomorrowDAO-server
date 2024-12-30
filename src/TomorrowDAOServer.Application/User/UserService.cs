@@ -555,7 +555,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var totalVoteAmount = appVoteAmountDic.Values.Sum();
         var totalPoints = appPointsList.Sum(x => x.Points);
         var votePercentFactor = DoubleHelper.GetFactor(totalVoteAmount);
-        var pointsPercentFactor = DoubleHelper.GetFactor(totalPoints);
+        var pointsPercentFactor = DoubleHelper.GetFactor((decimal)totalPoints);
         foreach (var rankingAppDetailDto in rankingList)
         {
             var icon = rankingAppDetailDto.Icon;
