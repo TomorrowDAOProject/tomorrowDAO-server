@@ -104,7 +104,9 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
 
     public async Task<long> IncrementAsync(string key, long amount)
     {
-        return await _database.StringIncrementAsync(key, amount);
+        var result = await _database.StringIncrementAsync(key, amount);
+        _logger.LogInformation("Increment Amount {amount}, Key: {key}, Value: {value}", amount, key, result);
+        return result;
     }
 
     public async Task<List<RankingAppPointsDto>> GetAllAppPointsAsync(string chainId, string proposalId, List<string> aliasList)
@@ -232,6 +234,7 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         var totalVotesKey = RedisHelper.GenerateTotalVotesCacheKey();
         var totalPointsKey = RedisHelper.GenerateTotalPointsCacheKey();
         var votePoints = _rankingAppPointsCalcProvider.CalculatePointsFromVotes(voteAmount);
+        _logger.LogInformation("Increment Vote Points : {votePoints}", votePoints);
         await Task.WhenAll(IncrementAsync(appVoteKey, votePoints), 
             IncrementAsync(userKey, votePoints), IncrementAsync(proposalKey, votePoints),
             IncrementAsync(totalVotesKey, votePoints), IncrementAsync(totalPointsKey, votePoints));
