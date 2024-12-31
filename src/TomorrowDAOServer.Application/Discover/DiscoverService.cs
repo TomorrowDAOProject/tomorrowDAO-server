@@ -146,7 +146,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var res = await GetCategoryAppListAsync(input, new List<string>(), "TotalPoints");
         var allPoints = await _telegramAppsProvider.GetTotalPointsAsync();
         PointsPercent(allPoints, res.Data);
-        await FillData(input.ChainId, res.Data);
+        await FillData(input.ChainId, res.Data, false);
         return new AccumulativeAppPageResultDto<DiscoverAppDto>
         {
             Data = res.Data, TotalCount = res.TotalCount,
@@ -434,7 +434,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         };
     }
 
-    private async Task FillData(string chainId, List<DiscoverAppDto> list)
+    private async Task FillData(string chainId, List<DiscoverAppDto> list, bool flag = true)
     {
         var aliases = list.Where(x => !string.IsNullOrEmpty(x.Alias)).Select(x => x.Alias).Distinct().ToList();
         var pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
@@ -443,9 +443,12 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
         foreach (var app in list.Where(x => !string.IsNullOrWhiteSpace(x.Alias)))
         {
-            app.TotalPoints = pointsDic.GetValueOrDefault(app.Alias, 0);
-            app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
-            app.TotalLikes = likesDic.GetValueOrDefault(app.Alias, 0);
+            if (flag)
+            {
+                app.TotalPoints = pointsDic.GetValueOrDefault(app.Alias, 0);
+                app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
+                app.TotalLikes = likesDic.GetValueOrDefault(app.Alias, 0);
+            }
             app.TotalComments = commentsDic.GetValueOrDefault(app.Alias, 0);
         }
     }
