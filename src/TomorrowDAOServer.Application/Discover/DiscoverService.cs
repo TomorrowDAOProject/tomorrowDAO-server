@@ -197,7 +197,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
         return new CurrentAppPageResultDto<DiscoverAppDto>
         {
-            TotalCount = list.Count, ProposalId = proposalId, Data = list,
+            TotalCount = list.Count, ProposalId = proposalId, Data = list.OrderByDescending(x => x.TotalPoints).ThenBy(x => x.Title).ToList(),
             ActiveEndEpochTime = rankingAppList?.FirstOrDefault()?.ActiveEndTime.ToUtcMilliSeconds() ?? 0,
             UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address),
             CanVote = votingRecord == null
