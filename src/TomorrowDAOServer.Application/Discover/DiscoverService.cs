@@ -190,7 +190,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         //         .ToList();
         // }
 
-        await FillData(input.ChainId, list);
+        await FillData(input.ChainId, list, false);
         PointsPercent(allPoints, list);
         //list = list.OrderByDescending(x => x.TotalPoints).ToList();
         var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, proposalId, input.Category);
@@ -447,9 +447,9 @@ public class DiscoverService : ApplicationService, IDiscoverService
             if (flag)
             {
                 app.TotalPoints = pointsDic.GetValueOrDefault(app.Alias, 0);
-                app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
                 app.TotalLikes = likesDic.GetValueOrDefault(app.Alias, 0);
             }
+            app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
             app.TotalComments = commentsDic.GetValueOrDefault(app.Alias, 0);
         }
     }
