@@ -574,11 +574,13 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var categories = choiceIndices.Select(x => x.TelegramAppCategory).Distinct().ToList();
         if (categories.IsNullOrEmpty())
         {
+            _logger.LogWarning("not found discover choice.");
             return null;
         }
         var telegramAppIndices = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 1000, categories);
         if (telegramAppIndices.IsNullOrEmpty())
         {
+            _logger.LogWarning("not found telegram app.");
             return null;
         }
 
