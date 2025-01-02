@@ -66,6 +66,12 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
             mustQuery.Add(q => q.Term(i =>
                 i.Field(f => f.Title).Value(input.Search)));
         }
+        
+        if (!input.ProposalId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.ProposalId).Value(input.ProposalId)));
+        }
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
         
         IPromise<IList<ISort>> SortDescriptor(SortDescriptor<RankingAppIndex> s) { return s.Descending(p => p.TotalPoints); }
