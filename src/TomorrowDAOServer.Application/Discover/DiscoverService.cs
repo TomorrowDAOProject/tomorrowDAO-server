@@ -190,7 +190,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         //         .ToList();
         // }
 
-        await FillData(input.ChainId, list);
+        await FillData(input.ChainId, list, false);
         PointsPercent(allPoints, list);
         //list = list.OrderByDescending(x => x.TotalPoints).ToList();
         var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, proposalId, input.Category);
