@@ -149,7 +149,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await FillData(input.ChainId, res.Data, false);
         return new AccumulativeAppPageResultDto<DiscoverAppDto>
         {
-            Data = res.Data, TotalCount = res.TotalCount,
+            Data = res.Data.OrderBy(x => x.Title).ToList(), TotalCount = res.TotalCount,
             UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address)
         };
     }
@@ -174,7 +174,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
             SkipCount = input.SkipCount,
             ChainId = input.ChainId,
             Category = input.Category,
-            Search = input.Search
+            Search = input.Search,
+            ProposalId = proposalId
         });
         var list = ObjectMapper.Map<List<RankingAppIndex>, List<DiscoverAppDto>>(rankingAppList);
         // if (!string.IsNullOrEmpty(input.Category))
