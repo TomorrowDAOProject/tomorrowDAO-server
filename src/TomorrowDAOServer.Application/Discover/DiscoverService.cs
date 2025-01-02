@@ -447,9 +447,9 @@ public class DiscoverService : ApplicationService, IDiscoverService
             if (flag)
             {
                 app.TotalPoints = pointsDic.GetValueOrDefault(app.Alias, 0);
-                app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
                 app.TotalLikes = likesDic.GetValueOrDefault(app.Alias, 0);
             }
+            app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
             app.TotalComments = commentsDic.GetValueOrDefault(app.Alias, 0);
         }
     }
