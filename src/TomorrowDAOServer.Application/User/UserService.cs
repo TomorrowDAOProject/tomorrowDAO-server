@@ -589,7 +589,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         if (categories.IsNullOrEmpty())
         {
             _logger.LogWarning("not found discover choice.");
-            return null;
+            categories = [TelegramAppCategory.Game];
         }
         var telegramAppIndices = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 1000, categories);
         if (telegramAppIndices.IsNullOrEmpty())
