@@ -310,12 +310,12 @@ public class DiscoverService : ApplicationService, IDiscoverService
             appList = ObjectMapper.Map<List<TelegramAppIndex>, List<DiscoverAppDto>>(userInterestedAppList);
         }
 
-        var random = new Random();
-        for (var i = 8; i < appList.Count; i += 8 + 1)
-        {
-            var randomUrl = adUrlList[random.Next(adUrlList.Count)];
-            appList.Insert(i, new DiscoverAppDto { AppType = "AD", Url = randomUrl });
-        }
+        // var random = new Random();
+        // for (var i = 8; i < appList.Count; i += 8 + 1)
+        // {
+        //     var randomUrl = adUrlList[random.Next(adUrlList.Count)];
+        //     appList.Insert(i, new DiscoverAppDto { AppType = "AD", Url = randomUrl });
+        // }
 
         return new RandomAppListDto
         {
