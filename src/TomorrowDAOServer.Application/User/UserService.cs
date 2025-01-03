@@ -589,7 +589,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         if (categories.IsNullOrEmpty())
         {
             _logger.LogWarning("not found discover choice.");
-            categories = [TelegramAppCategory.Ecommerce];
+            categories = [TelegramAppCategory.Game];
         }
         var telegramAppIndices = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 1000, categories);
         if (telegramAppIndices.IsNullOrEmpty())
@@ -609,7 +609,24 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                 (ta, rapGroup) => new { TelegramApp = ta, Amount = rapGroup.FirstOrDefault()?.Amount ?? 0 })
             .OrderBy(x => x.Amount)
             .Select(x => x.TelegramApp).FirstOrDefault();
-        return telegramAppIndex == null ? new RankingAppDetailDto() : _objectMapper.Map<TelegramAppIndex, RankingAppDetailDto>(telegramAppIndex);
+        
+        if (telegramAppIndex == null)
+        {
+            return new RankingAppDetailDto();
+        }
+        
+        var detailDto = _objectMapper.Map<TelegramAppIndex, RankingAppDetailDto>(telegramAppIndex);
+        if (!telegramAppIndex.BackIcon.IsNullOrWhiteSpace())
+        {
+            detailDto.Icon = telegramAppIndex.BackIcon;
+        }
+
+        if (!telegramAppIndex.BackScreenshots.IsNullOrEmpty())
+        {
+            detailDto.Screenshots = telegramAppIndex.BackScreenshots;
+        }
+
+        return detailDto;
     }
 
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
