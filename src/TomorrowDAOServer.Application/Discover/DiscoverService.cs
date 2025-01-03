@@ -149,7 +149,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         await FillData(input.ChainId, res.Data, false);
         return new AccumulativeAppPageResultDto<DiscoverAppDto>
         {
-            Data = res.Data.OrderBy(x => x.Title).ToList(), TotalCount = res.TotalCount,
+            Data = res.Data.OrderByDescending(x => x.TotalPoints).ThenBy(x => x.Title).ToList(), TotalCount = res.TotalCount,
             UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address)
         };
     }
