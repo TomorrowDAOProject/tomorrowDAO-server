@@ -142,10 +142,14 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             if (proposal.Proposer == _rankingOptions.CurrentValue.TopRankingAddress && RankHelper.IsTMARanking(proposal.ProposalDescription))
             {
                 _logger.LogInformation("[ProposalSync] TMA Ranking, proposalId={0}", proposal.ProposalId);
-                telegramApps = await _telegramAppsProvider.GetAllTelegramAppsAsync(new QueryTelegramAppsInput
+                var allTelegramApps = await _telegramAppsProvider.GetAllTelegramAppsAsync(new QueryTelegramAppsInput
                 {
                     SourceTypes = new List<SourceType>() { SourceType.Telegram , SourceType.FindMini}
                 });
+
+                telegramApps = allTelegramApps.Where(x => !x.Url.IsNullOrWhiteSpace() &&
+                                                          !x.LongDescription.IsNullOrWhiteSpace() && !x.BackScreenshots.IsNullOrEmpty() &&
+                                                          !x.BackIcon.IsNullOrWhiteSpace() && !x.Categories.IsNullOrEmpty()).ToList();
                 _logger.LogInformation("[ProposalSync] TMA Ranking App Count={0}, proposalId={1}", 
                     telegramApps.IsNullOrEmpty() ? 0 : telegramApps.Count, proposal.ProposalId);
                 aliases = telegramApps.Select(t => t.Alias).Distinct().ToList();
