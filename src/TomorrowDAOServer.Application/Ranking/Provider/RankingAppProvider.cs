@@ -18,6 +18,7 @@ public interface IRankingAppProvider
     Task BulkAddOrUpdateAsync(List<RankingAppIndex> list);
     Task<Tuple<long, List<RankingAppIndex>>> GetRankingAppListAsync(GetRankingAppListInput input);
     Task<List<RankingAppIndex>> GetByProposalIdAsync(string chainId, string proposalId);
+    Task<List<RankingAppIndex>> GetByProposalIdOrderByTotalPointsAsync(string chainId, string proposalId, int limit);
     Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias);
     Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1);
     Task<List<RankingAppIndex>> GetNeedMoveRankingAppListAsync();
@@ -90,6 +91,20 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return (await _rankingAppIndexRepository.GetListAsync(Filter)).Item2;
+    }
+    
+    public async Task<List<RankingAppIndex>> GetByProposalIdOrderByTotalPointsAsync(string chainId, string proposalId, int maxCount)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<RankingAppIndex>, QueryContainer>>
+        {
+            q => q.Terms(i =>
+                i.Field(f => f.ChainId).Terms(chainId)),
+            q => q.Terms(i =>
+                i.Field(f => f.ProposalId).Terms(proposalId))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return (await _rankingAppIndexRepository.GetListAsync(Filter, sortExp: o => o.TotalPoints, sortType: Nest.SortOrder.Descending, limit: maxCount)).Item2;
     }
 
     public async Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias)
