@@ -132,7 +132,16 @@ public class ReferralService : ApplicationService, IReferralService
             input.StartTime = startTime;
             input.EndTime = endTime;
         }
-        var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
+
+        IReadOnlyCollection<KeyedBucket<string>> inviterBuckets;
+        if (_rankingOptions.CurrentValue.IsWeeklyRankingsEnabled)
+        {
+            inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
+        } else
+        {
+            inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(0, 0);
+        }
+        
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var inviterList = RankHelper.GetRankedList(input.ChainId, userList, inviterBuckets);

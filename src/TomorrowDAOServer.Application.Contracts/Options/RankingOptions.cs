@@ -45,6 +45,7 @@ public class RankingOptions
     public List<string> ReferralPointsAddressList { get; set; } = new();
     public bool RecordDiscover { get; set; } = false;
     public bool ReferralActivityValid { get; set; } = true;
+    public bool IsWeeklyRankingsEnabled { get; set; } = false;
     public long GroupCount { get; set; } = 500;
     public List<string> TopRankingIds { get; set; } = new();
     public string TopRankingAddress { get; set; }
