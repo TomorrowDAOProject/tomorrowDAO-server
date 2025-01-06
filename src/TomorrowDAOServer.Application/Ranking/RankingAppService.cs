@@ -173,6 +173,10 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             _logger.LogInformation("[ProposalSync] Ranking {0} App Count={1}", proposal.ProposalId, rankingApps.Count);
             foreach (var rankingApp in rankingApps)
             {
+                rankingApp.TotalPoints = 0;
+                rankingApp.TotalVotes = 0;
+                rankingApp.TotalLikes = 0;
+                
                 _objectMapper.Map(proposal, rankingApp);
                 rankingApp.Id =
                     GuidHelper.GenerateGrainId(proposal.ChainId, proposal.DAOId, proposal.Id, rankingApp.Alias);
