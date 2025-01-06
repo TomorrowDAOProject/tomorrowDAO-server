@@ -6,6 +6,7 @@ using AElf.ExceptionHandler;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Handler;
@@ -236,6 +237,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         
         var dailyTaskList =
             await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, new List<UserTask>{UserTask.Daily});
+        _logger.LogInformation("get daily task list : {list}, chainId: {chainId}, userId: {userId},address: {address}", JsonConvert.SerializeObject(dailyTaskList), chainId, userId, address);
         var exploreTaskList =
             await _userPointsRecordProvider.GetByAddressAndUserTaskAsync(chainId, userId, address, new List<UserTask>
                 {
