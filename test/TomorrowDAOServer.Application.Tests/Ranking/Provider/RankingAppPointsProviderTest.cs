@@ -93,7 +93,7 @@ public class RankingAppPointsProviderTest : TomorrowDaoServerApplicationTestBase
     public async Task GetRankingAppPointsIndexByAliasAsyncTest()
     {
         await AddOrUpdateAppPointsIndexAsyncTest();
-        var pointsIndex = await _rankingAppPointsProvider.GetRankingAppPointsIndexByAliasAsync(ChainIdAELF, ProposalId1);
+        var pointsIndex = await _rankingAppPointsProvider.GetRankingAppPointsIndexByAliasAsync(ChainIdAELF, ProposalId1, "");
         pointsIndex.ShouldNotBeNull();
         pointsIndex.Points.ShouldBeGreaterThan(10);
     }

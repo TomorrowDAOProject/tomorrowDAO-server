@@ -157,4 +157,14 @@ public static class TimeHelper
         return dateTime.Date == today;
     }
 
+    public static bool IsToday(DateTime dateTime)
+    {
+        return dateTime.Date == DateTime.Today;
+    }
+
+    public static bool IsYesterday(DateTime dateTime)
+    {
+        return dateTime.Date == DateTime.Today.AddDays(-1);
+    }
+
 }

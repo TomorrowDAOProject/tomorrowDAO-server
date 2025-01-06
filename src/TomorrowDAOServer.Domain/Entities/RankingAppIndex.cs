@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using AElf.Indexing.Elasticsearch;
 using Nest;
+using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Entities;
 
@@ -15,7 +16,6 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string ProposalTitle { get; set; }
     [Keyword] public string ProposalDescription { get; set; }
     public DateTime ActiveStartTime { get; set; }
-   
     public DateTime ActiveEndTime { get; set; }
     [Keyword] public string AppId { get; set; }
     [Keyword] public string Alias { get; set; }
@@ -28,4 +28,9 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
+    public long TotalPoints { get; set; }
+    public long TotalVotes { get; set; }
+    public long TotalLikes { get; set; }
+    public List<TelegramAppCategory> Categories { get; set; }
+    public int AppIndex { get; set; } = 0;
 }

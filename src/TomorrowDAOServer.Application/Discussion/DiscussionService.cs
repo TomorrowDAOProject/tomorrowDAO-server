@@ -9,6 +9,7 @@ using TomorrowDAOServer.DAO.Provider;
 using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Discussion.Provider;
 using TomorrowDAOServer.Entities;
+using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.Proposal.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
@@ -50,8 +51,10 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
     public async Task<NewCommentResultDto> NewCommentAsync(NewCommentInput input)
     {
-        var address = await _userProvider.GetAndValidateUserAddressAsync(
-                CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty, input.ChainId);
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        
         if (input.ParentId != CommonConstant.RootParentId)
         {
             var parentComment = await _discussionProvider.GetCommentAsync(input.ParentId);
@@ -60,16 +63,16 @@ public class DiscussionService : ApplicationService, IDiscussionService
                 return new NewCommentResultDto { Reason = "Invalid parentId: not existed." };
             }
 
-            if (parentComment.Commenter == address)
+            if (parentComment.Commenter == address || parentComment.CommenterId == userId)
             {
                 return new NewCommentResultDto { Reason = "Invalid parentId: can not comment self." };
             }
         }
 
-        return string.IsNullOrEmpty(input.ProposalId) ? await CommentApp(address, input) : await CommentProposal(address, input);
+        return string.IsNullOrEmpty(input.ProposalId) ? await CommentApp(address, userGrainDto, input) : await CommentProposal(address, userGrainDto, input);
     }
 
-    private async Task<NewCommentResultDto> CommentApp(string address, NewCommentInput input)
+    private async Task<NewCommentResultDto> CommentApp(string address, UserGrainDto userGrainDto, NewCommentInput input)
     {
         var (count, app) = await _telegramAppsProvider.GetTelegramAppsAsync(new QueryTelegramAppsInput
         {
@@ -81,10 +84,11 @@ public class DiscussionService : ApplicationService, IDiscussionService
         }
         var commentIndex = _objectMapper.Map<NewCommentInput, CommentIndex>(input);
         commentIndex.ProposalId = input.Alias;
-        return await Comment(address, input.Alias, commentIndex);
+        return await Comment(address, userGrainDto, input.Alias, commentIndex);
     }
     
-    private async Task<NewCommentResultDto> CommentProposal(string address, NewCommentInput input)
+    private async Task<NewCommentResultDto> CommentProposal(string address, UserGrainDto userGrainDto,
+        NewCommentInput input)
     {
         var proposalIndex = await _proposalProvider.GetProposalByIdAsync(input.ChainId, input.ProposalId);
         if (proposalIndex == null)
@@ -126,10 +130,11 @@ public class DiscussionService : ApplicationService, IDiscussionService
 
         var commentIndex = _objectMapper.Map<ProposalIndex, CommentIndex>(proposalIndex);
         _objectMapper.Map(input, commentIndex);
-        return await Comment(address, input.ProposalId, commentIndex);
+        return await Comment(address, userGrainDto, input.ProposalId, commentIndex);
     }
 
-    private async Task<NewCommentResultDto> Comment(string address, string commentSubject, CommentIndex commentIndex)
+    private async Task<NewCommentResultDto> Comment(string address, UserGrainDto userGrainDto, string commentSubject,
+        CommentIndex commentIndex)
     {
         var count = await _discussionProvider.GetCommentCountAsync(commentSubject);
         if (count < 0)
@@ -140,7 +145,16 @@ public class DiscussionService : ApplicationService, IDiscussionService
         var now = TimeHelper.GetTimeStampInMilliseconds();
         commentIndex.Id = GuidHelper.GenerateId(commentSubject, now.ToString(), count.ToString());
         commentIndex.Commenter = address;
+        commentIndex.CommenterId = userGrainDto.UserId.ToString();
         commentIndex.CommentStatus = CommentStatusEnum.Normal;
+        var telegramAuthDataDto = userGrainDto.GetUserInfo();
+        if (telegramAuthDataDto != null)
+        {
+            commentIndex.CommenterName = telegramAuthDataDto.UserName;
+            commentIndex.CommenterFirstName = telegramAuthDataDto.FirstName;
+            commentIndex.CommenterLastName = telegramAuthDataDto.LastName;
+            commentIndex.CommenterPhoto = telegramAuthDataDto.PhotoUrl;
+        }
         commentIndex.CreateTime = commentIndex.ModificationTime = now;
         await _discussionProvider.NewCommentAsync(commentIndex);
 
