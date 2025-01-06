@@ -197,7 +197,7 @@ public class UserPointsRecordProvider : IUserPointsRecordProvider, ISingletonDep
             completed = await grain.UpdateUserTaskCompleteTimeAsync(completeTime, originalUserTask);
         }
 
-        if (completed && !address.IsNullOrWhiteSpace())
+        if (!completed && !address.IsNullOrWhiteSpace())
         {
             var id = GuidHelper.GenerateGrainId(chainId, originalUserTask, userTaskDetail, address);
             var grain = _clusterClient.GetGrain<IUserTaskGrain>(id);
