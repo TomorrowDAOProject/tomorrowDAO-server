@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver.Linq;
+using Nest;
 using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Common;
