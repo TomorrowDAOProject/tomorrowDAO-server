@@ -174,7 +174,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             SkipCount = input.SkipCount,
             ChainId = input.ChainId,
             Category = input.Category,
-            Search = input.Search,
+            Search = search,
             ProposalId = proposalId
         });
         var list = ObjectMapper.Map<List<RankingAppIndex>, List<DiscoverAppDto>>(rankingAppList);
@@ -184,6 +184,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         //     list = list.Where(x => x.Categories.Contains(category.ToString())).ToList();
         // }
         var allPoints = await _rankingAppPointsRedisProvider.GetProposalPointsAsync(proposalId);
+        _logger.LogInformation("Proposal Points Sum: {Sum}", allPoints);
         // if (!string.IsNullOrEmpty(search))
         // {
         //     list = list.Where(x => x.Title != null && x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
@@ -197,7 +198,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
 
         return new CurrentAppPageResultDto<DiscoverAppDto>
         {
-            TotalCount = list.Count, ProposalId = proposalId, Data = list.OrderByDescending(x => x.TotalPoints).ThenBy(x => x.Title).ToList(),
+            TotalCount = total, ProposalId = proposalId, Data = list.OrderByDescending(x => x.TotalPoints).ThenBy(x => x.Title).ToList(),
             ActiveEndEpochTime = rankingAppList?.FirstOrDefault()?.ActiveEndTime.ToUtcMilliSeconds() ?? 0,
             UserTotalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address),
             CanVote = votingRecord == null

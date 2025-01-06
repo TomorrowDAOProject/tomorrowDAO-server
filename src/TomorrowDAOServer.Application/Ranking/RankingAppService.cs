@@ -1040,6 +1040,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                             await _rankingAppPointsRedisProvider.IncrementTaskPointsAsync(inviter, UserTaskDetail.DailyFirstInvite);
                             await _userPointsRecordProvider.GenerateTaskPointsRecordAsync(chainId, inviter, UserTaskDetail.DailyFirstInvite, voteTime,
                                 InformationHelper.GetDailyFirstInviteInformation(address));
+                            _logger.LogInformation("generate DailyFirstInvite record success.");
                         }
 
                         if (inviteCount is > 0 and (5 or 10 or 20))
