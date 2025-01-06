@@ -858,7 +858,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
             LabelType = labelType,
             ProposalTitle = proposal.ProposalTitle,
             RankingList = rankingList.OrderByDescending(r => r.PointsAmount)
-                .ThenBy(r => aliasList.IndexOf(r.Alias)).ToList(),
+                .ThenBy(r => r.Title).ToList(),
             StartEpochTime = rankingApp.ActiveStartTime.ToUtcMilliSeconds(),
             EndEpochTime = rankingApp.ActiveEndTime.ToUtcMilliSeconds(),
         };
