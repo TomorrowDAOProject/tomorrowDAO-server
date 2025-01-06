@@ -27,4 +27,9 @@ public class RankingAppDetailDto
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
+    public long TotalPoints { get; set; }
+    public long TotalVotes { get; set; }
+    public long TotalLikes { get; set; }
+    public long TotalComments { get; set; }
+    public long TotalOpens { get; set; }
 }

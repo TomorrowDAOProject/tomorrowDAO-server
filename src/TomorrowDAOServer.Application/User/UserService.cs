@@ -13,6 +13,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Discover.Provider;
+using TomorrowDAOServer.Discussion.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.Users;
@@ -57,6 +58,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IRankingAppPointsProvider _rankingAppPointsProvider;
     private readonly IObjectMapper _objectMapper;
     private readonly IMessagePublisherService _messagePublisherService;
+    private readonly IDiscussionProvider _discussionProvider;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
@@ -66,7 +68,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         ITelegramUserInfoProvider telegramUserInfoProvider, ISchrodingerApiProvider schrodingerApiProvider, 
         IOptionsMonitor<SchrodingerOptions> schrodingerOptions, IProposalProvider proposalProvider, IOptionsMonitor<RankingOptions> rankingOptions,
         IRankingAppProvider rankingAppProvider, IDiscoverChoiceProvider discoverChoiceProvider, IRankingAppPointsProvider rankingAppPointsProvider,
-        IObjectMapper objectMapper, IMessagePublisherService messagePublisherService)
+        IObjectMapper objectMapper, IMessagePublisherService messagePublisherService, IDiscussionProvider discussionProvider)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -86,6 +88,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _rankingAppPointsProvider = rankingAppPointsProvider;
         _objectMapper = objectMapper;
         _messagePublisherService = messagePublisherService;
+        _discussionProvider = discussionProvider;
         _schrodingerApiProvider = schrodingerApiProvider;
         _schrodingerOptions = schrodingerOptions;
     }
@@ -539,7 +542,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         var proposalId = proposal.ProposalId;
         var rankingAppList =
-            await _rankingAppProvider.GetByProposalIdAsync(input.ChainId, proposalId);
+            await _rankingAppProvider.GetByProposalIdOrderByTotalPointsAsync(input.ChainId, proposalId, 6);
         if (rankingAppList.IsNullOrEmpty())
         {
             return new List<RankingAppDetailDto>();
@@ -558,6 +561,9 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var totalPoints = appPointsList.Sum(x => x.Points);
         var votePercentFactor = DoubleHelper.GetFactor(totalVoteAmount);
         var pointsPercentFactor = DoubleHelper.GetFactor((decimal)totalPoints);
+
+        var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliasList);
+        var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliasList);
         foreach (var rankingAppDetailDto in rankingList)
         {
             var icon = rankingAppDetailDto.Icon;
@@ -572,6 +578,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             rankingAppDetailDto.VoteAmount = appVoteAmountDic.GetValueOrDefault(alias, 0);
             rankingAppDetailDto.VotePercent = appVoteAmountDic.GetValueOrDefault(alias, 0) * votePercentFactor;
             rankingAppDetailDto.PointsPercent = rankingAppDetailDto.PointsAmount * pointsPercentFactor;
+            rankingAppDetailDto.TotalOpens = opensDic.GetValueOrDefault(rankingAppDetailDto.Alias, 0);
+            rankingAppDetailDto.TotalComments = commentsDic.GetValueOrDefault(rankingAppDetailDto.Alias, 0);
         }
         return rankingList
             .Where(r => r.PointsAmount > 0) 
