@@ -20,4 +20,8 @@ public class RankingListDto
     public LabelTypeEnum LabelType { get; set; }
     public string BannerUrl { get; set; }
     public string Proposer { get; set; }
+    public string Tag { get; set; }
+    public string ProposalType { get; set; } = string.Empty;
+    public string ProposerId { get; set; }
+    public string ProposerFirstName { get; set; }
 }

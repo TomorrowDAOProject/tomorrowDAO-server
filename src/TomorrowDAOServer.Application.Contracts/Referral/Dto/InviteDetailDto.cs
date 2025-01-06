@@ -15,4 +15,6 @@ public class InviteDetailDto
     public bool DuringCycle { get; set; }
     public string Address { get; set; }
     public string CaHash { get; set; }
+    public long TotalInvitesNeeded { get; set; }
+    public long PointsFirstReferralVote { get; set; }
 }

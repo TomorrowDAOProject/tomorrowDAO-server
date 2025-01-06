@@ -11,6 +11,8 @@ using Portkey.Contracts.CA;
 using TomorrowDAO.Contracts.Vote;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Security;
+using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Token.Dto;
@@ -60,9 +62,24 @@ public partial class RankingAppServiceTest
                     });
                 }
 
+                if (key == RedisHelper.GenerateDistributeCacheKey(ChainIdAELF, Address1, ProposalId1, TelegramAppCategory.Game.ToString()))
+                {
+                    return JsonConvert.SerializeObject(new RankingVoteRecord
+                    {
+                        TransactionId = TransactionHash.ToHex(),
+                        VoteTime = DateTime.UtcNow.ToString(),
+                        Status = RankingVoteStatusEnum.Voted,
+                        TotalPoints = 100
+                    });
+                }
+                
+                if (key == RedisHelper.GenerateDistributeCacheKey(ChainIdAELF, Address1, ProposalId1, TelegramAppCategory.All.ToString()))
+                {
+                    return string.Empty;
+                }
+                
                 return null;
             });
-
         return mock.Object;
     }
 

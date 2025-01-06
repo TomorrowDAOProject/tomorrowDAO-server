@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -37,11 +36,32 @@ public class DiscoverController
         return await _discoverService.DiscoverChooseAsync(input.ChainId, input.Choices);
     }
     
-    [HttpPost("app-list")]
+    [HttpGet("app-list")]
     [Authorize]
     public async Task<AppPageResultDto<DiscoverAppDto>> GetDiscoverAppListAsync(GetDiscoverAppListInput input)
     {
         return await _discoverService.GetDiscoverAppListAsync(input);
+    }
+    
+    [HttpPost("random-app-list")]
+    [Authorize]
+    public async Task<RandomAppListDto> GetRandomAppListAsync(GetRandomAppListInputAsync input)
+    {
+        return await _discoverService.GetRandomAppListAsync(input);
+    }
+    
+    [HttpGet("accumulative-app-list")]
+    [Authorize]
+    public async Task<AccumulativeAppPageResultDto<DiscoverAppDto>> GetAccumulativeAppListAsync(GetDiscoverAppListInput input)
+    {
+        return await _discoverService.GetAccumulativeAppListAsync(input);
+    }
+    
+    [HttpGet("current-app-list")]
+    [Authorize]
+    public async Task<CurrentAppPageResultDto<DiscoverAppDto>> GetCurrentAppListAsync(GetDiscoverAppListInput input)
+    {
+        return await _discoverService.GetCurrentAppListAsync(input);
     }
     
     [HttpPost("view-app")]

@@ -14,7 +14,7 @@ namespace TomorrowDAOServer.Ranking.Provider;
 
 public partial class RankingAppPointsRedisProviderTest
 {
-    public IConnectionMultiplexer MockConnectionMultiplexer()
+    public static IConnectionMultiplexer MockConnectionMultiplexer()
     {
         var mock = new Mock<IConnectionMultiplexer>();
 
@@ -25,7 +25,7 @@ public partial class RankingAppPointsRedisProviderTest
         return mock.Object;
     }
 
-    private IDatabase MockDatabase()
+    public static IDatabase MockDatabase()
     {
         var mock = new Mock<IDatabase>();
 
@@ -57,7 +57,7 @@ public partial class RankingAppPointsRedisProviderTest
         return mock.Object;
     }
 
-    private IDistributedCache<string> MockDistributedCache()
+    public static IDistributedCache<string> MockDistributedCache()
     {
         var mock = new Mock<IDistributedCache<string>>();
 
