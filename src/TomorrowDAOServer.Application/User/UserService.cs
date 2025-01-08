@@ -466,7 +466,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var weeklyTopVotedApps = await GetWeeklyTopVotedApps(input);
         
         //Discover Hidden Game
-        var discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
+        //var discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
+        var discoverHiddenGame = await GetDiscoverHiddenGameByConfig();
 
         return new HomePageResultDto
         {
@@ -474,6 +475,32 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             WeeklyTopVotedApps = weeklyTopVotedApps,
             DiscoverHiddenGems = discoverHiddenGame
         };
+    }
+
+    private async Task<RankingAppDetailDto> GetDiscoverHiddenGameByConfig()
+    {
+        var names = _rankingOptions.CurrentValue.AppNames;
+        var (_, list) = await _telegramAppsProvider
+            .GetTelegramAppsAsync(new QueryTelegramAppsInput { Names = names, SourceTypes = [SourceType.Telegram,SourceType.FindMini]});
+
+        var result = new List<RankingAppDetailDto>();
+        foreach (var telegramAppIndex in list)
+        {
+            var discoverAppDto = ObjectMapper.Map<TelegramAppIndex, RankingAppDetailDto>(telegramAppIndex);
+            if (!telegramAppIndex.BackIcon.IsNullOrWhiteSpace())
+            {
+                discoverAppDto.Icon = telegramAppIndex.BackIcon;
+            }
+
+            if (!telegramAppIndex.BackScreenshots.IsNullOrEmpty())
+            {
+                discoverAppDto.Screenshots = telegramAppIndex.BackScreenshots;
+            }
+            
+            result.Add(discoverAppDto);
+        }
+
+        return result.FirstOrDefault(new RankingAppDetailDto());
     }
 
     public async Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input)
