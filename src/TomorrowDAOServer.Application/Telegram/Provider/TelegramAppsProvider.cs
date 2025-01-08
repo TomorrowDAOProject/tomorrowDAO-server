@@ -294,7 +294,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     {
         var mustQuery = DisplayQuery();
         mustQuery.Add(q => q.Match(m => m.Field(f => f.Title).Query(search)));
-        if (category != null)
+        if (category != null && category != TelegramAppCategory.All)
         {
             mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(category)));
         }
