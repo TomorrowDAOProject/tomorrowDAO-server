@@ -100,4 +100,10 @@ public class UserController
     {
         return await _userService.OpenAppAsync(input);
     }
+    
+    [HttpGet("check-points")]
+    public async Task<bool> CheckPointsAsync(string telegramAppId)
+    {
+        return await _userService.CheckPointsAsync(telegramAppId);
+    }
 }

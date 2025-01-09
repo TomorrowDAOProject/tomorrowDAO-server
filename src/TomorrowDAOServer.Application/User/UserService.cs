@@ -57,6 +57,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IObjectMapper _objectMapper;
     private readonly IMessagePublisherService _messagePublisherService;
     private readonly IDiscussionProvider _discussionProvider;
+    private readonly IUserAppService _userAppService;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
@@ -66,7 +67,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         ITelegramUserInfoProvider telegramUserInfoProvider, ISchrodingerApiProvider schrodingerApiProvider, 
         IOptionsMonitor<SchrodingerOptions> schrodingerOptions, IProposalProvider proposalProvider, IOptionsMonitor<RankingOptions> rankingOptions,
         IRankingAppProvider rankingAppProvider, IDiscoverChoiceProvider discoverChoiceProvider, IRankingAppPointsProvider rankingAppPointsProvider,
-        IObjectMapper objectMapper, IMessagePublisherService messagePublisherService, IDiscussionProvider discussionProvider)
+        IObjectMapper objectMapper, IMessagePublisherService messagePublisherService, IDiscussionProvider discussionProvider, IUserAppService userAppService)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -87,6 +88,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _objectMapper = objectMapper;
         _messagePublisherService = messagePublisherService;
         _discussionProvider = discussionProvider;
+        _userAppService = userAppService;
         _schrodingerApiProvider = schrodingerApiProvider;
         _schrodingerOptions = schrodingerOptions;
     }
@@ -466,7 +468,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var weeklyTopVotedApps = await GetWeeklyTopVotedApps(input);
         
         //Discover Hidden Game
-        var discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
+        //var discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
+        var discoverHiddenGame = await GetDiscoverHiddenGameByConfig();
 
         return new HomePageResultDto
         {
@@ -474,6 +477,32 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             WeeklyTopVotedApps = weeklyTopVotedApps,
             DiscoverHiddenGems = discoverHiddenGame
         };
+    }
+
+    private async Task<RankingAppDetailDto> GetDiscoverHiddenGameByConfig()
+    {
+        var names = _rankingOptions.CurrentValue.AppNames;
+        var (_, list) = await _telegramAppsProvider
+            .GetTelegramAppsAsync(new QueryTelegramAppsInput { Names = names, SourceTypes = [SourceType.Telegram,SourceType.FindMini]});
+
+        var result = new List<RankingAppDetailDto>();
+        foreach (var telegramAppIndex in list)
+        {
+            var discoverAppDto = ObjectMapper.Map<TelegramAppIndex, RankingAppDetailDto>(telegramAppIndex);
+            if (!telegramAppIndex.BackIcon.IsNullOrWhiteSpace())
+            {
+                discoverAppDto.Icon = telegramAppIndex.BackIcon;
+            }
+
+            if (!telegramAppIndex.BackScreenshots.IsNullOrEmpty())
+            {
+                discoverAppDto.Screenshots = telegramAppIndex.BackScreenshots;
+            }
+            
+            result.Add(discoverAppDto);
+        }
+
+        return result.FirstOrDefault(new RankingAppDetailDto());
     }
 
     public async Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input)
@@ -515,6 +544,43 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         await _messagePublisherService.SendOpenMessageAsync(input.ChainId, address, userId, input.Alias, 1);
 
         return true;
+    }
+
+    public async Task<bool> CheckPointsAsync(string telegramAppId)
+    {
+        var userList = await _userAppService.GetUserByTgIdAsync(telegramAppId);
+        _logger.LogInformation("get by tg id user list: {list}", JsonConvert.SerializeObject(userList));
+        var userId = string.Empty;
+        var address = string.Empty;
+
+        if (userList.IsNullOrEmpty())
+        {
+            return false;
+        }
+        if (userList.Count == 1)
+        {
+            userId = userList[0].UserId.ToString();
+            address = userList[0].Address;
+        }
+        else
+        {
+            var tgIdDic = userList
+                .Where(x => !string.IsNullOrEmpty(x.UserInfo))
+                .GroupBy(x =>
+                {
+                    var authDataDto = JsonConvert.DeserializeObject<TelegramAuthDataDto>(x.UserInfo);
+                    return authDataDto.Id;
+                })
+                .ToDictionary(g => g.Key, g => g.First());
+            if (tgIdDic.TryGetValue(telegramAppId, out var userIndex))
+            {
+                userId = userIndex.UserId.ToString();
+                address = userIndex.Address;
+            }
+        }
+        var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
+
+        return points > 0;
     }
 
     private async Task<List<RankingAppDetailDto>> GetWeeklyTopVotedApps(GetHomePageInput input)

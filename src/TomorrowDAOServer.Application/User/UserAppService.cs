@@ -119,4 +119,19 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         return await _userIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
             sortFunc: _ => new SortDescriptor<UserIndex>().Descending(index => index.CreateTime));
     }
+
+    public async Task<List<UserIndex>> GetUserByTgIdAsync(string telegramAppId)
+    {
+        if (telegramAppId.IsNullOrEmpty())
+        {
+            return new List<UserIndex>();
+        }
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>
+        {
+            q => q.Wildcard(i => i.Field(t => t.UserInfo).Value("*" + telegramAppId+ "*"))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        var (_, list) = await _userIndexRepository.GetListAsync(Filter);
+        return list;
+    }
 }
