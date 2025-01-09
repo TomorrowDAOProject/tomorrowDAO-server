@@ -16,5 +16,5 @@ public interface IUserAppService
     Task<List<UserIndex>> GetUser();
     Task<List<UserIndex>> GetUserByAddressListAsync(List<string> addressList);
     Task<Tuple<long, List<UserIndex>>> GetUserAsync(GetUserInput input);
-
+    Task<List<UserIndex>> GetUserByTgIdAsync(string telegramAppId);
 }
