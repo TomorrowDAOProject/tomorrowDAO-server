@@ -57,6 +57,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     private readonly IObjectMapper _objectMapper;
     private readonly IMessagePublisherService _messagePublisherService;
     private readonly IDiscussionProvider _discussionProvider;
+    private readonly IUserAppService _userAppService;
 
     public UserService(IUserProvider userProvider, IOptionsMonitor<UserOptions> userOptions,
         IUserVisitProvider userVisitProvider, IUserVisitSummaryProvider userVisitSummaryProvider,
@@ -66,7 +67,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         ITelegramUserInfoProvider telegramUserInfoProvider, ISchrodingerApiProvider schrodingerApiProvider, 
         IOptionsMonitor<SchrodingerOptions> schrodingerOptions, IProposalProvider proposalProvider, IOptionsMonitor<RankingOptions> rankingOptions,
         IRankingAppProvider rankingAppProvider, IDiscoverChoiceProvider discoverChoiceProvider, IRankingAppPointsProvider rankingAppPointsProvider,
-        IObjectMapper objectMapper, IMessagePublisherService messagePublisherService, IDiscussionProvider discussionProvider)
+        IObjectMapper objectMapper, IMessagePublisherService messagePublisherService, IDiscussionProvider discussionProvider, IUserAppService userAppService)
     {
         _userProvider = userProvider;
         _userOptions = userOptions;
@@ -87,6 +88,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         _objectMapper = objectMapper;
         _messagePublisherService = messagePublisherService;
         _discussionProvider = discussionProvider;
+        _userAppService = userAppService;
         _schrodingerApiProvider = schrodingerApiProvider;
         _schrodingerOptions = schrodingerOptions;
     }
@@ -542,6 +544,41 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         await _messagePublisherService.SendOpenMessageAsync(input.ChainId, address, userId, input.Alias, 1);
 
         return true;
+    }
+
+    public async Task<bool> CheckPointsAsync(string telegramAppId)
+    {
+        var userList = await _userAppService.GetUserByTgIdAsync(telegramAppId);
+        var userId = string.Empty;
+        var address = string.Empty;
+
+        if (userList.IsNullOrEmpty())
+        {
+            return false;
+        }
+        if (userList.Count == 1)
+        {
+            userId = userList[0].UserId.ToString();
+            address = userList[0].Address;
+        }
+        else
+        {
+            var tgIdDic = userList
+                .Where(x => !string.IsNullOrEmpty(x.UserInfo))
+                .ToDictionary(x =>
+                {
+                    var authDataDto = JsonConvert.DeserializeObject<TelegramAuthDataDto>(x.UserInfo);
+                    return authDataDto.Id;
+                }, x => x);
+            if (tgIdDic.TryGetValue(telegramAppId, out var userIndex))
+            {
+                userId = userIndex.UserId.ToString();
+                address = userIndex.Address;
+            }
+        }
+        var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
+
+        return points > 0;
     }
 
     private async Task<List<RankingAppDetailDto>> GetWeeklyTopVotedApps(GetHomePageInput input)
