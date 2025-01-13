@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -54,7 +55,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
     private readonly Dictionary<string, AElfClient> _clients = new();
     private readonly Dictionary<string, SenderAccount> _accounts = new();
     private readonly Dictionary<string, string> _emptyDict = new();
-    private readonly Dictionary<string, Dictionary<string, string>> _contractAddress = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _contractAddress = new();
     private readonly SenderAccount _callTxSender;
 
     private readonly IOptionsMonitor<ChainOptions> _chainOptions;
@@ -100,10 +101,10 @@ public class ContractProvider : IContractProvider, ISingletonDependency
 
     public string ContractAddress(string chainId, string contractName)
     {
-        _ = _chainOptions.CurrentValue.ChainInfos.TryGetValue(chainId, out var chainInfo);
-        var contractAddress = _contractAddress.GetOrAdd(chainId, _ => new Dictionary<string, string>());
+        var contractAddress = _contractAddress.GetOrAdd(chainId, _ => new ConcurrentDictionary<string, string>());
         return contractAddress.GetOrAdd(contractName, name =>
         {
+            _ = _chainOptions.CurrentValue.ChainInfos.TryGetValue(chainId, out var chainInfo);
             var address =
                 (chainInfo?.ContractAddress ?? new Dictionary<string, string>()).GetValueOrDefault(name, null);
             if (address.IsNullOrEmpty() && SystemContractName.All.Contains(name))

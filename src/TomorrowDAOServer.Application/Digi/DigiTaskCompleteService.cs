@@ -70,6 +70,7 @@ public class DigiTaskCompleteService : ScheduleSyncDataService
                 }
             }
             var validList = queryList.Where(task => !string.IsNullOrEmpty(task.TelegramId)).ToList();
+            _logger.LogInformation("NeedReportDigiTaskAsyncValidList count: {0}", validList?.Count);
             var checkTasks = validList.Select(async task =>
             {
                 var result = await _digiApiProvider.CheckAsync(long.Parse(task.TelegramId));
