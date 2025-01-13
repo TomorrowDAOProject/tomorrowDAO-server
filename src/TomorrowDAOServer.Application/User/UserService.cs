@@ -549,7 +549,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     public async Task<bool> CheckPointsAsync(string telegramAppId)
     {
         var userList = await _userAppService.GetUserByTgIdAsync(telegramAppId);
-        _logger.LogInformation("get by tg id user list: {list}", JsonConvert.SerializeObject(userList));
         var userId = string.Empty;
         var address = string.Empty;
 
@@ -571,7 +570,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
                     var authDataDto = JsonConvert.DeserializeObject<TelegramAuthDataDto>(x.UserInfo);
                     return authDataDto.Id;
                 })
-                .ToDictionary(g => g.Key, g => g.First());
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.CreateTime).First());
             if (tgIdDic.TryGetValue(telegramAppId, out var userIndex))
             {
                 userId = userIndex.UserId.ToString();
