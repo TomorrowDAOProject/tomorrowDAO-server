@@ -15,6 +15,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.Hosting;
 using Orleans.TestingHost;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Aws;
 using TomorrowDAOServer.Grains;
@@ -180,6 +181,13 @@ public class ClusterFixture : IDisposable, ISingletonDependency
 
         public string ContractAddress(string chainId, string contractName)
         {
+            if (contractName == CommonConstant.CaContractAddressName)
+            {
+                return "2UthYi7AHRdfrqc1YCfeQnjdChDLaas65bW4WxESMGMojFiXj9";
+            } else if (contractName == CommonConstant.VoteContractAddressName)
+            {
+                return "";
+            }
             return Address1;
         }
 
