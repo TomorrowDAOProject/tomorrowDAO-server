@@ -404,7 +404,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
     }
 
     [ExceptionHandler(typeof(Exception),  TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, Message = "Collect login point fail.", LogTargets = new []{"input"})]
+        MethodName = TmrwDaoExceptionHandler.DefaultReThrowMethodName, Message = "Collect login point fail.", LogTargets = new []{"input"})]
     public virtual async Task<LoginPointsStatusDto> CollectLoginPointsAsync(CollectLoginPointsInput input)
     {
         var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);

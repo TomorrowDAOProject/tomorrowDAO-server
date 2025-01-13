@@ -293,7 +293,7 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     public async Task<Tuple<long, List<TelegramAppIndex>>> GetSearchListAsync(TelegramAppCategory? category, string search, int skipCount, int maxResultCount)
     {
         var mustQuery = DisplayQuery();
-        mustQuery.Add(q => q.Match(m => m.Field(f => f.Title).Query(search).Fuzziness(Fuzziness.Auto)));
+        mustQuery.Add(q => q.Match(m => m.Field(f => f.Title).Query(search)));
         if (category != null && category != TelegramAppCategory.All)
         {
             mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(category)));
