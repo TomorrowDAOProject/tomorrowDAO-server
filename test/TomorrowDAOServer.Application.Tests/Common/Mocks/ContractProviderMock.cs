@@ -78,6 +78,17 @@ public class ContractProviderMock
         mock.Setup(o => o.ContractAddress(It.IsAny<string>(), It.IsAny<string>())).Returns(
             (string chainId, string contractName) =>
             {
+                if (chainId == ChainIdtDVV)
+                {
+                    if (contractName == CommonConstant.CaContractAddressName)
+                    {
+                        return "2UthYi7AHRdfrqc1YCfeQnjdChDLaas65bW4WxESMGMojFiXj9";
+                    }
+                    else if (contractName == CommonConstant.VoteContractAddressName)
+                    {
+                        return "2A8h4hLynLt86RxqvpNY43x6Js8CYhgyuAzj7sDGQ2ecP77Zgp";
+                    }
+                }
                 if (contractName == CommonConstant.CaContractAddressName)
                 {
                     return Address1;

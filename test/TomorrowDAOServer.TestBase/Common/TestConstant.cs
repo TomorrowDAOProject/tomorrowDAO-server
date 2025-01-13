@@ -8,6 +8,7 @@ public static class TestConstant
 {
     public const string ChainIdAELF = "AELF";
     public const string ChainIdtDVW = "tDVW";
+    public const string ChainIdtDVV = "tDVV";
     public const string ELF = "ELF";
     
     public const string DaoId = "bfbd1a01fd5a931d2fef9ed77146d47b1ba18498cdd300ad6530cd832583152a";
