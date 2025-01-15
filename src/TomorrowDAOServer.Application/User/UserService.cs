@@ -657,8 +657,8 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         foreach (var userIndex in userList)
         {
             var addressInfo = !userIndex.CaHash.IsNullOrWhiteSpace()
-                ? userIndex.AddressInfos?.First()
-                : userIndex.AddressInfos.Find(a => a.ChainId == input.ChainId);
+                ? userIndex.AddressInfos?.FirstOrDefault()
+                : userIndex.AddressInfos?.Find(a => a.ChainId == input.ChainId);
             var address = addressInfo == null ? string.Empty : addressInfo.Address;
             var userId = userIndex.UserId.ToString();
             var points = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
