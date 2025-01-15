@@ -8,6 +8,7 @@ using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.Controllers;
 
@@ -44,7 +45,7 @@ public class UserController
     {
         return await _userService.GetMyPointsAsync(input);
     }
-    
+
     [HttpGet("task-list")]
     [Authorize]
     public async Task<TaskListDto> GetTaskListAsync(string chainId)
@@ -105,5 +106,12 @@ public class UserController
     public async Task<bool> CheckPointsAsync(string telegramAppId)
     {
         return await _userService.CheckPointsAsync(telegramAppId);
+    }
+
+    [HttpGet("all-user-points")]
+    [Authorize]
+    public async Task<PagedResultDto<UserPointsDto>> GetAllUserPointsAsync(GetAllUserPointsInput input)
+    {
+        return await _userService.GetAllUserPointsAsync(input);
     }
 }
