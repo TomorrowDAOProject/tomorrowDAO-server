@@ -5,6 +5,7 @@ using TomorrowDAOServer.Proposal.Dto;
 using TomorrowDAOServer.Proposal.Index;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.User.Dtos;
+using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.User;
 
@@ -23,4 +24,5 @@ public interface IUserService
     Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input);
     Task<bool> OpenAppAsync(OpenAppInput input);
     Task<bool> CheckPointsAsync(string telegramAppId);
+    Task<PagedResultDto<UserPointsDto>> GetAllUserPointsAsync(GetAllUserPointsInput input);
 }

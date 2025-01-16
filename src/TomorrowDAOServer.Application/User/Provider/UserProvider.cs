@@ -3,10 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Orleans;
 using Serilog;
 using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Grains.Grain.Users;
+using TomorrowDAOServer.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Users;
@@ -23,17 +25,21 @@ public interface IUserProvider
     Task<string> GetAndValidateUserAddressAsync(Guid userId, string chainId);
     Task<Tuple<string, string>> GetAndValidateUserAddressAndCaHashAsync(Guid userId, string chainId);
     Task<bool> UpdateUserAsync(UserGrainDto input);
+    Task<bool> IsUserAdminAsync(string chainId, ICurrentUser currentUser);
 }
 
 public class UserProvider : IUserProvider, ISingletonDependency
 {
     private readonly ILogger<UserProvider> _logger;
     private readonly IClusterClient _clusterClient;
+    private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
 
-    public UserProvider(ILogger<UserProvider> logger, IClusterClient clusterClient)
+    public UserProvider(ILogger<UserProvider> logger, IClusterClient clusterClient,
+        IOptionsMonitor<TelegramOptions> telegramOptions)
     {
         _logger = logger;
         _clusterClient = clusterClient;
+        _telegramOptions = telegramOptions;
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
@@ -156,5 +162,18 @@ public class UserProvider : IUserProvider, ISingletonDependency
         var userGrain = _clusterClient.GetGrain<IUserGrain>(input.UserId);
         var user = await userGrain.UpdateUser(input);
         return user.Success;
+    }
+
+    public async Task<bool> IsUserAdminAsync(string chainId, ICurrentUser currentUser)
+    {
+        var userGrainDto = await GetAuthenticatedUserAsync(currentUser);
+        var address = await GetUserAddressAsync(chainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+        if (address.IsNullOrWhiteSpace())
+        {
+            throw new UserFriendlyException("No user address found");
+        }
+
+        return _telegramOptions.CurrentValue.AllowedCrawlUsers.Contains(address);
     }
 }
