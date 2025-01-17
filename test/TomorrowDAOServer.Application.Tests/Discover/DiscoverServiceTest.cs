@@ -381,7 +381,7 @@ public partial class DiscoverServiceTest : TomorrowDaoServerApplicationTestBase
                 TotalPoints = 1000,
                 TotalVotes = 1,
                 TotalLikes = 50,
-                Categories = null,
+                Categories = new List<TelegramAppCategory>() { TelegramAppCategory.Game },
                 AppIndex = 0
             }
         });

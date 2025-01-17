@@ -127,8 +127,8 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
             .Query(q => q.Terms(t => t.Field(f => f.ProposalId).Terms(aliases)))
             .Aggregations(a => a.Terms("by_alias", ta => ta.Field(f => f.ProposalId).Size(aliases.Count)));
         var response = await _commentIndexRepository.SearchAsync(query, 0, int.MaxValue);
-        var aliasCountMap = response.Aggregations.Terms("by_alias").Buckets
+        var aliasCountMap = response.Aggregations?.Terms("by_alias")?.Buckets
             .ToDictionary(b => b.Key, b => b.DocCount.GetValueOrDefault());
-        return aliasCountMap;
+        return aliasCountMap ?? new Dictionary<string, long>();
     }
 }
