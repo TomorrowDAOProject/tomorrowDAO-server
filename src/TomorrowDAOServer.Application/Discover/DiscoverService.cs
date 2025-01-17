@@ -144,10 +144,8 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
         var userId = userGrainDto.UserId.ToString();
         var res = await GetCategoryAppListAsync(input, new List<string>(), "TotalPoints");
-        //TODO remove
-        var allPoints = await _telegramAppsProvider.GetTotalPointsAsync();
         var allPointsRedis = await _rankingAppPointsRedisProvider.GetTotalPointsAsync();
-        _logger.LogInformation("total point, es={0} - redis={1}", allPoints, allPointsRedis);
+        _logger.LogInformation("total point, redis={0}", allPointsRedis);
         PointsPercent(allPointsRedis, res.Data);
         await FillData(input.ChainId, res.Data, false);
         return new AccumulativeAppPageResultDto<DiscoverAppDto>
@@ -181,22 +179,10 @@ public class DiscoverService : ApplicationService, IDiscoverService
             ProposalId = proposalId
         });
         var list = ObjectMapper.Map<List<RankingAppIndex>, List<DiscoverAppDto>>(rankingAppList);
-        // if (!string.IsNullOrEmpty(input.Category))
-        // {
-        //     var category = CheckCategory(input.Category);
-        //     list = list.Where(x => x.Categories.Contains(category.ToString())).ToList();
-        // }
         var allPoints = await _rankingAppPointsRedisProvider.GetProposalPointsAsync(proposalId);
         _logger.LogInformation("Proposal Points Sum: {Sum}", allPoints);
-        // if (!string.IsNullOrEmpty(search))
-        // {
-        //     list = list.Where(x => x.Title != null && x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
-        //         .ToList();
-        // }
-
         await FillData(input.ChainId, list, false);
         PointsPercent(allPoints, list);
-        //list = list.OrderByDescending(x => x.TotalPoints).ToList();
         var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, proposalId, input.Category);
 
         return new CurrentAppPageResultDto<DiscoverAppDto>

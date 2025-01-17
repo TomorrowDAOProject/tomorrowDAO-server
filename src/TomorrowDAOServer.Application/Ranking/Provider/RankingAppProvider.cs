@@ -20,7 +20,6 @@ public interface IRankingAppProvider
     Task<List<RankingAppIndex>> GetByProposalIdAsync(string chainId, string proposalId);
     Task<List<RankingAppIndex>> GetByProposalIdOrderByTotalPointsAsync(string chainId, string proposalId, int limit);
     Task<RankingAppIndex> GetByProposalIdAndAliasAsync(string chainId, string proposalId, string alias);
-    Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1);
     Task<List<RankingAppIndex>> GetNeedMoveRankingAppListAsync();
     Task<List<RankingAppIndex>> GetByAliasAsync(string chainId, List<string> aliases);
     [Obsolete("Only use it once during data migration.")]
@@ -43,6 +42,16 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
 
     public async Task BulkAddOrUpdateAsync(List<RankingAppIndex> list)
     {
+        if (list.IsNullOrEmpty())
+        {
+            return;
+        }
+
+        foreach (var rankingAppIndex in list)
+        {
+            rankingAppIndex.AppName = rankingAppIndex.Title;
+        }
+        
         await _rankingAppIndexRepository.BulkAddOrUpdateAsync(list);
     }
 
@@ -64,8 +73,8 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
 
         if (!input.Search.IsNullOrWhiteSpace())
         {
-            mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.Title).Value(input.Search)));
+            mustQuery.Add(q =>
+                q.Wildcard(i => i.Field(t => t.AppName).Value($"*{input.Search.ToLowerInvariant()}*")));
         }
         
         if (!input.ProposalId.IsNullOrWhiteSpace())
@@ -121,25 +130,6 @@ public class RankingAppProvider : IRankingAppProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<RankingAppIndex> f) => f.Bool(b => b.Must(mustQuery));
 
         return await _rankingAppIndexRepository.GetAsync(Filter);
-    }
-
-    public async Task UpdateAppVoteAmountAsync(string chainId, string proposalId, string alias, long amount = 1)
-    {
-        await _semaphore.WaitAsync();
-        try
-        {
-            var rankingAppIndex = await GetByProposalIdAndAliasAsync(chainId, proposalId, alias);
-            if (rankingAppIndex != null && !rankingAppIndex.Id.IsNullOrWhiteSpace())
-            {
-                rankingAppIndex.VoteAmount += amount;
-            }
-
-            await BulkAddOrUpdateAsync(new List<RankingAppIndex>() { rankingAppIndex });
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
     }
 
     public async Task<List<RankingAppIndex>> GetNeedMoveRankingAppListAsync()
