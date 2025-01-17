@@ -285,6 +285,8 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             {
                 aliasSet.Add(telegramAppIndex.Alias);
             }
+            
+            telegramAppIndex.AppName = telegramAppIndex.Title;
         }
         
         await _telegramAppsProvider.BulkAddOrUpdateAsync(telegramAppIndices);

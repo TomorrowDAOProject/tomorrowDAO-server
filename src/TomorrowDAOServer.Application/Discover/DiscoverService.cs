@@ -144,8 +144,11 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
         var userId = userGrainDto.UserId.ToString();
         var res = await GetCategoryAppListAsync(input, new List<string>(), "TotalPoints");
+        //TODO remove
         var allPoints = await _telegramAppsProvider.GetTotalPointsAsync();
-        PointsPercent(allPoints, res.Data);
+        var allPointsRedis = await _rankingAppPointsRedisProvider.GetTotalPointsAsync();
+        _logger.LogInformation("total point, es={0} - redis={1}", allPoints, allPointsRedis);
+        PointsPercent(allPointsRedis, res.Data);
         await FillData(input.ChainId, res.Data, false);
         return new AccumulativeAppPageResultDto<DiscoverAppDto>
         {
@@ -439,9 +442,15 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private async Task FillData(string chainId, List<DiscoverAppDto> list, bool flag = true)
     {
         var aliases = list.Where(x => !string.IsNullOrEmpty(x.Alias)).Select(x => x.Alias).Distinct().ToList();
-        var pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
+        var pointsDic = new Dictionary<string, long>();
+        var likesDic = new Dictionary<string, long>();
+        if (flag)
+        {
+            pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
+            likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(aliases);
+        }
+        
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
-        var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(aliases);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
         foreach (var app in list.Where(x => !string.IsNullOrWhiteSpace(x.Alias)))
         {

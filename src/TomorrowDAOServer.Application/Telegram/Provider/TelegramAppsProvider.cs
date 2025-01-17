@@ -48,6 +48,12 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
 
     public async Task AddOrUpdateAsync(TelegramAppIndex telegramAppIndex)
     {
+        if (telegramAppIndex == null)
+        {
+            return;
+        }
+        telegramAppIndex.AppName = telegramAppIndex.Title;
+        
         await _telegramAppIndexRepository.AddOrUpdateAsync(telegramAppIndex);
     }
 
@@ -57,6 +63,12 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
         {
             return;
         }
+
+        foreach (var telegramAppIndex in telegramAppIndices)
+        {
+            telegramAppIndex.AppName = telegramAppIndex.Title;
+        }
+        
         await _telegramAppIndexRepository.BulkAddOrUpdateAsync(telegramAppIndices);
     }
     
@@ -293,7 +305,8 @@ public class TelegramAppsProvider : ITelegramAppsProvider, ISingletonDependency
     public async Task<Tuple<long, List<TelegramAppIndex>>> GetSearchListAsync(TelegramAppCategory? category, string search, int skipCount, int maxResultCount)
     {
         var mustQuery = DisplayQuery();
-        mustQuery.Add(q => q.Match(m => m.Field(f => f.Title).Query(search)));
+        mustQuery.Add(q =>
+            q.Wildcard(i => i.Field(t => t.AppName).Value($"*{search}*")));
         if (category != null && category != TelegramAppCategory.All)
         {
             mustQuery.Add(q => q.Terms(t => t.Field(f => f.Categories).Terms(category)));
