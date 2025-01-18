@@ -48,6 +48,20 @@ public partial class UserServiceTest
 
                 return new("2");
             });
+        
+        mock.Setup(m => m.CreateBatch(It.IsAny<object>())).Returns(MockBatch());
+
+        return mock.Object;
+    }
+    
+    private static IBatch MockBatch()
+    {
+        var mock = new Mock<IBatch>();
+
+        mock.Setup(m => m.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new RedisValue("10"));
+
+        //mock.Setup(m => m.Execute()).ReturnsNull();
 
         return mock.Object;
     }
@@ -65,4 +79,6 @@ public partial class UserServiceTest
 
         return mock.Object;
     }
+    
+    
 }

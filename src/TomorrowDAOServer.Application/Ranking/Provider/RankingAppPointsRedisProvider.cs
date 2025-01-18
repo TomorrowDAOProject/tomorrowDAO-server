@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using Nest;
 using StackExchange.Redis;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Security;
@@ -45,6 +44,9 @@ public interface IRankingAppPointsRedisProvider
     Task<Dictionary<string, long>> GetOpenedAppCountAsync(List<string> alias);
     Task<Dictionary<string, long>> GetAppLikeCountAsync(List<string> aliases);
     Task<long> GetProposalPointsAsync(string proposalId);
+    Task<long> GetTotalPointsAsync();
+    Task<long> GetTotalVotesAsync();
+    Task<long> GetTotalLikesAsync();
 }
 
 public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISingletonDependency
@@ -415,5 +417,29 @@ public class RankingAppPointsRedisProvider : IRankingAppPointsRedisProvider, ISi
         totalPoints += long.TryParse(cache, out var likePoints) ? likePoints : 0;
 
         return totalPoints;
+    }
+
+    public async Task<long> GetTotalPointsAsync()
+    {
+        var totalPointsCacheKey = RedisHelper.GenerateTotalPointsCacheKey();
+        var value = await GetAsync(totalPointsCacheKey);
+        var points = long.TryParse(value, out var pts) ? pts : 0;
+        return points;
+    }
+
+    public async Task<long> GetTotalVotesAsync()
+    {
+        var totalVotesCacheKey = RedisHelper.GenerateTotalVotesCacheKey();
+        var value = await GetAsync(totalVotesCacheKey);
+        var points = long.TryParse(value, out var pts) ? pts : 0;
+        return points;
+    }
+
+    public async Task<long> GetTotalLikesAsync()
+    {
+        var totalLikesCacheKey = RedisHelper.GenerateTotalLikesCacheKey();
+        var value = await GetAsync(totalLikesCacheKey);
+        var points = long.TryParse(value, out var pts) ? pts : 0;
+        return points;
     }
 }
