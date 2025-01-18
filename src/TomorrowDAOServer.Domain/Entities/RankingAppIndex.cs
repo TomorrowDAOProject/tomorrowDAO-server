@@ -20,6 +20,7 @@ public class RankingAppIndex : AbstractEntity<string>, IIndexBuild
     [Keyword] public string AppId { get; set; }
     [Keyword] public string Alias { get; set; }
     [Keyword] public string Title { get; set; }
+    public string AppName { get; set; }
     [Keyword] public string Icon { get; set; }
     [Keyword] public string Description { get; set; }
     public bool EditorChoice { get; set; }

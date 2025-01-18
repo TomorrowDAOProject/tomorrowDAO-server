@@ -144,8 +144,9 @@ public class DiscoverService : ApplicationService, IDiscoverService
         var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
         var userId = userGrainDto.UserId.ToString();
         var res = await GetCategoryAppListAsync(input, new List<string>(), "TotalPoints");
-        var allPoints = await _telegramAppsProvider.GetTotalPointsAsync();
-        PointsPercent(allPoints, res.Data);
+        var allPointsRedis = await _rankingAppPointsRedisProvider.GetTotalPointsAsync();
+        _logger.LogInformation("total point, redis={0}", allPointsRedis);
+        PointsPercent(allPointsRedis, res.Data);
         await FillData(input.ChainId, res.Data, false);
         return new AccumulativeAppPageResultDto<DiscoverAppDto>
         {
@@ -178,22 +179,10 @@ public class DiscoverService : ApplicationService, IDiscoverService
             ProposalId = proposalId
         });
         var list = ObjectMapper.Map<List<RankingAppIndex>, List<DiscoverAppDto>>(rankingAppList);
-        // if (!string.IsNullOrEmpty(input.Category))
-        // {
-        //     var category = CheckCategory(input.Category);
-        //     list = list.Where(x => x.Categories.Contains(category.ToString())).ToList();
-        // }
         var allPoints = await _rankingAppPointsRedisProvider.GetProposalPointsAsync(proposalId);
         _logger.LogInformation("Proposal Points Sum: {Sum}", allPoints);
-        // if (!string.IsNullOrEmpty(search))
-        // {
-        //     list = list.Where(x => x.Title != null && x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
-        //         .ToList();
-        // }
-
         await FillData(input.ChainId, list, false);
         PointsPercent(allPoints, list);
-        //list = list.OrderByDescending(x => x.TotalPoints).ToList();
         var votingRecord = await GetRankingVoteRecordAsync(input.ChainId, address, proposalId, input.Category);
 
         return new CurrentAppPageResultDto<DiscoverAppDto>
@@ -439,9 +428,15 @@ public class DiscoverService : ApplicationService, IDiscoverService
     private async Task FillData(string chainId, List<DiscoverAppDto> list, bool flag = true)
     {
         var aliases = list.Where(x => !string.IsNullOrEmpty(x.Alias)).Select(x => x.Alias).Distinct().ToList();
-        var pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
+        var pointsDic = new Dictionary<string, long>();
+        var likesDic = new Dictionary<string, long>();
+        if (flag)
+        {
+            pointsDic = await _rankingAppPointsProvider.GetTotalPointsByAliasAsync(chainId, aliases);
+            likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(aliases);
+        }
+        
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
-        var likesDic = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(aliases);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
         foreach (var app in list.Where(x => !string.IsNullOrWhiteSpace(x.Alias)))
         {
