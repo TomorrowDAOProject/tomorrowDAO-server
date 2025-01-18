@@ -170,6 +170,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 .Select(group => group.First()).ToList();
             var aliasToTelegramApp = distinctTelegramApps.ToDictionary(t => t.Alias);
             var rankingApps = _objectMapper.Map<List<TelegramAppIndex>, List<RankingAppIndex>>(distinctTelegramApps);
+            _logger.LogInformation("[ProposalSync] Ranking app {0}", JsonConvert.SerializeObject(rankingApps));
             _logger.LogInformation("[ProposalSync] Ranking {0} App Count={1}", proposal.ProposalId, rankingApps.Count);
             foreach (var rankingApp in rankingApps)
             {
@@ -188,6 +189,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 {
                     if (!aliasToTelegramApp[rankingApp.Alias].BackIcon.IsNullOrWhiteSpace())
                     {
+                        _logger.LogInformation("[ProposalSync] Set icon {0}, {1}", rankingApp.Icon, aliasToTelegramApp[rankingApp.Alias].BackIcon);
                         rankingApp.Icon = aliasToTelegramApp[rankingApp.Alias].BackIcon;
                     }
 
