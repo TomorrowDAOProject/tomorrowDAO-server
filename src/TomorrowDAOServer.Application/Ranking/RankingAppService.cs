@@ -164,7 +164,7 @@ public class RankingAppService : TomorrowDAOServerAppService, IRankingAppService
                 })).Item2;
                 _logger.LogInformation("[ProposalSync] Ranking App Count={0}, ProposalId={1}",
                     telegramApps.IsNullOrEmpty() ? 0 : telegramApps.Count, proposal.ProposalId);
-                _logger.LogInformation("[ProposalSync] telegramApps {0}", JsonConvert.SerializeObject(rankingApps));
+                _logger.LogInformation("[ProposalSync] telegramApps {0}", JsonConvert.SerializeObject(telegramApps));
             }
             
             var distinctTelegramApps = telegramApps.GroupBy(app => app.Alias)
