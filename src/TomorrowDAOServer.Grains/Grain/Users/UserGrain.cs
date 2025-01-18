@@ -58,8 +58,11 @@ public class UserGrain : Grain<UserState>, IUserGrain
         State.ModificationTime = now;
         State.GuardianIdentifier = input.GuardianIdentifier;
         State.Address = input.Address;
-        State.UserInfo = input.UserInfo;
-
+        if (!input.UserInfo.IsNullOrWhiteSpace())
+        {
+            State.UserInfo = input.UserInfo;
+        }
+        
         await WriteStateAsync();
 
         await _userAppService.CreateUserAsync(_objectMapper.Map<UserState, UserDto>(State));
@@ -91,7 +94,10 @@ public class UserGrain : Grain<UserState>, IUserGrain
         State.GuardianIdentifier = input.GuardianIdentifier;
         State.Address = input.Address;
         State.Extra = input.Extra;
-        State.UserInfo = input.UserInfo;
+        if (!input.UserInfo.IsNullOrWhiteSpace())
+        {
+            State.UserInfo = input.UserInfo;
+        }
 
         await WriteStateAsync();
 
