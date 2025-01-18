@@ -254,12 +254,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForMember(des => des.AppId, opt
                 => opt.MapFrom(source => source.Id))
             .ForMember(des => des.VoteAmount, opt
-                => opt.MapFrom(source => 0))
-            .ForMember(des => des.Icon, opt
-                => opt.MapFrom(source => source.BackIcon))
-            .ForMember(des => des.Screenshots, opt
-                => opt.MapFrom(source => source.BackScreenshots))
-            ;
+                => opt.MapFrom(source => 0));
         CreateMap<IndexerProposal, RankingAppIndex>();
         CreateMap<RankingAppIndex, RankingAppDetailDto>()
             .ForMember(des => des.Icon, opt
