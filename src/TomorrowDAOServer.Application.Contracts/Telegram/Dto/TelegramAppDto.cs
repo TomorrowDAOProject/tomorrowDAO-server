@@ -7,7 +7,19 @@ using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Telegram.Dto;
 
-public class TelegramAppDto
+public class TelegramAppDto : TelegramAppBaseDto
+{
+    public string BackIcon { get; set; }
+    public List<string> BackScreenshots { get; set; }
+}
+
+public class TelegramAppDisplayDto : TelegramAppBaseDto
+{
+    public long TotalComments { get; set; }
+    public long TotalOpens { get; set; }
+}
+
+public class TelegramAppBaseDto
 {
     public string Id { get; set; }
     public string Alias { get; set; }
@@ -18,6 +30,7 @@ public class TelegramAppDto
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
+    
     public List<TelegramAppCategory> Categories { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
@@ -25,8 +38,6 @@ public class TelegramAppDto
     [JsonConverter(typeof(StringEnumConverter))]
     public SourceType SourceType { get; set; }
     public string Creator { get; set; }
-    public string BackIcon { get; set; }
-    public List<string> BackScreenshots { get; set; }
     public long TotalPoints { get; set; }
     public long TotalVotes { get; set; }
     public long TotalLikes { get; set; }

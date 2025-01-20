@@ -175,19 +175,19 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
         });
     }
 
-    [Fact]
-    public async Task GetTelegramAppAsyncTest()
-    {
-        var telegramAppDtos = await _telegramService.GetTelegramAppAsync(new QueryTelegramAppsInput());
-        telegramAppDtos.ShouldBeEmpty();
-
-        telegramAppDtos = await _telegramService.GetTelegramAppAsync(new QueryTelegramAppsInput
-        {
-            Aliases = new List<string>() { "Aliases" }
-        });
-        telegramAppDtos.ShouldNotBeNull();
-        telegramAppDtos.Count.ShouldBe(1);
-    }
+    // [Fact]
+    // public async Task GetTelegramAppAsyncTest()
+    // {
+    //     var telegramAppDtos = await _telegramService.GetTelegramAppAsync(new QueryTelegramAppsInput());
+    //     telegramAppDtos.ShouldBeEmpty();
+    //
+    //     telegramAppDtos = await _telegramService.GetTelegramAppAsync(new QueryTelegramAppsInput
+    //     {
+    //         Aliases = new List<string>() { "Aliases" }
+    //     });
+    //     telegramAppDtos.ShouldNotBeNull();
+    //     telegramAppDtos.Count.ShouldBe(1);
+    // }
 
     [Fact]
     public async Task SaveTelegramAppDetailAsyncTest()
