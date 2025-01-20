@@ -118,7 +118,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             CommonConstant.New => await GetNewAppListAsync(input, address, userId),
             _ => await GetCategoryAppListAsync(input, _discoverOptions.CurrentValue.TopApps, string.Empty)
         };
-        await FillData(input.ChainId, res.Data);
+        await FillData(input.ChainId, res.Data, false);
         return res;
     }
 
