@@ -16,4 +16,6 @@ public class VoteAndLikeMessageEto
     public long Amount { get; set; }
     public PointsType PointsType { get; set; }
     public string UserId { get; set; }
+    public bool DailyFirstVote { get; set; } = false;
+    public bool Added { get; set; } = false;
 }
