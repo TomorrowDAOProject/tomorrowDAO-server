@@ -15,6 +15,8 @@ public class RankingAppUserPointsIndex : AbstractEntity<Guid>, IIndexBuild
     [Keyword] public string Alias { get; set; }
     [Keyword] public string Title { get; set; }
     [Keyword] public string Address { get; set; }
+    public bool DailyFirstVote { get; set; }
+    public bool Added { get; set; }
     public long Amount { get; set; }
     public long Points { get; set; }
     public PointsType PointsType { get; set; }
