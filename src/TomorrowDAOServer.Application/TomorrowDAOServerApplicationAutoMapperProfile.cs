@@ -63,10 +63,6 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
                 => opt.MapFrom(source => MapCategories(source.Categories)))
             .ForMember(des => des.AppType, opt
                 => opt.MapFrom(source => source.SourceType.ToString()))
-            .ForMember(des => des.Icon, opt 
-                => opt.MapFrom(source => source.BackIcon))
-            .ForMember(des => des.Screenshots, opt 
-                => opt.MapFrom(source => source.BackScreenshots))
             ;
         CreateMap<IndexerUserToken, UserTokenDto>();
         CreateMap<IndexerProposal, ProposalIndex>();

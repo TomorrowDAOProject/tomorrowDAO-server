@@ -558,8 +558,37 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var interestedTypes = choiceList.Select(x => x.TelegramAppCategory).Distinct().ToList();
         var userInterestedAppList =
             await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 4, interestedTypes);
-        var madeForYouApps = ObjectMapper.Map<List<TelegramAppIndex>, List<AppDetailDto>>(userInterestedAppList);
-        return new AppPageResultDto<AppDetailDto>(4, madeForYouApps.ToList());
+        if (userInterestedAppList.IsNullOrEmpty())
+        {
+            return new PageResultDto<AppDetailDto>();
+        }
+
+        var aliases = userInterestedAppList.Select(t => t.Alias).Distinct().ToList();
+        var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
+        var shareDic = await _rankingAppPointsRedisProvider.GetSharedAppCountAsync(aliases);
+        var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
+        var appDetailDtos = new List<AppDetailDto>();
+        foreach (var telegramAppIndex in userInterestedAppList.Where(x => !string.IsNullOrWhiteSpace(x.Alias)))
+        {
+            var madDetailDto = _objectMapper.Map<TelegramAppIndex, AppDetailDto>(telegramAppIndex);
+            if (!telegramAppIndex.BackIcon.IsNullOrWhiteSpace())
+            {
+                madDetailDto.Icon = telegramAppIndex.BackIcon;
+            }
+
+            if (!telegramAppIndex.BackScreenshots.IsNullOrEmpty())
+            {
+                madDetailDto.Screenshots = telegramAppIndex.BackScreenshots;
+            }
+
+            madDetailDto.TotalOpens = opensDic.GetValueOrDefault(telegramAppIndex.Alias, 0);
+            madDetailDto.TotalShares = shareDic.GetValueOrDefault(telegramAppIndex.Alias, 0);
+            madDetailDto.TotalComments = commentsDic.GetValueOrDefault(telegramAppIndex.Alias, 0);
+
+            appDetailDtos.Add(madDetailDto);
+        }
+
+        return new AppPageResultDto<AppDetailDto>(4, appDetailDtos);
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
