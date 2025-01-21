@@ -32,7 +32,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
         Message = "SendLikeMessageAsync error",
         LogTargets = new []{"chainId", "proposalId", "address", "likeList"})]
     public virtual async Task SendLikeMessageAsync(string chainId, string proposalId, string address,
-        List<RankingAppLikeDetailDto> likeList, string userId = "")
+        List<RankingAppLikeDetailDto> likeList, string userId = "", Dictionary<string, long> addedAliasDic = null)
     {
         Log.Information("SendLikeMessageAsync, chainId={0}, proposalId={1}, address={2}, like={3}", chainId,
             proposalId, address, JsonConvert.SerializeObject(likeList));
@@ -44,6 +44,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
 
         foreach (var likeDetail in likeList)
         {
+            var added = addedAliasDic != null && addedAliasDic.TryGetValue(likeDetail.Alias, out _);
             await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
             {
                 ChainId = chainId,
@@ -55,7 +56,8 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
                 Address = address,
                 Amount = likeDetail.LikeAmount,
                 PointsType = PointsType.Like,
-                UserId = userId
+                UserId = userId,
+                Added = added
             });
         }
     }
@@ -64,7 +66,7 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
         Message = "SendVoteMessageAsync error",
         LogTargets = new []{"chainId", "proposalId", "address", "appAlias", "amount"})]
     public virtual async Task SendVoteMessageAsync(string chainId, string proposalId, string address, string appAlias,
-        long amount)
+        long amount, bool dailyVote = false)
     {
         Log.Information("SendVoteMessageAsync, chainId={0}, proposalId={1}, address={2}, alias={3}, amount={4}",
             chainId, proposalId, address, appAlias, amount);
@@ -78,7 +80,8 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
             Title = null,
             Address = address,
             Amount = amount,
-            PointsType = PointsType.Vote
+            PointsType = PointsType.Vote,
+            DailyFirstVote = dailyVote
         });
     }
     
@@ -136,6 +139,29 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
             Address = address,
             Amount = 1,
             PointsType = PointsType.Open,
+            UserId = userId
+        });
+    }
+
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "SendShareMessageAsync error",
+        LogTargets = new []{"chainId", "address", "userId", "alias", "count"})]
+    public async Task SendSharedMessageAsync(string chainId, string address, string userId, string alias, int count)
+    {
+        Log.Information("SendSharedMessageAsync, chainId={0}, address={1}, userId={2}, appAlias={3}, count={4}", 
+            chainId, address, userId, alias, count);
+
+        await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
+        {
+            ChainId = chainId,
+            DaoId = string.Empty,
+            ProposalId = string.Empty,
+            AppId = string.Empty,
+            Alias = alias,
+            Title = string.Empty,
+            Address = address,
+            Amount = 1,
+            PointsType = PointsType.Share,
             UserId = userId
         });
     }

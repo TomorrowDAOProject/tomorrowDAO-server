@@ -56,6 +56,7 @@ public class VoteAndLikeMessageHandler : IDistributedEventHandler<VoteAndLikeMes
             case PointsType.Like:
             case PointsType.Vote:
             case PointsType.Open:
+            case PointsType.Share:
                 await HandleDefaultAsync(eventData);
                 break;
         }

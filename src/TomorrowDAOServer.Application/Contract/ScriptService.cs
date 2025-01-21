@@ -59,13 +59,19 @@ public class ScriptService : IScriptService, ITransientDependency
         var result = await _transactionService.CallTransactionAsync<GetVictoriesDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.ElectionContractAddress, ContractConstants.GetHighCouncilMembers, Hash.LoadFromHex(daoId));
         return result?.Value ?? new List<string>();
     }
-
-    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
-        Message = "GetProposalInfoAsync Exception", LogTargets = new []{"chainId", "proposalId"})]
+    
     public virtual async Task<GetProposalInfoDto> GetProposalInfoAsync(string chainId, string proposalId)
     {
-        var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
-        var result = await _transactionService.CallTransactionAsync<GetProposalInfoDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.GovernanceContractAddress, ContractConstants.GetProposalInfo, Hash.LoadFromHex(proposalId));
-        return result;
+        try
+        {
+            var queryContractInfo = _queryContractInfos.First(x => x.ChainId == chainId);
+            var result = await _transactionService.CallTransactionAsync<GetProposalInfoDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.GovernanceContractAddress, ContractConstants.GetProposalInfo, Hash.LoadFromHex(proposalId));
+            return result;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetProposalInfoAsyncException chainId {chainId} proposalId {proposalId}", chainId, proposalId);
+            return null;
+        }
     }
 }

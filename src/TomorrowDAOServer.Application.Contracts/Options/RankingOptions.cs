@@ -57,6 +57,7 @@ public class RankingOptions
     public DayOfWeek TopRankingGenerateTime { get; set; } = DayOfWeek.Sunday;
     public List<string> RankingExcludeIds { get; set; } = new();
     public List<string> AppNames { get; set; } = new();
+    public long DailyMaxLikePoints { get; set; } = 1000;
 
     public ReferralActiveConfigDto ParseReferralActiveTimes()
     {

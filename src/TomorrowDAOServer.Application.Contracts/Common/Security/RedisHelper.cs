@@ -12,12 +12,15 @@ public class RedisHelper
     private const string DistributedCachePointsAllPrefix = "Points:All";
     private const string DistributedCachePointsLoginPrefix = "Points:Login";
     private const string DistributedCacheOpenedAppCountPrefix = "Count:OpenedApp";
+    private const string DistributedCacheSharedAppCountPrefix = "Count:SharedApp";
     private const string DistributedCacheLikedAppCountPrefix = "Count:LikedApp";
     private const string DistributedCacheProposalVotePointsPrefix = "Proposal:VotePoints";
     private const string DistributedCacheProposalLikePointsPrefix = "Proposal:LikePoints";
     private const string DistributedCacheTotalPointsPrefix = "AllApps:Points";
     private const string DistributedCacheTotalVotesPrefix = "AllApps:Vote";
     private const string DistributedCacheTotalLikesPrefix = "AllApps:Like";
+    private const string DistributedCacheDailyVotePointsPrefix = "Daily:Vote";
+    private const string DistributedCacheDailyLikePointsPrefix = "Daily:Like";
 
 
     public static string GenerateDistributeCacheKey(string chainId, string address, string proposalId, string category)
@@ -100,5 +103,20 @@ public class RedisHelper
     public static string GenerateTotalLikesCacheKey()
     {
         return $"{DistributedCacheTotalLikesPrefix}";
+    }
+
+    public static string GenerateSharedAppCountCacheKey(string alias)
+    {
+        return $"{DistributedCacheSharedAppCountPrefix}:{alias}";
+    }
+    
+    public static string GenerateDailyVotePointsCacheKey(string address)
+    {
+        return $"{DistributedCacheDailyVotePointsPrefix}:{DateTime.UtcNow:yyyyMMdd}:{address}";
+    }
+    
+    public static string GenerateDailyLikePointsCacheKey(string address)
+    {
+        return $"{DistributedCacheDailyLikePointsPrefix}:{DateTime.UtcNow:yyyyMMdd}:{address}";
     }
 }

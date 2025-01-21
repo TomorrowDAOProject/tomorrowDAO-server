@@ -102,6 +102,13 @@ public class UserController
         return await _userService.OpenAppAsync(input);
     }
     
+    [HttpPost("share-app")]
+    [Authorize]
+    public async Task<bool> ShareAppAsync(ShareAppInput input)
+    {
+        return await _userService.ShareAppAsync(input);
+    }
+    
     [HttpGet("check-points")]
     public async Task<bool> CheckPointsAsync(string telegramAppId)
     {
