@@ -25,6 +25,7 @@ public interface IUserService
     Task<HomePageResultDto> GetHomePageAsync(GetHomePageInput input);
     Task<PageResultDto<AppDetailDto>> GetMadeForYouAsync(GetMadeForYouInput input);
     Task<bool> OpenAppAsync(OpenAppInput input);
+    Task<bool> ShareAppAsync(ShareAppInput input);
     Task<bool> CheckPointsAsync(string telegramAppId);
     Task<PagedResultDto<UserPointsDto>> GetAllUserPointsAsync(GetAllUserPointsInput input);
 }

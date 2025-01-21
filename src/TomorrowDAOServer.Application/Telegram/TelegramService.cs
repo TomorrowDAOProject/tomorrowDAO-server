@@ -412,6 +412,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             .ToList();
 
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
+        var shareDic = await _rankingAppPointsRedisProvider.GetSharedAppCountAsync(aliases);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
         var appList = new List<TelegramAppDisplayDto>();
         foreach (var telegramAppIndex in telegramAppIndices.Where(x => !string.IsNullOrWhiteSpace(x.Alias)))
@@ -428,6 +429,7 @@ public class TelegramService : TomorrowDAOServerAppService, ITelegramService
             }
 
             telegramAppDisplayDto.TotalOpens = opensDic.GetValueOrDefault(telegramAppDisplayDto.Alias, 0);
+            telegramAppDisplayDto.TotalShares = shareDic.GetValueOrDefault(telegramAppDisplayDto.Alias, 0);
             telegramAppDisplayDto.TotalComments = commentsDic.GetValueOrDefault(telegramAppDisplayDto.Alias, 0);
 
             appList.Add(telegramAppDisplayDto);

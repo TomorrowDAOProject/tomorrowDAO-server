@@ -17,6 +17,7 @@ public class TelegramAppDisplayDto : TelegramAppBaseDto
 {
     public long TotalComments { get; set; }
     public long TotalOpens { get; set; }
+    public long TotalShares { get; set; }
 }
 
 public class TelegramAppBaseDto

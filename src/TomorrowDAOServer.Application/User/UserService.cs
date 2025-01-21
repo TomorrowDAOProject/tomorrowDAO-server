@@ -508,11 +508,12 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var totalPoints = await _rankingAppPointsRedisProvider.GetUserAllPointsAsync(userId, address);
 
         //Weekly Top Voted Apps
-        var weeklyTopVotedApps = await GetWeeklyTopVotedApps(input);
-
+        var weeklyTopVotedAppsTask = GetWeeklyTopVotedApps(input);
         //Discover Hidden Game
-        //var discoverHiddenGame = await GetDiscoverHiddenGame(input.ChainId, address, userId);
-        var discoverHiddenGame = await GetDiscoverHiddenGameByConfig();
+        var discoverHiddenGameTask = GetDiscoverHiddenGameByConfig();
+        
+        var weeklyTopVotedApps = await weeklyTopVotedAppsTask;
+        var discoverHiddenGame = await discoverHiddenGameTask;
 
         return new HomePageResultDto
         {
@@ -528,6 +529,15 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var (_, list) = await _telegramAppsProvider
             .GetTelegramAppsAsync(new QueryTelegramAppsInput
                 { Names = names, SourceTypes =  [SourceType.Telegram, SourceType.FindMini] });
+        if (list.IsNullOrEmpty())
+        {
+            return new RankingAppDetailDto();
+        }
+
+        var aliasList = list.Select(t => t.Alias).Distinct().ToList();
+        var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliasList);
+        var shareDic = await _rankingAppPointsRedisProvider.GetSharedAppCountAsync(aliasList);
+        var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliasList);
 
         var result = new List<RankingAppDetailDto>();
         foreach (var telegramAppIndex in list)
@@ -542,6 +552,10 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             {
                 discoverAppDto.Screenshots = telegramAppIndex.BackScreenshots;
             }
+            
+            discoverAppDto.TotalOpens = opensDic.GetValueOrDefault(telegramAppIndex.Alias, 0);
+            discoverAppDto.TotalShares = shareDic.GetValueOrDefault(telegramAppIndex.Alias, 0);
+            discoverAppDto.TotalComments = commentsDic.GetValueOrDefault(telegramAppIndex.Alias, 0);
 
             result.Add(discoverAppDto);
         }
@@ -588,6 +602,36 @@ public class UserService : TomorrowDAOServerAppService, IUserService
 
         var openedCount = await _rankingAppPointsRedisProvider.IncrementOpenedAppCountAsync(input.Alias, 1);
         await _messagePublisherService.SendOpenMessageAsync(input.ChainId, address, userId, input.Alias, 1);
+
+        return true;
+    }
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, Message = "Report Share App fail.",
+        LogTargets = new[] { "input" })]
+    public async Task<bool> ShareAppAsync(ShareAppInput input)
+    {
+        var userGrainDto = await _userProvider.GetAuthenticatedUserAsync(CurrentUser);
+        var address = await _userProvider.GetUserAddressAsync(input.ChainId, userGrainDto);
+        var userId = userGrainDto.UserId.ToString();
+
+        if (input.Alias.IsNullOrWhiteSpace())
+        {
+            _logger.LogWarning("Invalid Alias.");
+            return false;
+        }
+
+        var telegramAppIndices = await _telegramAppsProvider.GetAllTelegramAppsAsync(new QueryTelegramAppsInput
+        {
+            Aliases = new List<string>() { input.Alias }
+        });
+        if (telegramAppIndices.IsNullOrEmpty())
+        {
+            _logger.LogError("Telegram App does not found");
+        }
+
+        var sharedCount = await _rankingAppPointsRedisProvider.IncrementSharedAppCountAsync(input.Alias, 1);
+        await _messagePublisherService.SendSharedMessageAsync(input.ChainId, address, userId, input.Alias, 1);
 
         return true;
     }
@@ -713,6 +757,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
         var pointsPercentFactor = DoubleHelper.GetFactor((decimal)totalPoints);
 
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliasList);
+        var shareDic = await _rankingAppPointsRedisProvider.GetSharedAppCountAsync(aliasList);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliasList);
         foreach (var rankingAppDetailDto in rankingList)
         {
@@ -729,6 +774,7 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             rankingAppDetailDto.VotePercent = appVoteAmountDic.GetValueOrDefault(alias, 0) * votePercentFactor;
             rankingAppDetailDto.PointsPercent = rankingAppDetailDto.PointsAmount * pointsPercentFactor;
             rankingAppDetailDto.TotalOpens = opensDic.GetValueOrDefault(rankingAppDetailDto.Alias, 0);
+            rankingAppDetailDto.TotalShares = shareDic.GetValueOrDefault(rankingAppDetailDto.Alias, 0);
             rankingAppDetailDto.TotalComments = commentsDic.GetValueOrDefault(rankingAppDetailDto.Alias, 0);
         }
 
@@ -738,58 +784,6 @@ public class UserService : TomorrowDAOServerAppService, IUserService
             .ThenBy(r => aliasList.IndexOf(r.Alias))
             .Take(6)
             .ToList();
-    }
-
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultThrowMethodName, Message = "Get discover hidden gams fail.",
-        LogTargets = new[] { "chainId", "address", "userId" })]
-    public virtual async Task<RankingAppDetailDto> GetDiscoverHiddenGame(string chainId, string address, string userId)
-    {
-        var choiceIndices = await _discoverChoiceProvider.GetByAddressOrUserIdAsync(chainId, address, userId);
-        var categories = choiceIndices.Select(x => x.TelegramAppCategory).Distinct().ToList();
-        if (categories.IsNullOrEmpty())
-        {
-            _logger.LogWarning("not found discover choice.");
-            categories =  [TelegramAppCategory.Game]
-            ;
-        }
-
-        var telegramAppIndices = await _telegramAppsProvider.GetAllDisplayAsync(new List<string>(), 1000, categories);
-        if (telegramAppIndices.IsNullOrEmpty())
-        {
-            _logger.LogWarning("not found telegram app.");
-            return null;
-        }
-
-        var aliases = telegramAppIndices.Select(t => t.Alias).ToList();
-        var rankingAppPointsIndices = await _rankingAppPointsProvider
-            .GetRankingAppPointsIndexByAliasAsync(chainId, string.Empty, aliases, PointsType.Open);
-
-        var telegramAppIndex = telegramAppIndices
-            .GroupJoin(rankingAppPointsIndices,
-                ta => ta.Alias,
-                rap => rap.Alias,
-                (ta, rapGroup) => new { TelegramApp = ta, Amount = rapGroup.FirstOrDefault()?.Amount ?? 0 })
-            .OrderBy(x => x.Amount)
-            .Select(x => x.TelegramApp).FirstOrDefault();
-
-        if (telegramAppIndex == null)
-        {
-            return new RankingAppDetailDto();
-        }
-
-        var detailDto = _objectMapper.Map<TelegramAppIndex, RankingAppDetailDto>(telegramAppIndex);
-        if (!telegramAppIndex.BackIcon.IsNullOrWhiteSpace())
-        {
-            detailDto.Icon = telegramAppIndex.BackIcon;
-        }
-
-        if (!telegramAppIndex.BackScreenshots.IsNullOrEmpty())
-        {
-            detailDto.Screenshots = telegramAppIndex.BackScreenshots;
-        }
-
-        return detailDto;
     }
 
     private Tuple<UserTask, UserTaskDetail> CheckUserTask(CompleteTaskInput input)
