@@ -139,4 +139,27 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
             UserId = userId
         });
     }
+
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "SendShareMessageAsync error",
+        LogTargets = new []{"chainId", "address", "userId", "alias", "count"})]
+    public async Task SendSharedMessageAsync(string chainId, string address, string userId, string alias, int count)
+    {
+        Log.Information("SendSharedMessageAsync, chainId={0}, address={1}, userId={2}, appAlias={3}, count={4}", 
+            chainId, address, userId, alias, count);
+
+        await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
+        {
+            ChainId = chainId,
+            DaoId = string.Empty,
+            ProposalId = string.Empty,
+            AppId = string.Empty,
+            Alias = alias,
+            Title = string.Empty,
+            Address = address,
+            Amount = 1,
+            PointsType = PointsType.Share,
+            UserId = userId
+        });
+    }
 }
