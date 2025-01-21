@@ -19,6 +19,8 @@ public class RedisHelper
     private const string DistributedCacheTotalPointsPrefix = "AllApps:Points";
     private const string DistributedCacheTotalVotesPrefix = "AllApps:Vote";
     private const string DistributedCacheTotalLikesPrefix = "AllApps:Like";
+    private const string DistributedCacheDailyVotePointsPrefix = "Daily:Vote";
+    private const string DistributedCacheDailyLikePointsPrefix = "Daily:Like";
 
 
     public static string GenerateDistributeCacheKey(string chainId, string address, string proposalId, string category)
@@ -106,5 +108,15 @@ public class RedisHelper
     public static string GenerateSharedAppCountCacheKey(string alias)
     {
         return $"{DistributedCacheSharedAppCountPrefix}:{alias}";
+    }
+    
+    public static string GenerateDailyVotePointsCacheKey(string address)
+    {
+        return $"{DistributedCacheDailyVotePointsPrefix}:{DateTime.UtcNow:yyyyMMdd}:{address}";
+    }
+    
+    public static string GenerateDailyLikePointsCacheKey(string address)
+    {
+        return $"{DistributedCacheDailyLikePointsPrefix}:{DateTime.UtcNow:yyyyMMdd}:{address}";
     }
 }
