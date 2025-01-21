@@ -12,4 +12,5 @@ public interface IMessagePublisherService
     Task SendVoteMessageAsync(string chainId, string proposalId, string address, string appAlias, long amount, bool dailyVote = false);
     Task SendReferralFirstVoteMessageAsync(string chainId, string inviter, string invitee);
     Task SendOpenMessageAsync(string chainId, string address, string userId, string appAlias, long count);
+    Task SendSharedMessageAsync(string chainId, string address, string userId, string alias, int count);
 }

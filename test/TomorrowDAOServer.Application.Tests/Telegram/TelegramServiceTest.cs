@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Amazon.Runtime.Internal.Transform;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Options;
+using TomorrowDAOServer.Ranking.Provider;
 using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using Volo.Abp;
-using Volo.Abp.Validation;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -34,6 +33,8 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
         services.AddSingleton(MockTelegramOptions(out TelegramOptions telegramOptions));
         _telegramOptions = telegramOptions;
         services.AddSingleton(MockTelegramAppIndexRepository());
+        services.AddSingleton(RankingAppPointsRedisProviderTest.MockConnectionMultiplexer());
+        services.AddSingleton(RankingAppPointsRedisProviderTest.MockDistributedCache());
     }
 
     [Fact]
@@ -176,20 +177,6 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
     }
 
     [Fact]
-    public async Task GetTelegramAppAsyncTest()
-    {
-        var telegramAppDtos = await _telegramService.GetTelegramAppAsync(new QueryTelegramAppsInput());
-        telegramAppDtos.ShouldBeEmpty();
-
-        telegramAppDtos = await _telegramService.GetTelegramAppAsync(new QueryTelegramAppsInput
-        {
-            Aliases = new List<string>() { "Aliases" }
-        });
-        telegramAppDtos.ShouldNotBeNull();
-        telegramAppDtos.Count.ShouldBe(1);
-    }
-
-    [Fact]
     public async Task SaveTelegramAppDetailAsyncTest()
     {
         var dictionary =
@@ -307,4 +294,18 @@ public partial class TelegramServiceTest : TomorrowDaoServerApplicationTestBase
         });
         result.ShouldBeTrue();
     } 
+    
+    [Fact]
+    public async Task GetTelegramAppAsyncTest()
+    {
+        var telegramAppDtos = await _telegramService.GetTelegramAppsAsync(new GetTelegramAppInput());
+        telegramAppDtos.ShouldNotBeNull();
+    
+        telegramAppDtos = await _telegramService.GetTelegramAppsAsync(new GetTelegramAppInput
+        {
+            Aliases = new List<string>() { "Aliases" }
+        });
+        telegramAppDtos.ShouldNotBeNull();
+        telegramAppDtos.TotalCount.ShouldBe(1);
+    }
 }

@@ -118,7 +118,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
             CommonConstant.New => await GetNewAppListAsync(input, address, userId),
             _ => await GetCategoryAppListAsync(input, _discoverOptions.CurrentValue.TopApps, string.Empty)
         };
-        await FillData(input.ChainId, res.Data);
+        await FillData(input.ChainId, res.Data, false);
         return res;
     }
 
@@ -437,6 +437,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
         }
         
         var opensDic = await _rankingAppPointsRedisProvider.GetOpenedAppCountAsync(aliases);
+        var shareDic = await _rankingAppPointsRedisProvider.GetSharedAppCountAsync(aliases);
         var commentsDic = await _discussionProvider.GetAppCommentCountAsync(aliases);
         foreach (var app in list.Where(x => !string.IsNullOrWhiteSpace(x.Alias)))
         {
@@ -446,6 +447,7 @@ public class DiscoverService : ApplicationService, IDiscoverService
                 app.TotalLikes = likesDic.GetValueOrDefault(app.Alias, 0);
             }
             app.TotalOpens = opensDic.GetValueOrDefault(app.Alias, 0);
+            app.TotalShares = shareDic.GetValueOrDefault(app.Alias, 0);
             app.TotalComments = commentsDic.GetValueOrDefault(app.Alias, 0);
         }
     }

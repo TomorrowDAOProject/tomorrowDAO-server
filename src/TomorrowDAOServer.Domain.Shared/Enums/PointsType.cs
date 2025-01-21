@@ -8,6 +8,7 @@ public enum PointsType
     Vote = 1, // both for normal and daily task
     Like = 2,
     Open = 22,
+    Share = 23,
     
     // referral activity
     InviteVote = 3, // inviter get points when invitee register and vote for first time during referral activity period

@@ -20,4 +20,10 @@ public class AppDetailDto
     public string AppType { get; set; }
     public string Creator { get; set; }
     public DateTime LoadTime { get; set; }
+    public long TotalPoints { get; set; }
+    public long TotalVotes { get; set; }
+    public long TotalLikes { get; set; }
+    public long TotalComments { get; set; }
+    public long TotalOpens { get; set; }
+    public long TotalShares { get; set; }
 }
