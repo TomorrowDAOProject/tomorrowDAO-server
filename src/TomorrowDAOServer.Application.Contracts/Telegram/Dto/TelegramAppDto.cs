@@ -9,12 +9,14 @@ namespace TomorrowDAOServer.Telegram.Dto;
 
 public class TelegramAppDto : TelegramAppBaseDto
 {
+    public List<TelegramAppCategory> Categories { get; set; }
     public string BackIcon { get; set; }
     public List<string> BackScreenshots { get; set; }
 }
 
 public class TelegramAppDisplayDto : TelegramAppBaseDto
 {
+    public List<string> Categories { get; set; }
     public long TotalComments { get; set; }
     public long TotalOpens { get; set; }
     public long TotalShares { get; set; }
@@ -31,8 +33,6 @@ public class TelegramAppBaseDto
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
-    
-    public List<TelegramAppCategory> Categories { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
     public DateTime LoadTime { get; set; }
