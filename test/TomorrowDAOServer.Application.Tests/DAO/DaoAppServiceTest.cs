@@ -41,7 +41,7 @@ public partial class DaoAppServiceTest : TomorrowDaoServerApplicationTestBase
 
     private readonly IGraphQLProvider _graphQlProvider = Substitute.For<IGraphQLProvider>();
 
-    // private readonly IVoteProvider _voteProvider;
+    //private readonly IVoteProvider _voteProvider;
     private readonly IExplorerProvider _explorerProvider = Substitute.For<IExplorerProvider>();
     private readonly IOptionsMonitor<DaoOptions> _testDaoOptions = Substitute.For<IOptionsMonitor<DaoOptions>>();
     private readonly IGovernanceProvider _governanceProvider = Substitute.For<IGovernanceProvider>();
