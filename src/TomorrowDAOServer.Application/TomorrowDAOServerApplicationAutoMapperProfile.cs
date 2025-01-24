@@ -136,7 +136,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
         CreateMap<Metadata, MetadataDto>().ReverseMap();
         CreateMap<IndexerMetadata, Metadata>()
             .ForMember(des => des.SocialMedia, opt
-                => opt.MapFrom(src => MapHelper.MapJsonConvert<Dictionary<string, string>>(src.SocialMedia)));
+                => opt.MapFrom(src => MapHelper.MapConvertToStringDictionary(src.SocialMedia)));
 
         CreateMap<GovernanceSchemeThreshold, GovernanceSchemeThresholdDto>().ReverseMap();
         CreateMap<HighCouncilConfig, HighCouncilConfigDto>().ReverseMap();
