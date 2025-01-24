@@ -142,7 +142,7 @@ public class WalletUserVerifierProvider : IVerifierProvider
         }
 
         Log.Information(
-            "publicKeyVal:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
+            "publicKeyVall:{0}, signatureVal:{1}, address:{2}, caHash:{3}, chainId:{4}, timestamp:{5}",
             publicKeyVal, signatureVal, address, caHash, chainId, timestamp);
 
         var guardianIdentifier = string.Empty;
