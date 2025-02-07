@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using GraphQL.Client.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
-using Volo.Abp;
 using Xunit;
 using Xunit.Abstractions;
 using static TomorrowDAOServer.Common.TestConstant;
