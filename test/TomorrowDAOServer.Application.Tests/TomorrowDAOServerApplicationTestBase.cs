@@ -70,6 +70,7 @@ public abstract class
         base.AfterAddApplication(services);
         services.AddSingleton(GetMockAbpDistributedLockAlwaysSuccess());
         services.AddSingleton(MockGraphQlOptions());
+        services.AddSingleton(MockGraphQLOptions2());
         services.AddSingleton(MockExplorerOptions());
         services.AddSingleton(MockQueryContractOption());
         services.AddSingleton(MockContractInfoOptions());
@@ -133,6 +134,19 @@ public abstract class
         return mock.Object;
     }
 
+    private IOptionsMonitor<TomorrowDAOServer.Options.GraphQLOptions> MockGraphQLOptions2()
+    {
+        var graphQlOptions = new TomorrowDAOServer.Options.GraphQLOptions
+        {
+            Configuration = "http://127.0.0.1:9200",
+            ModuleConfiguration = "http://127.0.0.1:9200",
+            PortkeyConfiguration = "http://127.0.0.1:9200"
+        };
+        var mock = new Mock<IOptionsMonitor<TomorrowDAOServer.Options.GraphQLOptions>>();
+        mock.Setup(o => o.CurrentValue).Returns(graphQlOptions);
+        return mock.Object;
+    }
+    
     private IOptionsMonitor<ExplorerOptions> MockExplorerOptions()
     {
         var mock = new Mock<IOptionsMonitor<ExplorerOptions>>();
