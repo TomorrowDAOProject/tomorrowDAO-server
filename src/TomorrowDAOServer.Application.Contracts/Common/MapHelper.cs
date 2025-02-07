@@ -14,6 +14,15 @@ public static class MapHelper
         return JsonConvert.DeserializeObject<T>(jsonString);
     }
     
+    public static Dictionary<string, string> MapConvertToStringDictionary (string jsonString)
+    {
+        if (jsonString.IsNullOrWhiteSpace())
+        {
+            return new Dictionary<string, string>();
+        }
+        return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
+    }
+    
     public static ProposalStatus? MapProposalStatus(ProposalStatus? realProposalStatus)
     {
         return realProposalStatus switch

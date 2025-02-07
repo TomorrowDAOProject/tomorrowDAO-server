@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Shouldly;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.Grains.Grain.Users;
 using TomorrowDAOServer.Proposal.Index;
+using TomorrowDAOServer.Telegram.Dto;
 using TomorrowDAOServer.Telegram.Provider;
 using TomorrowDAOServer.User.Dtos;
 using Volo.Abp;
@@ -22,11 +24,13 @@ public partial class UserServiceTest : TomorrowDaoServerApplicationTestBase
 {
     private IUserService _userService;
     private readonly ITelegramAppsProvider _telegramAppsProvider;
+    private readonly IUserAppService _userAppService;
     
     public UserServiceTest(ITestOutputHelper output) : base(output)
     {
         _userService = Application.ServiceProvider.GetRequiredService<IUserService>();
         _telegramAppsProvider = Application.ServiceProvider.GetRequiredService<ITelegramAppsProvider>();
+        _userAppService = Application.ServiceProvider.GetRequiredService<IUserAppService>();
     }
     
     protected override void AfterAddApplication(IServiceCollection services)
@@ -266,8 +270,79 @@ public partial class UserServiceTest : TomorrowDaoServerApplicationTestBase
             Alias = "Alias"
         });
         result.ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task ShareAppAsyncTest()
+    {
+        await GenerateTelegramAppIndexAsync();
+        var address = Base58Encoder.GenerateRandomBase58String(50);
+        Login(Guid.NewGuid(), address);
+
+        var result = await _userService.ShareAppAsync(new ShareAppInput());
+        result.ShouldBe(false);
+
+        result = await _userService.ShareAppAsync(new ShareAppInput
+        {
+            ChainId = ChainIdAELF,
+            Alias = "NotExistAlias"
+        });
+        result.ShouldBeTrue();
+        
+        result = await _userService.ShareAppAsync(new ShareAppInput
+        {
+            ChainId = ChainIdAELF,
+            Alias = "Alias"
+        });
+        result.ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task CheckPointsAsyncTest()
+    {
+        var telegramUserId = "33333333333";
+        var result = await _userService.CheckPointsAsync(telegramUserId);
+        result.ShouldBeFalse();
+        
+        var address = Base58Encoder.GenerateRandomBase58String(50);
+        var userIdA = Guid.NewGuid();
+        await CreateUserIndexAsync(userIdA, address, telegramUserId);
+        result = await _userService.CheckPointsAsync(telegramUserId);
+        result.ShouldBeTrue();
+        
+        var userIdB = Guid.NewGuid();
+        await CreateUserIndexAsync(userIdB, address, telegramUserId);
+        result = await _userService.CheckPointsAsync(telegramUserId);
+        result.ShouldBeTrue();
+        
+        await CreateUserIndexAsync(userIdA, address, Guid.NewGuid().ToString());
+        await CreateUserIndexAsync(userIdB, address, Guid.NewGuid().ToString());
+    }
+
+    [Fact]
+    public async Task GetAllUserPointsAsyncTest()
+    {
+        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
+        {
+            await _userService.GetAllUserPointsAsync(new GetAllUserPointsInput
+            {
+                ChainId = ChainIdAELF
+            });
+        });
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldBe("Access denied.");
         
         
+        var address = Base58Encoder.GenerateRandomBase58String(50);
+        Login(Guid.NewGuid(), address);
+        await CreateUserIndexAsync(Guid.NewGuid(), address, Guid.NewGuid().ToString());
+        var resultDto = await _userService.GetAllUserPointsAsync(new GetAllUserPointsInput
+        {
+            ChainId = ChainIdAELF
+        });
+        resultDto.ShouldNotBeNull();
+        resultDto.TotalCount.ShouldBeGreaterThan(0);
+        resultDto.Items.ShouldNotBeEmpty();
     }
 
     private async Task GenerateTelegramAppIndexAsync()
@@ -296,6 +371,49 @@ public partial class UserServiceTest : TomorrowDaoServerApplicationTestBase
                 TotalLikes = 50,
                 TotalOpenTimes = 1
             }
+        });
+    }
+
+    private async Task CreateUserIndexAsync(Guid userId, string address, string telegramUserId)
+    {
+        await _userAppService.CreateUserAsync(new UserDto
+        {
+            Id = userId,
+            AppId = "AppId",
+            UserId = userId,
+            UserName = "UserName",
+            CaHash = "CaHash",
+            AddressInfos = new List<AddressInfo>()
+            {
+                new AddressInfo
+                {
+                    ChainId = ChainIdAELF,
+                    Address = address
+                }
+            },
+            CreateTime = DateTime.Now.ToUtcSeconds(),
+            ModificationTime = DateTime.Now.ToUtcSeconds(),
+            Address = address,
+            Extra = JsonConvert.SerializeObject(new UserExtraDto
+            {
+                ConsecutiveLoginDays = 0,
+                LastModifiedTime = default,
+                DailyPointsClaimedStatus = new bool[]
+                {
+                },
+                HasVisitedVotePage = false
+            }),
+            UserInfo = JsonConvert.SerializeObject(new TelegramAuthDataDto
+            {
+                Id = telegramUserId,
+                UserName = "UserName",
+                AuthDate = "AuthDate",
+                FirstName = "FirstName",
+                LastName = "LastName",
+                Hash = "Hash",
+                PhotoUrl = "PhotoUrl",
+                BotId = "BotId"
+            })
         });
     }
 }
