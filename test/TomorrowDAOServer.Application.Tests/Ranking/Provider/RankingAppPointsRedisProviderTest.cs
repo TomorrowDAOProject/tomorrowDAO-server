@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using TomorrowDAOServer.Ranking.Dto;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -55,5 +56,30 @@ public partial class RankingAppPointsRedisProviderTest : TomorrowDaoServerApplic
     {
         var points = await _rankingAppPointsRedisProvider.GetUserAllPointsByAddressAsync(Address1);
         points.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task IncrementLikePointsAsyncTest()
+    {
+        var (aliasLikeCountDic, addedAliasDic) = await _rankingAppPointsRedisProvider.IncrementLikePointsAsync(new RankingAppLikeInput
+        {
+            ChainId = ChainIdAELF,
+            ProposalId = "ProposalId",
+            LikeList = new List<RankingAppLikeDetailDto>()
+            {
+                new RankingAppLikeDetailDto
+                {
+                    Alias = "Alias1",
+                    LikeAmount = 10
+                },
+                new RankingAppLikeDetailDto
+                {
+                    Alias = "Alias2",
+                    LikeAmount = 20
+                }
+            }
+        }, "address");
+        aliasLikeCountDic.ShouldNotBeNull();
+        addedAliasDic.ShouldNotBeNull();
     }
 }
