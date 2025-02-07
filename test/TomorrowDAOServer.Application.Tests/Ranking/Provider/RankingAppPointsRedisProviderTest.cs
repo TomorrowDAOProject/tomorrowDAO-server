@@ -82,4 +82,60 @@ public partial class RankingAppPointsRedisProviderTest : TomorrowDaoServerApplic
         aliasLikeCountDic.ShouldNotBeNull();
         addedAliasDic.ShouldNotBeNull();
     }
+
+    [Fact]
+    public async Task IncrementVotePointsAsyncTest()
+    {
+        var result = await _rankingAppPointsRedisProvider.IncrementVotePointsAsync(ChainIdAELF, "proposalId", "addressvote",
+            "aliasvote", 10);
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task IncrementReferralVotePointsAsyncTest()
+    {
+        await _rankingAppPointsRedisProvider.IncrementReferralVotePointsAsync("inviters", "invitees", 1);
+    }
+
+    [Fact]
+    public async Task IncrementReferralTopInviterPointsAsyncTest()
+    {
+        await _rankingAppPointsRedisProvider.IncrementReferralTopInviterPointsAsync("addressreferral");
+    }
+
+    [Fact]
+    public async Task IncrementViewAdPointsAsyncTest()
+    {
+        await _rankingAppPointsRedisProvider.IncrementViewAdPointsAsync("addressviewad");
+    }
+
+    [Fact]
+    public async Task IncrementLoginPointsByUserIdAsyncTest()
+    {
+        await _rankingAppPointsRedisProvider.IncrementLoginPointsByUserIdAsync("userIdloginpoints", true, 3);
+    }
+
+    [Fact]
+    public async Task GetAppLikeCountAsyncTest()
+    {
+        var dictionary = await _rankingAppPointsRedisProvider.GetAppLikeCountAsync(new List<string>()
+        {
+            "aliases"
+        });
+        dictionary.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task GetTotalVotesAsyncTest()
+    {
+        var totalVotes = await _rankingAppPointsRedisProvider.GetTotalVotesAsync();
+        totalVotes.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task GetTotalLikesAsyncTest()
+    {
+        var totalLikes = await _rankingAppPointsRedisProvider.GetTotalLikesAsync();
+        totalLikes.ShouldBe(2);
+    }
 }
