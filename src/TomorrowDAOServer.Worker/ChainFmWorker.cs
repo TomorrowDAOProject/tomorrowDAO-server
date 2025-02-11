@@ -28,7 +28,7 @@ public class ChainFmWorker : TomorrowDAOServerWorkBase
 
     //https://chain.fm/_next/data/hhAxz4G7w9ffNqg8B2p3X/channel/1305397292697653436.json?id=1305397292697653436
     private const string ChannelDetailDomain =
-        "https://chain.fm/_next/data/hhAxz4G7w9ffNqg8B2p3X/channel/{0}.json?";
+        "https://chain.fm/_next/data/8L5ctiLLpv24Mob_nPjw8/channel/{0}.json?";
 
     protected override WorkerBusinessType BusinessType => WorkerBusinessType.ChainFm;
 
@@ -99,7 +99,7 @@ public class ChainFmWorker : TomorrowDAOServerWorkBase
             await _chainFmChannelProvider.BulkAddOrUpdateAsync(channelIndices);
         }
 
-        await Task.Delay(TimeSpan.FromSeconds(10000));
+        await Task.Delay(TimeSpan.FromSeconds(10));
 
         var channelList = await _chainFmChannelProvider.GetTopFollowerChannelListAsync(10);
         if (channelList.IsNullOrEmpty())

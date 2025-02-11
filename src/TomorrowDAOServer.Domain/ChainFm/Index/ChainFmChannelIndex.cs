@@ -5,7 +5,7 @@ namespace TomorrowDAOServer.ChainFm.Index;
 
 public class ChainFmChannelIndex : AbstractEntity<string>, IIndexBuild
 {
-    public virtual string Id { get; set; }
+    public override string Id { get; set; }
     public string Name { get; set; }
     public string User { get; set; }
     public string Icon { get; set; }
