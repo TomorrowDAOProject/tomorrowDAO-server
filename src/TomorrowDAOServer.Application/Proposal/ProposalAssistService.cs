@@ -160,7 +160,7 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Set proposal status error.{0}", JsonConvert.SerializeObject(result));
+                    _logger.LogError(e, "Set proposal status error.{0}:{1}", proposal.ProposalId, JsonConvert.SerializeObject(result));
                 }
             }
         }).ToArray();
