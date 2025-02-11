@@ -148,13 +148,20 @@ public class ProposalAssistService : TomorrowDAOServerAppService, IProposalAssis
             var result = await _scriptService.GetProposalInfoAsync(chainId, proposal.ProposalId);
             if (result != null)
             {
-                proposal.ProposalStage = Enum.Parse<ProposalStage>(Convert(result.ProposalStage));
-                proposal.ProposalStatus = result.ProposalStatus switch
+                try
                 {
-                    "PENDING_VOTE" => ProposalStatus.PendingVote,
-                    "BELOW_THRESHOLD" => ProposalStatus.BelowThreshold,
-                    _ => Enum.Parse<ProposalStatus>(Convert(result.ProposalStatus))
-                };
+                    proposal.ProposalStage = Enum.Parse<ProposalStage>(Convert(result.ProposalStage));
+                    proposal.ProposalStatus = result.ProposalStatus switch
+                    {
+                        "PENDING_VOTE" => ProposalStatus.PendingVote,
+                        "BELOW_THRESHOLD" => ProposalStatus.BelowThreshold,
+                        _ => Enum.Parse<ProposalStatus>(Convert(result.ProposalStatus))
+                    };
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Set proposal status error.{}", JsonConvert.SerializeObject(result));
+                }
             }
         }).ToArray();
         await Task.WhenAll(tasks);
