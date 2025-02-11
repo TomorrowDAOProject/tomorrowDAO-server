@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -39,17 +40,25 @@ public class ProposalNewUpdateService : ScheduleSyncDataService
     {
         var skipCount = 0;
         List<ProposalIndex> queryList;
-        do
+        try
         {
-            queryList = await _proposalProvider.GetNeedChangeProposalListAsync(skipCount);
-            Log.Information("NeedChangeProposalList skipCount {skipCount} count: {count}", skipCount, queryList?.Count);
-            var result = await _proposalAssistService.NewConvertProposalList(chainId, queryList);
-            if (!result.IsNullOrEmpty())
+            do
             {
-                await _proposalProvider.BulkAddOrUpdateAsync(result);
-            }
-            skipCount += result.Count;
-        } while (!queryList.IsNullOrEmpty());
+                queryList = await _proposalProvider.GetNeedChangeProposalListAsync(skipCount);
+                Log.Information("NeedChangeProposalList skipCount {skipCount} count: {count}", skipCount, queryList?.Count);
+                var result = await _proposalAssistService.NewConvertProposalList(chainId, queryList);
+                if (!result.IsNullOrEmpty())
+                {
+                    await _proposalProvider.BulkAddOrUpdateAsync(result);
+                }
+                skipCount += result.Count;
+            } while (!queryList.IsNullOrEmpty());
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "SyncIndexerRecordsAsync error");
+            throw;
+        }
 
         return -1L;
     }
