@@ -53,6 +53,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TomorrowDAOServer.EntityEve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleAgent", "src\SimpleAgent\SimpleAgent.csproj", "{49B1E517-B15D-456A-B2CB-B4291B8C73D5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitterAgent", "src\TwitterAgent\TwitterAgent.csproj", "{9E33F385-18D2-4BD3-93E8-23D36F6E351D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -151,6 +153,10 @@ Global
 		{49B1E517-B15D-456A-B2CB-B4291B8C73D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49B1E517-B15D-456A-B2CB-B4291B8C73D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49B1E517-B15D-456A-B2CB-B4291B8C73D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E33F385-18D2-4BD3-93E8-23D36F6E351D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E33F385-18D2-4BD3-93E8-23D36F6E351D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E33F385-18D2-4BD3-93E8-23D36F6E351D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E33F385-18D2-4BD3-93E8-23D36F6E351D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -179,6 +185,7 @@ Global
 		{ADFB8BA2-7EF4-4FF5-AF3E-7C197893251A} = {04DBDB01-70F4-4E06-B468-8F87850B22BE}
 		{A3DD6E97-EF16-4B7C-9CFF-D106FD85CCA1} = {04DBDB01-70F4-4E06-B468-8F87850B22BE}
 		{49B1E517-B15D-456A-B2CB-B4291B8C73D5} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{9E33F385-18D2-4BD3-93E8-23D36F6E351D} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {28315BFD-90E7-4E14-A2EA-F3D23AF4126F}
