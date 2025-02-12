@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Aevatar.Core;
 using Aevatar.Core.Abstractions;
+using Aevatar.GAgents.Twitter.GEvents;
 using Microsoft.Extensions.Logging;
 using Orleans.Providers;
 using SimpleAgent.Features.Grains;
@@ -37,8 +38,11 @@ public class SimpleAgent : GAgentBase<SimpleAgentState, SimpleSEvent>
             Text = @event.Hello
         });
         await ConfirmEvents();
-        
-        //PublishAsync()
+
+        await PublishAsync(new CreateTweetGEvent
+        {
+            Text = @event.Hello
+        });
     }
 
     public override Task<string> GetDescriptionAsync()
