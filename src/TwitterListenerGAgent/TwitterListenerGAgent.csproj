@@ -8,11 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aevatar.Core" />
+        <PackageReference Include="AElf.Sdk.CSharp" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Features\Grains" />
+        <PackageReference Include="Aevatar.Core" />
     </ItemGroup>
 
 </Project>
