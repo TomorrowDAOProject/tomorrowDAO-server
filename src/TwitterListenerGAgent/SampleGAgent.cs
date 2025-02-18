@@ -2,7 +2,7 @@
 using Aevatar.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace AevatarTemplate.GAgents;
+namespace TwitterListenerGAgent.GAgents;
 
 [GenerateSerializer]
 public class SampleGAgentState : StateBase

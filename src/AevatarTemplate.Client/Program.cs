@@ -4,6 +4,7 @@ using AevatarTemplate.GAgents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TwitterListenerGAgent.GAgents;
 
 var builder = Host.CreateDefaultBuilder(args)
     .UseOrleansClient(client =>

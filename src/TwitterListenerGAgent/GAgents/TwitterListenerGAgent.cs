@@ -24,8 +24,7 @@ public class TwitterListenerGAgent : GAgentBase<TwitterListenerGAgentState, Twit
     {
         return Task.FromResult("Monitor KOL tweets");
     }
-
-
+    
     public override async Task InitializeAsync(TwitterListenerOptions initializationEvent)
     {
         _logger.LogInformation("Initialize TwitterListenerGAgent，{0}",
