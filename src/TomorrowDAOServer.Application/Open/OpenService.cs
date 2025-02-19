@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Open.Dto;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Telegram.Provider;
@@ -54,19 +56,55 @@ public class OpenService : ApplicationService, IOpenService
         return count > 0;
     }
 
-    public async Task<int> GetGalxeTaskStatusAsync(string address)
+    public async Task<GetGalxeTaskStatusDto> GetGalxeTaskStatusAsync(GetGalxeTaskStatusInput input)
     {
-        if (string.IsNullOrEmpty(address))
+        if (input == null || (input.TelegramId.IsNullOrWhiteSpace() && input.Address.IsNullOrWhiteSpace()))
         {
-            return 0;
+            return new GetGalxeTaskStatusDto
+            {
+                TelegramId = input.TelegramId,
+                Address = input.Address,
+                VoteCount = 0
+            };
         }
 
+        TelegramUserInfoIndex telegramUserInfoIndex = null;
+        if (!input.TelegramId.IsNullOrWhiteSpace())
+        {
+            telegramUserInfoIndex = await _telegramUserInfoProvider.GetByTelegramIdAsync(input.TelegramId);
+        }
+        else if (!input.Address.IsNullOrWhiteSpace())
+        {
+            telegramUserInfoIndex = await _telegramUserInfoProvider.GetByAddressAsync(input.Address);
+        }
+
+        if (telegramUserInfoIndex == null || telegramUserInfoIndex.Id.IsNullOrWhiteSpace())
+        {
+            return new GetGalxeTaskStatusDto
+            {
+                TelegramId = input.TelegramId,
+                Address = input.Address,
+                VoteCount = 0
+            };
+        }
+        
         var proposalId = _micro3Options.CurrentValue.GalxeProposalId;
         if (string.IsNullOrEmpty(proposalId))
         {
-            return 0;
+            return new GetGalxeTaskStatusDto
+            {
+                TelegramId = input.TelegramId,
+                Address = input.Address,
+                VoteCount = 0
+            };
         }
-        var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(address, proposalId);
-        return count > 0 ? 1 : 0;
+        
+        var count = await _voteProvider.CountByVoterAndVotingItemIdAsync(telegramUserInfoIndex.Address, proposalId);
+        return new GetGalxeTaskStatusDto
+        {
+            TelegramId = telegramUserInfoIndex.TelegramId,
+            Address = telegramUserInfoIndex.Address,
+            VoteCount = count > 0 ? count : 0
+        };
     }
 }
