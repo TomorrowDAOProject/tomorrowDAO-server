@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.NetworkDao.Dtos;
@@ -21,13 +22,15 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
     private readonly INetworkDaoEsDataProvider _networkDaoEsDataProvider;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IObjectMapper _objectMapper;
+    private readonly ILogger<NetworkDaoOrgService> _logger;
 
     public NetworkDaoOrgService(INetworkDaoEsDataProvider networkDaoEsDataProvider,
-        IGraphQLProvider graphQlProvider, IObjectMapper objectMapper)
+        IGraphQLProvider graphQlProvider, IObjectMapper objectMapper, ILogger<NetworkDaoOrgService> logger)
     {
         _networkDaoEsDataProvider = networkDaoEsDataProvider;
         _graphQlProvider = graphQlProvider;
         _objectMapper = objectMapper;
+        _logger = logger;
     }
 
     public async Task<GetOrganizationsPagedResult> GetOrganizationsAsync(GetOrganizationsInput input)
