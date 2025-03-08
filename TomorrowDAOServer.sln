@@ -65,6 +65,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitterListenerGAgent", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AevatarTemplate.Silo", "src\AevatarTemplate.Silo\AevatarTemplate.Silo.csproj", "{BB90F42D-F5FA-46AA-9E81-C8C05EA1FFDA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SOLWallet", "SOLWallet\SOLWallet.csproj", "{ED301A43-6C2F-4C79-AC13-54D9051C9B23}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -183,6 +185,10 @@ Global
 		{BB90F42D-F5FA-46AA-9E81-C8C05EA1FFDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB90F42D-F5FA-46AA-9E81-C8C05EA1FFDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB90F42D-F5FA-46AA-9E81-C8C05EA1FFDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED301A43-6C2F-4C79-AC13-54D9051C9B23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED301A43-6C2F-4C79-AC13-54D9051C9B23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED301A43-6C2F-4C79-AC13-54D9051C9B23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED301A43-6C2F-4C79-AC13-54D9051C9B23}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -216,6 +222,7 @@ Global
 		{0992E4A1-3D29-4511-9532-227CD455EFA9} = {CFDE5319-A69B-457A-A952-EC22AA204C21}
 		{B679C391-3BDD-49FC-8D72-2C17D27F942C} = {CFDE5319-A69B-457A-A952-EC22AA204C21}
 		{BB90F42D-F5FA-46AA-9E81-C8C05EA1FFDA} = {CFDE5319-A69B-457A-A952-EC22AA204C21}
+		{ED301A43-6C2F-4C79-AC13-54D9051C9B23} = {CFDE5319-A69B-457A-A952-EC22AA204C21}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {28315BFD-90E7-4E14-A2EA-F3D23AF4126F}
