@@ -51,11 +51,8 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
         _telegramAppsProvider = telegramAppsProvider;
     }
 
-    //TODO return new list
-    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
-        MethodName = TmrwDaoExceptionHandler.DefaultReThrowMethodName,
-        Message = "exec LoadTelegramAppsAsync error", 
-        LogTargets = new []{"input"})]
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.New,
+        Message = "exec LoadTelegramAppsAsync error", LogTargets = new []{"input"})]
     public async Task<List<TelegramAppDto>> LoadTelegramAppsAsync(LoadTelegramAppsInput input, bool needAuth = true)
     {
         if (input == null || input.Url.IsNullOrWhiteSpace() || input.ChainId.IsNullOrWhiteSpace())

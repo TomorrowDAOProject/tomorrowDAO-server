@@ -1,3 +1,5 @@
+using TomorrowDAOServer.Common.Enum;
+
 namespace TomorrowDAOServer.Dtos.Explorer;
 
 public class ExplorerProposalListRequest : ExplorerPagerRequest
@@ -12,7 +14,7 @@ public class ExplorerProposalListRequest : ExplorerPagerRequest
     /// <see cref=" TomorrowDAOServer.Common.Enum.ProposalType"/>
     public string ProposalType { get; set; }
     
-    /// <see cref=" TomorrowDAOServer.Common.Enum.ProposalStatusEnum"/>
+    /// <see cref=" NetworkDaoProposalStatusEnum"/>
     public string Status { get; set; }
 
     public int IsContract { get; set; }
