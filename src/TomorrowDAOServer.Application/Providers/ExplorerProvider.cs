@@ -26,6 +26,8 @@ public interface IExplorerProvider
     //Call before migration, do not delete
     Task<List<ExplorerVoteTeamDescDto>> GetAllTeamDescAsync(string chainId, bool isActive);
     Task<ExplorerProposalResponse> GetProposalPagerAsync(string chainId, ExplorerProposalListRequest request);
+
+    Task<ExplorerContractListResponse> GetContractListAsync(string chainId, ExplorerContractListRequest request);
 }
 
 public static class ExplorerApi
@@ -33,11 +35,12 @@ public static class ExplorerApi
     public static readonly ApiInfo Balances = new(HttpMethod.Get, "/api/viewer/balances");
     public static readonly ApiInfo TokenInfo = new(HttpMethod.Get, "/api/viewer/tokenInfo");
     public static readonly ApiInfo TransferList = new(HttpMethod.Get, "/api/viewer/transferList");
-    
+
     //Call before migration, do not delete
     public static readonly ApiInfo GetAllTeamDesc = new(HttpMethod.Get, "/api/vote/getAllTeamDesc");
     public static readonly ApiInfo ProposalList = new(HttpMethod.Get, "/api/proposal/list");
-    
+    public static readonly ApiInfo ContractList = new(HttpMethod.Get, "/api/viewer/list");
+
     //AelfScan API
     public static readonly ApiInfo TokenInfoV2 = new(HttpMethod.Get, "/api/app/token/info");
     public static readonly ApiInfo BalancesV2 = new(HttpMethod.Get, "/api/app/address/tokens");
@@ -104,6 +107,16 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         return resp.Data;
     }
 
+    public async Task<ExplorerContractListResponse> GetContractListAsync(string chainId,
+        ExplorerContractListRequest request)
+    {
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerContractListResponse>>(BaseUrl(chainId),
+            ExplorerApi.ContractList, param: ToDictionary(request), withInfoLog: false, withDebugLog: false,
+            settings: DefaultJsonSettings);
+        AssertHelper.IsTrue(resp.Success, resp.Msg);
+        return resp.Data;
+    }
+
     /// <summary>
     ///     Get Balances by address
     /// </summary>
@@ -120,7 +133,7 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
             Log.Error("get balances from aelfscan fail, code={0},message={1}", resp.Code, resp.Message);
             throw new UserFriendlyException($"get balances from aelfscan fail. {resp.Message}");
         }
-        
+
         var respNft = await _httpProvider.InvokeAsync<AelfScanBaseResponse<GetBalanceFromAelfScanResponse>>(
             _explorerOptions.CurrentValue.AelfScan!.TrimEnd('/'),
             ExplorerApi.BalancesNFTV2, param: ToDictionary(request), settings: DefaultJsonSettings);
@@ -135,10 +148,12 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         {
             res.AddRange(resp.Data.List);
         }
+
         if (respNft.Data != null && !respNft.Data.List.IsNullOrEmpty())
         {
             res.AddRange(respNft.Data.List);
         }
+
         return res;
     }
 
@@ -152,7 +167,8 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     //     MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, 
     //     Message = "get token from explorer error", ReturnDefault = ReturnDefault.New,
     //     LogTargets = new []{"chainId", "request"})]
-    public virtual async Task<GetTokenInfoFromAelfScanResponse> GetTokenInfoAsync(GetTokenInfoFromAelfScanRequest request)
+    public virtual async Task<GetTokenInfoFromAelfScanResponse> GetTokenInfoAsync(
+        GetTokenInfoFromAelfScanRequest request)
     {
         if (request == null || request.Symbol.IsNullOrWhiteSpace() || request.ChainId.IsNullOrWhiteSpace())
         {

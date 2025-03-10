@@ -55,6 +55,7 @@ public static class CommonConstant
     
     //LogEvent
     public const string VoteEventVoted = "Voted";
+    public const string ProposalCreated = "ProposalCreated";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
     public const string DescriptionTMARankingBegin = "##GameRanking:TMARanking";
