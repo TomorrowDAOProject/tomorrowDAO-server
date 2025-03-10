@@ -66,7 +66,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
 
         var contractNamesIndices = await _networkDaoEsDataProvider.GetContractNamesAsync(new GetContractNamesInput
         {
-            ChainId = input.ChainId,
+            ChainId = input.OperateChainId,
             ContractName = input.ContractName
         });
 
@@ -91,7 +91,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
                 var contractNamesIndex = new NetworkDaoContractNamesIndex
                 {
                     Id = IdGeneratorHelper.GenerateId(input.ChainId, Guid.NewGuid().ToString()),
-                    ChainId = input.ChainId,
+                    ChainId = input.OperateChainId,
                     ContractName = input.ContractName,
                     Address = input.Address,
                     ProposalId = input.ProposalId,
@@ -111,7 +111,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
             var contractNamesIndex = new NetworkDaoContractNamesIndex
             {
                 Id = IdGeneratorHelper.GenerateId(input.ChainId, Guid.NewGuid().ToString()),
-                ChainId = input.ChainId,
+                ChainId = input.OperateChainId,
                 ContractName = input.ContractName,
                 Address = input.Address,
                 ProposalId = input.ProposalId,
@@ -150,7 +150,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
 
         var contractNamesIndices = await _networkDaoEsDataProvider.GetContractNamesAsync(new GetContractNamesInput
         {
-            ChainId = input.ChainId,
+            ChainId = input.OperateChainId,
             ContractName = input.ContractName
         });
 
@@ -165,7 +165,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
         
         contractNamesIndices = await _networkDaoEsDataProvider.GetContractNamesAsync(new GetContractNamesInput
         {
-            ChainId = input.ChainId,
+            ChainId = input.OperateChainId,
             ContractAddress = input.ContractAddress
         });
         if (!contractNamesIndices.IsNullOrEmpty())
@@ -189,7 +189,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
             await _networkDaoEsDataProvider.AddOrUpdateContractNameAsync(new NetworkDaoContractNamesIndex
             {
                 Id = IdGeneratorHelper.GenerateId(input.ChainId, Guid.NewGuid().ToString()),
-                ChainId = input.ChainId,
+                ChainId = input.OperateChainId,
                 ContractName = input.ContractName,
                 ContractAddress = input.ContractAddress,
                 Address = input.Address,
@@ -220,7 +220,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
             throw new UserFriendlyException("Access denied.");
         }
 
-        var explorerContractListResponse = await _explorerProvider.GetContractListAsync(input.ChainId, new ExplorerContractListRequest
+        var explorerContractListResponse = await _explorerProvider.GetContractListAsync(input.OperateChainId, new ExplorerContractListRequest
         {
             PageSize = input.PageSize,
             PageNum = input.PageNum
@@ -232,7 +232,7 @@ public class NetworkDaoContractNamesService : TomorrowDAOServerAppService, INetw
             contractNamesIndices.Add(new NetworkDaoContractNamesIndex
             {
                 Id = IdGeneratorHelper.GenerateId(input.ChainId, Guid.NewGuid().ToString()),
-                ChainId = input.ChainId,
+                ChainId = input.OperateChainId,
                 ContractName = contractDto.ContractName == "-1" ? string.Empty : contractDto.ContractName,
                 ContractAddress = contractDto.Address,
                 Address = contractDto.Author,

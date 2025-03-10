@@ -6,6 +6,7 @@ public class UpdateContractNameInput
 {
     [Required]
     public string ChainId { get; set; }
+    public string OperateChainId { get; set; }
     [Required]
     public string ContractName { get; set; }
     [Required]
