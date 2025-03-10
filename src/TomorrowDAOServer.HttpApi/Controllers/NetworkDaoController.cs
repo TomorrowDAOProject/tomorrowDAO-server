@@ -27,11 +27,13 @@ public class NetworkDaoController
     private readonly INetworkDaoElectionService _networkDaoElectionService;
     private readonly INetworkDaoVoteService _networkDaoVoteService;
     private readonly INetworkDaoOrgService _networkDaoOrgService;
+    private readonly INetworkDaoContractNamesService _networkDaoContractNamesService;
 
     public NetworkDaoController(INetworkDaoProposalService networkDaoProposalService,
         ILogger<NetworkDaoController> logger,
         INetworkDaoTreasuryService networkDaoTreasuryService, INetworkDaoElectionService networkDaoElectionService,
-        INetworkDaoVoteService networkDaoVoteService, INetworkDaoOrgService networkDaoOrgService)
+        INetworkDaoVoteService networkDaoVoteService, INetworkDaoOrgService networkDaoOrgService,
+        INetworkDaoContractNamesService networkDaoContractNamesService)
     {
         _networkDaoProposalService = networkDaoProposalService;
         _logger = logger;
@@ -39,6 +41,7 @@ public class NetworkDaoController
         _networkDaoElectionService = networkDaoElectionService;
         _networkDaoVoteService = networkDaoVoteService;
         _networkDaoOrgService = networkDaoOrgService;
+        _networkDaoContractNamesService = networkDaoContractNamesService;
     }
 
     [HttpGet("proposals")]
@@ -69,13 +72,6 @@ public class NetworkDaoController
     public async Task<GetAllPersonalVotesPagedResult> GetAllPersonalVotesAsync(GetAllPersonalVotesInput input)
     {
         return await _networkDaoVoteService.GetAllPersonalVotesAsync(input);
-    }
-    
-    [Authorize]
-    [HttpGet("vote/loadHistory")]
-    public async Task<int> LoadVoteTeamHistoryDataAsync(LoadVoteTeamDescHistoryInput input)
-    {
-        return await _networkDaoVoteService.LoadVoteTeamHistoryDateAsync(input);
     }
 
     [Authorize]
@@ -153,4 +149,38 @@ public class NetworkDaoController
     {
         return await _networkDaoElectionService.GetBpVotingStakingAmount();
     }
+
+    [HttpPost("contract/add")]
+    [Authorize]
+    public async Task<AddContractNameResponse> AddContractNameAsync(AddContractNameInput input)
+    {
+        return await _networkDaoContractNamesService.AddContractNamesAsync(input);
+    }
+
+    [HttpPost("contract/update")]
+    [Authorize]
+    public async Task<UpdateContractNameResponse> UpdateContractNameAsync(UpdateContractNameInput input)
+    {
+        return await _networkDaoContractNamesService.UpdateContractNamesAsync(input);
+    }
+
+    [HttpGet("contract/check")]
+    public async Task<CheckContractNameResponse> CheckContractNameAsync(CheckContractNameInput input)
+    {
+        return await _networkDaoContractNamesService.CheckContractNameAsync(input);
+    }
+
+    [Authorize]
+    [HttpGet("vote/loadHistory")]
+    public async Task<int> LoadVoteTeamHistoryDataAsync(LoadVoteTeamDescHistoryInput input)
+    {
+        return await _networkDaoVoteService.LoadVoteTeamHistoryDateAsync(input);
+    }
+    
+    [HttpPost("contract/loadHistory")]
+    [Authorize]
+    public async Task<int> LoadContractHistoryDataAsync(LoadContractHistoryInput input)
+    {
+        return await _networkDaoContractNamesService.LoadContractHistoryDataAsync(input);
+    } 
 }

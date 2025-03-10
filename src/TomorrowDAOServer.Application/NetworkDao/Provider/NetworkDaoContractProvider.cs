@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Client.Dto;
 using AElf.Standards.ACS3;
 using AElf.Types;
 using Google.Protobuf.WellKnownTypes;
@@ -11,6 +12,7 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.AElfSdk.Dtos;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.NetworkDao.Dtos;
 using Volo.Abp.DependencyInjection;
 
 namespace TomorrowDAOServer.NetworkDao.Provider;
@@ -28,6 +30,7 @@ public interface INetworkDaoContractProvider
     Task<AElf.Contracts.Referendum.Organization> GetReferendumOrganizationAsync(string chainId,
         string organizationAddress);
     Task<List<string>> GetParliamentOrgProposerWhiteListAsync(string chainId);
+    Task<TransactionResultDto> QueryTransactionResultAsync(string chainId, string transactionId);
 }
 
 public class NetworkDaoContractProvider : INetworkDaoContractProvider, ISingletonDependency
@@ -134,5 +137,10 @@ public class NetworkDaoContractProvider : INetworkDaoContractProvider, ISingleto
             NetworkDaoOrgType.Referendum => SystemContractName.ReferendumContract,
             _ => string.Empty
         };
+    }
+
+    public async Task<TransactionResultDto> QueryTransactionResultAsync(string chainId, string transactionId)
+    {
+        return await _contractProvider.QueryTransactionResultAsync(transactionId, chainId);
     }
 }

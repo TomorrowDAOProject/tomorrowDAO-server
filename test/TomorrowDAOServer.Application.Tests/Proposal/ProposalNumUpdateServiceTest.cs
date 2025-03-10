@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -6,6 +8,8 @@ using TomorrowDAOServer.Chains;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.NetworkDao;
+using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.NetworkDao.Provider;
 using TomorrowDAOServer.Providers;
 using Xunit;
@@ -36,6 +40,8 @@ public class ProposalNumUpdateServiceTest
     {
         // _explorerProvider.GetProposalPagerAsync(Arg.Any<string>(), Arg.Any<ExplorerProposalListRequest>())
         //     .Returns(new ExplorerProposalResponse { Total = 2 });
+        // _networkDaoEsDataProvider.GetProposalListAsync(Arg.Any<GetProposalListInput>())
+        //     .Returns(new Tuple<long, List<NetworkDaoProposalIndex>>(2, new List<NetworkDaoProposalIndex>()));
         // var result = await _service.SyncIndexerRecordsAsync("tDVW", 0, 0);
         // result.ShouldBe(-1);
     }
