@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using NSubstitute;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
@@ -18,249 +15,146 @@ using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Election.Provider;
 using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
-using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Proposal.Dto;
-using TomorrowDAOServer.Proposal.Provider;
-using TomorrowDAOServer.Providers;
-using TomorrowDAOServer.Ranking;
 using TomorrowDAOServer.Ranking.Provider;
-using TomorrowDAOServer.Token;
-using TomorrowDAOServer.User.Provider;
-using TomorrowDAOServer.Vote;
-using TomorrowDAOServer.Vote.Dto;
-using TomorrowDAOServer.Vote.Index;
-using TomorrowDAOServer.Vote.Provider;
-using Volo.Abp.DependencyInjection;
-using Volo.Abp.ObjectMapping;
-using Volo.Abp.Users;
+using Volo.Abp;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace TomorrowDAOServer.Proposal;
 
-public class ProposalServiceTest 
+public partial class ProposalServiceTest : TomorrowDaoServerApplicationTestBase
 {
-    private readonly IObjectMapper _objectMapper;
-    private readonly IProposalProvider _proposalProvider;
-    private readonly IVoteProvider _voteProvider;
-    private readonly IDAOProvider _DAOProvider;
-    private readonly IProposalAssistService _proposalAssistService;
-    private readonly ILogger<ProposalProvider> _logger;
-    private readonly IExplorerProvider _explorerProvider;
-    private readonly IGraphQLProvider _graphQlProvider;
-    private readonly IUserProvider _userProvider;
-    private readonly IElectionProvider _electionProvider;
-    private readonly ITokenService _tokenService;
-    private readonly ProposalService _service;
-    private readonly ICurrentUser _currentUser;
-    private readonly IAbpLazyServiceProvider _abpLazyServiceProvider;
-    private readonly IOptionsMonitor<RankingOptions> _rankingOptions;
-    private readonly IRankingAppPointsRedisProvider _rankingAppPointsRedisProvider;
-
-    public ProposalServiceTest()
+    private readonly IProposalService _proposalService;
+    public ProposalServiceTest(ITestOutputHelper output) : base(output)
     {
-        _objectMapper = Substitute.For<IObjectMapper>();
-        _proposalProvider = Substitute.For<IProposalProvider>();
-        _voteProvider = Substitute.For<IVoteProvider>();
-        _DAOProvider = Substitute.For<IDAOProvider>();
-        _proposalAssistService = Substitute.For<IProposalAssistService>();
-        _logger = Substitute.For<ILogger<ProposalProvider>>();
-        _explorerProvider = Substitute.For<IExplorerProvider>();
-        _graphQlProvider = Substitute.For<IGraphQLProvider>();
-        _userProvider = Substitute.For<IUserProvider>();
-        _electionProvider = Substitute.For<IElectionProvider>();
-        _tokenService = Substitute.For<ITokenService>();
-        _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
-        _rankingOptions = Substitute.For<IOptionsMonitor<RankingOptions>>();
-        _rankingAppPointsRedisProvider = Substitute.For<IRankingAppPointsRedisProvider>();
-        _service = new ProposalService(_objectMapper, _proposalProvider, _voteProvider, 
-            _graphQlProvider, _proposalAssistService, _DAOProvider, 
-            _logger, _userProvider, _electionProvider, _tokenService, _rankingOptions, _rankingAppPointsRedisProvider);
-        
-        _currentUser = Substitute.For<ICurrentUser>();
-        _abpLazyServiceProvider = Substitute.For<IAbpLazyServiceProvider>();
-    }
-
-    [Fact]
-    public async void QueryProposalListAsync_Test()
-    {
-        _proposalProvider.GetProposalListAsync(Arg.Any<QueryProposalListInput>())
-            .Returns(new Tuple<long, List<ProposalIndex>>(1, new List<ProposalIndex>
-            {
-                new() { ProposalId = "ProposalId1", DAOId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization, VoteSchemeId = "VoteSchemeId"}
-            }));
-        _objectMapper.Map<List<ProposalIndex>, List<ProposalDto>>(Arg.Any<List<ProposalIndex>>())
-            .Returns(new List<ProposalDto>
-            {
-                new() { ProposalId = "ProposalId1", DAOId = "DaoId", GovernanceMechanism = GovernanceMechanism.Organization.ToString(), VoteSchemeId = "VoteSchemeId" }
-            });
-        _DAOProvider.GetMemberListAsync(Arg.Any<GetMemberListInput>()).Returns(new PageResultDto<MemberDto>
-        {
-            TotalCount = 10, Data = new List<MemberDto>()
-        });
-        _voteProvider.GetVoteItemsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
-            .Returns(new Dictionary<string, IndexerVote>());
-        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
-            .Returns(new DAOIndex { Id = "DaoId" });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<GetTokenInfoFromAelfScanRequest>()).Returns(new GetTokenInfoFromAelfScanResponse
-        {
-            Symbol = "ELF", Decimals = "8"
-        });
-        _voteProvider.GetVoteSchemeDicAsync(Arg.Any<GetVoteSchemeInput>())
-            .Returns(new Dictionary<string, IndexerVoteSchemeInfo>());
-        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8" });
-        var result = await _service.QueryProposalListAsync(new QueryProposalListInput { ChainId = "AELF", DaoId = "DaoId" });
-        result.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public async void QueryProposalMyInfoAsync_Test()
-    {
-        // null
-        var myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
-        {
-            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
-        });
-        myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBeNull();
-        
-        // multi sig dao
-        _proposalProvider.GetProposalByIdAsync(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new ProposalIndex{ProposalStage = ProposalStage.Execute});
-        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>()).Returns(new DAOIndex());
-        _voteProvider.GetByVotingItemIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
-            .Returns(new List<VoteRecordIndex>());
-        myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
-        {
-            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
-        });
-        myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBeNull();
-        myInfo.CanVote.ShouldBe(false);
-        
-        // token dao
-        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>()).Returns(new DAOIndex{GovernanceToken = "ELF"});
-        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
-        {
-            Symbol = "ELF", Decimals = "8"
-        });
-        myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
-        {
-            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
-        });
-        myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBe("ELF");
-        myInfo.CanVote.ShouldBe(false);
-        myInfo.AvailableUnStakeAmount.ShouldBe(0);
-        
-        _voteProvider.GetByVoterAndVotingItemIdsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<List<string>>())
-            .Returns(new List<VoteRecordIndex>{new(){Amount = 10, IsWithdraw = false, EndTime = DateTime.Today.AddDays(-1)}});
-        myInfo = await _service.QueryProposalMyInfoAsync(new QueryMyProposalInput
-        {
-            ChainId = "AELF", DAOId = "daoId", ProposalId = "proposalId", Address = "address"
-        });
-        myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBe("ELF");
-        myInfo.CanVote.ShouldBe(false);
-        myInfo.AvailableUnStakeAmount.ShouldBe(10);
+        _proposalService = Application.ServiceProvider.GetRequiredService<IProposalService>();
     }
     
-    [Fact]
-    public async void QueryDaoMyInfoAsync_Test()
+    protected override void AfterAddApplication(IServiceCollection services)
     {
-        // dao is null
-        var myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
+        base.AfterAddApplication(services);
+        services.AddSingleton(RankingAppPointsRedisProviderTest.MockConnectionMultiplexer());
+        services.AddSingleton(RankingAppPointsRedisProviderTest.MockDistributedCache());
+        services.AddSingleton(MockDaoProvider());
+        services.AddSingleton(MockProposalProvider());
+        services.AddSingleton(MockVoteRecordIndexRepository());
+    }
+
+    [Fact]
+    public async Task QueryProposalListAsyncTest()
+    {
+        var exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
         {
-            ChainId = "AELF", DAOId = "daoId", Address = "address"
-        });
-        myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBeNull();
-        
-        // multi sig dao
-        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
-            .Returns(new DAOIndex());
-        _voteProvider.GetDaoVoterRecordAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new IndexerDAOVoterRecord());
-        myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
-        {
-            ChainId = "AELF", DAOId = "daoId", Address = "address"
-        });
-        myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBeNull();
-        myInfo.VotesAmountUniqueVote.ShouldBe(0);
-        
-        // token dao
-        _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
-            .Returns(new DAOIndex{GovernanceToken = "ELF"});
-        _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>()).Returns(new TokenInfoDto
-        {
-            Symbol = "ELF", Decimals = "8"
-        });
-        _voteProvider.GetNonWithdrawVoteRecordAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new List<VoteRecordIndex>
+            await _proposalService.QueryProposalListAsync(new QueryProposalListInput
             {
-                new() { EndTime = DateTime.Today.AddDays(1), Amount = 2 },
-                new() { EndTime = DateTime.Today.AddDays(-1), Amount = 2 }
+                ChainId = ChainIdAELF
             });
-        myInfo = await _service.QueryDaoMyInfoAsync(new QueryMyProposalInput
-        {
-            ChainId = "AELF", DAOId = "daoId", Address = "address"
         });
-        myInfo.ShouldNotBeNull();
-        myInfo.Symbol.ShouldBe("ELF");
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldContain("Invalid input");
+        
+        exception = await Assert.ThrowsAsync<UserFriendlyException>(async () =>
+        {
+            await _proposalService.QueryProposalListAsync(new QueryProposalListInput
+            {
+                MaxResultCount = 10,
+                SkipCount = 0,
+                ChainId = ChainIdAELF,
+                DaoId = "notexist",
+                Alias = "Alias01",
+                GovernanceMechanism = null,
+                ProposalType = null,
+                ProposalStatus = null,
+                Content = null,
+                IsNetworkDao = false
+            });
+        });
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldContain("No DAO information found");
+        
+        var pagedResultDto = await _proposalService.QueryProposalListAsync(new QueryProposalListInput
+        {
+            MaxResultCount = 10,
+            SkipCount = 0,
+            ChainId = ChainIdAELF,
+            DaoId = "DaoId01",
+            Alias = "Alias01",
+            GovernanceMechanism = null,
+            ProposalType = null,
+            ProposalStatus = ProposalStatus.Approved,
+            Content = null,
+            IsNetworkDao = false
+        });
+        pagedResultDto.ShouldNotBeNull();
+        pagedResultDto.Items.ShouldNotBeEmpty();
     }
-
 
     [Fact]
-    public async void CanExecute_Test()
+    public async Task QueryProposalDetailAsyncTest()
     {
-        var canExecute = _service.CanExecute(new ProposalDetailDto(), "address");
-        canExecute.ShouldBe(false);
-        
-        canExecute = _service.CanExecute(new ProposalDetailDto
+        var proposalDetailDto = await _proposalService.QueryProposalDetailAsync(new QueryProposalDetailInput
         {
-            Proposer = "address"
-        }, "address");
-        canExecute.ShouldBe(false);
+            ChainId = ChainIdAELF,
+            ProposalId = "notexist",
+            Address = Address1
+        });
+        proposalDetailDto.ShouldNotBeNull();
+        proposalDetailDto.Id.ShouldBeNull();
         
-        canExecute = _service.CanExecute(new ProposalDetailDto
+        proposalDetailDto = await _proposalService.QueryProposalDetailAsync(new QueryProposalDetailInput
         {
-            Proposer = "address", ProposalStatus = ProposalStatus.Approved.ToString(), ProposalStage = "Queued",
-            ExecuteStartTime = DateTime.Now.AddDays(-1), ExecuteEndTime = DateTime.Now.AddDays(1)
-        }, "address");
-        canExecute.ShouldBe(true);
+            ChainId = ChainIdAELF,
+            ProposalId = "ProposalId",
+            Address = Address1
+        });
+        proposalDetailDto.ShouldNotBeNull();
+        proposalDetailDto.Id.ShouldNotBeNull();
+        proposalDetailDto.Id.ShouldBe("Id");
     }
 
     [Fact]
-    public async Task QueryVoteHistoryAsync_Test()
+    public async Task QueryVoteHistoryAsyncTest()
     {
-        // _voteProvider.GetPageVoteRecordAsync(Arg.Any<GetPageVoteRecordInput>())
-        //     .Returns(new Tuple<long, List<VoteRecordIndex>>(1,
-        //         new List<VoteRecordIndex> { new() { Id = "daoId", VotingItemId = "proposalId", Amount = 100000000 } }));
-        // _voteProvider.GetVoteItemsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
-        //     .Returns(new Dictionary<string, IndexerVote> { ["proposalId"] = new(){Executer = "user"} });
-        // _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
-        //     .Returns(new List<ProposalIndex>{new() { ProposalId = "proposalId", VoteSchemeId = "82493f7880cd1d2db09ba90b85e5d5605c40db550572586185e763f75f5ede11"}});
-        // _DAOProvider.GetDaoListByDaoIds(Arg.Any<string>(), Arg.Any<List<string>>())
-        //     .Returns(new List<DAOIndex> { new() { Id = "daoId" } });
-        // _tokenService.GetTokenInfoWithoutUpdateAsync(Arg.Any<string>(), Arg.Any<string>())
-        //     .Returns(new TokenInfoDto { Symbol = "ELF", Decimals = "8" });
-        // _objectMapper.Map<List<VoteRecordIndex>, List<IndexerVoteHistoryDto>>(Arg.Any<List<VoteRecordIndex>>())
-        //     .Returns(new List<IndexerVoteHistoryDto> { new() { DAOId = "daoId", ProposalId = "proposalId", VoteNum = 100000000 } });
-        // var result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
-        // {
-        //     ChainId = "tDVW", DAOId = "daoId"
-        // });
-        // result.ShouldNotBeNull();
-        //
-        // _DAOProvider.GetDaoListByDaoIds(Arg.Any<string>(), Arg.Any<List<string>>())
-        //     .Returns(new List<DAOIndex> { new() { Id = "daoId", GovernanceToken = "ELF"} });
-        // _proposalProvider.GetProposalByIdsAsync(Arg.Any<string>(), Arg.Any<List<string>>())
-        //     .Returns(new List<ProposalIndex>{new() { ProposalId = "proposalId", VoteSchemeId = "934d1295190d97e81bc6c2265f74e589750285aacc2c906c7c4c3c32bd996a64"}});
-        // result = await _service.QueryVoteHistoryAsync(new QueryVoteHistoryInput
-        // {
-        //     ChainId = "tDVW", DAOId = "daoId"
-        // });
-        // result.ShouldNotBeNull();
+        var voteHistoryPagedResultDto  = await _proposalService.QueryVoteHistoryAsync(new QueryVoteHistoryInput
+        {
+            ChainId = ChainIdAELF,
+            ProposalId = "ProposalId",
+            SkipCount = 0,
+            MaxResultCount = 10
+        });
+        voteHistoryPagedResultDto.ShouldNotBeNull();
+        voteHistoryPagedResultDto.TotalCount.ShouldBe(1);
+        voteHistoryPagedResultDto.Items.ShouldNotBeEmpty();
+        voteHistoryPagedResultDto.Items.First().Alias.ShouldBe("Alias");
     }
+
+    [Fact]
+    public async Task QueryExecutableProposalsAsyncTest()
+    {
+        var proposalPagedResultDto = await _proposalService.QueryExecutableProposalsAsync(new QueryExecutableProposalsInput
+        {
+            MaxResultCount = 10,
+            SkipCount = 0,
+            ChainId = ChainIdAELF,
+            DaoId = "notexist",
+            Proposer = Address1
+        });
+        proposalPagedResultDto.ShouldNotBeNull();
+        proposalPagedResultDto.TotalCount.ShouldBe(0);
+        
+        proposalPagedResultDto = await _proposalService.QueryExecutableProposalsAsync(new QueryExecutableProposalsInput
+        {
+            MaxResultCount = 10,
+            SkipCount = 0,
+            ChainId = ChainIdAELF,
+            DaoId = DAOId,
+            Proposer = Address1
+        });
+        proposalPagedResultDto.ShouldNotBeNull();
+        proposalPagedResultDto.TotalCount.ShouldBe(1);
+        proposalPagedResultDto.Items.ShouldNotBeEmpty();
+        proposalPagedResultDto.Items.First().Id.ShouldBe("Id");
+    }
+
 }

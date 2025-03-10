@@ -67,6 +67,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         var hostingEnvironment = context.Services.GetHostingEnvironment();
         Configure<WorkerOptions>(configuration);
         Configure<WorkerLastHeightOptions>(configuration);
+        Configure<DigiOptions>(configuration.GetSection("DigiOptions"));
         Configure<LuckyboxOptions>(configuration.GetSection("LuckyboxOptions"));
         Configure<TonGiftTaskOptions>(configuration.GetSection("TonGiftTaskOptions"));
         Configure<WorkerReRunProposalOptions>(configuration.GetSection("WorkerReRunProposalOptions"));

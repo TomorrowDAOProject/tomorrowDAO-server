@@ -47,6 +47,8 @@ public interface IProposalProvider
         RankingType rankingType, string excludeAddress, bool needActive, List<string> excludeProposalIds = null);
     public Task<ProposalIndex> GetTopProposalAsync(string proposer, bool isActive);
     Task<List<ProposalIndex>> GetActiveRankingProposalListAsync(List<string> rankingDaoIds);
+    public Task<Tuple<long, List<ProposalIndex>>> GetPollListAsync(string chainId, int skipCount, int maxResultCount, 
+        bool active, List<string> excludeProposalIds = null);
 }
 
 public class ProposalProvider : IProposalProvider, ISingletonDependency
@@ -251,8 +253,9 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
                     .Type("number")
                     .Order(SortOrder.Descending)
                     .Script(s => s
-                            .Source("doc['activeEndTime'].value.toInstant().toEpochMilli() > ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() ? 1 : 0")
-                            .Params(p => p.Add("currentUtcTime", currentUtcTime)) 
+                        .Source("doc['activeEndTime'].value.toInstant().toEpochMilli() > ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() " +
+                                "&& doc['activeStartTime'].value.toInstant().toEpochMilli() < ZonedDateTime.parse(params.currentUtcTime).toInstant().toEpochMilli() ? 1 : 0")
+                        .Params(p => p.Add("currentUtcTime", currentUtcTime))
                     )
                 )
                 .Descending(a => a.DeployTime),
@@ -299,6 +302,37 @@ public class ProposalProvider : IProposalProvider, ISingletonDependency
         
         QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
         return (await _proposalIndexRepository.GetListAsync(Filter)).Item2 ?? new List<ProposalIndex>();
+    }
+
+    public async Task<Tuple<long, List<ProposalIndex>>> GetPollListAsync(string chainId, int skipCount, int maxResultCount, bool active,
+        List<string> excludeProposalIds = null)
+    {
+        var now = DateTime.UtcNow;
+        var mustQuery = new List<Func<QueryContainerDescriptor<ProposalIndex>, QueryContainer>>
+        {
+            q => q.Term(i => i.Field(f => f.ChainId).Value(chainId)),
+            q => q.Term(i => i.Field(f => f.ProposalCategory).Value(ProposalCategory.Ranking))
+        };
+        if (excludeProposalIds != null && !excludeProposalIds.IsNullOrEmpty())
+        {
+            mustQuery.Add(q => !q.Terms(i => i.Field(f => f.ProposalId).Terms(excludeProposalIds)));
+        }
+
+        if (active)
+        {
+            mustQuery.Add(q => q.DateRange(i => i.Field(f => f.ActiveEndTime).GreaterThanOrEquals(now)));
+            mustQuery.Add(q => q.DateRange(i => i.Field(f => f.ActiveStartTime).LessThanOrEquals(now)));
+        }
+        else
+        {
+            mustQuery.Add(q => q.DateRange(i => i.Field(f => f.ActiveEndTime).LessThanOrEquals(now)));
+        }
+        QueryContainer Filter(QueryContainerDescriptor<ProposalIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _proposalIndexRepository.GetSortListAsync(Filter, skip: skipCount, limit: maxResultCount,
+            sortFunc: _ => new SortDescriptor<ProposalIndex>()
+                .Script(s => s.Type("number").Order(SortOrder.Descending)
+                    .Script(ss => ss.Source("doc['rankingType'].value == 'Verified' ? 1 : 0")))
+                .Descending(a => a.DeployTime));
     }
 
     public async Task<long> GetProposalCountByDAOId(string chainId, string DAOId)

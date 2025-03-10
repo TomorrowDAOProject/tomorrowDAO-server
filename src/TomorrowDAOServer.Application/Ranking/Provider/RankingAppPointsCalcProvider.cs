@@ -24,6 +24,7 @@ namespace TomorrowDAOServer.Ranking.Provider
         public long CalculatePointsFromExploreCumulateTwentyInvite();
         public long CalculatePointsFromPointsExploreForwardX();
         public long CalculatePointsFromDailyViewAds();
+        public long CalculatePointsFromLogin(int consecutiveLoginDays);
     }
 
     public class RankingAppPointsCalcProvider : IRankingAppPointsCalcProvider, ISingletonDependency
@@ -87,7 +88,12 @@ namespace TomorrowDAOServer.Ranking.Provider
         {
             return _rankingOptions.CurrentValue.PointsViewAd;
         }
-        
+
+        public long CalculatePointsFromLogin(int consecutiveLoginDays)
+        {
+            return _rankingOptions.CurrentValue.PointsLogin[(consecutiveLoginDays - 1) % 7];
+        }
+
         public long CalculatePointsFromDailyCreatePoll()
         {
             return _rankingOptions.CurrentValue.PointsDailyCreatePoll;
@@ -107,29 +113,43 @@ namespace TomorrowDAOServer.Ranking.Provider
         {
             return _rankingOptions.CurrentValue.PointsExploreForwardVotigramX;
         }
+        
+        public long CalculatePointsFromExploreSchrodinger()
+        {
+            return _rankingOptions.CurrentValue.PointsExploreSchrodinger;
+        }
 
         public long CalculatePointsFromPointsType(PointsType? pointsType, long count = 0)
         {
             return pointsType switch
             {
-                PointsType.Vote => CalculatePointsFromVotes(count),
-                PointsType.Like => CalculatePointsFromLikes(count),
-                PointsType.InviteVote or PointsType.BeInviteVote => CalculatePointsFromReferralVotes(count),
-                PointsType.TopInviter => CalculatePointsFromReferralTopInviter(),
-                PointsType.DailyViewAsset => CalculatePointsFromDailyViewAsset(),
-                PointsType.DailyFirstInvite => CalculatePointsFromDailyFirstInvite(),
-                PointsType.ExploreJoinTgChannel => CalculatePointsFromExploreJoinTgChannel(),
-                PointsType.ExploreFollowX => CalculatePointsFromExploreFollowX(),
-                PointsType.ExploreJoinDiscord => CalculatePointsFromExploreJoinDiscord(),
-                PointsType.ExploreCumulateFiveInvite => CalculatePointsFromExploreCumulateFiveInvite(),
-                PointsType.ExploreCumulateTenInvite => CalculatePointsFromExploreCumulateTenInvite(),
-                PointsType.ExploreCumulateTwentyInvite => CalculatePointsFromExploreCumulateTwentyInvite(),
-                PointsType.ExploreForwardX => CalculatePointsFromPointsExploreForwardX(),
+                //Daily Tasks
                 PointsType.DailyViewAds => CalculatePointsFromDailyViewAds(),
-                PointsType.DailyCreatePoll => CalculatePointsFromDailyCreatePoll(),
+                PointsType.Vote => CalculatePointsFromVotes(count),
+                PointsType.DailyFirstInvite => CalculatePointsFromDailyFirstInvite(),
+                //Explore Votigram
                 PointsType.ExploreJoinVotigram => CalculatePointsFromExploreJoinVotigram(),
                 PointsType.ExploreFollowVotigramX => CalculatePointsFromExploreFollowVotigramX(),
                 PointsType.ExploreForwardVotigramX => CalculatePointsFromExploreForwardVotigramX(),
+                //Explore Apps
+                PointsType.ExploreSchrodinger => CalculatePointsFromExploreSchrodinger(),
+                PointsType.ExploreJoinTgChannel => CalculatePointsFromExploreJoinTgChannel(),
+                PointsType.ExploreFollowX => CalculatePointsFromExploreFollowX(),
+                PointsType.ExploreForwardX => CalculatePointsFromPointsExploreForwardX(),
+                //Referrals
+                PointsType.ExploreCumulateFiveInvite => CalculatePointsFromExploreCumulateFiveInvite(),
+                PointsType.ExploreCumulateTenInvite => CalculatePointsFromExploreCumulateTenInvite(),
+                PointsType.ExploreCumulateTwentyInvite => CalculatePointsFromExploreCumulateTwentyInvite(),
+                
+                PointsType.Like => CalculatePointsFromLikes(count),
+                PointsType.InviteVote or PointsType.BeInviteVote => CalculatePointsFromReferralVotes(count),
+                
+                //Terminated
+                PointsType.TopInviter => CalculatePointsFromReferralTopInviter(),
+                PointsType.DailyViewAsset => CalculatePointsFromDailyViewAsset(),
+                PointsType.ExploreJoinDiscord => CalculatePointsFromExploreJoinDiscord(),
+                PointsType.DailyCreatePoll => CalculatePointsFromDailyCreatePoll(),
+                
                 _ => 0
             };
         }

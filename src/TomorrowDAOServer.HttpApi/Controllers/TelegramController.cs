@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Asp.Versioning;
@@ -79,19 +80,20 @@ public class TelegramController : AbpController
         return await _telegramService.SaveTelegramAppAsync(input);
     }
 
-    [HttpPost("apps")]
-    public async Task<List<TelegramAppDto>> GetTelegramAppsAsync(QueryTelegramAppsInput input)
-    {
-        return await _telegramService.GetTelegramAppAsync(input);
-    }
-
     [HttpGet("search-app")]
     [Authorize]
     public async Task<PageResultDto<AppDetailDto>> GetAppListAsync(string title)
     {
         return await _telegramService.SearchAppAsync(title);
     }
-    
+
+    [HttpGet("apps")]
+    public async Task<GetTelegramAppResultDto> GetTelegramAppsAsync(GetTelegramAppInput input)
+    {
+        return await _telegramService.GetTelegramAppsAsync(input);
+    }
+
+    [Obsolete("Running this method will overwrite the historical stats")]
     [HttpPost("add-app")]
     [Authorize]
     public async Task<bool> AddAppAsync(AddAppInput input)

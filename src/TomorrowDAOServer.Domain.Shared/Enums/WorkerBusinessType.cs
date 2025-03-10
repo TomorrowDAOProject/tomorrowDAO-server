@@ -25,6 +25,8 @@ public enum WorkerBusinessType
     TonGiftTaskGenerate,
     TonGiftTaskComplete,
     LuckyboxTaskComplete,
+    DigiTaskComplete,
+    AppUrlUploadTask,
     NetworkDaoMainChainSync,
     NetworkDaoSideChainSync,
     NetworkDaoMainChainOrgSync,

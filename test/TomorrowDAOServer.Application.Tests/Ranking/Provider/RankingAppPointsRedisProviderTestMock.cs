@@ -1,20 +1,20 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Newtonsoft.Json;
+using NSubstitute;
+using NSubstitute.ReturnsExtensions;
 using StackExchange.Redis;
+using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Security;
+using TomorrowDAOServer.Ranking.Dto;
 using Volo.Abp.Caching;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace TomorrowDAOServer.Ranking.Provider;
 
 public partial class RankingAppPointsRedisProviderTest
 {
-    public IConnectionMultiplexer MockConnectionMultiplexer()
+    public static IConnectionMultiplexer MockConnectionMultiplexer()
     {
         var mock = new Mock<IConnectionMultiplexer>();
 
@@ -25,7 +25,7 @@ public partial class RankingAppPointsRedisProviderTest
         return mock.Object;
     }
 
-    private IDatabase MockDatabase()
+    public static IDatabase MockDatabase()
     {
         var mock = new Mock<IDatabase>();
 
@@ -54,10 +54,24 @@ public partial class RankingAppPointsRedisProviderTest
                 return new("2");
             });
 
+        mock.Setup(m => m.CreateBatch(It.IsAny<object>())).Returns(MockBatch());
+
         return mock.Object;
     }
 
-    private IDistributedCache<string> MockDistributedCache()
+    private static IBatch MockBatch()
+    {
+        var mock = new Mock<IBatch>();
+
+        mock.Setup(m => m.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new RedisValue("10"));
+
+        //mock.Setup(m => m.Execute()).ReturnsNull();
+
+        return mock.Object;
+    }
+
+    public static IDistributedCache<string> MockDistributedCache()
     {
         var mock = new Mock<IDistributedCache<string>>();
 
@@ -65,6 +79,16 @@ public partial class RankingAppPointsRedisProviderTest
                 m.GetAsync(It.IsAny<string>(), It.IsAny<bool?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string key, bool? hideErrors, bool considerUow, CancellationToken token) =>
             {
+                if (key.StartsWith("RankingVotingRecord:"))
+                {
+                    return JsonConvert.SerializeObject(new RankingVoteRecord
+                    {
+                        TransactionId = "TransactionId",
+                        VoteTime = DateTime.UtcNow.ToString(),
+                        Status = RankingVoteStatusEnum.Voted,
+                        TotalPoints = 1
+                    });
+                }
                 return new RedisValue($"{ProposalId1},Alias");
             });
 

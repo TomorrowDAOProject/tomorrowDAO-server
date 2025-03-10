@@ -10,6 +10,7 @@ using AElf.ExceptionHandler;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nest;
 using Newtonsoft.Json;
 using Serilog;
 using TomorrowDAOServer.Common;
@@ -88,8 +89,18 @@ public class TelegramAppsSpiderService : TomorrowDAOServerAppService, ITelegramA
                 ChainId = input.ChainId, Url = url, ContentType = input.ContentType
             }, needAuth));
         }
-        loadApps = loadApps.GroupBy(app => app.Alias).Select(group => group.First()) 
-            .ToList();
+
+        var groupByAlias = loadApps.GroupBy(app => app.Alias);
+        foreach (var group in groupByAlias)
+        {
+            if (group.Count() > 1)
+            {
+                _logger.LogInformation("LoadAllTelegramApps, exist data with the same alias.{0}", group.Key);
+            }
+        }
+
+        loadApps = groupByAlias.SelectMany(g => g.GroupBy(app => app.Title).Select(group => group.First()).ToList()).ToList();
+        
         Log.Information("LoadAllTelegramAppsAsyncEnd count {count}", loadApps.Count);
         return loadApps;
     }

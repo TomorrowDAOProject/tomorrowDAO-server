@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using TomorrowDAOServer.Enums;
-
 namespace TomorrowDAOServer.Common;
 
 public static class CommonConstant
@@ -60,29 +57,17 @@ public static class CommonConstant
     public const string VoteEventVoted = "Voted";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
+    public const string DescriptionTMARankingBegin = "##GameRanking:TMARanking";
     public const string DescriptionIconBegin = "#B:";
 
     public const string OldDescriptionPattern = @"^##GameRanking\s*:\s*([a-zA-Z0-9&'’\-]+(?:\s*,\s*[a-zA-Z0-9&'’\-]+)*)\s*$";
     public const string NewDescriptionPattern = @"^##GameRanking[\s]*:[\s]*((?:\{[^{}]+\}[,]?)+)(?:#B[\s]*:[\s]*(?:\{([^{}]*)?\})?)?$";
+    public const string TMADescriptionPattern = @"^##GameRanking:TMARanking(?:#B[\s]*:[\s]*(?:\{([^{}]*)?\})?)?$";
     public const string NewDescriptionAliasPattern =  @"\{([^{}]+)\}";
     public const string DayFormatString = "yyyyMMdd";
     public const long TenMinutes = 10 * 60 * 1000;
     public const long OneDay = 24 * 60 * 60 * 1000;
 
-    public static readonly Dictionary<string, Dictionary<string, VoteMechanism>> VoteSchemeDic = new()
-    {
-        {TestNetSideChainId, new Dictionary<string, VoteMechanism>
-        {
-            { "82493f7880cd1d2db09ba90b85e5d5605c40db550572586185e763f75f5ede11", VoteMechanism.UNIQUE_VOTE },
-            { "934d1295190d97e81bc6c2265f74e589750285aacc2c906c7c4c3c32bd996a64", VoteMechanism.TOKEN_BALLOT }
-        }},
-        {MainNetSideChainId, new Dictionary<string, VoteMechanism>
-        {
-            { "75cf106c00988681e21f44b87215fe827b96fb45bb48c7b08772ca535fdbefb7", VoteMechanism.UNIQUE_VOTE },
-            { "b39d3b9a1cea1ff57735520fdaa414bf9c1fc05f5d00cf41326809051882f2ac", VoteMechanism.TOKEN_BALLOT }
-        }}
-    };
-    
     // Hub
     public const string ReceivePointsProduce = "ReceivePointsProduce";
     public const string RequestPointsProduce = "RequestPointsProduce";
@@ -128,6 +113,10 @@ public static class CommonConstant
     // Discover
     public const string Recommend = "Recommend";
     public const string New = "New";
+    public const string ForYou = "ForYou";
+    public const string Accumulative = "Accumulative";
+    public const string Current = "Current";
+    public const string Trending = "Trending";
     public const double InterestedPercent = 0.75;
     
     // App
@@ -140,4 +129,9 @@ public static class CommonConstant
     //Findmini
     public const string FindminiUrlPrefix = "https://www.findmini.app";
     public const string FindminiCategoryPrefix = "https://www.findmini.app/category/";
+    
+    //Upload
+    public const string DownloadFail = "DownloadFail";
+    public const string ConvertFail = "ConvertFail";
+    public const string UploadFail = "UploadFail";
 }
