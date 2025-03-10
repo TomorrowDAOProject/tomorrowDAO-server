@@ -9,6 +9,8 @@ public class AddContractNameInput
     [Required]
     public string ChainId { get; set; }
     [Required]
+    public string OperateChainId { get; set; }
+    [Required]
     public string ContractName { get; set; }
     [Required]
     public string TxId { get; set; }
