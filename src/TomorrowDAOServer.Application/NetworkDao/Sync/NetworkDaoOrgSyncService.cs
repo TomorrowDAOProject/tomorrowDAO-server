@@ -185,7 +185,7 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
         //Only DefaultOrganizationAddress can change the whitelist. The Parliament whitelist can be queried by OrgType
         var proposerWhiteList = await _networkDaoContractProvider.GetParliamentOrgProposerWhiteListAsync(chainId);
         var orgProposerIndices = new List<NetworkDaoOrgProposerIndex>();
-        if (proposerWhiteList.IsNullOrEmpty())
+        if (!proposerWhiteList.IsNullOrEmpty())
         {
             orgProposerIndices.AddRange(proposerWhiteList.Select(proposer =>
                 new NetworkDaoOrgProposerIndex

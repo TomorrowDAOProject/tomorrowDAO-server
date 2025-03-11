@@ -35,7 +35,7 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         var getOrgListInput = _objectMapper.Map<GetOrganizationsInput, GetOrgListInput>(input);
         var (totalCount, networkDaoOrgIndices) = await _networkDaoEsDataProvider.GetOrgIndexAsync(getOrgListInput);
         var resultDtos = _objectMapper.Map<List<NetworkDaoOrgIndex>, List<NetworkDaoOrgDto>>(networkDaoOrgIndices);
-
+        var bpList = await _graphQlProvider.GetBPAsync(input.ChainId);
         if (!resultDtos.IsNullOrEmpty())
         {
             var orgAddressList = networkDaoOrgIndices.Select(t => t.OrgAddress).ToList();
@@ -65,7 +65,8 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         return new GetOrganizationsPagedResult
         {
             Items = resultDtos,
-            TotalCount = totalCount
+            TotalCount = totalCount,
+            BpList = bpList
         };
     }
     
