@@ -8,12 +8,14 @@ using Aetherlink.PriceServer.Common;
 using FluentAssertions.Events;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.NetworkDao.Index;
+using TomorrowDAOServer.NetworkDao.Migrator.Contract;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.NetworkDao.Migrator.GraphQL;
 using TomorrowDAOServer.NetworkDao.Options;
@@ -76,6 +78,10 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     public async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
         var skipCount = 0;
+        //TODO Test
+        lastEndHeight = 255339490;
+        newIndexHeight = 255339495;
+
         List<IndexerProposal> queryList;
         do
         {
@@ -115,7 +121,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
 
             //update voting info of proposal
             UpdateProposalVoteInfo(proposalList, voteRecords);
-            
+
             //set proposal status
             await SetProposalStatus(chainId, proposalList);
 
@@ -129,8 +135,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             skipCount += queryList.Count;
 
             stopwatch.Stop();
-            _logger.LogInformation("[NetworkDaoMigrator]0.Sync proposal, count={0}, realCount={1}, duration={2}", 
-                queryList.Count, proposalList.Count,stopwatch.ElapsedMilliseconds);
+            _logger.LogInformation("[NetworkDaoMigrator]0.Sync proposal, count={0}, realCount={1}, duration={2}",
+                queryList.Count, proposalList.Count, stopwatch.ElapsedMilliseconds);
         } while (queryList.Count == MaxResultCount);
 
         return newIndexHeight;
@@ -151,23 +157,27 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             ChainId = chainId,
             OrgAddresses = orgAddresses
         });
-        var (memberCount, orgMemberIndices) = await _networkDaoEsDataProvider.GetOrgMemberListAsync(new GetOrgMemberListInput
-        {
-            MaxResultCount = MaxVoteResultCount,
-            SkipCount = 0,
-            ChainId = chainId,
-            OrgAddresses = orgAddresses
-        });
+        var (memberCount, orgMemberIndices) = await _networkDaoEsDataProvider.GetOrgMemberListAsync(
+            new GetOrgMemberListInput
+            {
+                MaxResultCount = MaxVoteResultCount,
+                SkipCount = 0,
+                ChainId = chainId,
+                OrgAddresses = orgAddresses
+            });
         var orgAddressToMembers = orgMemberIndices.GroupBy(t => t.OrgAddress)
             .ToDictionary(g => g.Key, g => g.ToList());
-        
+
         orgIndices ??= new List<NetworkDaoOrgIndex>();
         var orgAddressToOrg = orgIndices.ToDictionary(t => t.OrgAddress, t => t);
         foreach (var proposalIndex in filteredProposals)
         {
             var orgIndex = orgAddressToOrg.GetValueOrDefault(proposalIndex.OrganizationAddress, null);
             if (orgIndex == null)
-            { _logger.LogError("[NetworkDaoMigrator] Set Proposal Status, Not found Org. proposalId={0},OrgAddres={1}", proposalIndex.ProposalId, proposalIndex.OrganizationAddress);
+            {
+                _logger.LogError(
+                    "[NetworkDaoMigrator] Set Proposal Status, Not found Org. proposalId={0},OrgAddres={1}",
+                    proposalIndex.ProposalId, proposalIndex.OrganizationAddress);
                 continue;
             }
 
@@ -185,16 +195,19 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                     var memberIndices = orgAddressToMembers.GetValueOrDefault(proposalIndex.OrganizationAddress,
                         new List<NetworkDaoOrgMemberIndex>());
                     var memberList = memberIndices.Select(t => t.Member).ToList();
-                    proposalIndex.Status = await _networkDaoProposalProvider.GetNetworkDaoProposalStatusAsync(chainId, proposalIndex, orgIndex, memberList);
+                    proposalIndex.Status =
+                        await _networkDaoProposalProvider.GetNetworkDaoProposalStatusAsync(chainId, proposalIndex,
+                            orgIndex, memberList);
                     break;
                 }
                 default:
                 {
-                    proposalIndex.Status = await _networkDaoProposalProvider.GetNetworkDaoProposalStatusAsync(chainId, proposalIndex, orgIndex, new List<string>());
+                    proposalIndex.Status =
+                        await _networkDaoProposalProvider.GetNetworkDaoProposalStatusAsync(chainId, proposalIndex,
+                            orgIndex, new List<string>());
                     break;
                 }
             }
-            
         }
     }
 
@@ -288,7 +301,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         return voteRecordList;
     }
 
-    private async Task UpdateAndMergeLocalProposalDataAsync(string chainId, List<NetworkDaoProposalIndex> proposalList, long lastEndHeight)
+    private async Task UpdateAndMergeLocalProposalDataAsync(string chainId, List<NetworkDaoProposalIndex> proposalList,
+        long lastEndHeight)
     {
         if (proposalList.IsNullOrEmpty())
         {
@@ -344,6 +358,11 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     private async Task<Dictionary<string, IndexerProposalReleased>> GetProposalReleasedRecordsAsync(string chainId,
         List<string> releasedProposalIds)
     {
+        if (releasedProposalIds.IsNullOrEmpty())
+        {
+            return new Dictionary<string, IndexerProposalReleased>();
+        }
+
         var pageResultDto = await _networkDaoGraphQlDataProvider.GetNetworkDaoProposalReleasedIndexAsync(
             new GetProposalReleasedIndexInput
             {
@@ -375,7 +394,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             {
                 continue;
             }
-            
+
             var proposalIndex = await BuildProposalIndexAsync(chainId, indexerProposal);
             proposalList.Add(proposalIndex);
             if (++count % 10 == 0)
@@ -398,7 +417,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         //Id
         proposalIndex.Id = IdGeneratorHelper.GenerateId(chainId, proposalIndex.ProposalId);
         //ContractAddress、ContractMethod
-        var (contractAddress, contractMethod) = GetContractMethodName(indexerProposal);
+        var (contractAddress, contractMethod) = await GetProposalContractMethodNameAsync(indexerProposal);
         proposalIndex.ContractAddress = contractAddress;
         proposalIndex.ContractMethod = contractMethod;
 
@@ -433,15 +452,65 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
 
     private static Tuple<string, string> GetContractMethodName(IndexerProposal indexerProposal)
     {
-        NetworkDaoProposalIndex proposalIndex;
         if (indexerProposal.TransactionInfo.IsAAForwardCall)
         {
             return new Tuple<string, string>(indexerProposal.TransactionInfo.RealTo ?? string.Empty,
                 indexerProposal.TransactionInfo.RealMethodName ?? string.Empty);
         }
-        
+
         return new Tuple<string, string>(indexerProposal.TransactionInfo.To ?? string.Empty,
             indexerProposal.TransactionInfo.MethodName ?? string.Empty);
+    }
+
+    private async Task<Tuple<string, string>> GetProposalContractMethodNameAsync(IndexerProposal indexerProposal)
+    {
+        _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transactionId={1}", indexerProposal.ProposalId,
+            indexerProposal.TransactionInfo?.TransactionId);
+        var transactionResultDto = await _contractProvider.QueryTransactionResultAsync(
+            indexerProposal.TransactionInfo.TransactionId,
+            indexerProposal.ChainId);
+        var contractAndMethodName = GetContractMethodName(indexerProposal);
+        if (transactionResultDto == null || transactionResultDto.TransactionId.IsNullOrWhiteSpace())
+        {
+            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transaction not found", indexerProposal.ProposalId);
+            return contractAndMethodName;
+        }
+        var param = transactionResultDto.Transaction.Params;
+        try
+        {
+            if (contractAndMethodName.Item2 == "CreateProposal")
+            {
+                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param={1}", indexerProposal.ProposalId, param);
+                if (indexerProposal.TransactionInfo.IsAAForwardCall)
+                {
+                    var forwardCallParam =
+                        JsonConvert.DeserializeObject<ForwardCallParam>(transactionResultDto.Transaction.Params);
+                    if (forwardCallParam.Args.IsNullOrWhiteSpace())
+                    {
+                        return contractAndMethodName;
+                    }
+                    //TODO unpack packed input
+
+                }
+
+                var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(param);
+                var toAddress = dictionary["toAddress"].ToString();
+                var contractMethodName = dictionary["contractMethodName"].ToString();
+                // if (toAddress == "pykr77ft9UUKJZLVq15wCH8PinBSjVRQ12sD1Ayq92mKFsJ1i" &&
+                //     contractMethodName is "DeploySmartContract" or "DeploySystemSmartContract" or "UpdateSmartContract")
+                // {
+                //     return new Tuple<string, string>(toAddress, contractMethodName);
+                // }
+                return new Tuple<string, string>(toAddress, contractMethodName);
+            }
+
+            return contractAndMethodName;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "[NetworkDaoMigrator] parse param error.{0}", e.Message);
+            return contractAndMethodName;
+        }
     }
 
     private async Task SetProposalExpiredTimeAsync(string chainId, NetworkDaoProposalIndex proposalIndex)
@@ -457,6 +526,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 {
                     proposalIndex.ExpiredTime = proposalOutput.ExpiredTime.ToDateTime();
                 }
+
                 return;
             }
 
