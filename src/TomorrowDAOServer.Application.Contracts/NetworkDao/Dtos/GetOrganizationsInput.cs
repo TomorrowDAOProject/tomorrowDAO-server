@@ -1,7 +1,6 @@
-using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using TomorrowDAOServer.Enums;
-using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using Volo.Abp.Application.Dtos;
 
 namespace TomorrowDAOServer.NetworkDao.Dtos;
@@ -18,5 +17,5 @@ public class GetOrganizationsInput : PagedAndSortedResultRequestDto
 
 public class GetOrganizationsPagedResult : PagedResultDto<NetworkDaoOrgDto>
 {
-    
+    public List<string> BpList { get; set; }
 }
