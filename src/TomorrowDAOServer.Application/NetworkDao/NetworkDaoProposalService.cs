@@ -183,7 +183,6 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
                     var hasVoted = proposalIdToVotes.ContainsKey(proposalListResultDto.ProposalId);
                     var leftInfoDto = new GetProposalListResultDto.LeftInfoDto();
                     leftInfoDto.OrganizationAddress = orgIndex.OrgAddress;
-
                     proposalListResultDto.Abstentions = proposalListIndex.Abstentions;
                     proposalListResultDto.Approvals = proposalListIndex.Approvals;
                     proposalListResultDto.Rejections = proposalListIndex.Rejections;
