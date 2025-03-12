@@ -491,7 +491,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                         return contractAndMethodName;
                     }
                     //TODO unpack packed input
-                    CreateProposalInput.Parser
+                    //CreateProposalInput.Parser
                 }
 
                 var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(param);
