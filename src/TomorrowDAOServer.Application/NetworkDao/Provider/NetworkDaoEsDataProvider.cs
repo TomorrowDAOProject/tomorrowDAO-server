@@ -191,7 +191,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalListIndex> f) =>
             f.Bool(b => contentShouldQuery.Any()
                 ? b.Must(mustQuery)
-                    .Should(s => s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)))
+                    .Must(s => s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)))
                 : b.Must(mustQuery)
             );
 
@@ -568,8 +568,11 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
                 i.Field(f => f.OrganizationAddress).Value(input.Address)));
         }
 
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.IsContractDeployed).Value(input.IsContract)));
+        if (input.IsContract != null)
+        {
+            mustQuery.Add(q => q.Term(i =>
+                i.Field(f => f.IsContractDeployed).Value(input.IsContract)));   
+        }
 
         if (input.Status != NetworkDaoProposalStatusEnum.All)
         {
