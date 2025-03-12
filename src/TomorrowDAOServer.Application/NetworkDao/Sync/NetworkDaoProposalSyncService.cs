@@ -549,7 +549,11 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 {
                     proposalIndex.ExpiredTime = proposalOutput.ExpiredTime.ToDateTime();
                 }
-
+                else
+                {
+                    _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, expiredtime is default", proposalIndex.ProposalId);
+                }
+                
                 return;
             }
 
