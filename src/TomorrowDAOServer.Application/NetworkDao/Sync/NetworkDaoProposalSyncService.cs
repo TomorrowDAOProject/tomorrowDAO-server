@@ -3,13 +3,18 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Standards.ACS0;
 using AElf.Standards.ACS3;
 using AElf.Types;
 using Aetherlink.PriceServer.Common;
 using FluentAssertions.Events;
+using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Portkey.Contracts.CA;
+using TomorrowDAO.Contracts.Vote;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Enum;
 using TomorrowDAOServer.Common.Provider;
@@ -80,8 +85,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var skipCount = 0;
         //TODO Test
-        // lastEndHeight = 255339490;
-        // newIndexHeight = 255339495;
+        // lastEndHeight = 254798510; //255339490;
+        // newIndexHeight = 254798810;
 
         List<IndexerProposal> queryList;
         do
@@ -335,6 +340,11 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                     proposalIndex.Rejections = localProposalIndex.Rejections;
                 }
 
+                if (localProposalIndex.ExpiredTime != default)
+                {
+                    proposalIndex.ExpiredTime = localProposalIndex.ExpiredTime;
+                }
+
                 proposalIndex.BlockHash = localProposalIndex.BlockHash;
                 proposalIndex.BlockHeight = localProposalIndex.BlockHeight;
                 proposalIndex.BlockTime = localProposalIndex.BlockTime;
@@ -467,51 +477,63 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transactionId={1}", indexerProposal.ProposalId,
             indexerProposal.TransactionInfo?.TransactionId);
-        var transactionResultDto = await _contractProvider.QueryTransactionResultAsync(
-            indexerProposal.TransactionInfo.TransactionId,
-            indexerProposal.ChainId);
+        // var transactionResultDto = await _contractProvider.QueryTransactionResultAsync(
+        //     indexerProposal.TransactionInfo.TransactionId,
+        //     indexerProposal.ChainId);
         var contractAndMethodName = GetContractMethodName(indexerProposal);
-        if (transactionResultDto == null || transactionResultDto.TransactionId.IsNullOrWhiteSpace())
-        {
-            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transaction not found", indexerProposal.ProposalId);
-            return contractAndMethodName;
-        }
-        var param = transactionResultDto.Transaction.Params;
-        try
-        {
-            if (contractAndMethodName.Item2 == "CreateProposal")
-            {
-                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param={1}", indexerProposal.ProposalId, param);
-                if (indexerProposal.TransactionInfo.IsAAForwardCall)
-                {
-                    var forwardCallParam =
-                        JsonConvert.DeserializeObject<ForwardCallParam>(transactionResultDto.Transaction.Params);
-                    if (forwardCallParam.Args.IsNullOrWhiteSpace())
-                    {
-                        return contractAndMethodName;
-                    }
-                    //TODO unpack packed input
-                    //CreateProposalInput.Parser
-                }
-
-                var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(param);
-                var toAddress = dictionary["toAddress"].ToString();
-                var contractMethodName = dictionary["contractMethodName"].ToString();
-                // if (toAddress == "pykr77ft9UUKJZLVq15wCH8PinBSjVRQ12sD1Ayq92mKFsJ1i" &&
-                //     contractMethodName is "DeploySmartContract" or "DeploySystemSmartContract" or "UpdateSmartContract")
-                // {
-                //     return new Tuple<string, string>(toAddress, contractMethodName);
-                // }
-                return new Tuple<string, string>(toAddress, contractMethodName);
-            }
-
-            return contractAndMethodName;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "[NetworkDaoMigrator] parse param error.{0}", e.Message);
-            return contractAndMethodName;
-        }
+        return contractAndMethodName;
+        // if (transactionResultDto == null || transactionResultDto.TransactionId.IsNullOrWhiteSpace())
+        // {
+        //     _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transaction not found", indexerProposal.ProposalId);
+        //     return contractAndMethodName;
+        // }
+        //
+        // var voteEventLog = transactionResultDto.Logs.First(l => l.Name == "CodeCheckRequired");
+        // var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<CodeCheckRequired>(voteEventLog);
+        //
+        //
+        // var param = transactionResultDto.Transaction.Params;
+        // try
+        // {
+        //     if (contractAndMethodName.Item2 == "CreateProposal")
+        //     {
+        //         _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param={1}", indexerProposal.ProposalId, param);
+        //         if (indexerProposal.TransactionInfo.IsAAForwardCall)
+        //         {
+        //             var forwardCallParam =
+        //                 JsonConvert.DeserializeObject<ForwardCallParam>(transactionResultDto.Transaction.Params);
+        //             if (forwardCallParam.Args.IsNullOrWhiteSpace())
+        //             {
+        //                 return contractAndMethodName;
+        //             }
+        //             //TODO unpack packed input
+        //             //CreateProposalInput.Parser
+        //             var managerForwardCallInput = ManagerForwardCallInput.Parser.ParseFrom(ByteString.FromBase64(param));
+        //             if (managerForwardCallInput.MethodName == "CreateProposal")
+        //             {
+        //                 var createProposalInput = CreateProposalInput.Parser.ParseFrom(managerForwardCallInput.Args);
+        //                 param = JsonConvert.SerializeObject(createProposalInput);
+        //             }
+        //         }
+        //
+        //         var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(param);
+        //         var toAddress = dictionary["toAddress"].ToString();
+        //         var contractMethodName = dictionary["contractMethodName"].ToString();
+        //         // if (toAddress == "pykr77ft9UUKJZLVq15wCH8PinBSjVRQ12sD1Ayq92mKFsJ1i" &&
+        //         //     contractMethodName is "DeploySmartContract" or "DeploySystemSmartContract" or "UpdateSmartContract")
+        //         // {
+        //         //     return new Tuple<string, string>(toAddress, contractMethodName);
+        //         // }
+        //         return new Tuple<string, string>(toAddress, contractMethodName);
+        //     }
+        //
+        //     return contractAndMethodName;
+        // }
+        // catch (Exception e)
+        // {
+        //     _logger.LogError(e, "[NetworkDaoMigrator] parse param error.{0}", e.Message);
+        //     return contractAndMethodName;
+        // }
     }
 
     private async Task SetProposalExpiredTimeAsync(string chainId, NetworkDaoProposalIndex proposalIndex)
