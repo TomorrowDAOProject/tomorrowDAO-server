@@ -410,12 +410,14 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             proposalList.Add(proposalIndex);
             if (++count % 10 == 0)
             {
-                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, processed proposal count {1}", proposalIndex.ProposalId, count);
+                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, processed proposal count {1}",
+                    proposalIndex.ProposalId, count);
             }
         }
 
         stopwatch.Stop();
-        _logger.LogInformation("[NetworkDaoMigrator]proposal, 1.build proposal index, count={0}, duration={1}", queryList.Count,
+        _logger.LogInformation("[NetworkDaoMigrator]proposal, 1.build proposal index, count={0}, duration={1}",
+            queryList.Count,
             stopwatch.ElapsedMilliseconds);
 
         return proposalList;
@@ -543,7 +545,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             var proposalOutput =
                 await _networkDaoContractProvider.GetProposalAsync(chainId, proposalIndex.OrgType,
                     proposalIndex.ProposalId);
-            if (proposalOutput != null && proposalOutput.ProposalId != null && proposalOutput.ProposalId != Hash.Empty)
+            if (proposalOutput != null && proposalOutput.ProposalId != null &&
+                proposalOutput.ProposalId.ToHex() == proposalIndex.ProposalId)
             {
                 if (proposalOutput.ExpiredTime != null)
                 {
@@ -551,10 +554,16 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 }
                 else
                 {
-                    _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, expiredtime is default", proposalIndex.ProposalId);
+                    _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, expiredtime is default {1}",
+                        proposalIndex.ProposalId, JsonConvert.SerializeObject(proposalOutput));
                 }
-                
+
                 return;
+            }
+            else
+            {
+                _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, proposal not found.",
+                    proposalIndex.ProposalId);
             }
 
             if (_migratorOptions.CurrentValue.QueryExplorerProposal)
