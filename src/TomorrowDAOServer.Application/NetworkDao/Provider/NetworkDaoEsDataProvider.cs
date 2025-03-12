@@ -185,14 +185,20 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>();
         var contentShouldQuery =
             new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>();
+        var statusShouldQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>();
         AssemblyBaseQuery(request, mustQuery);
         AssemblyContentQuery(request, contentShouldQuery);
+        AssemblyStatusQuery(request, statusShouldQuery);
+
 
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalListIndex> f) =>
             f.Bool(b => contentShouldQuery.Any()
-                ? b.Must(mustQuery)
-                    .Must(s => s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)))
-                : b.Must(mustQuery)
+                ? b.Must(mustQuery).Should(
+                        s => s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)) 
+                             && s.Bool(sb => sb.Should(statusShouldQuery).MinimumShouldMatch(1)))
+                    .MinimumShouldMatch(1)
+                //.Must(s => s.Bool(sb => sb.Should(contentShouldQuery).MinimumShouldMatch(1)))
+                : b.Must(mustQuery).Should(statusShouldQuery).MinimumShouldMatch(1)
             );
 
         Func<SortDescriptor<NetworkDaoProposalListIndex>, IPromise<IList<ISort>>> sortDescriptor =
@@ -274,9 +280,11 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             mustQuery.Add(q => q.Terms(i => i.Field(t => t.OrgAddress).Terms(input.OrgAddresses)));
         }
+
         if (input.ProposerAuthorityRequired != null)
         {
-            mustQuery.Add(q => q.Term(i => i.Field(t => t.ProposerAuthorityRequired).Value(input.ProposerAuthorityRequired)));
+            mustQuery.Add(q =>
+                q.Term(i => i.Field(t => t.ProposerAuthorityRequired).Value(input.ProposerAuthorityRequired)));
         }
 
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoOrgIndex> f) => f.Bool(b => b.Must(mustQuery));
@@ -549,7 +557,9 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
             mustQuery.Add(q => q.Term(i => i.Field(t => t.ContractAddress).Value(input.ContractAddress)));
         }
 
-        QueryContainer Filter(QueryContainerDescriptor<NetworkDaoContractNamesIndex> f) => f.Bool(b => b.Must(mustQuery));
+        QueryContainer Filter(QueryContainerDescriptor<NetworkDaoContractNamesIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
         return (await _contractNameRepository.GetListAsync(Filter)).Item2 ?? new List<NetworkDaoContractNamesIndex>();
     }
 
@@ -571,14 +581,14 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         if (input.IsContract != null)
         {
             mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.IsContractDeployed).Value(input.IsContract)));   
+                i.Field(f => f.IsContractDeployed).Value(input.IsContract)));
         }
 
-        if (input.Status != NetworkDaoProposalStatusEnum.All)
-        {
-            mustQuery.Add(q => q.Term(i =>
-                i.Field(f => f.Status).Value(input.Status)));
-        }
+        // if (input.Status != NetworkDaoProposalStatusEnum.All)
+        // {
+        //     mustQuery.Add(q => q.Term(i =>
+        //         i.Field(f => f.Status).Value(input.Status)));
+        // }
 
         if (input.ProposalType != NetworkDaoOrgType.All)
         {
@@ -604,6 +614,83 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.ProposalId).Query(request.Search)));
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.ContractAddress).Query(request.Search)));
         shouldQuery.Add(q => q.Match(m => m.Field(f => f.Proposer).Query(request.Search)));
+    }
+
+    private void AssemblyStatusQuery(GetProposalListInput request,
+        List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>> statusShouldQuery)
+    {
+        var requestStatus = request.Status;
+        switch (requestStatus)
+        {
+            case NetworkDaoProposalStatusEnum.All:
+            {
+                statusShouldQuery.Add(q =>
+                    q.Term(i => i.Field(f => f.Status).Value(NetworkDaoProposalStatusEnum.Pending)));
+                statusShouldQuery.Add(q =>
+                    q.Term(i => i.Field(f => f.Status).Value(NetworkDaoProposalStatusEnum.Approved)));
+                statusShouldQuery.Add(q =>
+                    q.Term(i => i.Field(f => f.Status).Value(NetworkDaoProposalStatusEnum.Released)));
+                statusShouldQuery.Add(q =>
+                    q.Term(i => i.Field(f => f.Status).Value(NetworkDaoProposalStatusEnum.Expired)));
+                break;
+            }
+            case NetworkDaoProposalStatusEnum.Pending:
+            {
+                var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>()
+                {
+                    q => q.Term(i => i.Field(t => t.Status).Value(NetworkDaoProposalStatusEnum.Pending)),
+                    q => q.DateRange(d => d
+                        .Field(f => f.ExpiredTime).GreaterThanOrEquals(DateTime.UtcNow))
+                };
+                statusShouldQuery.Add(q => q.Bool(b => b.Must(mustQuery)));
+                break;
+            }
+            case NetworkDaoProposalStatusEnum.Approved:
+            {
+                var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>()
+                {
+                    q => q.Term(i => i.Field(t => t.Status).Value(NetworkDaoProposalStatusEnum.Approved)),
+                    q => q.DateRange(d => d
+                        .Field(f => f.ExpiredTime).GreaterThanOrEquals(DateTime.UtcNow))
+                };
+                statusShouldQuery.Add(q => q.Bool(b => b.Must(mustQuery)));
+                break;
+            }
+            case NetworkDaoProposalStatusEnum.Released:
+            {
+                var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>()
+                {
+                    q => q.Term(i => i.Field(t => t.Status).Value(NetworkDaoProposalStatusEnum.Released))
+                };
+                statusShouldQuery.Add(q => q.Bool(b => b.Must(mustQuery)));
+                break;
+            }
+            case NetworkDaoProposalStatusEnum.Expired:
+            {
+                var mustQueryPending =
+                    new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>()
+                    {
+                        q => q.Term(i => i.Field(t => t.Status).Value(NetworkDaoProposalStatusEnum.Pending)),
+                        q => q.DateRange(d => d
+                            .Field(f => f.ExpiredTime).LessThanOrEquals(DateTime.UtcNow))
+                    };
+                var mustQueryApproved =
+                    new List<Func<QueryContainerDescriptor<NetworkDaoProposalListIndex>, QueryContainer>>()
+                    {
+                        q => q.Term(i => i.Field(t => t.Status).Value(NetworkDaoProposalStatusEnum.Approved)),
+                        q => q.DateRange(d => d
+                            .Field(f => f.ExpiredTime).LessThanOrEquals(DateTime.UtcNow))
+                    };
+                statusShouldQuery.Add(q => q.Bool(b => b.Must(mustQueryPending)));
+                statusShouldQuery.Add(q => q.Bool(b => b.Must(mustQueryApproved)));
+                statusShouldQuery.Add(q =>
+                    q.Term(i => i.Field(f => f.Status).Value(NetworkDaoProposalStatusEnum.Expired)));
+                break;
+            }
+            default:
+                statusShouldQuery.Add(q => q.Term(i => i.Field(f => f.Status).Value(requestStatus)));
+                break;
+        }
     }
 
     private static void AssemblyBaseQuery(GetProposalListInput input,
