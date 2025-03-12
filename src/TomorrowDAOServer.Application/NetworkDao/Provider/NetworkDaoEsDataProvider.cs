@@ -274,6 +274,10 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         {
             mustQuery.Add(q => q.Terms(i => i.Field(t => t.OrgAddress).Terms(input.OrgAddresses)));
         }
+        if (input.ProposerAuthorityRequired != null)
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.ProposerAuthorityRequired).Value(input.ProposerAuthorityRequired)));
+        }
 
         QueryContainer Filter(QueryContainerDescriptor<NetworkDaoOrgIndex> f) => f.Bool(b => b.Must(mustQuery));
 
