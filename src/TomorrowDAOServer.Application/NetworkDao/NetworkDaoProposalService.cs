@@ -192,6 +192,8 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
                     proposalListResultDto.TxId = string.Empty;
                     proposalListResultDto.UpdatedAt = DateTime.Now;
                     proposalListResultDto.VotedStatus = hasVoted ? proposalIdToVotes[proposalListResultDto.ProposalId].ReceiptType.ToString(): "none";
+                    var proposalStatus = IsExpired(proposalListIndex.Status, proposalListIndex.ExpiredTime);
+                    proposalListResultDto.Status = proposalStatus.ToString();
 
                     getProposalListResultDtos.Add(proposalListResultDto);
                 }
@@ -212,6 +214,21 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
             _logger.LogError(e, "Get proposal list error. request={0}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException("Failed to query the proposal list. {0}", e.Message);
         }
+    }
+
+    private NetworkDaoProposalStatusEnum IsExpired(NetworkDaoProposalStatusEnum status, DateTime expiredTime)
+    {
+        if (status != NetworkDaoProposalStatusEnum.Pending && status != NetworkDaoProposalStatusEnum.Approved)
+        {
+            return status;
+        }
+
+        if (DateTime.UtcNow > expiredTime)
+        {
+            return NetworkDaoProposalStatusEnum.Expired;
+        }
+
+        return status;
     }
 
     public async Task<Dictionary<string, Dictionary<NetworkDaoReceiptTypeEnum, long>>> GetProposalVotedAmountAsync(
@@ -292,6 +309,8 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
             proposalListResultDto.TxId = string.Empty;
             proposalListResultDto.UpdatedAt = DateTime.Now;
             proposalListResultDto.VotedStatus = hasVoted ? proposalIdToVotes[proposalListResultDto.ProposalId].ReceiptType.ToString(): "none";
+            var proposalStatus = IsExpired(proposalIndex.Status, proposalIndex.ExpiredTime);
+            proposalListResultDto.Status = proposalStatus.ToString();
 
             var bpList = await _graphQlProvider.GetBPAsync(input.ChainId);
 
