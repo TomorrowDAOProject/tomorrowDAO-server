@@ -644,7 +644,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
                 i.Field(f => f.ProposalId).Value(input.ProposalId)));
         }
 
-        if (input.Proposer.IsNullOrWhiteSpace())
+        if (!input.Proposer.IsNullOrWhiteSpace())
         {
             mustQuery.Add(q => q.Term(i =>
                 i.Field(f => f.Proposer).Value(input.Proposer)));

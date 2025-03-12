@@ -320,8 +320,8 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
                 SkipCount = input.SkipCount,
                 ChainId = input.ChainId,
                 Proposer = input.Address,
-                ProposalType = input.ProposalType,
-                ProposalId = input.Search
+                ProposalType = input.ProposalType, 
+                Search = input.Search
             });
         if (networkDaoProposalIndices.IsNullOrEmpty())
         {
