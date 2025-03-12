@@ -192,7 +192,7 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
                     proposalListResultDto.OrganizationInfo = _networkDaoOrgService.ConvertToOrgDto(orgIndex, orgMemberList, orgProposerList);
                     proposalListResultDto.TxId = string.Empty;
                     proposalListResultDto.UpdatedAt = DateTime.Now;
-                    proposalListResultDto.VotedStatus = "none";
+                    proposalListResultDto.VotedStatus = hasVoted ? proposalIdToVotes[proposalListResultDto.ProposalId].ReceiptType.ToString(): "none";
 
                     getProposalListResultDtos.Add(proposalListResultDto);
                 }
