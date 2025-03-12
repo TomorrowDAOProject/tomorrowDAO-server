@@ -292,7 +292,7 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
             //proposalListResultDto.OrganizationInfo = new NetworkDaoOrgDto();
             proposalListResultDto.TxId = string.Empty;
             proposalListResultDto.UpdatedAt = DateTime.Now;
-            proposalListResultDto.VotedStatus = string.Empty;
+            proposalListResultDto.VotedStatus = hasVoted ? proposalIdToVotes[proposalListResultDto.ProposalId].ReceiptType.ToString(): "none";
 
             var bpList = await _graphQlProvider.GetBPAsync(input.ChainId);
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Standards.ACS3;
 using AElf.Types;
 using Aetherlink.PriceServer.Common;
 using FluentAssertions.Events;
@@ -490,7 +491,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                         return contractAndMethodName;
                     }
                     //TODO unpack packed input
-
+                    CreateProposalInput.Parser
                 }
 
                 var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(param);
