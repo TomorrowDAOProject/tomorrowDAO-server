@@ -92,7 +92,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         do
         {
             var stopwatch = Stopwatch.StartNew();
-            _logger.LogInformation("[NetworkDaoMigrator]Sync proposal, BlockHeight:{0}-{1}, SkipCount={2}",
+            _logger.LogInformation("[NetworkDaoMigrator] proposal Sync, BlockHeight:{0}-{1}, SkipCount={2}",
                 lastEndHeight,
                 newIndexHeight, skipCount);
             //query the proposal data of changed
@@ -108,7 +108,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                     ContractNames = _migratorOptions.CurrentValue.FilterGraphQLToAddresses,
                     MethodNames = _migratorOptions.CurrentValue.FilterGraphQLMethodNames
                 })).Data;
-            _logger.LogInformation("[NetworkDaoMigrator]Sync proposal,count:{count}", queryList?.Count);
+            _logger.LogInformation("[NetworkDaoMigrator] proposal Sync,count:{count}", queryList?.Count);
             if (queryList.IsNullOrEmpty())
             {
                 break;
@@ -410,12 +410,12 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             proposalList.Add(proposalIndex);
             if (++count % 10 == 0)
             {
-                _logger.LogInformation("[NetworkDaoMigrator] processed proposal count {0}", count);
+                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, processed proposal count {1}", proposalIndex.ProposalId, count);
             }
         }
 
         stopwatch.Stop();
-        _logger.LogInformation("[NetworkDaoMigrator]1.build proposal index, count={0}, duration={1}", queryList.Count,
+        _logger.LogInformation("[NetworkDaoMigrator]proposal, 1.build proposal index, count={0}, duration={1}", queryList.Count,
             stopwatch.ElapsedMilliseconds);
 
         return proposalList;
