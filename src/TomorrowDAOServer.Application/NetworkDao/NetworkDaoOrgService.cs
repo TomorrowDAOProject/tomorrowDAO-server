@@ -143,8 +143,9 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         var daoOrgIndices = new List<NetworkDaoOrgIndex>();
         if (input.ProposalType == NetworkDaoOrgType.Parliament)
         {
-            if (await IsBp(input.ChainId, input.Address) ||
-                await IsParliamentWhiteListProposer(input.ChainId, input.Address))
+            var isBp = await IsBp(input.ChainId, input.Address);
+            var isParliamentWhiteListProposer = await IsParliamentWhiteListProposer(input.ChainId, input.Address);
+            if (isBp || isParliamentWhiteListProposer)
             {
                 (totalCount, daoOrgIndices) = await _networkDaoEsDataProvider.GetOrgIndexAsync(new GetOrgListInput
                 {
@@ -154,6 +155,19 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
                     ChainId = input.ChainId,
                     OrgType = NetworkDaoOrgType.Parliament,
                     OrgAddress = input.Search
+                });
+            }
+            else
+            {
+                (totalCount, daoOrgIndices) = await _networkDaoEsDataProvider.GetOrgIndexAsync(new GetOrgListInput
+                {
+                    MaxResultCount = input.MaxResultCount,
+                    SkipCount = input.SkipCount,
+                    Sorting = input.Sorting,
+                    ChainId = input.ChainId,
+                    OrgType = NetworkDaoOrgType.Parliament,
+                    OrgAddress = input.Search,
+                    ProposerAuthorityRequired = false
                 });
             }
         }
