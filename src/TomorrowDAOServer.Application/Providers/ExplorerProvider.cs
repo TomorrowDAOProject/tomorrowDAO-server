@@ -26,9 +26,9 @@ public interface IExplorerProvider
     //Call before migration, do not delete
     Task<List<ExplorerVoteTeamDescDto>> GetAllTeamDescAsync(string chainId, bool isActive);
     Task<ExplorerProposalResponse> GetProposalPagerAsync(string chainId, ExplorerProposalListRequest request);
-    Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request);
 
     Task<ExplorerContractListResponse> GetContractListAsync(string chainId, ExplorerContractListRequest request);
+    Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request);
 }
 
 public static class ExplorerApi
@@ -36,8 +36,6 @@ public static class ExplorerApi
     public static readonly ApiInfo Balances = new(HttpMethod.Get, "/api/viewer/balances");
     public static readonly ApiInfo TokenInfo = new(HttpMethod.Get, "/api/viewer/tokenInfo");
     public static readonly ApiInfo TransferList = new(HttpMethod.Get, "/api/viewer/transferList");
-    public static readonly ApiInfo TransactionDetail = new(HttpMethod.Get, "/api/app/blockchain/transactionDetail");
-    
 
     //Call before migration, do not delete
     public static readonly ApiInfo GetAllTeamDesc = new(HttpMethod.Get, "/api/vote/getAllTeamDesc");
@@ -48,6 +46,7 @@ public static class ExplorerApi
     public static readonly ApiInfo TokenInfoV2 = new(HttpMethod.Get, "/api/app/token/info");
     public static readonly ApiInfo BalancesV2 = new(HttpMethod.Get, "/api/app/address/tokens");
     public static readonly ApiInfo BalancesNFTV2 = new(HttpMethod.Get, "/api/app/address/nft-assets");
+    public static readonly ApiInfo TransactionDetail = new(HttpMethod.Get, "/api/app/blockchain/transactionDetail");
 }
 
 public class ExplorerProvider : IExplorerProvider, ISingletonDependency
@@ -83,11 +82,11 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         return baseUrl!.TrimEnd('/');
     }
     
-    private string BaseUrlV2()
+    private string AelfScanUrl()
     {
-        var baseUrlV2 = _explorerOptions.CurrentValue.BaseUrlV2;
-        AssertHelper.IsTrue(baseUrlV2.NotNullOrEmpty(), "ExplorerV2urlNotFound");
-        return baseUrlV2!.TrimEnd('/');
+        var aelfScan = _explorerOptions.CurrentValue.AelfScan;
+        AssertHelper.IsTrue(aelfScan.NotNullOrEmpty(), "ExplorerV2urlNotFound");
+        return aelfScan!.TrimEnd('/');
     }
 
     //Call before migration, do not delete
@@ -200,7 +199,7 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     public async Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request)
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerPagerResult<ExplorerTransactionDetailResult>>>(
-            BaseUrlV2(), ExplorerApi.TransactionDetail, param: ToDictionary(request), settings: DefaultJsonSettings);
+            AelfScanUrl(), ExplorerApi.TransactionDetail, param: ToDictionary(request), settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;
     }

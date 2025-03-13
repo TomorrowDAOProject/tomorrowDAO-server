@@ -57,9 +57,9 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
+        context.Services.AddTransient<IScheduleSyncDataService, DigiTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenParseService>();
         context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenSyncDataService>();
-        context.Services.AddTransient<IScheduleSyncDataService, DigiTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, LuckyboxTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, AppUrlUploadService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();

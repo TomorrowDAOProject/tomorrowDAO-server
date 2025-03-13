@@ -27,10 +27,10 @@ public enum WorkerBusinessType
     LuckyboxTaskComplete,
     DigiTaskComplete,
     AppUrlUploadTask,
-    ResourceTokenSync,
-    ResourceTokenParse,
     NetworkDaoMainChainSync,
     NetworkDaoSideChainSync,
     NetworkDaoMainChainOrgSync,
-    NetworkDaoSideChainOrgSync
+    NetworkDaoSideChainOrgSync,
+    ResourceTokenSync,
+    ResourceTokenParse
 }
