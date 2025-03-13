@@ -578,7 +578,7 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
                 i.Field(f => f.OrganizationAddress).Value(input.Address)));
         }
 
-        if (input.IsContract != null)
+        if (input.IsContract != null && input.IsContract == true)
         {
             mustQuery.Add(q => q.Term(i =>
                 i.Field(f => f.IsContractDeployed).Value(input.IsContract)));
