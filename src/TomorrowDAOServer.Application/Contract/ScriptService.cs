@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Contract.Dto;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
@@ -56,8 +59,8 @@ public class ScriptService : IScriptService, ITransientDependency
         var result = await _transactionService.CallTransactionAsync<GetVictoriesDto>(chainId, queryContractInfo.PrivateKey, queryContractInfo.ElectionContractAddress, ContractConstants.GetHighCouncilMembers, Hash.LoadFromHex(daoId));
         return result?.Value ?? new List<string>();
     }
-
-    public async Task<GetProposalInfoDto> GetProposalInfoAsync(string chainId, string proposalId)
+    
+    public virtual async Task<GetProposalInfoDto> GetProposalInfoAsync(string chainId, string proposalId)
     {
         try
         {
@@ -70,6 +73,5 @@ public class ScriptService : IScriptService, ITransientDependency
             _logger.LogError(e, "GetProposalInfoAsyncException chainId {chainId} proposalId {proposalId}", chainId, proposalId);
             return null;
         }
-        
     }
 }

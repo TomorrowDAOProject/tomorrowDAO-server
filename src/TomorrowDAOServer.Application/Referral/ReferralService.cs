@@ -4,7 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver.Linq;
+using Nest;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Dtos;
 using TomorrowDAOServer.Entities;
@@ -93,6 +94,13 @@ public class ReferralService : ApplicationService, IReferralService
         var votigramVoteAll = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(0, 0, chainId, addressCaHash, true);
         var votigramActivityVoteAll = await _referralInviteProvider.GetInvitedCountByInviterCaHashAsync(0, 0, chainId, addressCaHash, true, true);
         var estimatedRewardAll = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(votigramActivityVoteAll);
+
+        int totalInvitesNeeded = 20;
+        while (votigramVoteAll >= totalInvitesNeeded)
+        {
+            totalInvitesNeeded *= 2;
+        }
+        
         return new InviteDetailDto
         {
             EstimatedReward = estimatedReward,
@@ -107,7 +115,9 @@ public class ReferralService : ApplicationService, IReferralService
             EndTime = endTime,
             DuringCycle = true,
             Address = address,
-            CaHash = addressCaHash
+            CaHash = addressCaHash,
+            TotalInvitesNeeded = totalInvitesNeeded,
+            PointsFirstReferralVote = _rankingAppPointsCalcProvider.CalculatePointsFromReferralVotes(1)
         };
     }
 
@@ -121,7 +131,16 @@ public class ReferralService : ApplicationService, IReferralService
             input.StartTime = startTime;
             input.EndTime = endTime;
         }
-        var inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
+
+        IReadOnlyCollection<KeyedBucket<string>> inviterBuckets;
+        if (_rankingOptions.CurrentValue.IsWeeklyRankingsEnabled)
+        {
+            inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(input.StartTime, input.EndTime);
+        } else
+        {
+            inviterBuckets = await _referralInviteProvider.InviteLeaderBoardAsync(0, 0);
+        }
+        
         var caHashList = inviterBuckets.Select(bucket => bucket.Key).Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
         var userList = await _userAppService.GetUserByCaHashListAsync(caHashList);
         var inviterList = RankHelper.GetRankedList(input.ChainId, userList, inviterBuckets);
@@ -186,7 +205,7 @@ public class ReferralService : ApplicationService, IReferralService
         var createTime = caHolder.Timestamp;
         if (DateTime.UtcNow.ToUtcSeconds() - createTime > 60)
         {
-            _logger.LogInformation("ReferralBindingStatusAsyncOldUser address {0} caHash {1}", userAddress, addressCaHash);
+            Log.Information("ReferralBindingStatusAsyncOldUser address {0} caHash {1}", userAddress, addressCaHash);
             return new ReferralBindingStatusDto { NeedBinding = false, BindingSuccess = false };
         }
         
@@ -199,7 +218,7 @@ public class ReferralService : ApplicationService, IReferralService
                 : new ReferralBindingStatusDto { NeedBinding = true, BindingSuccess = true };
         }
 
-        _logger.LogInformation("ReferralBindingStatusAsyncNewUserWaitingBind address {0} caHash {1}", userAddress, addressCaHash);
+        Log.Information("ReferralBindingStatusAsyncNewUserWaitingBind address {0} caHash {1}", userAddress, addressCaHash);
         return new ReferralBindingStatusDto { NeedBinding = true, BindingSuccess = false };
     }
 

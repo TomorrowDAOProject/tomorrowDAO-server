@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.Common.Dtos;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Common.HttpClient;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
@@ -53,29 +55,24 @@ public class SecretProvider : ISecretProvider, ITransientDependency
         });
     }
     
-    public async Task<string> GetSignatureFromHashAsync(string publicKey, Hash hash)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+        MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName,  ReturnDefault = default,
+        Message = "CallSignatureService error",
+        LogTargets = new []{"publicKey", "hash"})]
+    public virtual async Task<string> GetSignatureFromHashAsync(string publicKey, Hash hash)
     {
-        try
+        var signatureSend = new SendSignatureDto
         {
-            var signatureSend = new SendSignatureDto
-            {
-                PublicKey = publicKey,
-                HexMsg = hash.ToHex(),
-            };
+            PublicKey = publicKey,
+            HexMsg = hash.ToHex(),
+        };
 
-            var url = Uri(GetSignatureUri);
-            var resp = await _httpProvider.InvokeAsync<CommonResponseDto<SignResponseDto>>(HttpMethod.Post,
-                url, body: JsonConvert.SerializeObject(signatureSend), header: SecurityServerHeader());
-            AssertHelper.IsTrue(resp?.Success ?? false, "Signature response failed");
-            AssertHelper.NotEmpty(resp!.Data?.Signature, "Signature response empty");
-            return resp.Data!.Signature;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "CallSignatureServiceFailed, err: {err}, hash: {body}", e.ToString(),
-                JsonConvert.SerializeObject(hash.ToHex()));
-            return null;
-        }
+        var url = Uri(GetSignatureUri);
+        var resp = await _httpProvider.InvokeAsync<CommonResponseDto<SignResponseDto>>(HttpMethod.Post,
+            url, body: JsonConvert.SerializeObject(signatureSend), header: SecurityServerHeader());
+        AssertHelper.IsTrue(resp?.Success ?? false, "Signature response failed");
+        AssertHelper.NotEmpty(resp!.Data?.Signature, "Signature response empty");
+        return resp.Data!.Signature;
     }
 
     private async Task<string> GetSecretAsync(string key)

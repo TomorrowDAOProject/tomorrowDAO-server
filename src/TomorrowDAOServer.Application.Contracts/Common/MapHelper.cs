@@ -14,6 +14,15 @@ public static class MapHelper
         return JsonConvert.DeserializeObject<T>(jsonString);
     }
     
+    public static Dictionary<string, string> MapConvertToStringDictionary (string jsonString)
+    {
+        if (jsonString.IsNullOrWhiteSpace())
+        {
+            return new Dictionary<string, string>();
+        }
+        return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
+    }
+    
     public static ProposalStatus? MapProposalStatus(ProposalStatus? realProposalStatus)
     {
         return realProposalStatus switch
@@ -65,28 +74,5 @@ public static class MapHelper
                 return JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
             }
         }
-    }
-
-    public static string MapAlias(string memo, string alias, bool validRankingVote)
-    {
-        try
-        {
-            if (!validRankingVote)
-            {
-                return string.Empty;
-            }
-        
-            if (!string.IsNullOrEmpty(alias))
-            {
-                return alias;
-            }
-
-            return Regex.Match(memo, CommonConstant.MemoPattern).Groups[1].Value;
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
-        
     }
 }

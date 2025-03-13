@@ -1,3 +1,4 @@
+using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Monitor;
 using TomorrowDAOServer.Monitor.Http;
@@ -40,7 +41,7 @@ public class TomorrowDaoServerApplicationContractsTestsModule : AbpModule
         context.Services.AddSingleton<PerformanceMonitorMiddleware>();
         context.Services.AddSingleton<MethodCallFilter>();
         context.Services.AddSingleton<IMonitor, MonitorForLogging>();
-
+        
         context.Services.AddMemoryCache();
         
         base.ConfigureServices(context);

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Serilog;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Ranking.Dto;
 using TomorrowDAOServer.Ranking.Eto;
@@ -25,109 +28,141 @@ public class MessagePublisherService : TomorrowDAOServerAppService, IMessagePubl
         _distributedEventBus = distributedEventBus;
     }
 
-    public async Task SendLikeMessageAsync(string chainId, string proposalId, string address,
-        List<RankingAppLikeDetailDto> likeList)
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "SendLikeMessageAsync error",
+        LogTargets = new []{"chainId", "proposalId", "address", "likeList"})]
+    public virtual async Task SendLikeMessageAsync(string chainId, string proposalId, string address,
+        List<RankingAppLikeDetailDto> likeList, string userId = "", Dictionary<string, long> addedAliasDic = null)
     {
-        _logger.LogInformation("SendLikeMessageAsync, chainId={0}, proposalId={1}, address={2}, like={3}", chainId,
+        Log.Information("SendLikeMessageAsync, chainId={0}, proposalId={1}, address={2}, like={3}", chainId,
             proposalId, address, JsonConvert.SerializeObject(likeList));
 
-        try
+        if (likeList.IsNullOrEmpty())
         {
-            if (likeList.IsNullOrEmpty())
-            {
-                return;
-            }
-
-            foreach (var likeDetail in likeList)
-            {
-                await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
-                {
-                    ChainId = chainId,
-                    DaoId = null,
-                    ProposalId = proposalId,
-                    AppId = null,
-                    Alias = likeDetail.Alias,
-                    Title = null,
-                    Address = address,
-                    Amount = likeDetail.LikeAmount,
-                    PointsType = PointsType.Like
-                });
-            }
+            return;
         }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "SendLikeMessageAsync error: chainId={0}, proposalId={1}, address={2}, like={3}",
-                chainId, proposalId, address, JsonConvert.SerializeObject(likeList));
-        }
-    }
 
-    public async Task SendVoteMessageAsync(string chainId, string proposalId, string address, string appAlias,
-        long amount)
-    {
-        _logger.LogInformation("SendVoteMessageAsync, chainId={0}, proposalId={1}, address={2}, alias={3}, amount={4}",
-            chainId, proposalId, address, appAlias, amount);
-
-        try
+        foreach (var likeDetail in likeList)
         {
+            var added = addedAliasDic != null && addedAliasDic.TryGetValue(likeDetail.Alias, out _);
             await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
             {
                 ChainId = chainId,
                 DaoId = null,
                 ProposalId = proposalId,
                 AppId = null,
-                Alias = appAlias,
+                Alias = likeDetail.Alias,
                 Title = null,
                 Address = address,
-                Amount = amount,
-                PointsType = PointsType.Vote
+                Amount = likeDetail.LikeAmount,
+                PointsType = PointsType.Like,
+                UserId = userId,
+                Added = added
             });
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e,
-                "SendVoteMessageAsync error: chainId={0}, proposalId={1}, address={2}, alias={3}, amount={4}",
-                chainId, proposalId, address, appAlias, amount);
         }
     }
-    
-    public async Task SendReferralFirstVoteMessageAsync(string chainId, string inviter, string invitee)
+
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "SendVoteMessageAsync error",
+        LogTargets = new []{"chainId", "proposalId", "address", "appAlias", "amount"})]
+    public virtual async Task SendVoteMessageAsync(string chainId, string proposalId, string address, string appAlias,
+        long amount, bool dailyVote = false)
     {
-        _logger.LogInformation("SendReferralFirstVoteMessageAsync, chainId={0}, inviter={1}, invitee={2}", 
+        Log.Information("SendVoteMessageAsync, chainId={0}, proposalId={1}, address={2}, alias={3}, amount={4}",
+            chainId, proposalId, address, appAlias, amount);
+        await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
+        {
+            ChainId = chainId,
+            DaoId = null,
+            ProposalId = proposalId,
+            AppId = null,
+            Alias = appAlias,
+            Title = null,
+            Address = address,
+            Amount = amount,
+            PointsType = PointsType.Vote,
+            DailyFirstVote = dailyVote
+        });
+    }
+    
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "SendReferralFirstVoteMessageAsync error",
+        LogTargets = new []{"chainId", "inviter", "invitee"})]
+    public virtual async Task SendReferralFirstVoteMessageAsync(string chainId, string inviter, string invitee)
+    {
+        Log.Information("SendReferralFirstVoteMessageAsync, chainId={0}, inviter={1}, invitee={2}", 
             chainId, inviter, invitee);
 
-        try
+        await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
         {
-            await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
-            {
-                ChainId = chainId,
-                DaoId = string.Empty,
-                ProposalId = string.Empty,
-                AppId = string.Empty,
-                Alias = string.Empty,
-                Title = string.Empty,
-                Address = inviter,
-                Amount = 1,
-                PointsType = PointsType.InviteVote
-            });
+            ChainId = chainId,
+            DaoId = string.Empty,
+            ProposalId = string.Empty,
+            AppId = string.Empty,
+            Alias = string.Empty,
+            Title = string.Empty,
+            Address = inviter,
+            Amount = 1,
+            PointsType = PointsType.InviteVote
+        });
             
-            await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
-            {
-                ChainId = chainId,
-                DaoId = string.Empty,
-                ProposalId = string.Empty,
-                AppId = string.Empty,
-                Alias = string.Empty,
-                Title = string.Empty,
-                Address = invitee,
-                Amount = 1,
-                PointsType = PointsType.BeInviteVote
-            });
-        }
-        catch (Exception e)
+        await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
         {
-            _logger.LogError(e,
-                "SendReferralFirstVoteMessageAsyncException, chainId={0}, inviter={1}, invitee={2}",
-                chainId, inviter, invitee);
-        }
+            ChainId = chainId,
+            DaoId = string.Empty,
+            ProposalId = string.Empty,
+            AppId = string.Empty,
+            Alias = string.Empty,
+            Title = string.Empty,
+            Address = invitee,
+            Amount = 1,
+            PointsType = PointsType.BeInviteVote
+        });
+    }
+
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "SendOpenMessageAsync error",
+        LogTargets = new []{"chainId", "address", "userId", "appAlias", "count"})]
+    public async Task SendOpenMessageAsync(string chainId, string address, string userId, string appAlias, long count)
+    {
+        Log.Information("SendOpenMessageAsync, chainId={0}, address={1}, userId={2}, appAlias={3}, count={4}", 
+            chainId, address, userId, appAlias, count);
+
+        await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
+        {
+            ChainId = chainId,
+            DaoId = string.Empty,
+            ProposalId = string.Empty,
+            AppId = string.Empty,
+            Alias = appAlias,
+            Title = string.Empty,
+            Address = address,
+            Amount = 1,
+            PointsType = PointsType.Open,
+            UserId = userId
+        });
+    }
+
+    [ExceptionHandler(typeof(Exception), ReturnDefault = ReturnDefault.Default,
+        Message = "SendShareMessageAsync error",
+        LogTargets = new []{"chainId", "address", "userId", "alias", "count"})]
+    public async Task SendSharedMessageAsync(string chainId, string address, string userId, string alias, int count)
+    {
+        Log.Information("SendSharedMessageAsync, chainId={0}, address={1}, userId={2}, appAlias={3}, count={4}", 
+            chainId, address, userId, alias, count);
+
+        await _distributedEventBus.PublishAsync(new VoteAndLikeMessageEto
+        {
+            ChainId = chainId,
+            DaoId = string.Empty,
+            ProposalId = string.Empty,
+            AppId = string.Empty,
+            Alias = alias,
+            Title = string.Empty,
+            Address = address,
+            Amount = 1,
+            PointsType = PointsType.Share,
+            UserId = userId
+        });
     }
 }

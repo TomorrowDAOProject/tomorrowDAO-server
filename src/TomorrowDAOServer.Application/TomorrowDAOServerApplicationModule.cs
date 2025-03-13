@@ -1,12 +1,15 @@
+using AElf.ExceptionHandler.ABP;
 using Microsoft.Extensions.DependencyInjection;
 using TomorrowDAOServer.Common.Cache;
 using TomorrowDAOServer.DAO;
+using TomorrowDAOServer.Digi;
 using TomorrowDAOServer.Election;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.Luckybox;
 using TomorrowDAOServer.Monitor;
 using TomorrowDAOServer.Monitor.Http;
 using TomorrowDAOServer.Monitor.Logging;
+using TomorrowDAOServer.NetworkDao.Sync;
 using TomorrowDAOServer.Proposal;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Referral;
@@ -54,9 +57,11 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
         Configure<TelegramOptions>(configuration.GetSection("Telegram"));
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<TomorrowDAOServerApplicationModule>(); });
+        context.Services.AddTransient<IScheduleSyncDataService, DigiTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenParseService>();
         context.Services.AddTransient<IScheduleSyncDataService, ResourceTokenSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, LuckyboxTaskCompleteService>();
+        context.Services.AddTransient<IScheduleSyncDataService, AppUrlUploadService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskCompleteService>();
         context.Services.AddTransient<IScheduleSyncDataService, TonGiftTaskGenerateService>();
         context.Services.AddTransient<IScheduleSyncDataService, FindminiAppsSyncDataService>();
@@ -75,6 +80,10 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddTransient<IScheduleSyncDataService, VoteWithdrawSyncDataService>();
         context.Services.AddTransient<IScheduleSyncDataService, TokenPriceUpdateService>();
         context.Services.AddTransient<IScheduleSyncDataService, ProposalNumUpdateService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoMainChainProposalSyncService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoSideChainProposalSyncService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoMainChainOrgSyncService>();
+        context.Services.AddTransient<IScheduleSyncDataService, NetworkDaoSideChainOrgSyncService>();
         context.Services.AddTransient<IExchangeProvider, OkxProvider>();
         context.Services.AddTransient<IExchangeProvider, BinanceProvider>();
         context.Services.AddTransient<IExchangeProvider, CoinGeckoProvider>();
@@ -84,6 +93,5 @@ public class TomorrowDAOServerApplicationModule : AbpModule
         context.Services.AddHttpClient();
         context.Services.AddMemoryCache();
         context.Services.AddSingleton(typeof(ILocalMemoryCache<>), typeof(LocalMemoryCache<>));
-
     }
 }

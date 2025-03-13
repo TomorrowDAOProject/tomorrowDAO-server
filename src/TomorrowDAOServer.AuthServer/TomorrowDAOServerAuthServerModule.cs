@@ -1,3 +1,5 @@
+using AElf.ExceptionHandler.ABP;
+using Google.Protobuf.WellKnownTypes;
 using Localization.Resources.AbpUi;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
@@ -8,12 +10,14 @@ using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
 using StackExchange.Redis;
 using TomorrowDAOServer.Auth.Options;
+using TomorrowDAOServer.Auth.Verifier.Providers;
 using TomorrowDAOServer.Grains;
 using TomorrowDAOServer.Localization;
 using TomorrowDAOServer.MongoDB;
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
+using Volo.Abp.AspNetCore.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite.Bundling;
@@ -46,7 +50,9 @@ namespace TomorrowDAOServer.Auth;
     typeof(TomorrowDAOServerDomainModule),
     typeof(AbpAspNetCoreSerilogModule),
     //typeof(AbpEventBusRabbitMqModule),
+    typeof(AOPExceptionModule),
     typeof(TomorrowDAOServerGrainsModule)
+    
 )]
 public class TomorrowDAOServerAuthServerModule : AbpModule
 {
@@ -65,6 +71,11 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
                 {
                     options.SetAccessTokenLifetime(DateTime.Now.AddHours(expirationHour) - DateTime.Now);
                 }
+
+                // options.AllowAuthorizationCodeFlow();
+                options.AllowClientCredentialsFlow();
+                options.AllowAuthorizationCodeFlow();
+                options.RequireProofKeyForCodeExchange();
             });
 
             builder.AddValidation(options =>
@@ -93,6 +104,11 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
 
         context.Services.Configure<GraphQlOption>(configuration.GetSection("GraphQL"));
         context.Services.Configure<ChainOptions>(configuration.GetSection("Chains"));
+        context.Services.Configure<TelegramAuthOptions>(configuration.GetSection("TelegramAuth"));
+
+        context.Services.AddTransient<IVerifierProvider, WalletUserVerifierProvider>();
+        context.Services.AddTransient<IVerifierProvider, TelegramUserVeriferProvider>();
+        
         Configure<ContractOptions>(configuration.GetSection("Contract"));
         context.Services.Configure<TimeRangeOption>(option =>
         {
@@ -174,8 +190,6 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
             });
         });
         context.Services.AddHttpClient();
-
-        ConfigureOrleans(context, configuration);
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
@@ -205,48 +219,26 @@ public class TomorrowDAOServerAuthServerModule : AbpModule
         app.UseAuthorization();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();
-        
-        StartOrleans(context.ServiceProvider);
-    }
-    
-    private static void ConfigureOrleans(ServiceConfigurationContext context, IConfiguration configuration)
-    {
-        context.Services.AddSingleton<IClusterClient>(o =>
-        {
-            return new ClientBuilder()
-                .ConfigureDefaults()
-                .UseMongoDBClient(configuration["Orleans:MongoDBClient"])
-                .UseMongoDBClustering(options =>
-                {
-                    options.DatabaseName = configuration["Orleans:DataBase"];
-                    options.Strategy = MongoDBMembershipStrategy.SingleDocument;
-                })
-                .Configure<ClusterOptions>(options =>
-                {
-                    options.ClusterId = configuration["Orleans:ClusterId"];
-                    options.ServiceId = configuration["Orleans:ServiceId"];
-                })
-                .ConfigureApplicationParts(parts =>
-                    parts.AddApplicationPart(typeof(TomorrowDAOServerGrainsModule).Assembly).WithReferences())
-                .ConfigureLogging(builder => builder.AddProvider(o.GetService<ILoggerProvider>()))
-                .Build();
-        });
+
+        app.UseMultiTenancy();
+
+        // StartOrleans(context.ServiceProvider);
     }
     
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
     {
-        StopOrleans(context.ServiceProvider);
+        // StopOrleans(context.ServiceProvider);
     }
 
-    private static void StartOrleans(IServiceProvider serviceProvider)
-    {
-        var client = serviceProvider.GetRequiredService<IClusterClient>();
-        AsyncHelper.RunSync(async () => await client.Connect());
-    }
-
-    private static void StopOrleans(IServiceProvider serviceProvider)
-    {
-        var client = serviceProvider.GetRequiredService<IClusterClient>();
-        AsyncHelper.RunSync(client.Close);
-    }
+    // private static void StartOrleans(IServiceProvider serviceProvider)
+    // {
+    //     var client = serviceProvider.GetRequiredService<IClusterClient>();
+    //     AsyncHelper.RunSync(async () => await client.Connect());
+    // }
+    //
+    // private static void StopOrleans(IServiceProvider serviceProvider)
+    // {
+    //     var client = serviceProvider.GetRequiredService<IClusterClient>();
+    //     AsyncHelper.RunSync(client.Close);
+    // }
 }

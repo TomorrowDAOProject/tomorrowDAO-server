@@ -7,6 +7,8 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
+using TomorrowDAOServer.Common.Security;
 using TomorrowDAOServer.Options;
 using Volo.Abp.DependencyInjection;
 
@@ -15,6 +17,7 @@ namespace TomorrowDAOServer.Common.Aws;
 public interface IAwsS3Client
 {
     Task<string> UpLoadFileAsync(Stream steam, string fileName);
+    Task<string> UpLoadFileFrontEndAsync(Stream steam, string fileName);
     Task<string> UpLoadBase64FileAsync(string base64Image, string fileName);
 }
 
@@ -23,12 +26,14 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
     private readonly ILogger<AwsS3Client> _logger;
     private readonly IOptionsMonitor<AwsS3Option> _awsS3Option;
     private AmazonS3Client _amazonS3Client;
+    private AmazonS3Client _amazonS3ClientFrontEnd;
 
     public AwsS3Client(IOptionsMonitor<AwsS3Option> awsS3Option, ILogger<AwsS3Client> logger)
     {
         _awsS3Option = awsS3Option;
         _logger = logger;
         InitAmazonS3Client();
+        InitAmazonS3ClientFrontEnd();
     }
 
     private void InitAmazonS3Client()
@@ -42,6 +47,46 @@ public class AwsS3Client : IAwsS3Client, ITransientDependency
             RegionEndpoint = RegionEndpoint.APNortheast1
         };
         _amazonS3Client = new AmazonS3Client(accessKeyId, secretKey, config);
+    }
+    
+    private void InitAmazonS3ClientFrontEnd()
+    {
+        var accessKeyId = _awsS3Option.CurrentValue.AccessKeyFrontEnd;
+        var secretKey = _awsS3Option.CurrentValue.SecretKeyFrontEnd;
+        var serviceUrl = _awsS3Option.CurrentValue.ServiceURL;
+        var config = new AmazonS3Config
+        {
+            ServiceURL = serviceUrl,
+            RegionEndpoint = RegionEndpoint.APNortheast1
+        };
+        _amazonS3ClientFrontEnd = new AmazonS3Client(accessKeyId, secretKey, config);
+    }
+
+    public async Task<string> UpLoadFileFrontEndAsync(Stream steam, string fileName)
+    {
+        try
+        {
+            var putObjectRequest = new PutObjectRequest
+            {
+                InputStream = steam,
+                BucketName = _awsS3Option.CurrentValue.BucketNameFrontEnd,
+                Key = _awsS3Option.CurrentValue.S3KeyFrontEnd + "/" + fileName,
+                CannedACL = S3CannedACL.PublicRead,
+                ContentType = "image/webp",
+                Headers =
+                {
+                    ContentDisposition = "inline" 
+                }
+            };
+            var putObjectResponse = await _amazonS3ClientFrontEnd.PutObjectAsync(putObjectRequest);
+            return putObjectResponse.HttpStatusCode == HttpStatusCode.OK
+                ? $"https://{_awsS3Option.CurrentValue.BucketNameFrontEnd}.s3.amazonaws.com/{putObjectRequest.Key}"
+                : string.Empty;
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
     }
 
     public async Task<string> UpLoadBase64FileAsync(string base64Image, string fileName)

@@ -26,7 +26,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '7.0'
+          dotnet-version: '8.0'
       #- name: Verify Elasticsearch connection
       #  env:
       #    ELASTIC_SEARCH_URL: http://127.0.0.1:${{ job.services.elasticsearch.ports[9200] }}
@@ -40,6 +40,9 @@ jobs:
         run: dotnet build --no-restore /clp:ErrorsOnly /p:GeneratePackageOnBuild=false --verbosity quiet
 
       - name: Test
+        env:
+          UNITTEST_KEY_01: ${{ secrets.UNITTEST_KEY_01 }}
+          UNITTEST_KEY_02: ${{ secrets.UNITTEST_KEY_02 }}
         run: |
           for name in `ls ./test/*.Tests/*.csproj | awk '{print $NF}'`;
           do

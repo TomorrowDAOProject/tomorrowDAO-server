@@ -78,6 +78,17 @@ public class ContractProviderMock
         mock.Setup(o => o.ContractAddress(It.IsAny<string>(), It.IsAny<string>())).Returns(
             (string chainId, string contractName) =>
             {
+                if (chainId == ChainIdtDVV)
+                {
+                    if (contractName == CommonConstant.CaContractAddressName)
+                    {
+                        return "2UthYi7AHRdfrqc1YCfeQnjdChDLaas65bW4WxESMGMojFiXj9";
+                    }
+                    else if (contractName == CommonConstant.VoteContractAddressName)
+                    {
+                        return "2A8h4hLynLt86RxqvpNY43x6Js8CYhgyuAzj7sDGQ2ecP77Zgp";
+                    }
+                }
                 if (contractName == CommonConstant.CaContractAddressName)
                 {
                     return Address1;
@@ -104,8 +115,8 @@ public class ContractProviderMock
     {
         mock.Setup(e =>
                 e.CreateCallTransactionAsync(It.IsAny<string>(), It.IsAny<string>(),
-                    It.IsAny<string>(), It.IsAny<IMessage>()))
-            .ReturnsAsync((string chainId, string contractName, string methodName, IMessage param) =>
+                    It.IsAny<string>(), It.IsAny<IMessage>(), It.IsAny<string>()))
+            .ReturnsAsync((string chainId, string contractName, string methodName, IMessage param, string contractAddress) =>
             {
                 var transaction = new Transaction();
                 transaction.MethodName = methodName;
@@ -128,9 +139,9 @@ public class ContractProviderMock
     {
         mock.Setup(e =>
                 e.CreateTransactionAsync(It.IsAny<string>(), It.IsAny<string>(),
-                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IMessage>()))
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IMessage>(), It.IsAny<string>()))
             .ReturnsAsync((string chainId, string senderPublicKey, string contractName, string methodName,
-                IMessage param) =>
+                IMessage param, string contractAddress) =>
             {
                 var transaction = new Transaction();
                 transaction.MethodName = methodName;

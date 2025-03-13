@@ -10,6 +10,7 @@ namespace TomorrowDAOServer.Grains.Grain.Users;
 public interface IUserGrain : IGrainWithGuidKey
 {
     Task<GrainResultDto<UserGrainDto>> CreateUser(UserGrainDto input);
+    Task<GrainResultDto<UserGrainDto>> UpdateUser(UserGrainDto input);
     Task<GrainResultDto<UserGrainDto>> GetUser();
 }
 
@@ -24,16 +25,16 @@ public class UserGrain : Grain<UserState>, IUserGrain
         _userAppService = userAppService;
     }
 
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         await ReadStateAsync();
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
 
-    public override async Task OnDeactivateAsync()
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
     {
         await WriteStateAsync();
-        await base.OnDeactivateAsync();
+        await base.OnDeactivateAsync(reason, cancellationToken);
     }
 
     public async Task<GrainResultDto<UserGrainDto>> CreateUser(UserGrainDto input)
@@ -51,11 +52,51 @@ public class UserGrain : Grain<UserState>, IUserGrain
         var now = DateTime.UtcNow.ToUtcMilliSeconds();
         State.CreateTime = State.CreateTime == 0 ? now : State.CreateTime;
         State.ModificationTime = now;
-
+        State.GuardianIdentifier = input.GuardianIdentifier;
+        State.Address = input.Address;
+        if (!input.UserInfo.IsNullOrWhiteSpace())
+        {
+            State.UserInfo = input.UserInfo;
+        }
+        
         await WriteStateAsync();
 
         await _userAppService.CreateUserAsync(_objectMapper.Map<UserState, UserDto>(State));
         
+        return new GrainResultDto<UserGrainDto>()
+        {
+            Success = true,
+            Data = _objectMapper.Map<UserState, UserGrainDto>(State)
+        };
+    }
+    
+    public async Task<GrainResultDto<UserGrainDto>> UpdateUser(UserGrainDto input)
+    {
+        if (State.Id == Guid.Empty)
+        {
+            return new GrainResultDto<UserGrainDto>
+            {
+                Success = false,
+                Message = "User not exists."
+            };
+        }
+        
+        State.UserId = input.UserId;
+        State.UserName = input.UserName;
+        State.AddressInfos = input.AddressInfos;
+        State.AppId = input.AppId;
+        State.CaHash = input.CaHash;
+        State.ModificationTime = DateTime.UtcNow.ToUtcMilliSeconds();
+        State.GuardianIdentifier = input.GuardianIdentifier;
+        State.Address = input.Address;
+        State.Extra = input.Extra;
+        if (!input.UserInfo.IsNullOrWhiteSpace())
+        {
+            State.UserInfo = input.UserInfo;
+        }
+
+        await WriteStateAsync();
+
         return new GrainResultDto<UserGrainDto>()
         {
             Success = true,

@@ -23,8 +23,14 @@ public class RankingAppDetailDto
     public long VoteAmount { get; set; }
     public double VotePercent { get; set; }
     public long PointsAmount { get; set; }
-    public double PointsPercent { get; set; }
+    public decimal PointsPercent { get; set; }
     public string Url { get; set; }
     public string LongDescription { get; set; }
     public List<string> Screenshots { get; set; }
+    public long TotalPoints { get; set; }
+    public long TotalVotes { get; set; }
+    public long TotalLikes { get; set; }
+    public long TotalComments { get; set; }
+    public long TotalOpens { get; set; }
+    public long TotalShares { get; set; }
 }

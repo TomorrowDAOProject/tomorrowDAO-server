@@ -29,7 +29,10 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         _objectMapper = objectMapper;
     }
 
-    public async Task CreateUserAsync(UserDto user)
+    // [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),
+    //     MethodName = TmrwDaoExceptionHandler.DefaultReturnMethodName, ReturnDefault = ReturnDefault.None,
+    //     Message = "Create user error", LogTargets = new []{"user"})]
+    public virtual async Task CreateUserAsync(UserDto user)
     {
         try
         {
@@ -64,6 +67,7 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         {
             return new List<UserIndex>();
         }
+
         var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>
         {
             q => q.Terms(i => i.Field(t => t.CaHash).Terms(caHashes))
@@ -101,10 +105,35 @@ public class UserAppService : TomorrowDAOServerAppService, IUserAppService
         var searchResponse = await _userIndexRepository.SearchAsync(new SearchDescriptor<UserIndex>().Query(q => q
             .Bool(b => b
                 .Must(m => m.Terms(t => t
-                        .Field("addressInfos.address").Terms(addressList))
+                    .Field("addressInfos.address").Terms(addressList))
                 )
             )
-        ), 0 ,1);
+        ), 0, 1);
         return searchResponse.IsValid ? searchResponse.Documents.ToList() : new List<UserIndex>();
+    }
+
+    public async Task<Tuple<long, List<UserIndex>>> GetUserAsync(GetUserInput input)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>();
+
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        return await _userIndexRepository.GetSortListAsync(Filter, skip: input.SkipCount, limit: input.MaxResultCount,
+            sortFunc: _ => new SortDescriptor<UserIndex>().Descending(index => index.CreateTime));
+    }
+
+    public async Task<List<UserIndex>> GetUserByTgIdAsync(string telegramAppId)
+    {
+        if (telegramAppId.IsNullOrEmpty())
+        {
+            return new List<UserIndex>();
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<UserIndex>, QueryContainer>>
+        {
+            q => q.Wildcard(i => i.Field(t => t.UserInfo).Value("*" + telegramAppId + "*"))
+        };
+        QueryContainer Filter(QueryContainerDescriptor<UserIndex> f) => f.Bool(b => b.Must(mustQuery));
+        var (_, list) = await _userIndexRepository.GetListAsync(Filter);
+        return list;
     }
 }

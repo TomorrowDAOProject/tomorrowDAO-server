@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Orleans;
+using Serilog;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Common.Handler;
 using TomorrowDAOServer.Discussion.Dto;
 using TomorrowDAOServer.Grains.Grain.Discussion;
 using Volo.Abp.DependencyInjection;
@@ -22,6 +26,7 @@ public interface IDiscussionProvider
     Task<CommentIndex> GetCommentAsync(string id);
     Task<Tuple<long, List<CommentIndex>>> GetAllCommentsByProposalIdAsync(string chainId, string proposalId);
     Task<Tuple<long, List<CommentIndex>>> GetEarlierAsync(string id, string proposalId, long time, int maxResultCount);
+    Task<Dictionary<string, long>> GetAppCommentCountAsync(List<string> aliases);
 }
 
 public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
@@ -39,18 +44,12 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         _logger = logger;
     }
 
-    public async Task<long> GetCommentCountAsync(string proposalId)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(TmrwDaoExceptionHandler),  
+        MethodName = nameof(TmrwDaoExceptionHandler.HandleGetCommentCountAsync))]
+    public virtual async Task<long> GetCommentCountAsync(string proposalId)
     {
-        try
-        {
-            var grain = _clusterClient.GetGrain<ICommentCountGrain>(proposalId);
-            return await grain.GetNextCount();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetCommentCountAsyncException proposalId {proposalId}", proposalId);
-            return -1;
-        }
+        var grain = _clusterClient.GetGrain<ICommentCountGrain>(proposalId);
+        return await grain.GetNextCount();
     }
 
     public async Task NewCommentAsync(CommentIndex index)
@@ -116,5 +115,20 @@ public class DiscussionProvider : IDiscussionProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<CommentIndex> f) => f.Bool(b => b.Must(mustQuery));
         return await _commentIndexRepository.GetSortListAsync(Filter, skip: 0, limit: maxResultCount,
             sortFunc: _ => new SortDescriptor<CommentIndex>().Descending(index => index.CreateTime));
+    }
+
+    public async Task<Dictionary<string, long>> GetAppCommentCountAsync(List<string> aliases)
+    {
+        if (aliases == null || aliases.IsNullOrEmpty())
+        {
+            return new Dictionary<string, long>();
+        }
+        var query = new SearchDescriptor<CommentIndex>().Size(0)
+            .Query(q => q.Terms(t => t.Field(f => f.ProposalId).Terms(aliases)))
+            .Aggregations(a => a.Terms("by_alias", ta => ta.Field(f => f.ProposalId).Size(aliases.Count)));
+        var response = await _commentIndexRepository.SearchAsync(query, 0, int.MaxValue);
+        var aliasCountMap = response.Aggregations?.Terms("by_alias")?.Buckets
+            .ToDictionary(b => b.Key, b => b.DocCount.GetValueOrDefault());
+        return aliasCountMap ?? new Dictionary<string, long>();
     }
 }

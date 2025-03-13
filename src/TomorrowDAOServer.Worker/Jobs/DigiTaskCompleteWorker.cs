@@ -7,11 +7,11 @@ using Volo.Abp.Threading;
 
 namespace TomorrowDAOServer.Worker.Jobs;
 
-public class ProposalExpiredWorker : TomorrowDAOServerWorkBase
+public class DigiTaskCompleteWorker : TomorrowDAOServerWorkBase
 {
-    protected override WorkerBusinessType BusinessType => WorkerBusinessType.ProposalExpired;
+    protected override WorkerBusinessType BusinessType => WorkerBusinessType.DigiTaskComplete;
 
-    public ProposalExpiredWorker(ILogger<ScheduleSyncDataContext> logger,
+    public DigiTaskCompleteWorker(ILogger<ScheduleSyncDataContext> logger,
         AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
         IScheduleSyncDataContext scheduleSyncDataContext,
         IOptionsMonitor<WorkerOptions> optionsMonitor,
