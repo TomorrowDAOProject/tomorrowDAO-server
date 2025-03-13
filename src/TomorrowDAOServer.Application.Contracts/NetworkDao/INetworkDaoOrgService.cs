@@ -17,5 +17,6 @@ public interface INetworkDaoOrgService
         List<string> orgAddressList);
     Task<Dictionary<string,NetworkDaoOrgIndex>> GetOrgDictionaryAsync(string chainId, List<string> orgAddresses);
     Task<bool> IsBp(string chainId, string address);
-    NetworkDaoOrgDto ConvertToOrgDto(NetworkDaoOrgIndex orgIndex, List<string> orgMemberList, List<string> orgProposerList);
+    Task<NetworkDaoOrgDto> ConvertToOrgDtoAsync(NetworkDaoOrgIndex orgIndex, List<string> orgMemberList,
+        List<string> orgProposerList);
 }

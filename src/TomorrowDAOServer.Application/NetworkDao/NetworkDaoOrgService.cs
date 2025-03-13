@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.NetworkDao.Dtos;
 using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.NetworkDao.Provider;
+using TomorrowDAOServer.Token;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Auditing;
@@ -21,13 +23,15 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
     private readonly INetworkDaoEsDataProvider _networkDaoEsDataProvider;
     private readonly IGraphQLProvider _graphQlProvider;
     private readonly IObjectMapper _objectMapper;
+    private readonly ITokenService _tokenService;
 
     public NetworkDaoOrgService(INetworkDaoEsDataProvider networkDaoEsDataProvider,
-        IGraphQLProvider graphQlProvider, IObjectMapper objectMapper)
+        IGraphQLProvider graphQlProvider, IObjectMapper objectMapper, ITokenService tokenService)
     {
         _networkDaoEsDataProvider = networkDaoEsDataProvider;
         _graphQlProvider = graphQlProvider;
         _objectMapper = objectMapper;
+        _tokenService = tokenService;
     }
 
     public async Task<GetOrganizationsPagedResult> GetOrganizationsAsync(GetOrganizationsInput input)
@@ -39,11 +43,25 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         if (!resultDtos.IsNullOrEmpty())
         {
             var orgAddressList = networkDaoOrgIndices.Select(t => t.OrgAddress).ToList();
-            var orgProposerWhiteListDictionaryTask = GetOrgProposerWhiteListDictionaryAsync(input.ChainId, input.ProposalType, orgAddressList);
-            var orgMemberDictionaryTask = GetOrgMemberDictionaryAsync(input.ChainId, input.ProposalType, orgAddressList);
+            var orgProposerWhiteListDictionaryTask =
+                GetOrgProposerWhiteListDictionaryAsync(input.ChainId, input.ProposalType, orgAddressList);
+            var orgMemberDictionaryTask =
+                GetOrgMemberDictionaryAsync(input.ChainId, input.ProposalType, orgAddressList);
+
+            var symbols = (from resultDto in resultDtos
+                where resultDto.ProposalType == NetworkDaoOrgType.Referendum &&
+                      !resultDto.NetworkDaoOrgLeftOrgInfoDto.TokenSymbol.IsNullOrWhiteSpace()
+                select resultDto.NetworkDaoOrgLeftOrgInfoDto.TokenSymbol).ToList();
+
+            var tokenInfos = new Dictionary<string, TokenInfoDto>();
+            foreach (var symbol in symbols)
+            {
+                tokenInfos[symbol] = await _tokenService.GetTokenInfoAsync(input.ChainId, symbol);
+            }
 
             var orgProposerDictionary = await orgProposerWhiteListDictionaryTask;
             var orgMemberDictionary = await orgMemberDictionaryTask;
+
 
             foreach (var resultDto in resultDtos)
             {
@@ -51,13 +69,55 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
                 if (orgProposerDictionary.ContainsKey(resultDto.OrgAddress))
                 {
                     resultDto.NetworkDaoOrgLeftOrgInfoDto.ProposerWhiteList ??= new ProposerWhiteList();
-                    resultDto.NetworkDaoOrgLeftOrgInfoDto.ProposerWhiteList.Proposers = orgProposerDictionary[resultDto.OrgAddress];
+                    resultDto.NetworkDaoOrgLeftOrgInfoDto.ProposerWhiteList.Proposers =
+                        orgProposerDictionary[resultDto.OrgAddress];
                 }
+
                 if (orgMemberDictionary.ContainsKey(resultDto.OrgAddress))
                 {
                     resultDto.NetworkDaoOrgLeftOrgInfoDto.OrganizationMemberList ??= new OrganizationMemberList();
                     resultDto.NetworkDaoOrgLeftOrgInfoDto.OrganizationMemberList.OrganizationMembers =
                         orgMemberDictionary[resultDto.OrgAddress];
+                }
+
+                if (resultDto.ProposalType == NetworkDaoOrgType.Referendum)
+                {
+                    var tokenSymbol = resultDto.NetworkDaoOrgLeftOrgInfoDto?.TokenSymbol;
+                    if (!tokenSymbol.IsNullOrWhiteSpace() && tokenInfos.ContainsKey(tokenSymbol))
+                    {
+                        var tokenInfo = tokenInfos[tokenSymbol];
+                        if (int.TryParse(tokenInfo.Decimals, out int decimalIntValue) && decimalIntValue > 0)
+                        {
+                            var pow = Math.Pow(10, decimalIntValue);
+                            if (long.TryParse(resultDto.ReleaseThreshold.MinimalApprovalThreshold,
+                                    out long minimalApprovalThreshold))
+                            {
+                                resultDto.ReleaseThreshold.MinimalApprovalThreshold =
+                                    (minimalApprovalThreshold / pow).ToString();
+                            }
+
+                            if (long.TryParse(resultDto.ReleaseThreshold.MaximalAbstentionThreshold,
+                                    out long maximalAbstentionThreshold))
+                            {
+                                resultDto.ReleaseThreshold.MaximalAbstentionThreshold =
+                                    (maximalAbstentionThreshold / pow).ToString();
+                            }
+
+                            if (long.TryParse(resultDto.ReleaseThreshold.MaximalRejectionThreshold,
+                                    out long maximalRejectionThreshold))
+                            {
+                                resultDto.ReleaseThreshold.MaximalRejectionThreshold =
+                                    (maximalRejectionThreshold / pow).ToString();
+                            }
+
+                            if (long.TryParse(resultDto.ReleaseThreshold.MinimalVoteThreshold,
+                                    out long minimalVoteThreshold))
+                            {
+                                resultDto.ReleaseThreshold.MinimalVoteThreshold =
+                                    (minimalVoteThreshold / pow).ToString();
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -69,7 +129,7 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
             BpList = bpList
         };
     }
-    
+
     public async Task<GetOrgOfOwnerListPagedResult> GetOrgOfOwnerListAsync(GetOrgOfOwnerListInput input)
     {
         var totalCount = 0L;
@@ -233,15 +293,18 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         return isBp;
     }
 
-    public NetworkDaoOrgDto ConvertToOrgDto(NetworkDaoOrgIndex orgIndex, List<string> orgMemberList, List<string> orgProposerList)
+    public async Task<NetworkDaoOrgDto> ConvertToOrgDtoAsync(NetworkDaoOrgIndex orgIndex, List<string> orgMemberList,
+        List<string> orgProposerList)
     {
         var networkDaoOrgDto = _objectMapper.Map<NetworkDaoOrgIndex, NetworkDaoOrgDto>(orgIndex);
         networkDaoOrgDto.NetworkDaoOrgLeftOrgInfoDto ??= new NetworkDaoOrgLeftOrgInfoDto();
         if (!orgProposerList.IsNullOrEmpty())
         {
             networkDaoOrgDto.NetworkDaoOrgLeftOrgInfoDto.ProposerWhiteList ??= new ProposerWhiteList();
-            networkDaoOrgDto.NetworkDaoOrgLeftOrgInfoDto.ProposerWhiteList.Proposers = new List<string>(orgProposerList);
+            networkDaoOrgDto.NetworkDaoOrgLeftOrgInfoDto.ProposerWhiteList.Proposers =
+                new List<string>(orgProposerList);
         }
+
         if (!orgMemberList.IsNullOrEmpty())
         {
             networkDaoOrgDto.NetworkDaoOrgLeftOrgInfoDto.OrganizationMemberList ??= new OrganizationMemberList();
@@ -249,17 +312,57 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
                 new List<string>(orgMemberList);
         }
 
+        if (networkDaoOrgDto.ProposalType == NetworkDaoOrgType.Referendum)
+        {
+            var tokenSymbol = networkDaoOrgDto.NetworkDaoOrgLeftOrgInfoDto?.TokenSymbol;
+            if (!tokenSymbol.IsNullOrWhiteSpace())
+            {
+                var tokenInfo = await _tokenService.GetTokenInfoAsync(orgIndex.ChainId, tokenSymbol);
+                if (int.TryParse(tokenInfo.Decimals, out int decimalIntValue) && decimalIntValue > 0)
+                {
+                    var pow = Math.Pow(10, decimalIntValue);
+                    if (long.TryParse(networkDaoOrgDto.ReleaseThreshold.MinimalApprovalThreshold,
+                            out long minimalApprovalThreshold))
+                    {
+                        networkDaoOrgDto.ReleaseThreshold.MinimalApprovalThreshold =
+                            (minimalApprovalThreshold / pow).ToString();
+                    }
+
+                    if (long.TryParse(networkDaoOrgDto.ReleaseThreshold.MaximalAbstentionThreshold,
+                            out long maximalAbstentionThreshold))
+                    {
+                        networkDaoOrgDto.ReleaseThreshold.MaximalAbstentionThreshold =
+                            (maximalAbstentionThreshold / pow).ToString();
+                    }
+
+                    if (long.TryParse(networkDaoOrgDto.ReleaseThreshold.MaximalRejectionThreshold,
+                            out long maximalRejectionThreshold))
+                    {
+                        networkDaoOrgDto.ReleaseThreshold.MaximalRejectionThreshold =
+                            (maximalRejectionThreshold / pow).ToString();
+                    }
+
+                    if (long.TryParse(networkDaoOrgDto.ReleaseThreshold.MinimalVoteThreshold, out long minimalVoteThreshold))
+                    {
+                        networkDaoOrgDto.ReleaseThreshold.MinimalVoteThreshold =
+                            (minimalVoteThreshold / pow).ToString();
+                    }
+                }
+            }
+        }
+
         return networkDaoOrgDto;
     }
 
-    public async Task<Dictionary<string, List<string>>> GetOrgMemberDictionaryAsync(string chainId, NetworkDaoOrgType orgType, List<string> orgAddressList)
+    public async Task<Dictionary<string, List<string>>> GetOrgMemberDictionaryAsync(string chainId,
+        NetworkDaoOrgType orgType, List<string> orgAddressList)
     {
         var orgMemberDictionary = new Dictionary<string, List<string>>();
         if (chainId.IsNullOrWhiteSpace() || orgAddressList.IsNullOrEmpty())
         {
             return orgMemberDictionary;
         }
-        
+
         if (orgType != NetworkDaoOrgType.Association)
         {
             return orgMemberDictionary;
@@ -278,13 +381,15 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         return orgMemberDictionary;
     }
 
-    public async Task<Dictionary<string, NetworkDaoOrgIndex>> GetOrgDictionaryAsync(string chainId, List<string> orgAddresses)
+    public async Task<Dictionary<string, NetworkDaoOrgIndex>> GetOrgDictionaryAsync(string chainId,
+        List<string> orgAddresses)
     {
         if (chainId.IsNullOrWhiteSpace() || orgAddresses.IsNullOrEmpty())
         {
             return new Dictionary<string, NetworkDaoOrgIndex>();
         }
-        var (totalCount, orgIndices) =  await _networkDaoEsDataProvider.GetOrgIndexAsync(new GetOrgListInput
+
+        var (totalCount, orgIndices) = await _networkDaoEsDataProvider.GetOrgIndexAsync(new GetOrgListInput
         {
             MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
             SkipCount = 0,
@@ -295,13 +400,15 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         return orgIndices.ToDictionary(t => t.OrgAddress, t => t);
     }
 
-    public async Task<Dictionary<string, List<string>>> GetOrgProposerWhiteListDictionaryAsync(string chainId, NetworkDaoOrgType orgType, List<string> orgAddressList)
+    public async Task<Dictionary<string, List<string>>> GetOrgProposerWhiteListDictionaryAsync(string chainId,
+        NetworkDaoOrgType orgType, List<string> orgAddressList)
     {
         var proposerDictionary = new Dictionary<string, List<string>>();
         if (chainId.IsNullOrWhiteSpace() || orgAddressList.IsNullOrEmpty())
         {
             return proposerDictionary;
         }
+
         if (orgType is not (NetworkDaoOrgType.Association or NetworkDaoOrgType.Referendum))
         {
             return proposerDictionary;
@@ -321,6 +428,7 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
             proposerDictionary = orgProposerIndices.GroupBy(t => t.OrgAddress)
                 .ToDictionary(g => g.Key, g => g.Select(t => t.Proposer).ToList());
         }
+
         return proposerDictionary;
     }
 }
