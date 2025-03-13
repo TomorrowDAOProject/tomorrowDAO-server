@@ -268,13 +268,14 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         var (totalCount, networkDaoOrgMemberIndices) = await _networkDaoEsDataProvider.GetOrgMemberListAsync(
             new GetOrgMemberListInput
             {
+                MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+                SkipCount = 0,
                 ChainId = chainId,
-                OrgAddresses = orgAddressList
+                OrgAddresses = orgAddressList,
             });
         orgMemberDictionary = networkDaoOrgMemberIndices.GroupBy(t => t.OrgAddress)
             .ToDictionary(g => g.Key, g => g.Select(t => t.Member).ToList());
         return orgMemberDictionary;
-
     }
 
     public async Task<Dictionary<string, NetworkDaoOrgIndex>> GetOrgDictionaryAsync(string chainId, List<string> orgAddresses)
@@ -309,6 +310,8 @@ public class NetworkDaoOrgService : TomorrowDAOServerAppService, INetworkDaoOrgS
         var (totalCount, orgProposerIndices) = await _networkDaoEsDataProvider.GetOrgProposerListAsync(
             new GetOrgProposerListInput
             {
+                MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+                SkipCount = 0,
                 ChainId = chainId,
                 OrgType = NetworkDaoOrgType.All,
                 OrgAddresses = orgAddressList

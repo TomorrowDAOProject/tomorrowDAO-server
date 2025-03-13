@@ -85,8 +85,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var skipCount = 0;
         //TODO Test
-        // lastEndHeight = 254798510; //255339490;
-        // newIndexHeight = 254798810;
+        //lastEndHeight = 255492230; //255339490;
+        //newIndexHeight = 255492232;
 
         List<IndexerProposal> queryList;
         do
@@ -249,6 +249,10 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 continue;
             }
 
+            proposalIndex.Approvals = 0;
+            proposalIndex.Abstentions = 0;
+            proposalIndex.Rejections = 0;
+
             foreach (var voteRecord in records)
             {
                 switch (voteRecord.ReceiptType)
@@ -285,11 +289,12 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 new GetProposalVoteRecordIndexInput
                 {
                     ChainId = chainId,
-                    StartBlockHeight = lastEndHeight,
-                    EndBlockHeight = newIndexHeight,
+                    StartBlockHeight = 0,
+                    EndBlockHeight = int.MaxValue,
                     SkipCount = 0,
                     MaxResultCount = MaxVoteResultCount,
                     ProposalIds = proposalIdBatch,
+                    OrgType = NetworkDaoOrgType.All
                 });
             if (voteRecords?.Data != null && voteRecords.Data.Count == MaxVoteResultCount)
             {
