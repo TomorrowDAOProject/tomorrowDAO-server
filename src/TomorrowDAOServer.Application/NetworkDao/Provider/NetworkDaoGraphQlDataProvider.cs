@@ -134,7 +134,7 @@ public class NetworkDaoGraphQlDataProvider : INetworkDaoGraphQlDataProvider, ISi
             data:getNetworkDaoProposalVoteRecordIndex(input: {skipCount:$skipCount,maxResultCount:$maxResultCount,startBlockHeight:$startBlockHeight,endBlockHeight:$endBlockHeight,chainId:$chainId,orgAddresses:$orgAddresses,orgType:$orgType,proposalIds:$proposalIds,receiptType:$receiptType})
             {
                 data {
-                    id,proposalId,address,receiptType,time,organizationAddress,orgType,symbol,amount, chainId,blockHash,blockHeight,blockTime,previousBlockHash,isDeleted,
+                    id,proposalId,address,receiptType,time,organizationAddress,orgType,symbol,amount,chainId,blockHash,blockHeight,blockTime,previousBlockHash,isDeleted,
                     transactionInfo {
                         chainId,transactionId,from,to,methodName,isAAForwardCall,portKeyContract,cAHash,realTo,realMethodName
                     }
