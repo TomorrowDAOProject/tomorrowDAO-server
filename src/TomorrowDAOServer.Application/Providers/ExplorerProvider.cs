@@ -82,11 +82,11 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
         return baseUrl!.TrimEnd('/');
     }
     
-    private string BaseUrlV2()
+    private string AelfScanUrl()
     {
-        var baseUrlV2 = _explorerOptions.CurrentValue.BaseUrlV2;
-        AssertHelper.IsTrue(baseUrlV2.NotNullOrEmpty(), "ExplorerV2urlNotFound");
-        return baseUrlV2!.TrimEnd('/');
+        var aelfScan = _explorerOptions.CurrentValue.AelfScan;
+        AssertHelper.IsTrue(aelfScan.NotNullOrEmpty(), "ExplorerV2urlNotFound");
+        return aelfScan!.TrimEnd('/');
     }
 
     //Call before migration, do not delete
@@ -199,7 +199,7 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     public async Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request)
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerPagerResult<ExplorerTransactionDetailResult>>>(
-            BaseUrlV2(), ExplorerApi.TransactionDetail, param: ToDictionary(request), settings: DefaultJsonSettings);
+            AelfScanUrl(), ExplorerApi.TransactionDetail, param: ToDictionary(request), settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;
     }
