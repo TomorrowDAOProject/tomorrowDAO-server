@@ -761,19 +761,34 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     private async Task<Dictionary<string, NetworkDaoProposalIndex>> GetLocalProposalDicAsync(string chainId,
         List<string> proposalIds)
     {
-        var (totalCount, localProposalList) = await _networkDaoEsDataProvider.GetProposalListAsync(
-            new GetProposalListInput
+        var proposalIndices = new List<NetworkDaoProposalIndex>();
+        foreach (var proposalId in proposalIds)
+        {
+            try
             {
-                MaxResultCount = MaxResultCount,
-                SkipCount = 0,
-                ChainId = chainId,
-                ProposalIds = proposalIds
-            });
-        if (localProposalList.IsNullOrEmpty())
+                var (totalCount, localProposalList) = await _networkDaoEsDataProvider.GetProposalListAsync(
+                    new GetProposalListInput
+                    {
+                        MaxResultCount = MaxResultCount,
+                        SkipCount = 0,
+                        ChainId = chainId,
+                        ProposalId = proposalId
+                    });
+                if (!localProposalList.IsNullOrEmpty())
+                {
+                    proposalIndices.AddRange(localProposalList);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "[NetworkDaoMigrator] proposal={0}, get local data error.{1}", proposalId, e.Message);
+            }
+        }
+        _logger.LogInformation("[NetworkDaoMigrator] local proposal count ={0}", proposalIndices.Count);
+        if (proposalIndices.IsNullOrEmpty())
         {
             return new Dictionary<string, NetworkDaoProposalIndex>();
         }
-
-        return localProposalList.ToDictionary(t => t.ProposalId);
+        return proposalIndices.ToDictionary(t => t.ProposalId);
     }
 }
