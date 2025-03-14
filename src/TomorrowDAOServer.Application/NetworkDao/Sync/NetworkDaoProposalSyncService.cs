@@ -98,11 +98,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         //TODO Test
         //lastEndHeight = 255831985; //255339490;
         //newIndexHeight = 255831987;
-
-        if (newIndexHeight - lastEndHeight > 1000000)
-        {
-            newIndexHeight = lastEndHeight + 1000000;
-        }
+        
         var blockHeight = -1L;
         List<IndexerProposal> queryList;
         do
@@ -165,6 +161,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         } while (queryList.Count == MaxResultCount);
 
         return blockHeight;
+        
     }
 
     private async Task SetProposalStatus(string chainId, List<NetworkDaoProposalIndex> proposalList)
