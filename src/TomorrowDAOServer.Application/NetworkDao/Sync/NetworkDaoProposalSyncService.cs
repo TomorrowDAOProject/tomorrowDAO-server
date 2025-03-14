@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Client.Dto;
 using AElf.Standards.ACS0;
 using AElf.Standards.ACS3;
 using AElf.Types;
@@ -85,8 +86,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var skipCount = 0;
         //TODO Test
-        //lastEndHeight = 255492230; //255339490;
-        //newIndexHeight = 255492232;
+        //lastEndHeight = 230947134; //255339490;
+        //newIndexHeight = 230947136;
 
         List<IndexerProposal> queryList;
         do
@@ -484,16 +485,28 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transactionId={1}", indexerProposal.ProposalId,
             indexerProposal.TransactionInfo?.TransactionId);
-        // var transactionResultDto = await _contractProvider.QueryTransactionResultAsync(
-        //     indexerProposal.TransactionInfo.TransactionId,
-        //     indexerProposal.ChainId);
+
         var contractAndMethodName = GetContractMethodName(indexerProposal);
+        TransactionResultDto transactionResultDto = null;
+        try
+        {
+            transactionResultDto = await _contractProvider.QueryTransactionResultAsync(
+                indexerProposal.TransactionInfo.TransactionId,
+                indexerProposal.ChainId);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "[NetworkDaoMigrator] proposal={0}, query transaction error.{1}", indexerProposal.ProposalId, e.Message);
+            return contractAndMethodName;
+        }
+        
+        if (transactionResultDto == null || transactionResultDto.TransactionId.IsNullOrWhiteSpace())
+        {
+            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transaction not found", indexerProposal.ProposalId);
+            return contractAndMethodName;
+        }
+        
         return contractAndMethodName;
-        // if (transactionResultDto == null || transactionResultDto.TransactionId.IsNullOrWhiteSpace())
-        // {
-        //     _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transaction not found", indexerProposal.ProposalId);
-        //     return contractAndMethodName;
-        // }
         //
         // var voteEventLog = transactionResultDto.Logs.First(l => l.Name == "CodeCheckRequired");
         // var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<CodeCheckRequired>(voteEventLog);
