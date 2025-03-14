@@ -101,9 +101,6 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         var blockHeight = -1L;
 
         var stopwatch = Stopwatch.StartNew();
-        _logger.LogInformation("[NetworkDaoMigrator] proposal Sync, BlockHeight:{0}-{1}, SkipCount={2}",
-            lastEndHeight,
-            newIndexHeight, skipCount);
         //query the proposal data of changed
         var queryList = (await _networkDaoGraphQlDataProvider.GetNetworkDaoProposalIndexAsync(
             new GetProposalIndexInput
@@ -169,7 +166,9 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "[NetworkDaoMigrator] proposal, error. {0}", e.Message);
+            _logger.LogError(e, "[NetworkDaoMigrator] proposal Sync error, BlockHeight:{0}-{1}, SkipCount={2}",
+                lastEndHeight,
+                newIndexHeight, skipCount);
             throw;
         }
 
