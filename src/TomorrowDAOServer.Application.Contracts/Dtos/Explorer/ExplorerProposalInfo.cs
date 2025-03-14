@@ -6,16 +6,17 @@ using ProposalType = TomorrowDAOServer.Common.Enum.ProposalType;
 
 namespace TomorrowDAOServer.Dtos.Explorer;
 
+
 public class ExplorerProposalInfoRequest
 {
-    public ExplorerProposalInfo Proposal { get; set; }
-    public List<string> BpList { get; set; }
-    public List<string> ParliamentProposerList { get; set; }
+    public string ProposalId { get; set; }
 }
 
 public class ExplorerProposalInfoResponse
 {
-    public string ProposalId { get; set; }
+    public ExplorerProposalInfo Proposal { get; set; }
+    // public List<string> BpList { get; set; }
+    // public List<string> ParliamentProposerList { get; set; }
 }
 
 public class ExplorerProposalInfo

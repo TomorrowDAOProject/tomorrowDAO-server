@@ -86,9 +86,14 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var skipCount = 0;
         //TODO Test
-        //lastEndHeight = 230947134; //255339490;
-        //newIndexHeight = 230947136;
+        //lastEndHeight = 255815706; //255339490;
+        //newIndexHeight = 255815708;
 
+        if (newIndexHeight - lastEndHeight > 1000000)
+        {
+            newIndexHeight = lastEndHeight + 1000000;
+        }
+        var blockHeight = -1L;
         List<IndexerProposal> queryList;
         do
         {
@@ -109,11 +114,14 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                     ContractNames = _migratorOptions.CurrentValue.FilterGraphQLToAddresses,
                     MethodNames = _migratorOptions.CurrentValue.FilterGraphQLMethodNames
                 })).Data;
-            _logger.LogInformation("[NetworkDaoMigrator] proposal Sync,count:{count}", queryList?.Count);
+            _logger.LogInformation("[NetworkDaoMigrator] proposal Sync, BlockHeight:{0}-{1}, SkipCount={2}, count={3}", lastEndHeight,
+                newIndexHeight, skipCount,queryList?.Count);
             if (queryList.IsNullOrEmpty())
             {
                 break;
             }
+            
+            blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight ?? -1L).Max()) + 1;
 
             //build Proposal index data
             var proposalList = await BuildProposalIndexAsync(chainId, queryList);
@@ -146,7 +154,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 queryList.Count, proposalList.Count, stopwatch.ElapsedMilliseconds);
         } while (queryList.Count == MaxResultCount);
 
-        return newIndexHeight;
+        return blockHeight;
     }
 
     private async Task SetProposalStatus(string chainId, List<NetworkDaoProposalIndex> proposalList)
@@ -241,10 +249,11 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         {
             if (!proposalVoteDictionary.ContainsKey(proposalIndex.ProposalId))
             {
+                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, vote count= 0", proposalIndex.ProposalId);
                 continue;
             }
-
             var records = proposalVoteDictionary[proposalIndex.ProposalId];
+            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, vote count= {1}", proposalIndex.ProposalId, records?.Count);
             if (records.IsNullOrEmpty())
             {
                 continue;
@@ -307,8 +316,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         }
 
         stopwatch.Stop();
-        _logger.LogInformation("[NetworkDaoMigrator]3.build proposal vote index, count={0}, duration={1}",
-            voteRecordList.Count, stopwatch.ElapsedMilliseconds);
+        _logger.LogInformation("[NetworkDaoMigrator] proposals ={0} vote index, count={1}, duration={2}",
+            JsonConvert.SerializeObject(proposalIds), voteRecordList.Count, stopwatch.ElapsedMilliseconds);
 
         return voteRecordList;
     }
@@ -435,10 +444,21 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         var proposalIndex = _objectMapper.Map<IndexerProposal, NetworkDaoProposalIndex>(indexerProposal);
         //Id
         proposalIndex.Id = IdGeneratorHelper.GenerateId(chainId, proposalIndex.ProposalId);
-        //ContractAddress、ContractMethod
-        var (contractAddress, contractMethod) = await GetProposalContractMethodNameAsync(indexerProposal);
-        proposalIndex.ContractAddress = contractAddress;
-        proposalIndex.ContractMethod = contractMethod;
+        
+        //ExpiredTime、ContractAddress、ContractMethod
+        var explorerProposalInfo = await SetProposalExpiredTimeAsync(chainId, proposalIndex);
+        if (explorerProposalInfo != null)
+        {
+            proposalIndex.ContractAddress = explorerProposalInfo.ContractAddress;
+            proposalIndex.ContractMethod = explorerProposalInfo.ContractMethod;
+            proposalIndex.Code = explorerProposalInfo.ContractParams;
+        }
+        else
+        {
+            var (contractAddress, contractMethod) = await GetProposalContractMethodNameAsync(indexerProposal);
+            proposalIndex.ContractAddress = contractAddress;
+            proposalIndex.ContractMethod = contractMethod;
+        }
 
         //IsContractDeployed
         proposalIndex.IsContractDeployed = ContractDeployMethod.Contains(proposalIndex.ContractMethod);
@@ -447,9 +467,6 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         {
             proposalIndex.Status = NetworkDaoProposalStatusEnum.Released;
         }
-
-        //ExpiredTime
-        await SetProposalExpiredTimeAsync(chainId, proposalIndex);
 
         //Proposer
         if (proposalIndex.TransactionInfo.IsAAForwardCall)
@@ -556,7 +573,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         // }
     }
 
-    private async Task SetProposalExpiredTimeAsync(string chainId, NetworkDaoProposalIndex proposalIndex)
+    private async Task<ExplorerProposalInfo> SetProposalExpiredTimeAsync(string chainId, NetworkDaoProposalIndex proposalIndex)
     {
         try
         {
@@ -576,7 +593,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                         proposalIndex.ProposalId, JsonConvert.SerializeObject(proposalOutput));
                 }
 
-                return;
+                return null;
             }
             else
             {
@@ -586,20 +603,21 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
 
             if (_migratorOptions.CurrentValue.QueryExplorerProposal)
             {
-                var explorerResp = await _explorerProvider.GetProposalPagerAsync(chainId,
-                    new ExplorerProposalListRequest
+                var explorerResp = await _explorerProvider.GetProposalInfoAsync(chainId,
+                    new ExplorerProposalInfoRequest()
                     {
-                        ProposalType = proposalIndex.OrgType.ToString(),
-                        Search = proposalIndex.ProposalId
+                        ProposalId = proposalIndex.ProposalId
                     });
 
-                if (explorerResp == null || explorerResp.List.IsNullOrEmpty())
+                if (explorerResp == null || explorerResp.Proposal == null || explorerResp.Proposal.ProposalId != proposalIndex.ProposalId)
                 {
-                    return;
+                    return null;
                 }
 
-                var explorerProposalResult = explorerResp.List.FirstOrDefault();
-                proposalIndex.ExpiredTime = explorerProposalResult!.ExpiredTime;
+                var explorerProposal = explorerResp.Proposal;
+                proposalIndex.ExpiredTime = explorerProposal!.ExpiredTime;
+                
+                return explorerProposal;
             }
         }
         catch (Exception e)
@@ -611,6 +629,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 proposalIndex.ExpiredTime = proposalIndex.SaveTime.AddMinutes(10);
             }
         }
+
+        return null;
     }
 
     private async Task<Dictionary<string, NetworkDaoProposalIndex>> GetLocalProposalDicAsync(string chainId,
