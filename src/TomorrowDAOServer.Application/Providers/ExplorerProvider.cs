@@ -26,7 +26,7 @@ public interface IExplorerProvider
     //Call before migration, do not delete
     Task<List<ExplorerVoteTeamDescDto>> GetAllTeamDescAsync(string chainId, bool isActive);
     Task<ExplorerProposalResponse> GetProposalPagerAsync(string chainId, ExplorerProposalListRequest request);
-
+    Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request);
     Task<ExplorerContractListResponse> GetContractListAsync(string chainId, ExplorerContractListRequest request);
     Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request);
 }
@@ -40,6 +40,7 @@ public static class ExplorerApi
     //Call before migration, do not delete
     public static readonly ApiInfo GetAllTeamDesc = new(HttpMethod.Get, "/api/vote/getAllTeamDesc");
     public static readonly ApiInfo ProposalList = new(HttpMethod.Get, "/api/proposal/list");
+    public static readonly ApiInfo ProposalInfo = new(HttpMethod.Get, "/api/proposal/proposalInfo");
     public static readonly ApiInfo ContractList = new(HttpMethod.Get, "/api/viewer/list");
 
     //AelfScan API
@@ -111,6 +112,15 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerProposalResponse>>(BaseUrl(chainId),
             ExplorerApi.ProposalList, param: ToDictionary(request), withInfoLog: false, withDebugLog: false,
+            settings: DefaultJsonSettings);
+        AssertHelper.IsTrue(resp.Success, resp.Msg);
+        return resp.Data;
+    }
+    
+    public async Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request)
+    {
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerProposalInfoResponse>>(BaseUrl(chainId),
+            ExplorerApi.ProposalInfo, param: ToDictionary(request), withInfoLog: false, withDebugLog: false, timeout: 30000,
             settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;
