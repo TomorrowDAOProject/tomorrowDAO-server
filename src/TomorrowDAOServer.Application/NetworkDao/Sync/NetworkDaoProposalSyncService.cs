@@ -26,6 +26,7 @@ using TomorrowDAOServer.NetworkDao.Migrator.GraphQL;
 using TomorrowDAOServer.NetworkDao.Options;
 using TomorrowDAOServer.NetworkDao.Provider;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
@@ -305,6 +306,74 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var stopwatch = Stopwatch.StartNew();
         var voteRecordList = new List<IndexerProposalVoteRecord>();
+        var minBlockHeight = (long)int.MaxValue;
+        minBlockHeight = Math.Min(minBlockHeight, proposalList.Select(t => t.BlockHeight).Min());
+        var blockHeight = chainId == CommonConstant.MainChainId
+            ? _migratorOptions.CurrentValue.MainChainBlockHeight
+            : _migratorOptions.CurrentValue.SideChainBlockHeigth;
+
+        if (_migratorOptions.CurrentValue.QueryExplorerProposal && minBlockHeight < blockHeight)
+        {
+            foreach (var proposalIndex in proposalList)
+            {
+                try
+                {
+                    var explorerVoteListResponse = await _explorerProvider.GetVoteListAsync(chainId,
+                        new ExplorerVotedListRequest
+                        {
+                            ProposalId = proposalIndex.ProposalId
+                        });
+                    if (!explorerVoteListResponse.List.IsNullOrEmpty())
+                    {
+                        foreach (var explorerVote in explorerVoteListResponse.List)
+                        {
+                            long amount = 0;
+                            if (!explorerVote.Symbol.IsNullOrWhiteSpace() && explorerVote.Symbol != "none" &&
+                                decimal.TryParse(explorerVote.Amount, out var amoutDec))
+                            {
+                                amount = Convert.ToInt64(amoutDec * (decimal)Math.Pow(10, 8));
+                            } else if (long.TryParse(explorerVote.Amount, out var amountLong))
+                            {
+                                amount = amountLong;
+                            }
+
+                            voteRecordList.Add(new IndexerProposalVoteRecord
+                            {
+                                ChainId = chainId,
+                                BlockHash = null,
+                                BlockHeight = null,
+                                BlockTime = explorerVote.Time,
+                                PreviousBlockHash = null,
+                                IsDeleted = false,
+                                Id = IdGeneratorHelper.GenerateId(chainId, proposalIndex.ProposalId, explorerVote.TxId),
+                                ProposalId = proposalIndex.ProposalId,
+                                Address = explorerVote.Voter,
+                                ReceiptType = ConvertToReceiptType(explorerVote.Action),
+                                Time = explorerVote.Time,
+                                OrganizationAddress = proposalIndex.OrganizationAddress,
+                                OrgType = proposalIndex.OrgType,
+                                Symbol = explorerVote.Symbol == "none" ? string.Empty : explorerVote.Symbol,
+                                Amount = amount,
+                                TransactionInfo = new TransactionInfoDto()
+                            });
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, not found vote from explorer.",
+                            proposalIndex.ProposalId);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "[NetworkDaoMigrator] proposal={0}, query vote from explorer error. {1}",
+                        proposalIndex.ProposalId, e.Message);
+                }
+            }
+
+            return voteRecordList;
+        }
+
         var proposalIds = proposalList.Select(t => t.ProposalId).ToList();
         var proposalIdBatches = proposalIds
             .Select((id, index) => new { id, index })
@@ -339,6 +408,17 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             JsonConvert.SerializeObject(proposalIds), voteRecordList.Count, stopwatch.ElapsedMilliseconds);
 
         return voteRecordList;
+    }
+
+    private NetworkDaoReceiptTypeEnum ConvertToReceiptType(string action)
+    {
+        return action switch
+        {
+            "Approve" => NetworkDaoReceiptTypeEnum.Approve,
+            "Reject" => NetworkDaoReceiptTypeEnum.Reject,
+            "Abstain" => NetworkDaoReceiptTypeEnum.Abstain,
+            _ => NetworkDaoReceiptTypeEnum.Approve
+        };
     }
 
     private async Task UpdateAndMergeLocalProposalDataAsync(string chainId, List<NetworkDaoProposalIndex> proposalList,
@@ -640,7 +720,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                     return explorerProposal;
                 }
             }
-            
+
             var proposalOutput =
                 await _networkDaoContractProvider.GetProposalAsync(chainId, proposalIndex.OrgType,
                     proposalIndex.ProposalId);

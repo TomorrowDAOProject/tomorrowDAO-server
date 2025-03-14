@@ -29,6 +29,7 @@ public interface IExplorerProvider
     Task<ExplorerProposalInfoResponse> GetProposalInfoAsync(string chainId, ExplorerProposalInfoRequest request);
     Task<ExplorerContractListResponse> GetContractListAsync(string chainId, ExplorerContractListRequest request);
     Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request);
+    Task<ExplorerVoteListResponse> GetVoteListAsync(string chainId, ExplorerVotedListRequest request);
 }
 
 public static class ExplorerApi
@@ -42,6 +43,7 @@ public static class ExplorerApi
     public static readonly ApiInfo ProposalList = new(HttpMethod.Get, "/api/proposal/list");
     public static readonly ApiInfo ProposalInfo = new(HttpMethod.Get, "/api/proposal/proposalInfo");
     public static readonly ApiInfo ContractList = new(HttpMethod.Get, "/api/viewer/list");
+    public static readonly ApiInfo VoteList = new(HttpMethod.Get, "/api/proposal/votedList");
 
     //AelfScan API
     public static readonly ApiInfo TokenInfoV2 = new(HttpMethod.Get, "/api/app/token/info");
@@ -121,6 +123,14 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerProposalInfoResponse>>(BaseUrl(chainId),
             ExplorerApi.ProposalInfo, param: ToDictionary(request), withInfoLog: false, withDebugLog: false, timeout: 30000,
+            settings: DefaultJsonSettings);
+        AssertHelper.IsTrue(resp.Success, resp.Msg);
+        return resp.Data;
+    }
+    public async Task<ExplorerVoteListResponse> GetVoteListAsync(string chainId, ExplorerVotedListRequest request)
+    {
+        var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerVoteListResponse>>(BaseUrl(chainId),
+            ExplorerApi.VoteList, param: ToDictionary(request), withInfoLog: false, withDebugLog: false, timeout: 30000,
             settings: DefaultJsonSettings);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;
