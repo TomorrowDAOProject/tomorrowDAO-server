@@ -13,4 +13,7 @@ public class MigratorOptions
     //local data filter. $"{contractAddress}.{contractMethod}"
     public ISet<string> FilterContractMethods { get; set; } = new HashSet<string>();
     public ISet<string> FilterMethods { get; set; } = new HashSet<string>();
+
+    public long MainChainBlockHeight { get; set; } = 229006413;
+    public long SideChainBlockHeigth { get; set; } = 248556545;
 }

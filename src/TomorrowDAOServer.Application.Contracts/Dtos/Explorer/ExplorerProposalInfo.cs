@@ -34,7 +34,7 @@ public class ExplorerProposalInfo
     public Decimal Rejections { get; set; }
     public Decimal Abstentions { get; set; }
     public Dictionary<string, object> LeftInfo { get; set; }
-    public ExplorerProposalStatusEnum Status { get; set; }
+    public string Status { get; set; }
     public string ReleasedTxId { get; set; }
     public DateTime ReleasedTime { get; set; }
     public NetworkDaoCreatedByEnum CreatedBy { get; set; }

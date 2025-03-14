@@ -13,8 +13,6 @@ using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Portkey.Contracts.CA;
-using TomorrowDAO.Contracts.Vote;
 using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.AElfSdk;
 using TomorrowDAOServer.Common.Enum;
@@ -53,9 +51,9 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     private readonly INetworkDaoProposalProvider _networkDaoProposalProvider;
     private readonly IGraphQLProvider _graphQlProvider;
 
-    private static readonly int MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount;
+    private static readonly int MaxResultCount = 100;
     private const int MaxVoteResultCount = 5000;
-    private const int BatchSize = 100;
+    private const int BatchSize = 20;
 
     private static readonly ISet<string> ContractDeployMethod = new HashSet<string>()
     {
@@ -64,7 +62,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     };
 
     private const string MethodCreateProposal = "CreateProposal";
-    
+
     public static readonly JsonSerializerSettings DefaultJsonSettings = JsonSettingsBuilder.New()
         .WithCamelCasePropertyNamesResolver()
         .WithAElfTypesConverters()
@@ -98,37 +96,38 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         //TODO Test
         //lastEndHeight = 255831985; //255339490;
         //newIndexHeight = 255831987;
-        
-        var blockHeight = -1L;
-        List<IndexerProposal> queryList;
-        do
-        {
-            var stopwatch = Stopwatch.StartNew();
-            _logger.LogInformation("[NetworkDaoMigrator] proposal Sync, BlockHeight:{0}-{1}, SkipCount={2}",
-                lastEndHeight,
-                newIndexHeight, skipCount);
-            //query the proposal data of changed
-            queryList = (await _networkDaoGraphQlDataProvider.GetNetworkDaoProposalIndexAsync(
-                new GetProposalIndexInput
-                {
-                    ChainId = chainId,
-                    OrgType = NetworkDaoOrgType.All,
-                    StartBlockHeight = lastEndHeight,
-                    EndBlockHeight = newIndexHeight,
-                    SkipCount = skipCount,
-                    MaxResultCount = MaxResultCount,
-                    ContractNames = _migratorOptions.CurrentValue.FilterGraphQLToAddresses,
-                    MethodNames = _migratorOptions.CurrentValue.FilterGraphQLMethodNames
-                })).Data;
-            _logger.LogInformation("[NetworkDaoMigrator] proposal Sync, BlockHeight:{0}-{1}, SkipCount={2}, count={3}", lastEndHeight,
-                newIndexHeight, skipCount,queryList?.Count);
-            if (queryList.IsNullOrEmpty())
-            {
-                break;
-            }
-            
-            blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight ?? -1L).Max()) + 1;
 
+        var blockHeight = -1L;
+
+        var stopwatch = Stopwatch.StartNew();
+        _logger.LogInformation("[NetworkDaoMigrator] proposal Sync, BlockHeight:{0}-{1}, SkipCount={2}",
+            lastEndHeight,
+            newIndexHeight, skipCount);
+        //query the proposal data of changed
+        var queryList = (await _networkDaoGraphQlDataProvider.GetNetworkDaoProposalIndexAsync(
+            new GetProposalIndexInput
+            {
+                ChainId = chainId,
+                OrgType = NetworkDaoOrgType.All,
+                StartBlockHeight = lastEndHeight,
+                EndBlockHeight = newIndexHeight,
+                SkipCount = skipCount,
+                MaxResultCount = MaxResultCount,
+                ContractNames = _migratorOptions.CurrentValue.FilterGraphQLToAddresses,
+                MethodNames = _migratorOptions.CurrentValue.FilterGraphQLMethodNames
+            })).Data;
+        _logger.LogInformation("[NetworkDaoMigrator] proposal Sync, BlockHeight:{0}-{1}, SkipCount={2}, count={3}",
+            lastEndHeight,
+            newIndexHeight, skipCount, queryList?.Count);
+        if (queryList.IsNullOrEmpty())
+        {
+            return blockHeight;
+        }
+
+        blockHeight = Math.Max(blockHeight, queryList.Select(t => t.BlockHeight ?? -1L).Max()) + 1;
+
+        try
+        {
             //build Proposal index data
             var proposalList = await BuildProposalIndexAsync(chainId, queryList);
 
@@ -153,21 +152,27 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             {
                 await _networkDaoEsDataProvider.AddOrUpdateProposalIndexAsync(proposalIndex);
             }
+
             foreach (var proposalListIndex in proposalListList)
             {
                 await _networkDaoEsDataProvider.AddOrUpdateProposalListIndexAsync(proposalListIndex);
             }
+
             await _networkDaoEsDataProvider.BulkAddOrUpdateProposalVoteIndexAsync(voteIndices);
 
             skipCount += queryList.Count;
 
             stopwatch.Stop();
-            _logger.LogInformation("[NetworkDaoMigrator]0.Sync proposal, count={0}, realCount={1}, duration={2}",
+            _logger.LogInformation("[NetworkDaoMigrator] proposal finished, count={0}, realCount={1}, duration={2}",
                 queryList.Count, proposalList.Count, stopwatch.ElapsedMilliseconds);
-        } while (queryList.Count == MaxResultCount);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "[NetworkDaoMigrator] proposal, error. {0}", e.Message);
+            throw;
+        }
 
         return blockHeight;
-        
     }
 
     private async Task SetProposalStatus(string chainId, List<NetworkDaoProposalIndex> proposalList)
@@ -260,21 +265,22 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             .ToDictionary(group => group.Key, group => group.ToList());
         foreach (var proposalIndex in proposalList)
         {
+            proposalIndex.Approvals = 0;
+            proposalIndex.Abstentions = 0;
+            proposalIndex.Rejections = 0;
             if (!proposalVoteDictionary.ContainsKey(proposalIndex.ProposalId))
             {
                 _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, vote count= 0", proposalIndex.ProposalId);
                 continue;
             }
+
             var records = proposalVoteDictionary[proposalIndex.ProposalId];
-            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, vote count= {1}", proposalIndex.ProposalId, records?.Count);
+            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, vote count= {1}", proposalIndex.ProposalId,
+                records?.Count);
             if (records.IsNullOrEmpty())
             {
                 continue;
             }
-
-            proposalIndex.Approvals = 0;
-            proposalIndex.Abstentions = 0;
-            proposalIndex.Rejections = 0;
 
             foreach (var voteRecord in records)
             {
@@ -457,7 +463,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
         var proposalIndex = _objectMapper.Map<IndexerProposal, NetworkDaoProposalIndex>(indexerProposal);
         //Id
         proposalIndex.Id = IdGeneratorHelper.GenerateId(chainId, proposalIndex.ProposalId);
-        
+
         //ExpiredTime、ContractAddress、ContractMethod
         var explorerProposalInfo = await SetProposalExpiredTimeAsync(chainId, proposalIndex);
         if (explorerProposalInfo != null)
@@ -512,29 +518,46 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             indexerProposal.TransactionInfo.MethodName ?? string.Empty);
     }
 
-    private async Task<Tuple<string, string, string>> GetProposalContractMethodNameAsync(IndexerProposal indexerProposal)
+    private async Task<Tuple<string, string, string>> GetProposalContractMethodNameAsync(
+        IndexerProposal indexerProposal)
     {
         _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transactionId={1}", indexerProposal.ProposalId,
             indexerProposal.TransactionInfo?.TransactionId);
 
         var contractAndMethodName = GetContractMethodName(indexerProposal);
-        TransactionResultDto transactionResultDto = null;
+        // TransactionResultDto transactionResultDto = null;
+        ExplorerTransactionDetailResult transactionDetailResult = null;
         try
         {
-            transactionResultDto = await _contractProvider.QueryTransactionResultAsync(
-                indexerProposal.TransactionInfo.TransactionId,
-                indexerProposal.ChainId);
+            // transactionResultDto = await _contractProvider.QueryTransactionResultAsync(
+            //     indexerProposal.TransactionInfo.TransactionId,
+            //     indexerProposal.ChainId);
+
+            var transaction = await _explorerProvider.GetTransactionDetailAsync(
+                indexerProposal.ChainId,
+                new ExplorerTransactionDetailRequest
+                {
+                    ChainId = indexerProposal.ChainId, TransactionId = indexerProposal.TransactionInfo.TransactionId
+                });
+            if (transaction?.List != null && !transaction.List.IsNullOrEmpty())
+            {
+                transactionDetailResult = transaction.List[0];
+            }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "[NetworkDaoMigrator] proposal={0}, query transaction error.{1}", indexerProposal.ProposalId, e.Message);
-            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2, string.Empty);
+            _logger.LogError(e, "[NetworkDaoMigrator] proposal={0}, query transaction error.{1}",
+                indexerProposal.ProposalId, e.Message);
+            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2,
+                string.Empty);
         }
-        
-        if (transactionResultDto == null || transactionResultDto.TransactionId.IsNullOrWhiteSpace())
+
+        if (transactionDetailResult == null || transactionDetailResult.TransactionId.IsNullOrWhiteSpace())
         {
-            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transaction not found", indexerProposal.ProposalId);
-            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2, string.Empty);
+            _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, transaction not found",
+                indexerProposal.ProposalId);
+            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2,
+                string.Empty);
         }
 
         try
@@ -543,21 +566,25 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             // var voteEvent = LogEventDeserializationHelper.DeserializeLogEvent<CodeCheckRequired>(voteEventLog);
             if (contractAndMethodName.Item2 == MethodCreateProposal)
             {
-                var param = transactionResultDto.Transaction.Params;
-                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param={1}", indexerProposal.ProposalId, param);
+                var param = transactionDetailResult.TransactionParams;
+                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param={1}", indexerProposal.ProposalId,
+                    param);
                 if (indexerProposal.TransactionInfo.IsAAForwardCall)
                 {
                     var forwardCallParam =
                         JsonConvert.DeserializeObject<ForwardCallParam>(param);
                     if (forwardCallParam.Args.IsNullOrWhiteSpace())
                     {
-                        return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2, string.Empty);
+                        return new Tuple<string, string, string>(contractAndMethodName.Item1,
+                            contractAndMethodName.Item2, string.Empty);
                     }
+
                     //unpack packed input
                     var createProposalInput = AElf.Standards.ACS3.CreateProposalInput.Parser.ParseFrom(
                         ByteString.FromBase64(forwardCallParam.Args));
                     param = JsonConvert.SerializeObject(createProposalInput, DefaultJsonSettings);
                 }
+
                 var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(param);
                 var toAddress = dictionary.GetValueOrDefault("toAddress", string.Empty).ToString();
                 var contractMethodName = dictionary.GetValueOrDefault("contractMethodName", string.Empty).ToString();
@@ -569,20 +596,51 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 // }
                 return new Tuple<string, string, string>(toAddress, contractMethodName, code);
             }
-        
-            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2, string.Empty);
+
+            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2,
+                string.Empty);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "[NetworkDaoMigrator] parse param error.{0}", e.Message);
-            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2, string.Empty);
+            return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2,
+                string.Empty);
         }
     }
 
-    private async Task<ExplorerProposalInfo> SetProposalExpiredTimeAsync(string chainId, NetworkDaoProposalIndex proposalIndex)
+    private async Task<ExplorerProposalInfo> SetProposalExpiredTimeAsync(string chainId,
+        NetworkDaoProposalIndex proposalIndex)
     {
         try
         {
+            var blockHeight = 0L;
+            if (chainId == CommonConstant.MainChainId)
+            {
+                blockHeight = _migratorOptions.CurrentValue.MainChainBlockHeight;
+            }
+            else
+            {
+                blockHeight = _migratorOptions.CurrentValue.SideChainBlockHeigth;
+            }
+
+            if (_migratorOptions.CurrentValue.QueryExplorerProposal && proposalIndex.BlockHeight < blockHeight)
+            {
+                var explorerResp = await _explorerProvider.GetProposalInfoAsync(chainId,
+                    new ExplorerProposalInfoRequest()
+                    {
+                        ProposalId = proposalIndex.ProposalId
+                    });
+
+                if (explorerResp != null && explorerResp.Proposal != null &&
+                    explorerResp.Proposal.ProposalId == proposalIndex.ProposalId)
+                {
+                    var explorerProposal = explorerResp.Proposal;
+                    proposalIndex.ExpiredTime = explorerProposal!.ExpiredTime;
+
+                    return explorerProposal;
+                }
+            }
+            
             var proposalOutput =
                 await _networkDaoContractProvider.GetProposalAsync(chainId, proposalIndex.OrgType,
                     proposalIndex.ProposalId);
@@ -605,25 +663,6 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             {
                 _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, proposal not found.",
                     proposalIndex.ProposalId);
-            }
-
-            if (_migratorOptions.CurrentValue.QueryExplorerProposal)
-            {
-                var explorerResp = await _explorerProvider.GetProposalInfoAsync(chainId,
-                    new ExplorerProposalInfoRequest()
-                    {
-                        ProposalId = proposalIndex.ProposalId
-                    });
-
-                if (explorerResp == null || explorerResp.Proposal == null || explorerResp.Proposal.ProposalId != proposalIndex.ProposalId)
-                {
-                    return null;
-                }
-
-                var explorerProposal = explorerResp.Proposal;
-                proposalIndex.ExpiredTime = explorerProposal!.ExpiredTime;
-                
-                return explorerProposal;
             }
         }
         catch (Exception e)
