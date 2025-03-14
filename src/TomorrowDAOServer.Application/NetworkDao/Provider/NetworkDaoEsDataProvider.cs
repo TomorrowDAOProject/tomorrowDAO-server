@@ -15,7 +15,9 @@ namespace TomorrowDAOServer.NetworkDao.Provider;
 
 public interface INetworkDaoEsDataProvider
 {
+    Task AddOrUpdateProposalIndexAsync(NetworkDaoProposalIndex proposalIndex);
     Task BulkAddOrUpdateProposalIndexAsync(List<NetworkDaoProposalIndex> proposalList);
+    Task AddOrUpdateProposalListIndexAsync(NetworkDaoProposalListIndex proposalListIndex);
     Task BulkAddOrUpdateProposalListIndexAsync(List<NetworkDaoProposalListIndex> proposalListList);
     Task BulkAddOrUpdateProposalVoteIndexAsync(List<NetworkDaoProposalVoteIndex> voteIndices);
     Task BulkAddOrUpdateOrgIndexAsync(List<NetworkDaoOrgIndex> orgIndices);
@@ -79,6 +81,15 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         _contractNameRepository = contractNameRepository;
     }
 
+    public async Task AddOrUpdateProposalIndexAsync(NetworkDaoProposalIndex proposalIndex)
+    {
+        if (proposalIndex == null)
+        {
+            return;
+        }
+        await _proposalIndexRepository.AddOrUpdateAsync(proposalIndex);
+    }
+
     public async Task BulkAddOrUpdateProposalIndexAsync(List<NetworkDaoProposalIndex> proposalList)
     {
         if (proposalList.IsNullOrEmpty())
@@ -87,6 +98,16 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         }
 
         await _proposalIndexRepository.BulkAddOrUpdateAsync(proposalList);
+    }
+
+    public async Task AddOrUpdateProposalListIndexAsync(NetworkDaoProposalListIndex proposalListIndex)
+    {
+        if (proposalListIndex == null)
+        {
+            return;
+        }
+
+        await _proposalListIndexRepository.AddOrUpdateAsync(proposalListIndex);
     }
 
     public async Task BulkAddOrUpdateProposalListIndexAsync(List<NetworkDaoProposalListIndex> proposalListList)
