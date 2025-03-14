@@ -311,6 +311,7 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
             proposalListResultDto.VotedStatus = hasVoted ? proposalIdToVotes[proposalListResultDto.ProposalId].ReceiptType.ToString(): "none";
             var proposalStatus = IsExpired(proposalIndex.Status, proposalIndex.ExpiredTime);
             proposalListResultDto.Status = proposalStatus.ToString();
+            proposalListResultDto.ContractParams = proposalIndex.Code;
 
             var bpList = await _graphQlProvider.GetBPAsync(input.ChainId);
 

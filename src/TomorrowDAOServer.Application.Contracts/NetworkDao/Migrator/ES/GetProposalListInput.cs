@@ -36,6 +36,7 @@ public class GetProposalListResultDto
     public bool CanVote { get; set; }
     public string ContractAddress { get; set; }
     public string ContractMethod { get; set; }
+    public string ContractParams { get; set; }
     public DateTime CreateAt { get; set; }
     public string CreateTxId { get; set; }
     public string CreatedBy { get; set; }
