@@ -209,7 +209,7 @@ public class ExplorerProvider : IExplorerProvider, ISingletonDependency
     public async Task<ExplorerPagerResult<ExplorerTransactionDetailResult>> GetTransactionDetailAsync(string chainId, ExplorerTransactionDetailRequest request)
     {
         var resp = await _httpProvider.InvokeAsync<ExplorerBaseResponse<ExplorerPagerResult<ExplorerTransactionDetailResult>>>(
-            AelfScanUrl(), ExplorerApi.TransactionDetail, param: ToDictionary(request), settings: DefaultJsonSettings);
+            AelfScanUrl(), ExplorerApi.TransactionDetail, param: ToDictionary(request), settings: DefaultJsonSettings, timeout: 30000);
         AssertHelper.IsTrue(resp.Success, resp.Msg);
         return resp.Data;
     }
