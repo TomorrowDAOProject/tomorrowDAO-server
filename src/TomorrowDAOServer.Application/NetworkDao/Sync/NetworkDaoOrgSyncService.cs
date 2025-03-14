@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Contracts.Association;
 using Aetherlink.PriceServer.Common;
 using Microsoft.Extensions.Logging;
 using TomorrowDAOServer.Common.AElfSdk;
@@ -48,8 +49,8 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
         var skipCount = 0;
         List<IndexerOrgChanged> queryList;
         //TODO
-        //lastEndHeight = 133743710;
-        //newIndexHeight = 133743715;
+        //lastEndHeight = 255673392;
+        //newIndexHeight = 255785888;
         do
         {
             var stopwatch = Stopwatch.StartNew();
@@ -95,10 +96,13 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
                 }
 
                 var (orgIndex, orgMemberList, orgProposerList) = tuple;
-                await UpdateOrgIndexAsync(chainId, orgChanged, orgIndex);
-                orgIndices.Add(orgIndex);
-                orgMemberIndices.AddRange(orgMemberList);
-                orgProposerIndices.AddRange(orgProposerList);
+                if (orgIndex != null)
+                {
+                    await UpdateOrgIndexAsync(chainId, orgChanged, orgIndex);
+                    orgIndices.Add(orgIndex);
+                    orgMemberIndices.AddRange(orgMemberList);
+                    orgProposerIndices.AddRange(orgProposerList);
+                }
             }
 
             //Delete Members
@@ -209,8 +213,18 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
     private async Task<Tuple<NetworkDaoOrgIndex, List<NetworkDaoOrgMemberIndex>, List<NetworkDaoOrgProposerIndex>>>
         BuildAssociationIndexAsync(string chainId, IndexerOrgChanged orgChanged)
     {
-        AElf.Contracts.Association.Organization organization =
-            await _networkDaoContractProvider.GetAssociationOrganizationAsync(chainId, orgChanged.OrganizationAddress);
+        Organization organization = null;
+        try
+        {
+             organization =
+                await _networkDaoContractProvider.GetAssociationOrganizationAsync(chainId, orgChanged.OrganizationAddress);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "[NetworkDaoOrgMigrator]Sync Org error {0}, {1}", orgChanged.OrganizationAddress, e.Message);
+            return new Tuple<NetworkDaoOrgIndex, List<NetworkDaoOrgMemberIndex>, List<NetworkDaoOrgProposerIndex>>(
+                null, new List<NetworkDaoOrgMemberIndex>(), new List<NetworkDaoOrgProposerIndex>());
+        }
 
         var orgIndex = _objectMapper.Map<IndexerOrgChanged, NetworkDaoOrgIndex>(orgChanged);
         orgIndex.Id =
