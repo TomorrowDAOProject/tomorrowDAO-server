@@ -149,8 +149,14 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             //builder proposal List index data
             var proposalListList = await BuildProposalListIndexAsync(chainId, proposalList);
 
-            await _networkDaoEsDataProvider.BulkAddOrUpdateProposalIndexAsync(proposalList);
-            await _networkDaoEsDataProvider.BulkAddOrUpdateProposalListIndexAsync(proposalListList);
+            foreach (var proposalIndex in proposalList)
+            {
+                await _networkDaoEsDataProvider.AddOrUpdateProposalIndexAsync(proposalIndex);
+            }
+            foreach (var proposalListIndex in proposalListList)
+            {
+                await _networkDaoEsDataProvider.AddOrUpdateProposalListIndexAsync(proposalListIndex);
+            }
             await _networkDaoEsDataProvider.BulkAddOrUpdateProposalVoteIndexAsync(voteIndices);
 
             skipCount += queryList.Count;
