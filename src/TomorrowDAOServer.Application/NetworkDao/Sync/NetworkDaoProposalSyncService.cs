@@ -95,8 +95,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var skipCount = 0;
         //TODO Test
-        //lastEndHeight = 255953390; //255339490;
-        //newIndexHeight = 255953393;
+        //lastEndHeight = 255966806; //255339490;
+        //newIndexHeight = 255966806;
 
         var blockHeight = -1L;
 
@@ -648,21 +648,21 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 var param = transactionDetailResult.TransactionParams;
                 _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param={1}", indexerProposal.ProposalId,
                     param);
-                if (indexerProposal.TransactionInfo.IsAAForwardCall)
-                {
-                    var forwardCallParam =
-                        JsonConvert.DeserializeObject<ForwardCallParam>(param);
-                    if (forwardCallParam.Args.IsNullOrWhiteSpace())
-                    {
-                        return new Tuple<string, string, string>(contractAndMethodName.Item1,
-                            contractAndMethodName.Item2, string.Empty);
-                    }
-
-                    //unpack packed input
-                    var createProposalInput = AElf.Standards.ACS3.CreateProposalInput.Parser.ParseFrom(
-                        ByteString.FromBase64(forwardCallParam.Args));
-                    param = JsonConvert.SerializeObject(createProposalInput, DefaultJsonSettings);
-                }
+                // if (indexerProposal.TransactionInfo.IsAAForwardCall)
+                // {
+                //     var forwardCallParam =
+                //         JsonConvert.DeserializeObject<ForwardCallParam>(param);
+                //     if (forwardCallParam.Args.IsNullOrWhiteSpace())
+                //     {
+                //         return new Tuple<string, string, string>(contractAndMethodName.Item1,
+                //             contractAndMethodName.Item2, string.Empty);
+                //     }
+                //
+                //     //unpack packed input
+                //     var createProposalInput = AElf.Standards.ACS3.CreateProposalInput.Parser.ParseFrom(
+                //         ByteString.FromBase64(forwardCallParam.Args));
+                //     param = JsonConvert.SerializeObject(createProposalInput, DefaultJsonSettings);
+                // }
 
                 var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(param);
                 var toAddress = dictionary.GetValueOrDefault("toAddress", string.Empty).ToString();
