@@ -192,7 +192,7 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
                     proposalListResultDto.Approvals = proposalListIndex.Approvals;
                     proposalListResultDto.Rejections = proposalListIndex.Rejections;
                     proposalListResultDto.CanVote = !hasVoted && await CanVote(input.ChainId, address,
-                        proposalListIndex.Status, proposalListIndex.ExpiredTime, orgIndex, orgMemberList);
+                        proposalListIndex.Status, proposalListIndex.ExpiredTime, proposalListIndex.OrgType, orgIndex, orgMemberList);
                     proposalListResultDto.LeftInfo = leftInfoDto;
                     proposalListResultDto.OrganizationInfo =
                         await _networkDaoOrgService.ConvertToOrgDtoAsync(orgIndex, orgMemberList, orgProposerList);
@@ -331,7 +331,7 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
             proposalListResultDto.Approvals = proposalIndex.Approvals;
             proposalListResultDto.Rejections = proposalIndex.Rejections;
             proposalListResultDto.CanVote = !hasVoted && await CanVote(input.ChainId, address, proposalIndex.Status,
-                proposalIndex.ExpiredTime, orgIndex, orgMemberList);
+                proposalIndex.ExpiredTime, proposalIndex.OrgType, orgIndex, orgMemberList);
             ;
             proposalListResultDto.LeftInfo = leftInfoDto;
             //proposalListResultDto.OrganizationInfo = new NetworkDaoOrgDto();
@@ -408,6 +408,7 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
     private async Task<bool> CanVote(string chainId, string address,
         NetworkDaoProposalStatusEnum status,
         DateTime expiredTime,
+        NetworkDaoOrgType networkDaoOrgType,
         NetworkDaoOrgIndex orgIndex, List<string> orgMemberList)
     {
         if (address.IsNullOrWhiteSpace())
@@ -415,17 +416,17 @@ public class NetworkDaoProposalService : TomorrowDAOServerAppService, INetworkDa
             return false;
         }
 
-        if (orgIndex.OrgAddress.IsNullOrWhiteSpace())
-        {
-            return false;
-        }
+        // if (orgIndex.OrgAddress.IsNullOrWhiteSpace())
+        // {
+        //     return false;
+        // }
 
         if (await _networkDaoProposalProvider.IsProposalVoteEndedAsync(chainId, status, expiredTime))
         {
             return false;
         }
 
-        return orgIndex.OrgType switch
+        return networkDaoOrgType switch
         {
             NetworkDaoOrgType.Parliament => await _networkDaoOrgService.IsBp(chainId, address),
             NetworkDaoOrgType.Association => orgMemberList.Contains(address),
