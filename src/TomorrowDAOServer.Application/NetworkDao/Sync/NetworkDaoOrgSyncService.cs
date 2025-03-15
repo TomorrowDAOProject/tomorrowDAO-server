@@ -49,8 +49,8 @@ public class NetworkDaoOrgSyncService : INetworkDaoOrgSyncService, ISingletonDep
         var skipCount = 0;
         List<IndexerOrgChanged> queryList;
         //TODO
-        //lastEndHeight = 255673392;
-        //newIndexHeight = 255785888;
+        //lastEndHeight = 255480930;
+        //newIndexHeight = 255480941;
         do
         {
             var stopwatch = Stopwatch.StartNew();

@@ -95,8 +95,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var skipCount = 0;
         //TODO Test
-        //lastEndHeight = 255831985; //255339490;
-        //newIndexHeight = 255831987;
+        //lastEndHeight = 255953390; //255339490;
+        //newIndexHeight = 255953393;
 
         var blockHeight = -1L;
 
