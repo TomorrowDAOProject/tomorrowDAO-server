@@ -63,6 +63,17 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     };
 
     private const string MethodCreateProposal = "CreateProposal";
+    private const string MethodProposeNewContract = "ProposeNewContract";
+    private const string MethodProposeUpdateContract = "ProposeUpdateContract";
+    private const string MethodDeployUserSmartContract = "DeployUserSmartContract";
+    private const string MethodUpdateUserSmartContract = "UpdateUserSmartContract";
+    private const string MethodDeploySmartContract = "DeploySmartContract";
+    private const string MethodUpdateSmartContract = "UpdateSmartContract";
+    private const string MethodDeploySystemSmartContract = "DeploySystemSmartContract";
+    private const string MethodReleaseApprovedContract = "ReleaseApprovedContract";
+    
+    
+
 
     public static readonly JsonSerializerSettings DefaultJsonSettings = JsonSettingsBuilder.New()
         .WithCamelCasePropertyNamesResolver()
@@ -95,8 +106,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
     {
         var skipCount = 0;
         //TODO Test
-        //lastEndHeight = 255963270; //255339490;
-        //newIndexHeight = 255963272;
+        //lastEndHeight = 255996670; //255339490;
+        //newIndexHeight = 255996675;
 
         var blockHeight = -1L;
 
@@ -646,7 +657,7 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
             if (contractAndMethodName.Item2 == MethodCreateProposal)
             {
                 var param = transactionDetailResult.TransactionParams;
-                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param={1}", indexerProposal.ProposalId,
+                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param0={1}", indexerProposal.ProposalId,
                     param);
                 // if (indexerProposal.TransactionInfo.IsAAForwardCall)
                 // {
@@ -674,8 +685,16 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 //     return new Tuple<string, string>(toAddress, contractMethodName);
                 // }
                 return new Tuple<string, string, string>(toAddress, contractMethodName, code);
+            } else if (contractAndMethodName.Item2 is MethodProposeNewContract or MethodProposeUpdateContract 
+                       or MethodDeployUserSmartContract or MethodUpdateUserSmartContract 
+                       or MethodDeploySmartContract or MethodUpdateSmartContract 
+                       or MethodDeploySystemSmartContract or MethodReleaseApprovedContract)
+            {
+                var param = transactionDetailResult.TransactionParams;
+                _logger.LogInformation("[NetworkDaoMigrator] proposal={0}, param1={1}", indexerProposal.ProposalId,
+                    param);
+                return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2, param);
             }
-
             return new Tuple<string, string, string>(contractAndMethodName.Item1, contractAndMethodName.Item2,
                 string.Empty);
         }
