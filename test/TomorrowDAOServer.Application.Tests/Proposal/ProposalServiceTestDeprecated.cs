@@ -100,10 +100,10 @@ public class ProposalServiceTestDeprecated
             .Returns(new Dictionary<string, IndexerVote>());
         _DAOProvider.GetAsync(Arg.Any<GetDAOInfoInput>())
             .Returns(new DAOIndex { Id = "DaoId" });
-        _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
-        {
-            Symbol = "ELF", Decimals = "8"
-        });
+        // _explorerProvider.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<ExplorerTokenInfoRequest>()).Returns(new ExplorerTokenInfoResponse
+        // {
+        //     Symbol = "ELF", Decimals = "8"
+        // });
         _voteProvider.GetVoteSchemeDicAsync(Arg.Any<GetVoteSchemeInput>())
             .Returns(new Dictionary<string, IndexerVoteSchemeInfo>());
         _tokenService.GetTokenInfoAsync(Arg.Any<string>(), Arg.Any<string>())

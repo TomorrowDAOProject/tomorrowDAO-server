@@ -56,9 +56,9 @@ public class GraphQlHelper : IGraphQlHelper, ISingletonDependency
             return graphQlResponse.Data;
         }
 
-        Log.Error("query graphQL err, errors = {Errors}",
-            string.Join(",", graphQlResponse.Errors.Select(e => e.Message).ToList()));
-        return default;
+        var errorMsg = string.Join(",", graphQlResponse.Errors.Select(e => e.Message).ToList());
+        Log.Error("query graphQL err, errors = {Errors}", errorMsg);
+        throw new SystemException($"GraphQL Query Fail. Msg={errorMsg}");
     }
 }
 

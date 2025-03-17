@@ -4,7 +4,9 @@ using System.Linq;
 using AElf;
 using AElf.Types;
 using AutoMapper;
+using Newtonsoft.Json;
 using TomorrowDAOServer.Common;
+using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer;
@@ -18,6 +20,7 @@ public class MapperBase : Profile
             ["param"] = string.IsNullOrEmpty(param) ? "" : param
         };
     }
+    protected static ISet<string> UserCreatedMethods = new HashSet<string>() { "CreateProposal", "Release" };
 
     protected static GovernanceMechanism MapGovernanceMechanism(string governanceToken)
     {
@@ -51,6 +54,16 @@ public class MapperBase : Profile
         return list.Select(x => x.ToString()).ToList();
     }
 
+    protected static string MapResourceTokenAddress(TransactionInfo? transactionInfo)
+    {
+        if (transactionInfo == null)
+        {
+            return string.Empty;
+        }
+
+        return transactionInfo.From ?? string.Empty;
+    }
+
     protected static string MapIcon(SourceType sourceType, string icon)
     {
         if (sourceType != SourceType.FindMini)
@@ -82,5 +95,66 @@ public class MapperBase : Profile
         res.AddRange(screenshots.Select(screenshot => screenshot.StartsWith("/") ? CommonConstant.FindminiUrlPrefix + screenshot : screenshot));
         
         return res;
+    }
+    
+    protected static NetworkDaoCreatedByEnum MapCreateBy(string methodName)
+    {
+        return UserCreatedMethods.Contains(methodName)
+            ? NetworkDaoCreatedByEnum.USER
+            : NetworkDaoCreatedByEnum.SYSTEM_CONTRACT;
+    }
+
+    protected static NetworkDaoProposalStatusEnum MapNetworkDaoProposalStatus(DateTime? expiredTime, NetworkDaoProposalStatusEnum status)
+    {
+        if (expiredTime == null)
+        {
+            return status;
+        }
+
+        if (status is not (NetworkDaoProposalStatusEnum.Approved or NetworkDaoProposalStatusEnum.Pending))
+        {
+            return status;
+        }
+
+        var now = DateTime.UtcNow;
+        return now > expiredTime ? NetworkDaoProposalStatusEnum.Expired : status;
+    }
+
+    protected static bool MapIsActive(int isActive)
+    {
+        return isActive == 1;
+    }
+
+    protected static List<string> MapSocials(string socials)
+    {
+        if (socials.IsNullOrWhiteSpace())
+        {
+            return new List<string>();
+        }
+
+        try
+        {
+            return JsonConvert.DeserializeObject<List<string>>(socials);
+        }
+        catch (Exception e)
+        {
+            return new List<string>();
+        }
+    }
+
+    protected DateTime MapUpdateTime(string dateTimeString)
+    {
+        if (dateTimeString.IsNullOrWhiteSpace())
+        {
+            return DateTime.Now;
+        }
+        try
+        {
+            return DateTime.Parse(dateTimeString);
+        }
+        catch (Exception e)
+        {
+            return DateTime.Now;
+        }
     }
 }
