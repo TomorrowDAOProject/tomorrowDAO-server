@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +9,9 @@ using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Common.Provider;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Enums;
+using TomorrowDAOServer.NetworkDao;
+using TomorrowDAOServer.NetworkDao.Migrator.ES;
+using TomorrowDAOServer.NetworkDao.Provider;
 using TomorrowDAOServer.Providers;
 
 namespace TomorrowDAOServer.Proposal;
@@ -18,26 +22,29 @@ public class ProposalNumUpdateService : ScheduleSyncDataService
     private readonly IChainAppService _chainAppService;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IGraphQLProvider _graphQlProvider;
+    private readonly INetworkDaoEsDataProvider _networkDaoEsDataProvider;
     
     public ProposalNumUpdateService(ILogger<ProposalNumUpdateService> logger,
-        IGraphQLProvider graphQlProvider, IChainAppService chainAppService, IExplorerProvider explorerProvider)
+        IGraphQLProvider graphQlProvider, IChainAppService chainAppService, IExplorerProvider explorerProvider,
+        INetworkDaoEsDataProvider networkDaoEsDataProvider)
         : base(logger, graphQlProvider)
     {
         _logger = logger;
         _graphQlProvider = graphQlProvider;
         _chainAppService = chainAppService;
         _explorerProvider = explorerProvider;
+        _networkDaoEsDataProvider = networkDaoEsDataProvider;
     }
 
     public override async Task<long> SyncIndexerRecordsAsync(string chainId, long lastEndHeight, long newIndexHeight)
     {
-        var parliamentTask = GetCountTask(Common.Enum.ProposalType.Parliament);
-        var associationTask = GetCountTask(Common.Enum.ProposalType.Association);
-        var referendumTask = GetCountTask(Common.Enum.ProposalType.Referendum);
+        var parliamentTask = GetCountTask(NetworkDaoOrgType.Parliament);
+        var associationTask = GetCountTask(NetworkDaoOrgType.Association);
+        var referendumTask = GetCountTask(NetworkDaoOrgType.Referendum);
         await Task.WhenAll(parliamentTask, associationTask, referendumTask);
-        var parliamentCount = parliamentTask.Result.Total;
-        var associationCount = associationTask.Result.Total;
-        var referendumCount = referendumTask.Result.Total;
+        var parliamentCount = parliamentTask.Result.Item1;
+        var associationCount = associationTask.Result.Item1;
+        var referendumCount = referendumTask.Result.Item1;
         Log.Information("ProposalNumUpdate parliamentCount {parliamentCount}, associationCount {associationCount}, referendumCount {referendumCount}",
             parliamentCount, associationCount, referendumCount);
         await _graphQlProvider.SetProposalNumAsync(chainId, parliamentCount, associationCount, referendumCount);
@@ -55,12 +62,14 @@ public class ProposalNumUpdateService : ScheduleSyncDataService
         return WorkerBusinessType.ProposalNumUpdate;
     }
     
-    private Task<ExplorerProposalResponse> GetCountTask(Common.Enum.ProposalType type)
+    private async Task<Tuple<long, List<NetworkDaoProposalIndex>>> GetCountTask(NetworkDaoOrgType type)
     {
-        return _explorerProvider.GetProposalPagerAsync(CommonConstant.MainChainId, new ExplorerProposalListRequest
+        return await _networkDaoEsDataProvider.GetProposalListAsync(new GetProposalListInput
         {
-            ProposalType = type.ToString(),
-            Status = "all", IsContract = 0
+            ChainId = CommonConstant.MainChainId,
+            IsContract = false,
+            Status = NetworkDaoProposalStatusEnum.All,
+            ProposalType = type
         });
     }
 }

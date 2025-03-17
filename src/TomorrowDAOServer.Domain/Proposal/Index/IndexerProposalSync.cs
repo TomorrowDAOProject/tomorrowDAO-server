@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json.Converters;
 using TomorrowDAOServer.Common;
-using TomorrowDAOServer.Entities;
 using TomorrowDAOServer.Enums;
 
 namespace TomorrowDAOServer.Proposal.Index;

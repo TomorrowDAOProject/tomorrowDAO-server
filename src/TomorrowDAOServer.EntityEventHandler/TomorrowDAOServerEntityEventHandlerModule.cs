@@ -37,6 +37,7 @@ using Volo.Abp.BackgroundJobs.Hangfire;
 using TomorrowDAOServer.Common.Enum;
 using MongoDB.Driver;
 using StackExchange.Redis;
+using TomorrowDAOServer.NetworkDao.Options;
 using TomorrowDAOServer.Options;
 using Volo.Abp.Caching;
 using Volo.Abp.EventBus;
@@ -79,6 +80,7 @@ public class TomorrowDAOServerEntityEventHandlerModule : AbpModule
         Configure<ExplorerOptions>(configuration.GetSection("Explorer"));
         Configure<RankingOptions>(configuration.GetSection("Ranking"));
         Configure<GraphQLOptions>(configuration.GetSection("GraphQL"));
+        Configure<MigratorOptions>(configuration.GetSection("MigratorOptions"));
         ConfigureHangfire(context, configuration);
         // Configure<AbpRabbitMqBackgroundJobOptions>(configuration.GetSection("AbpRabbitMqBackgroundJob"));
         context.Services.AddHostedService<TomorrowDAOServerHostedService>();

@@ -30,7 +30,8 @@ public static class CommonConstant
     public const string GovernanceContractAddress = "GovernanceContractAddress";
     public const string TreasuryContractAddressName = "TreasuryContractAddress";
     public const string ProxyAccountContractAddressName = "AElf.Contracts.ProxyAccountContract";
-        
+
+    public const string CaMethodGetHolderInfo = "GetHolderInfo";
     public const string ElectionMethodGetVotedCandidates = "GetVotedCandidates";
     public const string ElectionMethodGetCandidateVote = "GetCandidateVote";
     public const string TreasuryMethodGetTreasuryAccountAddress = "GetTreasuryAccountAddress";
@@ -40,6 +41,9 @@ public static class CommonConstant
     public const string TokenMethodIssue = "Issue";
     public const string GovernanceMethodCreateProposal = "CreateProposal";
     public const string ProxyAccountMethodGetProxyAccountByAddress = "GetProxyAccountByProxyAccountAddress";
+    public const string Acs3MethodGetProposal = "GetProposal";
+    public const string OrganizationMethodGetOrganization = "GetOrganization";
+    public const string OrganizationMethodGetProposerWhiteList = "GetProposerWhiteList";
     
     public const string TransactionStateMined = "MINED";
     public const string TransactionStatePending = "PENDING";
@@ -51,6 +55,7 @@ public static class CommonConstant
     
     //LogEvent
     public const string VoteEventVoted = "Voted";
+    public const string ProposalCreated = "ProposalCreated";
     public const string MemoPattern = @"##GameRanking\s*:\s*\{([^}]+)\}";
     public const string DescriptionBegin = "##GameRanking:";
     public const string DescriptionTMARankingBegin = "##GameRanking:TMARanking";
@@ -130,4 +135,13 @@ public static class CommonConstant
     public const string DownloadFail = "DownloadFail";
     public const string ConvertFail = "ConvertFail";
     public const string UploadFail = "UploadFail";
+    
+    //Resource token
+    public const string BuyMethod = "Buy";
+    public const string SellMethod = "Sell";
+    public const string NeedParse = "NeedParse";
+    
+    //Order
+    public const string Desc = "desc";
+    public const string Asc = "asc";
 }

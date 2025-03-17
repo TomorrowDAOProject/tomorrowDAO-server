@@ -1,20 +1,22 @@
 using System;
 using System.Collections.Generic;
 using TomorrowDAOServer.Common.Enum;
+using TomorrowDAOServer.Enums;
 using ProposalType = TomorrowDAOServer.Common.Enum.ProposalType;
 
 namespace TomorrowDAOServer.Dtos.Explorer;
 
+
 public class ExplorerProposalInfoRequest
 {
-    public ExplorerProposalInfo Proposal { get; set; }
-    public List<string> BpList { get; set; }
-    public List<string> ParliamentProposerList { get; set; }
+    public string ProposalId { get; set; }
 }
 
 public class ExplorerProposalInfoResponse
 {
-    public string ProposalId { get; set; }
+    public ExplorerProposalInfo Proposal { get; set; }
+    // public List<string> BpList { get; set; }
+    // public List<string> ParliamentProposerList { get; set; }
 }
 
 public class ExplorerProposalInfo
@@ -32,10 +34,10 @@ public class ExplorerProposalInfo
     public Decimal Rejections { get; set; }
     public Decimal Abstentions { get; set; }
     public Dictionary<string, object> LeftInfo { get; set; }
-    public ExplorerProposalStatusEnum Status { get; set; }
+    public string Status { get; set; }
     public string ReleasedTxId { get; set; }
     public DateTime ReleasedTime { get; set; }
-    public ExplorerCreatedByTypeEnum CreatedBy { get; set; }
+    public NetworkDaoCreatedByEnum CreatedBy { get; set; }
     public bool IsContractDeployed { get; set; }
     public ProposalType ProposalType { get; set; }
 }
