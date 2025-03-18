@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Aetherlink.PriceServer.Common;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using TomorrowDAOServer.Common;
 using TomorrowDAOServer.Dtos.Explorer;
 using TomorrowDAOServer.Enums;
 using TomorrowDAOServer.Grains.Grain.NetworkDao;
@@ -14,6 +16,7 @@ using TomorrowDAOServer.NetworkDao.Migrator.ES;
 using TomorrowDAOServer.NetworkDao.Provider;
 using TomorrowDAOServer.Options;
 using TomorrowDAOServer.Providers;
+using TomorrowDAOServer.Token;
 using TomorrowDAOServer.User.Provider;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -33,10 +36,15 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
     private readonly IUserProvider _userProvider;
     private readonly IExplorerProvider _explorerProvider;
     private readonly IOptionsMonitor<TelegramOptions> _telegramOptions;
+    private readonly ITokenService _tokenService;
+    private readonly ILogger<NetworkDaoVoteService> _logger;
+
+    private const string ElfDecimal = "8";
 
     public NetworkDaoVoteService(INetworkDaoEsDataProvider networkDaoEsDataProvider, IObjectMapper objectMapper,
         IClusterClient clusterClient, IUserProvider userProvider, IExplorerProvider explorerProvider,
-        IOptionsMonitor<TelegramOptions> telegramOptions)
+        IOptionsMonitor<TelegramOptions> telegramOptions, ITokenService tokenService,
+        ILogger<NetworkDaoVoteService> logger)
     {
         _networkDaoEsDataProvider = networkDaoEsDataProvider;
         _objectMapper = objectMapper;
@@ -44,6 +52,8 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
         _userProvider = userProvider;
         _explorerProvider = explorerProvider;
         _telegramOptions = telegramOptions;
+        _tokenService = tokenService;
+        _logger = logger;
     }
 
     public async Task<GetVotedListPagedResult> GetVotedListAsync(GetVotedListInput input)
@@ -63,7 +73,47 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
             };
         }
 
+        var symbols = voteIndices.Select(t => t.Symbol).Distinct().ToList();
+        var tokenInfos = new Dictionary<string, TokenInfoDto>();
+        foreach (var symbol in symbols)
+        {
+            tokenInfos[symbol] = await _tokenService.GetTokenInfoAsync(input.ChainId, symbol);
+        }
+
+        var voteAmount = new Dictionary<string, decimal>();
+        foreach (var voteIndex in voteIndices)
+        {
+            var tokenSymbol = voteIndex.Symbol.IsNullOrWhiteSpace() || voteIndex.Symbol == "none"
+                ? string.Empty
+                : voteIndex.Symbol;
+            if (tokenSymbol.IsNullOrWhiteSpace() || !tokenInfos.ContainsKey(tokenSymbol))
+            {
+                _logger.LogWarning("Token information not found. {0}", tokenSymbol);
+                continue;
+            }
+
+            var symbolDecimal = tokenInfos[tokenSymbol].Decimals;
+            if (voteIndex.TransactionInfo?.ChainId == null || voteIndex.TransactionInfo.ChainId.IsNullOrWhiteSpace())
+            {
+                symbolDecimal = ElfDecimal;
+            }
+
+            if (!int.TryParse(symbolDecimal, out var decimalIntValue) || decimalIntValue <= 0)
+            {
+                continue;
+            }
+
+            var pow = Math.Pow(10, decimalIntValue);
+            voteAmount[voteIndex.Id] = voteIndex.Amount / (decimal)pow;
+        }
+
         var resultDtos = _objectMapper.Map<List<NetworkDaoProposalVoteIndex>, List<GetVotedListResultDto>>(voteIndices);
+
+        foreach (var resultDto in resultDtos)
+        {
+            resultDto.Amount = voteAmount.GetValueOrDefault(resultDto.Id, resultDto.Amount);
+        }
+
         return new GetVotedListPagedResult
         {
             Items = resultDtos,
@@ -268,7 +318,7 @@ public class NetworkDaoVoteService : TomorrowDAOServerAppService, INetworkDaoVot
         {
             return new Dictionary<string, NetworkDaoProposalVoteIndex>();
         }
-        
+
         var (totalCount, votedList) = await _networkDaoEsDataProvider.GetProposalVotedListAsync(new GetVotedListInput
         {
             MaxResultCount = GetVotedListInput.MaxMaxResultCount,
