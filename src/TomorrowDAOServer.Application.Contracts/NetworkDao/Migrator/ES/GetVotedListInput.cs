@@ -15,6 +15,7 @@ public class GetVotedListInput : PagedAndSortedResultRequestDto
     public string Search { get; set; }
     public NetworkDaoOrgType ProposalType { get; set; }
     public string Address { get; set; }
+    public string VoteId { get; set; }
     
 }
 
