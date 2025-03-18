@@ -24,7 +24,8 @@ public class GetVotedListPagedResult : PagedResultDto<GetVotedListResultDto>
 
 public class GetVotedListResultDto
 {
-    public long Amount { get; set; }
+    public string Id { get; set; }
+    public decimal Amount { get; set; }
     public DateTime Time { get; set; }
     public string TxId { get; set; }
     public string Voter { get; set; }
