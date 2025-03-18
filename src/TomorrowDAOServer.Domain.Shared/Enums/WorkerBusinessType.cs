@@ -27,4 +27,5 @@ public enum WorkerBusinessType
     LuckyboxTaskComplete,
     DigiTaskComplete,
     AppUrlUploadTask,
+    ChainFm
 }
