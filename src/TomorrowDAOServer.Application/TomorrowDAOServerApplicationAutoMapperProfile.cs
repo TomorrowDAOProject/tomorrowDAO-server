@@ -235,7 +235,7 @@ public class TomorrowDAOServerApplicationAutoMapperProfile : MapperBase
             .ForPath(des => des.ReleaseThreshold.MinimalVoteThreshold, opt => opt.MapFrom(src => src.MinimalVoteThreshold))
             .ForMember(des => des.ProposalType, opt => opt.MapFrom(src => src.OrgType));
         CreateMap<TomorrowDAOServer.NetworkDao.NetworkDaoProposalVoteIndex,
-                TomorrowDAOServer.NetworkDao.Dtos.GetAllPersonalVotesResultDto>()
+                TomorrowDAOServer.NetworkDao.Dtos.GetPersonalVotesResultDto>()
             .ForMember(des => des.TxId, opt => opt.MapFrom(src => src.TransactionInfo.TransactionId))
             .ForMember(des => des.Voter, opt => opt.MapFrom(src => src.Address))
             .ForMember(des => des.Action, opt => opt.MapFrom(src => src.ReceiptType));

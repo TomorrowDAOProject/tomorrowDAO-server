@@ -62,10 +62,23 @@ public class NetworkDaoController
         return await _networkDaoProposalService.GetAppliedProposalListAsync(input);
     }
 
+    [HttpPost("vote/reclaim")]
+    [Authorize]
+    public async Task<UpdateVoteReclaimResponse> UpdateVoteReclaimStatusAsync(UpdateVoteReclaimInput input)
+    {
+        return await _networkDaoVoteService.UpdateVoteReclaimStatusAsync(input);
+    }
+
     [HttpGet("votes")]
     public async Task<GetVotedListPagedResult> GetVotedListAsync(GetVotedListInput input)
     {
         return await _networkDaoVoteService.GetVotedListAsync(input);
+    }
+
+    [HttpGet("vote/personal-votes")]
+    public async Task<List<GetPersonalVotesResultDto>> GetPersonalVotesAsync(GetPersonalVotesInput input)
+    {
+        return await _networkDaoVoteService.GetPersonalVotesAsync(input);
     }
 
     [HttpGet("vote/personal")]
