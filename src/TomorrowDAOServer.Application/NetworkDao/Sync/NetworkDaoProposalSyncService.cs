@@ -739,29 +739,35 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                 }
             }
 
-            var proposalOutput =
-                await _networkDaoContractProvider.GetProposalAsync(chainId, proposalIndex.OrgType,
-                    proposalIndex.ProposalId);
-            if (proposalOutput != null && proposalOutput.ProposalId != null &&
-                proposalOutput.ProposalId.ToHex() == proposalIndex.ProposalId)
+            int retryCount = 0;
+            do
             {
-                if (proposalOutput.ExpiredTime != null)
+                var proposalOutput =
+                    await _networkDaoContractProvider.GetProposalAsync(chainId, proposalIndex.OrgType,
+                        proposalIndex.ProposalId);
+                if (proposalOutput != null && proposalOutput.ProposalId != null &&
+                    proposalOutput.ProposalId.ToHex() == proposalIndex.ProposalId)
                 {
-                    proposalIndex.ExpiredTime = proposalOutput.ExpiredTime.ToDateTime();
+                    if (proposalOutput.ExpiredTime != null)
+                    {
+                        proposalIndex.ExpiredTime = proposalOutput.ExpiredTime.ToDateTime();
+                    }
+                    else
+                    {
+                        _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, expiredtime is default {1}",
+                            proposalIndex.ProposalId, JsonConvert.SerializeObject(proposalOutput));
+                    }
+
+                    return null;
                 }
                 else
                 {
-                    _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, expiredtime is default {1}",
-                        proposalIndex.ProposalId, JsonConvert.SerializeObject(proposalOutput));
+                    retryCount++;
+                    _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, proposal not found. retry={1}",
+                        proposalIndex.ProposalId, retryCount);
+                    await Task.Delay(TimeSpan.FromSeconds(_migratorOptions.CurrentValue.RetryDelay));
                 }
-
-                return null;
-            }
-            else
-            {
-                _logger.LogInformation("[NetworkDaoMigrator] proposalId={0}, proposal not found.",
-                    proposalIndex.ProposalId);
-            }
+            } while (retryCount < _migratorOptions.CurrentValue.RetryCount);
         }
         catch (Exception e)
         {
