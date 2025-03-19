@@ -16,4 +16,8 @@ public class MigratorOptions
 
     public long MainChainBlockHeight { get; set; } = 229006413;
     public long SideChainBlockHeigth { get; set; } = 248556545;
+    
+    //query proposal
+    public int RetryCount { get; set; } = 6;
+    public int RetryDelay { get; set; } = 10; //s
 }
