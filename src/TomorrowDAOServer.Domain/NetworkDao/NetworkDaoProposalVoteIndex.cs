@@ -33,4 +33,7 @@ public class NetworkDaoProposalVoteIndex : AbstractEntity<string>, IIndexBuild
     public string? PreviousBlockHash { get; set; }
     public bool IsDeleted { get; set; }
     public TransactionInfoDto TransactionInfo { get; set; }
+    public bool Claimed { get; set; }
+    public string ClaimedTx { get; set; }
+    public DateTime ClaimedTime { get; set; }
 }

@@ -19,6 +19,7 @@ public interface INetworkDaoEsDataProvider
     Task BulkAddOrUpdateProposalIndexAsync(List<NetworkDaoProposalIndex> proposalList);
     Task AddOrUpdateProposalListIndexAsync(NetworkDaoProposalListIndex proposalListIndex);
     Task BulkAddOrUpdateProposalListIndexAsync(List<NetworkDaoProposalListIndex> proposalListList);
+    Task AddOrUpdateProposalVoteIndexAsync(NetworkDaoProposalVoteIndex proposalVoteIndex);
     Task BulkAddOrUpdateProposalVoteIndexAsync(List<NetworkDaoProposalVoteIndex> voteIndices);
     Task BulkAddOrUpdateOrgIndexAsync(List<NetworkDaoOrgIndex> orgIndices);
     Task BulkAddOrUpdateOrgMemberIndexAsync(List<NetworkDaoOrgMemberIndex> orgMemberIndices);
@@ -42,7 +43,7 @@ public interface INetworkDaoEsDataProvider
     Task<Tuple<long, List<NetworkDaoOrgProposerIndex>>> GetOrgProposerListByOrgAddressAsync(
         GetOrgProposerByOrgAddressInput input);
 
-
+    Task<NetworkDaoProposalVoteIndex> GetProposalVotedByIdAsync(string id);
     Task<Tuple<long, List<NetworkDaoProposalVoteIndex>>> GetProposalVotedListAsync(GetVotedListInput input);
     Task<Tuple<long, List<NetworkDaoVoteTeamIndex>>> GetVoteTeamListAsync(GetVoteTeamListInput input);
     Task<List<NetworkDaoContractNamesIndex>> GetContractNamesAsync(GetContractNamesInput input);
@@ -118,6 +119,16 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
         }
 
         await _proposalListIndexRepository.BulkAddOrUpdateAsync(proposalListList);
+    }
+
+    public async Task AddOrUpdateProposalVoteIndexAsync(NetworkDaoProposalVoteIndex proposalVoteIndex)
+    {
+        if (proposalVoteIndex == null)
+        {
+            return;
+        }
+
+        await _proposalVoteIndexRepository.AddOrUpdateAsync(proposalVoteIndex);
     }
 
     public async Task BulkAddOrUpdateProposalVoteIndexAsync(List<NetworkDaoProposalVoteIndex> voteIndices)
@@ -456,12 +467,34 @@ public class NetworkDaoEsDataProvider : INetworkDaoEsDataProvider, ISingletonDep
                new Tuple<long, List<NetworkDaoOrgProposerIndex>>(0, new List<NetworkDaoOrgProposerIndex>());
     }
 
+    public async Task<NetworkDaoProposalVoteIndex> GetProposalVotedByIdAsync(string id)
+    {
+        if (id.IsNullOrWhiteSpace())
+        {
+            return new NetworkDaoProposalVoteIndex();
+        }
+        
+        var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalVoteIndex>, QueryContainer>>()
+        {
+            q => q.Term(i => i.Field(t => t.Id).Value(id))
+        };
+
+        QueryContainer Filter(QueryContainerDescriptor<NetworkDaoProposalVoteIndex> f) => f.Bool(b => b.Must(mustQuery));
+
+        return await _proposalVoteIndexRepository.GetAsync(Filter) ?? new NetworkDaoProposalVoteIndex();
+    }
+
     public async Task<Tuple<long, List<NetworkDaoProposalVoteIndex>>> GetProposalVotedListAsync(GetVotedListInput input)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<NetworkDaoProposalVoteIndex>, QueryContainer>>()
         {
             q => q.Term(i => i.Field(t => t.ChainId).Value(input.ChainId))
         };
+
+        if (!input.VoteId.IsNullOrWhiteSpace())
+        {
+            mustQuery.Add(q => q.Term(i => i.Field(t => t.Id).Value(input.VoteId)));
+        }
 
         if (!input.ProposalId.IsNullOrWhiteSpace())
         {
