@@ -17,18 +17,22 @@ public class GetAllPersonalVotesInput : PagedAndSortedResultRequestDto
     public string Search { get; set; }
 }
 
-public class GetAllPersonalVotesPagedResult : PagedResultDto<GetAllPersonalVotesResultDto>
+public class GetAllPersonalVotesPagedResult : PagedResultDto<GetPersonalVotesResultDto>
 {
     
 }
 
-public class GetAllPersonalVotesResultDto
+public class GetPersonalVotesResultDto
 {
-    public long Amount { get; set; }
+    public string Id { get; set; }
+    public decimal Amount { get; set; }
     public DateTime Time { get; set; }
     public string ProposalId { get; set; }
     public string TxId { get; set; }
     public string Voter { get; set; }
     public string Symbol { get; set; }
     public NetworkDaoReceiptTypeEnum Action { get; set; }
+    public bool Claimed { get; set; } = false;
+    public string ClaimedTx { get; set; }
+    public DateTime ClaimedTime { get; set; }
 }
