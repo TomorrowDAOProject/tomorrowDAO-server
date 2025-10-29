@@ -796,7 +796,8 @@ public class NetworkDaoProposalSyncService : INetworkDaoProposalSyncService, ISi
                         MaxResultCount = MaxResultCount,
                         SkipCount = 0,
                         ChainId = chainId,
-                        ProposalId = proposalId
+                        ProposalId = proposalId,
+                        ProposalType = NetworkDaoOrgType.All
                     });
                 if (!localProposalList.IsNullOrEmpty())
                 {
