@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- File name extension must be .runsettings -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>      
+       <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[xunit.*]*,
+          [*Tests]*
+          </Exclude> <!-- [Assembly-Filter]Type-Filter -->
+          <ExcludeByFile>
+          **/test/**/*.cs
+          ,**/src/TomorrowDAOServer.Domain/**/*.cs
+          ,**/src/TomorrowDAOServer.Domain.Shared/**/*.cs
+          <!-- ,**/src/TomorrowDAOServer.Application.Contracts/**/*.cs  -->
+          ,**/src/TomorrowDAOServer.AuthServer/**/*.cs
+          ,**/src/TomorrowDAOServer.DbMigrator/**/*.cs
+          ,**/src/TomorrowDAOServer.HttpApi/**/*.cs
+          ,**/src/TomorrowDAOServer.HttpApi.Client/**/*.cs
+          ,**/src/TomorrowDAOServer.HttpApi.Host/**/*.cs
+          ,**/src/TomorrowDAOServer.HttpApi.MongoDB/**/*.cs
+          ,**/src/TomorrowDAOServer.Silo/**/*.cs
+          <!-- ,**/src/TomorrowDAOServer.Grains/**/*.cs -->
+          ,**/src/TomorrowDAOServer.Grains/Grain/Protobuf/Generated/*.cs
+          ,**/src/TomorrowDAOServer.Worker/**/*.cs
+          ,**/src/TomorrowDAOServer.Application.Contracts/Contracts/*.cs
+          </ExcludeByFile>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute</ExcludeByAttribute>
+          <SingleHit>false</SingleHit>
+        </Configuration>
+      </DataCollector>    
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

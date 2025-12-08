@@ -1,0 +1,13 @@
+{
+  "ClientId": "TomorrowDAOServer_EntityEventHandler",
+  "apollo": {
+    "UseApollo" : true,
+    "AppId": "tmrwdao-server",
+    "ConfigServer": [
+      "http://localhost:8080"
+    ],
+    "Namespaces": [
+      "entityEvent.appsettings.json"
+    ]
+  }
+}
