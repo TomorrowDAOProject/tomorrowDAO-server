@@ -181,14 +181,11 @@ public class WalletUserVerifierProvider : IVerifierProvider
                 };
             }
 
-            addressInfos = new List<AddressInfo>
+            addressInfos = _chainOptions.CurrentValue.ChainInfos.Values.Select(c => c.ChainId).Distinct().Select(id=> new AddressInfo
             {
-                new()
-                {
-                    ChainId = chainId,
-                    Address = address
-                }
-            };
+                ChainId = id,
+                Address = address
+            }).ToList();
         }
 
         return new VerifierResultDto
