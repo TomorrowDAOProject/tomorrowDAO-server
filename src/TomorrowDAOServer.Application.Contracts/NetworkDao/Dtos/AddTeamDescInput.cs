@@ -22,7 +22,7 @@ public class AddTeamDescInput
     public string OfficialWebsite { get; set; }
     public string Location { get; set; }
     public string Mail { get; set; }
-    public DateTime UpdateTime { get; set; }
+    public DateTime? UpdateTime { get; set; }
     
 }
 
